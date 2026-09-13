@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+markers = [
+    "smoke: environment smoke tests (require docker compose up)",
+]
