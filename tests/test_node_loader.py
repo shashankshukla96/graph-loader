@@ -281,7 +281,7 @@ def test_node_loader_main_uses_config_and_closes_resources(schema):
         assert node_loader_main(["--node-label", "Person", "--max-messages", "1"]) == 0
     config = consumer_cls.call_args.args[0]
     assert config["bootstrap.servers"] == "localhost:9092"
-    assert config["group.id"] == schema.loading.consumer_group_id
+    assert config["group.id"] == f"{schema.loading.consumer_group_id}-Person"
     assert config["enable.auto.commit"] is False
     assert config["auto.offset.reset"] == "earliest"
     assert config["max.poll.interval.ms"] == schema.loading.max_poll_interval_ms

@@ -28,6 +28,8 @@ def get_neo4j_credentials() -> tuple[str, str, str]:
     )
 
 
+from src.orchestrator.docker_service import DockerService
+
 def handle_start(args: argparse.Namespace) -> int:
     logger.info(f"Starting pipeline in {args.mode} mode with config {args.config}")
     
@@ -53,17 +55,53 @@ def handle_start(args: argparse.Namespace) -> int:
         logger.error(f"Schema initialization failed: {e}")
         return 1
         
+    docker_service = DockerService()
+    logger.info("Building node loader image...")
+    try:
+        docker_service.build_image()
+    except Exception as e:
+        logger.error(f"Failed to build node loader image: {e}")
+        return 1
+
+    started_containers = []
+    for node_config in schema.nodes:
+        try:
+            containers = docker_service.run_node_loader(
+                node_label=node_config.label,
+                topic=node_config.topic,
+                mode=args.mode,
+                config_path=args.config,
+                replicas=node_config.replicas,
+                network=args.network
+            )
+            started_containers.extend(containers)
+            logger.info(f"Started node loader for {node_config.label}")
+        except Exception as e:
+            logger.error(f"Failed to launch node loader for {node_config.label}: {e}")
+            for c in started_containers:
+                c.stop()
+            return 1
+            
     return 0
 
 
 def handle_stop(args: argparse.Namespace) -> int:
-    loader = args.loader if args.loader else "ALL"
-    logger.info(f"Stopping loader: {loader}")
+    loader = args.loader
+    logger.info(f"Stopping loader(s)...")
+    docker_service = DockerService()
+    docker_service.stop_node_loaders(node_label=loader)
+    logger.info("Loaders stopped.")
     return 0
 
 
 def handle_status(args: argparse.Namespace) -> int:
     logger.info(f"Checking status for config: {args.config}")
+    docker_service = DockerService()
+    containers = docker_service.list_node_loaders()
+    if not containers:
+        logger.info("No loaders running.")
+    for c in containers:
+        logger.info(f"Loader {c['name']} ({c['id']}): {c['status']} [Node: {c['node_label']}]")
     return 0
 
 
@@ -75,6 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser_start = subparsers.add_parser("start", help="Start the ingestion pipeline")
     parser_start.add_argument("--config", default="config/graph_schema.yaml", help="Path to schema YAML")
     parser_start.add_argument("--mode", choices=["bulk", "stream"], required=True, help="Ingestion mode")
+    parser_start.add_argument("--network", default="graph-loader-net", help="Docker network for containers")
     parser_start.set_defaults(func=handle_start)
 
     # Stop command

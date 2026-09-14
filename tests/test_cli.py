@@ -68,16 +68,23 @@ def test_main_routes_to_status_handler(mock_handle_status):
     mock_handle_status.assert_called_once()
 
 
-def test_handle_stop_stub():
+@patch("src.cli.DockerService")
+def test_handle_stop_stub(mock_docker):
     args = argparse.Namespace(loader=None)
+    mock_docker_instance = MagicMock()
+    mock_docker.return_value = mock_docker_instance
     assert handle_stop(args) == 0
-    args_with_loader = argparse.Namespace(loader="my_loader")
-    assert handle_stop(args_with_loader) == 0
+    mock_docker_instance.stop_node_loaders.assert_called_once_with(node_label=None)
 
 
-def test_handle_status_stub():
+@patch("src.cli.DockerService")
+def test_handle_status_stub(mock_docker):
     args = argparse.Namespace(config="config/graph_schema.yaml")
+    mock_docker_instance = MagicMock()
+    mock_docker_instance.list_node_loaders.return_value = [{"name": "c1", "id": "1", "status": "running", "node_label": "P"}]
+    mock_docker.return_value = mock_docker_instance
     assert handle_status(args) == 0
+    mock_docker_instance.list_node_loaders.assert_called_once()
 
 
 def test_neo4j_username_prefers_documented_variable(monkeypatch):
@@ -92,13 +99,23 @@ def test_neo4j_username_uses_legacy_fallback(monkeypatch):
     assert get_neo4j_credentials()[1] == "legacy"
 
 
+@patch("src.cli.DockerService")
 @patch("src.cli.apply_schema")
 @patch("src.cli.get_neo4j_driver")
 @patch("src.cli.load_schema")
-def test_handle_start_success(mock_load, mock_get_driver, mock_apply_schema):
-    args = argparse.Namespace(mode="bulk", config="config.yaml")
+def test_handle_start_success(mock_load, mock_get_driver, mock_apply_schema, mock_docker):
+    args = argparse.Namespace(mode="bulk", config="config.yaml", network="test_net")
     mock_driver = MagicMock()
     mock_get_driver.return_value = mock_driver
+    mock_schema = MagicMock()
+    mock_node = MagicMock()
+    mock_node.label = "Person"
+    mock_node.topic = "person_topic"
+    mock_schema.nodes = [mock_node]
+    mock_load.return_value = mock_schema
+
+    mock_docker_instance = MagicMock()
+    mock_docker.return_value = mock_docker_instance
     
     exit_code = handle_start(args)
     
@@ -107,6 +124,16 @@ def test_handle_start_success(mock_load, mock_get_driver, mock_apply_schema):
     mock_get_driver.assert_called_once()
     mock_apply_schema.assert_called_once()
     mock_driver.close.assert_called_once()
+    
+    mock_docker_instance.build_image.assert_called_once()
+    mock_docker_instance.run_node_loader.assert_called_once_with(
+        node_label="Person",
+        topic="person_topic",
+        mode="bulk",
+        config_path="config.yaml",
+        replicas=mock_node.replicas,
+        network="test_net"
+    )
 
 
 @patch("src.cli.load_schema")
@@ -131,3 +158,28 @@ def test_handle_start_init_failure(mock_load, mock_get_driver, mock_apply_schema
     assert exit_code == 1
     mock_load.assert_called_once()
     mock_apply_schema.assert_not_called()
+
+
+@patch("src.cli.DockerService")
+@patch("src.cli.apply_schema")
+@patch("src.cli.get_neo4j_driver")
+@patch("src.cli.load_schema")
+def test_handle_start_docker_launch_failure(mock_load, mock_get_driver, mock_apply_schema, mock_docker):
+    args = argparse.Namespace(mode="bulk", config="config.yaml", network="test_net")
+    mock_schema = MagicMock()
+    mock_node1 = MagicMock()
+    mock_node2 = MagicMock()
+    mock_schema.nodes = [mock_node1, mock_node2]
+    mock_load.return_value = mock_schema
+
+    mock_docker_instance = MagicMock()
+    mock_docker.return_value = mock_docker_instance
+    mock_container = MagicMock()
+    
+    # First call succeeds, second fails
+    mock_docker_instance.run_node_loader.side_effect = [[mock_container], Exception("Launch failed")]
+
+    exit_code = handle_start(args)
+
+    assert exit_code == 1
+    mock_container.stop.assert_called_once()

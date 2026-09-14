@@ -95,6 +95,7 @@ class NodeConfig(BaseModel):
     label: str
     topic: str
     key_property: str
+    replicas: int = Field(default=1, ge=1)
     properties: dict[str, PropertyConfig] = Field(default_factory=dict)
 
     @field_validator("label", "key_property")

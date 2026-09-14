@@ -71,4 +71,5 @@ volumes:
 
 networks:
   graph-loader-net:
+    name: graph-loader-net
     driver: bridge

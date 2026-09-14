@@ -160,12 +160,13 @@ class NodeLoader:
     """Consume one configured node topic and synchronously write records."""
 
     def __init__(self, consumer: Consumer, writer: NodeWriter, node_config: NodeConfig,
-                 event_logger: logging.Logger = logger) -> None:
+                 topic: str | None = None, event_logger: logging.Logger = logger) -> None:
         self._consumer = consumer
         self._writer = writer
         self._node_config = node_config
         self._logger = event_logger
-        self._consumer.subscribe([node_config.topic])
+        self._topic = topic or node_config.topic
+        self._consumer.subscribe([self._topic])
 
     def _log_failure(self, message: Message, reason: str) -> None:
         self._logger.error("Node load failed label=%s topic=%s partition=%s offset=%s reason=%s",
@@ -234,6 +235,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", default="config/graph_schema.yaml")
     parser.add_argument("--node-label", required=True)
     parser.add_argument("--max-messages", type=int)
+    parser.add_argument("--mode", choices=["bulk", "stream"], default="stream")
+    parser.add_argument("--topic")
     return parser
 
 
@@ -249,14 +252,14 @@ def main(argv: list[str] | None = None) -> int:
         node_config = _select_node_config(schema, args.node_label)
         consumer = Consumer({
             "bootstrap.servers": os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
-            "group.id": schema.loading.consumer_group_id,
+            "group.id": os.environ.get("KAFKA_GROUP_ID", f"{schema.loading.consumer_group_id}-{node_config.label}"),
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "max.poll.interval.ms": schema.loading.max_poll_interval_ms,
             "session.timeout.ms": schema.loading.session_timeout_ms,
         })
         driver = get_neo4j_driver(*get_neo4j_credentials())
-        return NodeLoader(consumer, NodeWriter(driver, node_config), node_config).run(
+        return NodeLoader(consumer, NodeWriter(driver, node_config), node_config, topic=args.topic).run(
             max_messages=args.max_messages
         )
     except Exception as exc:
