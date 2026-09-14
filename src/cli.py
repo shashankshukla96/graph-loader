@@ -19,6 +19,15 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
+def get_neo4j_credentials() -> tuple[str, str, str]:
+    """Return Neo4j credentials, preferring the documented username variable."""
+    return (
+        os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
+        os.environ.get("NEO4J_USERNAME", os.environ.get("NEO4J_USER", "neo4j")),
+        os.environ.get("NEO4J_PASSWORD", "changeme"),
+    )
+
+
 def handle_start(args: argparse.Namespace) -> int:
     logger.info(f"Starting pipeline in {args.mode} mode with config {args.config}")
     
@@ -30,9 +39,7 @@ def handle_start(args: argparse.Namespace) -> int:
         return 1
         
     # 2. Get DB config
-    uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-    user = os.environ.get("NEO4J_USER", "neo4j")
-    password = os.environ.get("NEO4J_PASSWORD", "changeme")
+    uri, user, password = get_neo4j_credentials()
     
     # 3. Apply schema
     try:

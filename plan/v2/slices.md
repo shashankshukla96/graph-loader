@@ -17,9 +17,11 @@ Phase 2 enables Data Engineers and pipeline operators to load every node type de
 **IN scope:**
 - Consume JSON node messages from the Kafka topic associated with a selected YAML `NodeConfig`.
 - Use the declared node label, `key_property`, and property definitions rather than hard-coded entity names.
+- Define and document the canonical raw node-message contract: a JSON object with declared properties at the top level; required and key properties must be present and non-null, unknown fields are rejected, optional `null` properties are omitted, and declared `date`/`datetime` values are normalized for Neo4j.
 - Create or update nodes with `MERGE` semantics based on the declared key property.
 - Apply the declared record properties to the matched or newly created node.
 - Support every node type in the loaded schema through the same generic behavior.
+- Provide a direct, documented single-node-loader invocation for development and operation before fleet orchestration is added in Slice 3.
 - Verify successful loading and replay behavior against Neo4j with representative schemas containing multiple node labels.
 
 **OUT of scope:**
@@ -34,6 +36,8 @@ Phase 2 enables Data Engineers and pipeline operators to load every node type de
 - [ ] The same loader behavior works for every node entry in the YAML schema without entity-specific code changes.
 - [ ] Replaying a record with the same key updates the existing node and does not create a duplicate.
 - [ ] Replaying an entire topic produces no duplicate nodes for any configured node label.
+- [ ] The documented message contract is enforced for required, optional, unknown, `date`, and `datetime` properties.
+- [ ] An operator can run one selected node loader through the documented interface and observe its configured topic reach Neo4j.
 - [ ] Tests demonstrate generic ingestion for at least two node types with different labels, topics, keys, and property sets.
 
 ### Dependencies
@@ -57,11 +61,12 @@ T-shirt size: **M**
 
 **IN scope:**
 - Buffer valid records up to the configured `unwind_batch_size` and write each batch through one parameterized Neo4j `UNWIND` operation.
+- Extend the schema-backed loading configuration with `unwind_batch_size` (and the bounded flush timing needed for partial batches), so batching is configurable rather than an undocumented runtime constant.
 - Flush a non-full batch on a bounded idle interval and during graceful shutdown so low-volume and final records are not stranded.
-- Disable Kafka auto-commit and commit offsets only after the corresponding Neo4j transaction succeeds.
+- Disable Kafka auto-commit and commit only the highest contiguous, durably resolved offset for each Kafka partition after its corresponding Neo4j transaction succeeds.
 - Retry Neo4j transient failures with bounded exponential backoff while retaining the batch and leaving its offsets uncommitted until the write succeeds.
 - Validate consumed JSON sufficiently to identify malformed JSON, missing configured keys or required properties, and incompatible declared property values.
-- Log and skip malformed records without failing valid records in the same polling cycle; logs identify the topic, partition, offset, node type, and rejection reason.
+- Log and skip malformed records without failing valid records in the same polling cycle; logs identify the topic, partition, offset, node type, and rejection reason. A malformed record becomes committable only after its rejection has been durably recorded, and never permits a commit past an unresolved earlier offset in the same partition.
 - Record in operator/developer documentation that log-and-skip is an interim Phase 2 policy and malformed records will move to durable DLQ routing and retry in Phase 5.
 - Exercise batching, retry, offset ordering, partial flush, idempotency, and malformed-record behavior in automated tests.
 
@@ -74,10 +79,12 @@ T-shirt size: **M**
 ### Definition of Done (DoD)
 
 - [ ] The loader writes a full batch when it reaches `unwind_batch_size` and never submits a larger batch.
+- [ ] `unwind_batch_size` and partial-batch flush timing are validated loading settings with documented defaults.
 - [ ] A partial final or idle batch is flushed without waiting indefinitely for more messages.
 - [ ] Kafka offsets for a batch are committed only after its Neo4j transaction completes successfully.
 - [ ] A retryable Neo4j failure is retried with bounded exponential backoff, and no affected offsets are committed before success.
 - [ ] Malformed records are logged with traceable Kafka metadata and a reason, skipped without stopping subsequent valid ingestion, and are not sent to a DLQ in Phase 2.
+- [ ] Every committed Kafka offset is the highest contiguous, durably resolved offset for its partition; interleaved valid and malformed records across multiple partitions cannot skip an unresolved record.
 - [ ] Documentation explicitly tracks migration of malformed node records from logging to the Phase 5 DLQ workflow.
 - [ ] Batch replay remains idempotent and creates no duplicate nodes.
 
@@ -102,8 +109,10 @@ T-shirt size: **L**
 
 **IN scope:**
 - Extend the Phase 1 CLI start workflow to discover all node definitions from the validated YAML schema.
+- Build and version the executable node-loader image, including its node-loader command and entrypoint, as part of this slice; Phase 1 supplies the base CLI and local infrastructure, not this image.
 - Launch one isolated Docker loader container for every declared node type, not just a fixed example entity.
-- Supply each container with the selected node label, Kafka topic, loading mode, Neo4j connection, Kafka connection, schema location, and deterministic consumer-group identity it needs.
+- Support an optional, declarative replica count for each node type (default one) so a node workload can scale horizontally when its topic has partitions.
+- Supply each container with the selected node label, Kafka topic, loading mode, Neo4j connection, Kafka connection, schema location, and deterministic consumer-group identity it needs. Replicas of one node type share that node type's group; groups are derived deterministically from the configured base group plus the node identifier and are isolated from other node types.
 - Use predictable container naming and labels so each node loader can be discovered, inspected, and stopped by the orchestrator.
 - Ensure a failure to launch one required node loader is surfaced as a failed start rather than a successful partial fleet.
 - Preserve independent horizontal scaling of node consumers without changing node-ingestion code.
@@ -117,16 +126,18 @@ T-shirt size: **L**
 
 ### Definition of Done (DoD)
 
-- [ ] Starting the pipeline launches exactly one discoverable node-loader container for each node type declared in the selected YAML schema.
+- [ ] With the default replica count, starting the pipeline launches exactly one discoverable node-loader container for each node type declared in the selected YAML schema.
+- [ ] The node-loader image builds and exposes the documented command/entrypoint required to run a selected configured node type.
 - [ ] Each container consumes only its assigned node topic and writes only its assigned node label.
 - [ ] All declared node types can ingest concurrently without entity-specific container definitions or code branches.
-- [ ] Container and consumer-group identities are deterministic and distinguish node types for operation and lag inspection.
+- [ ] Container identities are deterministic and unique, while every replica of one node type shares only that node type's deterministic consumer group.
+- [ ] Increasing a node type's declared replica count launches that number of workers without affecting another node type's consumer group or workers.
 - [ ] Adding a new valid node definition to YAML results in a new correctly configured loader on the next start.
 - [ ] A required container launch failure makes the start operation fail clearly and identifies the affected node type.
 
 ### Dependencies
 
-- Depends on: Slice 2 (Reliable High-Throughput Node Processing) and Phase 1 — Base CLI/container image
+- Depends on: Slice 2 (Reliable High-Throughput Node Processing) and Phase 1 — Base CLI and local Docker/Kafka/Neo4j infrastructure
 - Blocks: Slice 4 (Finish and Stop a Bulk Node Run)
 
 ### Rough Effort
@@ -145,12 +156,14 @@ T-shirt size: **M**
 
 **IN scope:**
 - Monitor Kafka consumer-group lag for every node loader started from the schema.
-- Treat zero lag across all required node consumer groups as a candidate for completion, while accounting for records already buffered or being written.
+- Define a bulk input boundary only after every configured node consumer group has joined and every topic partition has an assigned live loader: capture the end offset for every assigned topic partition and require its owning loader to acknowledge durable processing through that boundary. An otherwise healthy surplus replica may explicitly acknowledge that it owns no partitions and does not block completion.
+- Treat zero lag as a completion check only after the assigned-partition boundary and loader acknowledgements have been satisfied; zero lag by itself is not completion.
 - Coordinate a graceful final drain so partial batches are written and their offsets committed before completion is declared.
 - Reconfirm that all required node workloads are at zero lag after draining.
 - Stop all node-loader containers automatically after successful bulk completion.
 - Return a clear successful CLI result only after durable completion and container shutdown; surface loader, write, monitoring, or shutdown failures with the affected node type.
 - Keep stream mode running continuously; automatic zero-lag completion and shutdown apply only to bulk mode.
+- Require bulk inputs to be quiescent for the run. Records appended after the captured boundary produce a clear non-successful result rather than a silent successful completion; they belong to a subsequent bulk run or stream mode.
 
 **OUT of scope:**
 - Edge-loader scheduling or deciding when the edge phase begins.
@@ -162,12 +175,14 @@ T-shirt size: **M**
 ### Definition of Done (DoD)
 
 - [ ] Bulk mode monitors every node consumer group derived from the YAML schema and does not succeed while any group has non-zero lag.
+- [ ] Bulk mode captures an assigned-partition end-offset boundary and does not complete until every required partition has durably reached it; an expected consumer group with no assigned topic partitions cannot complete the run merely by reporting zero lag, while an explicitly idle surplus replica can complete its no-partition acknowledgement.
 - [ ] Zero broker lag does not cause buffered or in-flight Neo4j records to be abandoned.
 - [ ] Every loader performs a final batch flush and commits successful offsets before the run is declared complete.
 - [ ] The orchestrator reconfirms zero lag after the final drain and stops every node-loader container it started.
 - [ ] The CLI exits successfully only when all node groups are durably complete and all node-loader containers have stopped.
+- [ ] A record appended after the bulk boundary cannot result in a silent success; the run reports that its quiescent-input contract was violated.
 - [ ] Stream mode does not stop merely because current lag reaches zero.
-- [ ] An end-to-end bulk test loads multiple configured node types, verifies the expected Neo4j nodes with no duplicates, observes zero lag, and confirms no node-loader containers remain running.
+- [ ] An end-to-end bulk test loads multiple configured node types, verifies the expected Neo4j nodes with no duplicates, observes zero lag, and confirms no node-loader containers remain running; separate tests cover empty assignments and late arrivals.
 
 ### Dependencies
 

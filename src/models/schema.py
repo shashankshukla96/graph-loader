@@ -10,9 +10,29 @@ from application code.
 """
 from __future__ import annotations
 
+import re
 from typing import Literal, List, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+CYPHER_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_cypher_identifier(value: str, field_name: str) -> str:
+    """Return a Cypher-safe identifier or raise a field-specific error.
+
+    Labels, relationship types, and property names are interpolated into
+    Cypher by the DDL generator and later ingestion code.  Values must be
+    constrained at the schema boundary because Cypher does not parameterize
+    identifiers.
+    """
+    if not CYPHER_IDENTIFIER_RE.fullmatch(value):
+        raise ValueError(
+            f"{field_name} must be a Cypher identifier matching "
+            "^[A-Za-z_][A-Za-z0-9_]*$"
+        )
+    return value
 
 
 # ── Property & constraint primitives ─────────────────────────────────────────
@@ -77,6 +97,22 @@ class NodeConfig(BaseModel):
     key_property: str
     properties: dict[str, PropertyConfig] = Field(default_factory=dict)
 
+    @field_validator("label", "key_property")
+    @classmethod
+    def cypher_identifier_fields(cls, value: str, info) -> str:
+        """Validate node identifiers that are interpolated into Cypher."""
+        return _validate_cypher_identifier(value, info.field_name)
+
+    @field_validator("properties")
+    @classmethod
+    def property_keys_are_cypher_identifiers(
+        cls, value: dict[str, PropertyConfig]
+    ) -> dict[str, PropertyConfig]:
+        """Validate every schema property key before Cypher generation."""
+        for property_name in value:
+            _validate_cypher_identifier(property_name, "properties")
+        return value
+
     @model_validator(mode="after")
     def at_least_one_property(self) -> "NodeConfig":
         """Enforce that every node defines at least one property."""
@@ -86,11 +122,16 @@ class NodeConfig(BaseModel):
 
     @model_validator(mode="after")
     def key_property_must_exist(self) -> "NodeConfig":
-        """Enforce that ``key_property`` names an entry in ``properties``."""
+        """Enforce that the key is declared and required for every record."""
         if self.key_property not in self.properties:
             raise ValueError(
                 f"key_property '{self.key_property}' not found in "
                 f"properties of node '{self.label}'"
+            )
+        if not self.properties[self.key_property].required:
+            raise ValueError(
+                f"key_property '{self.key_property}' for node '{self.label}' "
+                "must be required"
             )
         return self
 
@@ -105,6 +146,12 @@ class SourceTargetConfig(BaseModel):
 
     source: str
     target: str
+
+    @field_validator("source", "target")
+    @classmethod
+    def cypher_identifier_fields(cls, value: str, info) -> str:
+        """Validate endpoint label aliases before later edge Cypher uses them."""
+        return _validate_cypher_identifier(value, info.field_name)
 
     @property
     def is_self_referencing(self) -> bool:
@@ -212,6 +259,22 @@ class EdgeConfig(BaseModel):
     mix_and_batch: MixAndBatchConfig = Field(default_factory=MixAndBatchConfig)
     retry: RetryConfig = Field(default_factory=RetryConfig)
     dead_letter: Optional[DeadLetterConfig] = None
+
+    @field_validator("type")
+    @classmethod
+    def edge_type_is_cypher_identifier(cls, value: str) -> str:
+        """Validate the relationship type interpolated into DDL Cypher."""
+        return _validate_cypher_identifier(value, "type")
+
+    @field_validator("properties")
+    @classmethod
+    def property_keys_are_cypher_identifiers(
+        cls, value: dict[str, PropertyConfig]
+    ) -> dict[str, PropertyConfig]:
+        """Validate relationship property names before DDL generation."""
+        for property_name in value:
+            _validate_cypher_identifier(property_name, "properties")
+        return value
 
     @model_validator(mode="after")
     def at_least_one_property(self) -> "EdgeConfig":

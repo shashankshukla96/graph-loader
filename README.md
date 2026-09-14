@@ -82,3 +82,13 @@ py -m venv .venv
 ```
 
 Use `docker compose down -v` to stop the stack and remove its local volumes.
+
+## Direct Node Loader (Phase 2, Slice 1)
+
+With the local stack running, a single configured node topic can be loaded directly:
+
+```bash
+python -m src.loader.node_loader --config config/graph_schema.yaml --node-label Person --max-messages 10
+```
+
+Set `NEO4J_URI`, `NEO4J_USERNAME`, and `NEO4J_PASSWORD` for Neo4j, plus `KAFKA_BOOTSTRAP_SERVERS` for Kafka. `NEO4J_USER` remains a legacy fallback. The command consumes only the selected label's configured topic, commits only after a successful Neo4j write, and stops without committing when a message fails. Batching, retries, DLQ routing, and container-fleet orchestration arrive in later Phase 2 slices.

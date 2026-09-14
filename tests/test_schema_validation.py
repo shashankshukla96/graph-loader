@@ -10,6 +10,7 @@ No test in TestSchemaLoader imports GraphSchema directly.
 """
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
 import pytest
@@ -139,6 +140,29 @@ class TestNodeConfig:
         with pytest.raises(ValidationError):
             NodeConfig(**bad)
 
+    def test_optional_key_property_raises(self) -> None:
+        bad = _minimal_node()
+        bad["properties"]["pid"]["required"] = False
+        with pytest.raises(ValidationError, match="must be required"):
+            NodeConfig(**bad)
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [("label", "Person;DELETE"), ("key_property", "person-id")],
+    )
+    def test_invalid_node_identifier_raises(self, field: str, value: str) -> None:
+        bad = _minimal_node()
+        bad[field] = value
+        with pytest.raises(ValidationError, match="Cypher identifier"):
+            NodeConfig(**bad)
+
+    def test_invalid_node_property_identifier_raises(self) -> None:
+        bad = _minimal_node()
+        bad["properties"] = {"person-id": {"type": "string", "required": True}}
+        bad["key_property"] = "person-id"
+        with pytest.raises(ValidationError, match="Cypher identifier"):
+            NodeConfig(**bad)
+
 
 # ── TestSourceTargetConfig ────────────────────────────────────────────────────
 
@@ -151,6 +175,13 @@ class TestSourceTargetConfig:
     def test_non_self_referencing(self) -> None:
         st = SourceTargetConfig(source="Person", target="Company")
         assert st.is_self_referencing is False
+
+    @pytest.mark.parametrize("field", ["source", "target"])
+    def test_invalid_endpoint_identifier_raises(self, field: str) -> None:
+        values = {"source": "Person", "target": "Company"}
+        values[field] = "bad-label"
+        with pytest.raises(ValidationError, match="Cypher identifier"):
+            SourceTargetConfig(**values)
 
 
 # ── TestEdgeConfig ────────────────────────────────────────────────────────────
@@ -174,6 +205,18 @@ class TestEdgeConfig:
     def test_self_referencing_edge_detectable(self) -> None:
         edge = EdgeConfig(**_minimal_edge("KNOWS"))
         assert edge.nodes.is_self_referencing is True
+
+    def test_invalid_edge_type_identifier_raises(self) -> None:
+        bad = _minimal_edge()
+        bad["type"] = "KNOWS;DELETE"
+        with pytest.raises(ValidationError, match="Cypher identifier"):
+            EdgeConfig(**bad)
+
+    def test_invalid_edge_property_identifier_raises(self) -> None:
+        bad = _minimal_edge()
+        bad["properties"] = {"since-date": {"type": "date", "required": True}}
+        with pytest.raises(ValidationError, match="Cypher identifier"):
+            EdgeConfig(**bad)
 
 
 # ── TestRetryConfig ───────────────────────────────────────────────────────────
@@ -259,3 +302,29 @@ class TestSchemaLoader:
         bad.write_text("- item1\n- item2\n", encoding="utf-8")
         with pytest.raises(SchemaLoadError, match="mapping"):
             load_schema(bad)
+
+    @pytest.mark.parametrize(
+        "mutate",
+        [
+            lambda data: data["nodes"][0].__setitem__("label", "bad-label"),
+            lambda data: data["nodes"][0].__setitem__("key_property", "bad-key"),
+            lambda data: data["nodes"][0].__setitem__(
+                "properties", {"bad-key": {"type": "string", "required": True}}
+            ),
+            lambda data: data["edges"][0].__setitem__("type", "BAD-TYPE"),
+            lambda data: data["edges"][0].__setitem__(
+                "properties", {"bad-prop": {"type": "date", "required": True}}
+            ),
+            lambda data: data["edges"][0]["nodes"].__setitem__("source", "bad-label"),
+            lambda data: data["edges"][0]["nodes"].__setitem__("target", "bad-label"),
+        ],
+    )
+    def test_unsafe_identifier_from_yaml_raises_schema_load_error(self, tmp_path: Path, mutate) -> None:
+        data = copy.deepcopy(_valid_schema_dict())
+        mutate(data)
+        path = tmp_path / "unsafe_identifier.yaml"
+        path.write_text(yaml.dump(data), encoding="utf-8")
+
+        with pytest.raises(SchemaLoadError, match="validation failed") as exc_info:
+            load_schema(path)
+        assert isinstance(exc_info.value.__cause__, ValidationError)

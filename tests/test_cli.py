@@ -7,7 +7,7 @@ import pytest
 import argparse
 from unittest.mock import patch, MagicMock
 
-from src.cli import build_parser, main, handle_start, handle_stop, handle_status
+from src.cli import build_parser, get_neo4j_credentials, main, handle_start, handle_stop, handle_status
 from src.orchestrator.schema_initializer import SchemaInitializationError
 
 
@@ -78,6 +78,18 @@ def test_handle_stop_stub():
 def test_handle_status_stub():
     args = argparse.Namespace(config="config/graph_schema.yaml")
     assert handle_status(args) == 0
+
+
+def test_neo4j_username_prefers_documented_variable(monkeypatch):
+    monkeypatch.setenv("NEO4J_USERNAME", "documented")
+    monkeypatch.setenv("NEO4J_USER", "legacy")
+    assert get_neo4j_credentials()[1] == "documented"
+
+
+def test_neo4j_username_uses_legacy_fallback(monkeypatch):
+    monkeypatch.delenv("NEO4J_USERNAME", raising=False)
+    monkeypatch.setenv("NEO4J_USER", "legacy")
+    assert get_neo4j_credentials()[1] == "legacy"
 
 
 @patch("src.cli.apply_schema")
