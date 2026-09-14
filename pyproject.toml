@@ -1,4 +1,6 @@
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 markers = [
     "smoke: environment smoke tests (require docker compose up)",
+    "integration: integration tests against a live database"
 ]

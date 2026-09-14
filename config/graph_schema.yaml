@@ -1,0 +1,161 @@
+# config/graph_schema.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Neo4j Graph Loader — Canonical Graph Schema
+#
+# This file defines the complete graph model. Edit it to add new node labels,
+# relationship types, properties, constraints, and indexes. All changes here
+# are picked up automatically on the next pipeline start — no code changes
+# required.
+#
+# Property types supported: string, integer, float, date, datetime
+# Constraint types:         uniqueness, not_null
+# Index types:              range, text
+# ─────────────────────────────────────────────────────────────────────────────
+
+loading:
+  mode: stream                      # bulk | stream
+  consumer_group_id: graph-loader   # Kafka consumer group shared by all loaders
+  max_poll_interval_ms: 300000      # Max ms between poll() calls before broker evicts consumer
+  session_timeout_ms: 45000         # Kafka session timeout in milliseconds
+
+nodes:
+
+  - label: Person                   # Neo4j node label
+    topic: person-events            # Kafka topic carrying Person records
+    key_property: personId          # Unique identifier — must match a property name below
+
+    properties:
+
+      personId:
+        type: string                # Scalar type for this property
+        required: true              # Record is rejected if this field is absent
+        constraint:
+          type: uniqueness          # → CREATE CONSTRAINT person_personid_unique IF NOT EXISTS
+                                    #     FOR (n:Person) REQUIRE n.personId IS UNIQUE
+
+      name:
+        type: string
+        required: true
+        constraint:
+          type: not_null            # → CREATE CONSTRAINT person_name_not_null IF NOT EXISTS
+                                    #     FOR (n:Person) REQUIRE n.name IS NOT NULL
+        index:
+          type: text                # → CREATE TEXT INDEX person_name_text IF NOT EXISTS
+                                    #     FOR (n:Person) ON (n.name)
+
+      age:
+        type: integer               # 64-bit integer in Neo4j
+        required: false
+        index:
+          type: range               # → CREATE RANGE INDEX person_age_range IF NOT EXISTS
+                                    #     FOR (n:Person) ON (n.age)
+
+      salary:
+        type: float                 # IEEE 754 double in Neo4j
+        required: false             # Optional — no constraint or index on this field
+
+      birthDate:
+        type: date                  # Neo4j Date (YYYY-MM-DD)
+        required: false
+
+      lastLogin:
+        type: datetime              # Neo4j DateTime (ISO-8601 with timezone)
+        required: false
+
+  - label: Company
+    topic: company-events
+    key_property: companyId
+
+    properties:
+
+      companyId:
+        type: string
+        required: true
+        constraint:
+          type: uniqueness          # → CREATE CONSTRAINT company_companyid_unique IF NOT EXISTS
+                                    #     FOR (n:Company) REQUIRE n.companyId IS UNIQUE
+
+      name:
+        type: string
+        required: true
+        constraint:
+          type: not_null            # → CREATE CONSTRAINT company_name_not_null IF NOT EXISTS
+                                    #     FOR (n:Company) REQUIRE n.name IS NOT NULL
+        index:
+          type: text                # → CREATE TEXT INDEX company_name_text IF NOT EXISTS
+                                    #     FOR (n:Company) ON (n.name)
+
+      foundedYear:
+        type: integer
+        required: false
+        index:
+          type: range               # → CREATE RANGE INDEX company_foundedyear_range IF NOT EXISTS
+                                    #     FOR (n:Company) ON (n.foundedYear)
+
+edges:
+
+  - type: WORKS_AT                  # Neo4j relationship type
+    topic: works-at-events          # Kafka topic carrying WORKS_AT records
+    nodes:
+      source: Person                # Source node label
+      target: Company               # Target node label — different from source (not self-referencing)
+
+    properties:
+
+      since:
+        type: date                  # When the employment began
+        required: true
+        constraint:
+          type: not_null            # → CREATE CONSTRAINT works_at_since_not_null IF NOT EXISTS
+
+      role:
+        type: string                # Job title or role description
+        required: false             # Optional — some records may omit this
+
+    mix_and_batch:
+      batch_size: 1000              # Edges written per Neo4j transaction
+      forward_slot_ms: 500          # Time slot for forward edges (src_id < tgt_id)
+      backward_slot_ms: 500         # Time slot for backward edges (src_id > tgt_id)
+
+    retry:
+      max_attempts: 3               # Total attempts including the first
+      base_delay_seconds: 1.0       # Initial backoff delay
+      max_delay_seconds: 60.0       # Backoff ceiling — must be >= base_delay_seconds
+
+    dead_letter:
+      topic: dlq-works-at           # Kafka DLQ topic for exhausted retries
+      enabled: true                 # Set false to log-and-drop instead of routing to DLQ
+
+  - type: KNOWS
+    topic: knows-events
+    nodes:
+      source: Person
+      target: Person                # Same as source → self-referencing edge
+                                    # The loader will schedule KNOWS in isolation to prevent
+                                    # deadlocks (SourceTargetConfig.is_self_referencing == True)
+
+    properties:
+
+      since:
+        type: date
+        required: true
+        constraint:
+          type: not_null            # → CREATE CONSTRAINT knows_since_not_null IF NOT EXISTS
+
+      strength:
+        type: float                 # Relationship weight, e.g. 0.0–1.0
+        required: false
+
+    mix_and_batch:
+      batch_size: 500               # Smaller batch for self-referencing edges (higher lock contention)
+      forward_slot_ms: 500
+      backward_slot_ms: 500
+
+    retry:
+      max_attempts: 5               # More retries for self-referencing edges (higher contention)
+      base_delay_seconds: 2.0
+      max_delay_seconds: 120.0      # Longer ceiling to absorb Neo4j lock storms
+
+    dead_letter:
+      topic: dlq-knows
+      enabled: true
