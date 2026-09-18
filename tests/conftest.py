@@ -16,15 +16,22 @@ import time
 @pytest.fixture(scope="session")
 def neo4j_connection() -> Iterator[tuple[str, str, str]]:
     """Provide isolated Neo4j connection settings, or skip without Docker."""
+    container = (
+        Neo4jContainer("neo4j:5.21-enterprise", password="test-password")
+        .with_env("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
+    )
     try:
-        with (
-            Neo4jContainer("neo4j:5.21-enterprise", password="test-password")
-            .with_env("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
-            as container
-        ):
-            yield (container.get_connection_url(), container.username, container.password)
-    except DockerException as exc:
+        container.start()
+    except (DockerException, TimeoutError) as exc:
+        try:
+            container.stop()
+        except Exception:
+            pass
         pytest.skip(f"Docker is required for Neo4j integration tests: {exc}")
+    try:
+        yield (container.get_connection_url(), container.username, container.password)
+    finally:
+        container.stop()
 
 
 @pytest.fixture(scope="session")
@@ -54,11 +61,19 @@ def clean_neo4j(neo4j_driver: Driver) -> Iterator[None]:
 @pytest.fixture(scope="session")
 def kafka_bootstrap() -> Iterator[str]:
     """Provide an isolated Kafka bootstrap server or skip without Docker."""
+    container = KafkaContainer()
     try:
-        with KafkaContainer() as container:
-            yield container.get_bootstrap_server()
-    except DockerException as exc:
+        container.start()
+    except (DockerException, TimeoutError) as exc:
+        try:
+            container.stop()
+        except Exception:
+            pass
         pytest.skip(f"Docker is required for Kafka integration tests: {exc}")
+    try:
+        yield container.get_bootstrap_server()
+    finally:
+        container.stop()
 
 
 @pytest.fixture

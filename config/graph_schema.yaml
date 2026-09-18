@@ -17,6 +17,12 @@ loading:
   consumer_group_id: graph-loader   # Kafka consumer group shared by all loaders
   max_poll_interval_ms: 300000      # Max ms between poll() calls before broker evicts consumer
   session_timeout_ms: 45000         # Kafka session timeout in milliseconds
+  unwind_batch_size: 500             # Max records per Neo4j UNWIND transaction
+  flush_interval_ms: 1000            # Idle partial-batch flush interval (ms)
+  retry_max_attempts: 3            # Includes the initial node-write attempt
+  retry_base_delay_ms: 100          # Initial exponential retry delay (ms)
+  retry_max_delay_ms: 5000          # Maximum exponential retry delay (ms)
+  rejection_log_path: var/rejections/node-loader.jsonl  # Phase 5 replaces this sink with DLQ
 
 nodes:
 

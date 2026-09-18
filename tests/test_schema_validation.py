@@ -258,6 +258,39 @@ class TestGraphSchema:
         schema = GraphSchema.model_validate(_valid_schema_dict())
         assert schema.loading.mode == "stream"
         assert schema.loading.consumer_group_id == "graph-loader"
+        assert schema.loading.unwind_batch_size == 500
+        assert schema.loading.flush_interval_ms == 1000
+        assert schema.loading.retry_max_attempts == 3
+        assert schema.loading.retry_base_delay_ms == 100
+        assert schema.loading.retry_max_delay_ms == 5000
+        assert schema.loading.rejection_log_path == "var/rejections/node-loader.jsonl"
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("unwind_batch_size", 0), ("flush_interval_ms", 0),
+            ("retry_max_attempts", 0), ("retry_base_delay_ms", 0),
+            ("retry_max_delay_ms", 0), ("rejection_log_path", "  "),
+            ("unwind_batch_size", -1), ("unwind_batch_size", 10_001),
+            ("flush_interval_ms", 60_001), ("retry_max_attempts", 11),
+            ("retry_base_delay_ms", 60_001), ("retry_max_delay_ms", 300_001),
+        ],
+    )
+    def test_loading_runtime_settings_reject_invalid_values(self, field, value) -> None:
+        data = _valid_schema_dict()
+        data.setdefault("loading", {})[field] = value
+        with pytest.raises(ValidationError):
+            GraphSchema.model_validate(data)
+
+    def test_loading_runtime_settings_validate_retry_order_and_custom_values(self) -> None:
+        data = _valid_schema_dict()
+        data.setdefault("loading", {}).update({"retry_base_delay_ms": 1000, "retry_max_delay_ms": 100})
+        with pytest.raises(ValidationError, match="retry_max_delay_ms"):
+            GraphSchema.model_validate(data)
+        data["loading"].update({"unwind_batch_size": 25, "flush_interval_ms": 50, "retry_base_delay_ms": 10, "retry_max_delay_ms": 100, "rejection_log_path": "tmp/reject.jsonl"})
+        schema = GraphSchema.model_validate(data)
+        assert schema.loading.unwind_batch_size == 25
+        assert schema.loading.rejection_log_path == "tmp/reject.jsonl"
 
 
 # ── TestSchemaLoader ──────────────────────────────────────────────────────────
@@ -270,6 +303,12 @@ class TestSchemaLoader:
         schema = load_schema(_PROJECT_ROOT / "config" / "graph_schema.yaml")
         assert len(schema.nodes) == 2
         assert len(schema.edges) == 2
+        assert schema.loading.unwind_batch_size == 500
+        assert schema.loading.flush_interval_ms == 1000
+        assert schema.loading.retry_max_attempts == 3
+        assert schema.loading.retry_base_delay_ms == 100
+        assert schema.loading.retry_max_delay_ms == 5000
+        assert schema.loading.rejection_log_path == "var/rejections/node-loader.jsonl"
 
     def test_missing_file_raises_schema_load_error(self, tmp_path: Path) -> None:
         with pytest.raises(SchemaLoadError, match="not found"):

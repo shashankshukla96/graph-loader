@@ -1,4 +1,5 @@
 import unittest
+import tempfile
 from unittest.mock import MagicMock, patch
 from src.orchestrator.docker_service import DockerService
 
@@ -17,14 +18,16 @@ class TestDockerService(unittest.TestCase):
         mock_container = MagicMock()
         self.mock_client.containers.run.return_value = mock_container
 
-        containers = self.service.run_node_loader(
-            node_label="Person",
-            topic="person_topic",
-            mode="stream",
-            config_path="config.yaml",
-            replicas=2,
-            network="test_net"
-        )
+        with tempfile.TemporaryDirectory() as rejection_dir:
+            containers = self.service.run_node_loader(
+                node_label="Person",
+                topic="person_topic",
+                mode="stream",
+                config_path="config.yaml",
+                replicas=2,
+                network="test_net",
+                rejection_dir=rejection_dir,
+            )
 
         self.assertEqual(len(containers), 2)
         self.assertEqual(self.mock_client.containers.run.call_count, 2)
@@ -32,17 +35,87 @@ class TestDockerService(unittest.TestCase):
         call_kwargs = self.mock_client.containers.run.call_args[1]
         self.assertEqual(call_kwargs["image"], "graph-loader-node:latest")
         self.assertTrue(call_kwargs["name"].startswith("graph-loader-node-Person-"))
-        self.assertEqual(call_kwargs["command"], ["--config", "/app/runtime_schema.yaml", "--node-label", "Person", "--mode", "stream", "--topic", "person_topic"])
+        self.assertEqual(call_kwargs["command"], ["--config", "/app/runtime_schema.yaml", "--node-label", "Person", "--mode", "stream", "--topic", "person_topic", "--replica-id", "1"])
         self.assertEqual(call_kwargs["network"], "test_net")
         self.assertIn("NEO4J_URI", call_kwargs["environment"])
         self.assertEqual(call_kwargs["labels"]["node_label"], "Person")
         self.assertIn("volumes", call_kwargs)
         # Check volume is bound correctly (ignoring the exact host path)
         volumes = call_kwargs["volumes"]
-        self.assertEqual(len(volumes), 1)
-        mount = list(volumes.values())[0]
-        self.assertEqual(mount["bind"], "/app/runtime_schema.yaml")
-        self.assertEqual(mount["mode"], "ro")
+        self.assertEqual(len(volumes), 2)
+        mounts_by_bind = {mount["bind"]: mount for mount in volumes.values()}
+        self.assertEqual(mounts_by_bind["/app/runtime_schema.yaml"]["mode"], "ro")
+        self.assertEqual(mounts_by_bind["/app/rejections"]["mode"], "rw")
+        self.assertEqual(
+            call_kwargs["environment"]["REJECTION_LOG_PATH"],
+            "/app/rejections/Person-1.jsonl",
+        )
+
+    def test_bulk_run_scopes_every_replica_to_its_run(self):
+        self.mock_client.containers.run.side_effect = [MagicMock(), MagicMock()]
+
+        with tempfile.TemporaryDirectory() as rejection_dir:
+            containers = self.service.run_node_loader(
+                node_label="Person",
+                topic="person_topic",
+                mode="bulk",
+                config_path="config.yaml",
+                replicas=2,
+                network="test_net",
+                rejection_dir=rejection_dir,
+                run_id="run-ABC_123",
+            )
+
+        self.assertEqual(len(containers), 2)
+        calls = self.mock_client.containers.run.call_args_list
+        for replica_id, call in enumerate(calls):
+            kwargs = call.kwargs
+            self.assertEqual(
+                kwargs["name"],
+                f"graph-loader-node-Person-{replica_id}-{('run-ABC_123').encode().hex()}",
+            )
+            self.assertEqual(kwargs["environment"]["GRAPH_LOADER_RUN_ID"], "run-ABC_123")
+            self.assertEqual(kwargs["labels"]["run_id"], "run-ABC_123")
+            self.assertEqual(kwargs["labels"]["replica_id"], str(replica_id))
+            self.assertEqual(
+                kwargs["command"][-4:],
+                ["--replica-id", str(replica_id), "--run-id", "run-ABC_123"],
+            )
+
+    def test_bulk_name_encoding_keeps_distinct_ids_distinct(self):
+        self.mock_client.containers.run.side_effect = [MagicMock(), MagicMock()]
+
+        with tempfile.TemporaryDirectory() as rejection_dir:
+            self.service.run_node_loader(
+                node_label="Person", topic="person_topic", mode="bulk", config_path="config.yaml",
+                network="test_net", rejection_dir=rejection_dir, run_id="a-b",
+            )
+            self.service.run_node_loader(
+                node_label="Person", topic="person_topic", mode="bulk", config_path="config.yaml",
+                network="test_net", rejection_dir=rejection_dir, run_id="ab",
+            )
+
+        first_name = self.mock_client.containers.run.call_args_list[0].kwargs["name"]
+        second_name = self.mock_client.containers.run.call_args_list[1].kwargs["name"]
+        self.assertNotEqual(first_name, second_name)
+
+    def test_loader_containers_use_internal_endpoints_not_host_endpoints(self):
+        self.mock_client.containers.run.return_value = MagicMock()
+
+        with patch.dict(
+            "os.environ",
+            {"NEO4J_URI": "bolt://localhost:7687", "KAFKA_BOOTSTRAP_SERVERS": "localhost:9092"},
+            clear=True,
+        ):
+            with tempfile.TemporaryDirectory() as rejection_dir:
+                self.service.run_node_loader(
+                    node_label="Person", topic="person_topic", mode="bulk", config_path="config.yaml",
+                    network="test_net", rejection_dir=rejection_dir,
+                )
+
+        environment = self.mock_client.containers.run.call_args.kwargs["environment"]
+        self.assertEqual(environment["NEO4J_URI"], "bolt://neo4j:7687")
+        self.assertEqual(environment["KAFKA_BOOTSTRAP_SERVERS"], "kafka:29092")
 
     def test_stop_node_loaders(self):
         mock_container_1 = MagicMock()

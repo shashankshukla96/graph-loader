@@ -63,7 +63,7 @@ Copy-Item .env.example .env
 .\scripts\start_dev.ps1
 ```
 
-The startup command waits for both services to become healthy, then exposes Neo4j Browser at `http://localhost:7474`, Neo4j Bolt at `bolt://localhost:7687`, and Kafka at `localhost:9092`.
+The startup command waits for both services to become healthy, then exposes Neo4j Browser at `http://localhost:7474`, Neo4j Bolt at `bolt://localhost:7687`, Kafka at `localhost:9092`, and Kafka UI at `http://localhost:8080`.
 
 To run the environment smoke tests on Bash-based systems:
 
@@ -83,7 +83,7 @@ py -m venv .venv
 
 Use `docker compose down -v` to stop the stack and remove its local volumes.
 
-## Direct Node Loader (Phase 2, Slice 1)
+## Node Loader Operations (Phase 2)
 
 With the local stack running, a single configured node topic can be loaded directly:
 
@@ -91,4 +91,63 @@ With the local stack running, a single configured node topic can be loaded direc
 python -m src.loader.node_loader --config config/graph_schema.yaml --node-label Person --max-messages 10
 ```
 
-Set `NEO4J_URI`, `NEO4J_USERNAME`, and `NEO4J_PASSWORD` for Neo4j, plus `KAFKA_BOOTSTRAP_SERVERS` for Kafka. `NEO4J_USER` remains a legacy fallback. The command consumes only the selected label's configured topic, commits only after a successful Neo4j write, and stops without committing when a message fails. Batching, retries, DLQ routing, and container-fleet orchestration arrive in later Phase 2 slices.
+Set `NEO4J_URI`, `NEO4J_USERNAME`, and `NEO4J_PASSWORD` for Neo4j, plus
+`KAFKA_BOOTSTRAP_SERVERS` for Kafka. `NEO4J_USER` remains a legacy fallback.
+The command consumes only the selected label's configured topic. `--max-messages`
+is useful for bounded bulk runs and tests; omit it for a continuous stream.
+
+Node writes use the `loading` section in `config/graph_schema.yaml`:
+
+- `unwind_batch_size` caps records per Neo4j `UNWIND` transaction.
+- `flush_interval_ms` finalizes an idle partial batch.
+- `retry_max_attempts`, `retry_base_delay_ms`, and `retry_max_delay_ms` apply
+  bounded exponential retry only to Neo4j errors marked retryable by the driver.
+
+The loader commits explicit Kafka *next offsets* only after the whole relevant
+Neo4j batch is durable. Each topic-partition has a contiguous-resolution barrier,
+so an uncommitted or malformed record cannot let a later offset skip ahead. During
+retry it pauses assigned partitions, polls for group heartbeats, and fails closed
+if a rebalance revokes unresolved work.
+
+Malformed JSON or schema-invalid records are written with `flush()` and `fsync()`
+to the configured `rejection_log_path`, then—and only then—are eligible for their
+contiguous offset commit. This is an intentional interim Phase 2 log-and-skip sink,
+not a Kafka DLQ. **Phase 5 will replace it with DLQ routing.** The rejection entry
+contains topic, partition, offset, node label, and reason; it deliberately omits
+the raw payload.
+
+For container fleets, start the pipeline with:
+
+```bash
+python -m src.cli start --mode stream --config config/graph_schema.yaml
+```
+
+Each node-loader replica receives an isolated JSONL path under `/app/rejections`.
+Docker bind-mounts the host `var/rejections/` directory there, so logs survive
+container removal. Inspect the host directory when investigating rejected records.
+
+### Finite bulk runs
+
+Use bulk mode for a finite, quiescent input set:
+
+```bash
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092 \
+python -m src.cli start --mode bulk --config config/graph_schema.yaml \
+  --bulk-timeout-seconds 300
+```
+
+The CLI creates a run-scoped fleet and waits until every replica proves its Kafka
+assignment (surplus replicas explicitly report that they are idle). It captures a
+fixed end-offset boundary, rejects records that arrive after that boundary, waits
+for committed offsets to reach it, and then sends `SIGTERM` only to the exact
+containers it created. Each loader flushes and acknowledges its drain before the
+CLI performs a final zero-lag check. A nonzero result leaves no claim of a
+successful bulk load; inspect the run's logs and rejection files before retrying.
+
+Stream mode is intentionally open-ended: it starts the configured fleet and does
+not stop it merely because current Kafka lag is zero.
+
+The CLI runs on the host and therefore uses `localhost` endpoints from `.env`.
+Node-loader containers use the Docker-network defaults `bolt://neo4j:7687` and
+`kafka:29092`; set `LOADER_NEO4J_URI` or
+`LOADER_KAFKA_BOOTSTRAP_SERVERS` only when the container network differs.

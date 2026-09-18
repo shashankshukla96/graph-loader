@@ -231,12 +231,37 @@ class LoadingConfig(BaseModel):
         max_poll_interval_ms: Maximum time between Kafka ``poll()`` calls
             before the broker considers the consumer dead (milliseconds).
         session_timeout_ms: Kafka session timeout (milliseconds).
+        unwind_batch_size: Maximum records in one node UNWIND transaction (default 500).
+        flush_interval_ms: Idle partial-batch flush interval in milliseconds (default 1000).
+        retry_max_attempts: Node-write attempts including the first (default 3).
+        retry_base_delay_ms: Initial node-write retry delay in milliseconds (default 100).
+        retry_max_delay_ms: Maximum node-write retry delay in milliseconds (default 5000).
+        rejection_log_path: Fsync'd interim malformed-record sink; Phase 5 replaces it with DLQ.
     """
 
     mode: Literal["bulk", "stream"] = "stream"
     consumer_group_id: str = "graph-loader"
     max_poll_interval_ms: int = Field(default=300_000, gt=0)
     session_timeout_ms: int = Field(default=45_000, gt=0)
+    unwind_batch_size: int = Field(default=500, gt=0, le=10_000)
+    flush_interval_ms: int = Field(default=1_000, gt=0, le=60_000)
+    retry_max_attempts: int = Field(default=3, ge=1, le=10)
+    retry_base_delay_ms: int = Field(default=100, gt=0, le=60_000)
+    retry_max_delay_ms: int = Field(default=5_000, gt=0, le=300_000)
+    rejection_log_path: str = "var/rejections/node-loader.jsonl"
+
+    @field_validator("rejection_log_path")
+    @classmethod
+    def rejection_log_path_is_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("rejection_log_path must not be blank")
+        return value
+
+    @model_validator(mode="after")
+    def node_retry_delay_is_ordered(self) -> "LoadingConfig":
+        if self.retry_max_delay_ms < self.retry_base_delay_ms:
+            raise ValueError("retry_max_delay_ms must be >= retry_base_delay_ms")
+        return self
 
 
 class EdgeConfig(BaseModel):

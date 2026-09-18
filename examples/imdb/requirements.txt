@@ -1,0 +1,3 @@
+# Optional local tooling for examples/imdb/build_subset.py.
+# Kept outside the production loader image dependencies.
+pandas>=2.2

@@ -2,24 +2,34 @@
 from __future__ import annotations
 
 import argparse
+from collections import deque
 from dataclasses import dataclass
 from datetime import date, datetime
 import json
 import logging
 import math
 import os
-from typing import Mapping
+from pathlib import Path
+import signal
+from threading import Event
+import time
+from typing import Callable, Deque, Mapping, Sequence
 
-from confluent_kafka import Consumer, Message
+from confluent_kafka import Consumer, Message, Producer, TopicPartition
 from neo4j import Driver
+from neo4j.exceptions import Neo4jError
 
 from src.cli import get_neo4j_credentials
-from src.models.schema import NodeConfig, PropertyConfig
+from src.loader.control import CONTROL_TOPIC
+from src.models.schema import LoadingConfig, NodeConfig, PropertyConfig
 from src.orchestrator.schema_initializer import get_neo4j_driver
 from src.utils.schema_loader import load_schema
 
 
 logger = logging.getLogger(__name__)
+
+class ControlDeliveryError(RuntimeError):
+    """Raised when a control acknowledgement was not durably delivered."""
 
 
 @dataclass(frozen=True)
@@ -28,6 +38,60 @@ class NodeRecord:
 
     key: object
     properties: dict[str, object]
+
+
+@dataclass(frozen=True)
+class PendingRecord:
+    """A normalized node record coupled to its source Kafka position."""
+
+    record: NodeRecord
+    topic: str
+    partition: int
+    offset: int
+
+
+@dataclass
+class PartitionLedger:
+    """Track durably resolved offsets until a contiguous commit is possible."""
+
+    next_offset: int
+    resolved_offsets: set[int]
+
+
+class RejectionSink:
+    """Durably log malformed records until Phase 5 replaces this with a DLQ."""
+
+    def __init__(self, path: str | Path) -> None:
+        self._path = Path(path)
+
+    @property
+    def path(self) -> Path:
+        """Return the configured JSONL path."""
+        return self._path
+
+    def append(
+        self,
+        *,
+        topic: str,
+        partition: int,
+        offset: int,
+        node_label: str,
+        reason: str,
+    ) -> None:
+        """Append and fsync one metadata-only rejection record."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "topic": topic,
+            "partition": partition,
+            "offset": offset,
+            "node_label": node_label,
+            "reason": reason,
+        }
+        with self._path.open("a", encoding="utf-8") as rejection_file:
+            rejection_file.write(json.dumps(entry, separators=(",", ":"), sort_keys=True))
+            rejection_file.write("\n")
+            rejection_file.flush()
+            os.fsync(rejection_file.fileno())
 
 
 class NodeRecordValidationError(ValueError):
@@ -151,22 +215,166 @@ class NodeWriter:
 
     def write(self, record: NodeRecord) -> None:
         """Execute one idempotent singleton-batch node upsert."""
-        batch = [{"key": record.key, "properties": record.properties}]
+        self.write_batch([record])
+
+    def write_batch(self, records: Sequence[NodeRecord]) -> None:
+        """Write one materialized UNWIND batch in a single transaction."""
+        batch = [{"key": record.key, "properties": record.properties} for record in records]
         with self._driver.session() as session:
-            session.execute_write(lambda tx: tx.run(self._query, batch=batch))
+            with session.begin_transaction() as transaction:
+                transaction.run(self._query, batch=batch).consume()
+                transaction.commit()
 
 
 class NodeLoader:
     """Consume one configured node topic and synchronously write records."""
 
     def __init__(self, consumer: Consumer, writer: NodeWriter, node_config: NodeConfig,
-                 topic: str | None = None, event_logger: logging.Logger = logger) -> None:
+                 topic: str | None = None, event_logger: logging.Logger = logger,
+                 producer: Producer | None = None, run_id: str = "default_run",
+                 replica_id: str = "0", shutdown_requested: Event | None = None,
+                 loading_config: LoadingConfig | None = None,
+                 clock: Callable[[], float] = time.monotonic,
+                 sleeper: Callable[[float], None] = time.sleep,
+                 rejection_sink: RejectionSink | None = None) -> None:
         self._consumer = consumer
         self._writer = writer
         self._node_config = node_config
         self._logger = event_logger
         self._topic = topic or node_config.topic
-        self._consumer.subscribe([self._topic])
+
+        self._producer = producer
+        self._run_id = run_id
+        self._replica_id = replica_id
+        self._assignment_epoch = 0
+        self._pending_assignment_events: Deque[tuple[int, list[dict[str, object]]]] = deque()
+        self._shutdown_requested = shutdown_requested or Event()
+        self._loading_config = loading_config or LoadingConfig(unwind_batch_size=1)
+        self._clock = clock
+        self._sleeper = sleeper
+        self._rejection_sink = rejection_sink or RejectionSink(
+            self._loading_config.rejection_log_path
+        )
+        self._batch: list[PendingRecord] = []
+        self._batch_started_at: float | None = None
+        self._committed_next_offsets: dict[tuple[str, int], int] = {}
+        self._partition_ledgers: dict[tuple[str, int], PartitionLedger] = {}
+        self._assigned_partitions: set[tuple[str, int]] = set()
+        self._assignment_observed = False
+        self._rebalance_failure = False
+        self._deferred_messages: Deque[Message] = deque()
+        self._paused = False
+
+        self._consumer.subscribe(
+            [self._topic],
+            on_assign=self._on_assign,
+            on_revoke=self._on_revoke,
+        )
+
+    def _publish_control(
+        self,
+        message_type: str,
+        data: Mapping[str, object],
+        *,
+        flush: bool = True,
+        assignment_epoch: int | None = None,
+    ) -> None:
+        """Synchronously publish one run-scoped control acknowledgement.
+
+        A control event is considered acknowledged only after Kafka invokes its
+        delivery callback without an error and ``flush`` reports no undelivered
+        messages.  This makes completion signals fail closed.
+        """
+        if self._producer is None:
+            raise ControlDeliveryError(
+                f"Control event '{message_type}' cannot be published without a Kafka producer"
+            )
+        delivery_error: Exception | None = None
+
+        def on_delivery(error: Exception | None, _message: Message) -> None:
+            nonlocal delivery_error
+            if error is not None:
+                delivery_error = error
+
+        payload = {
+            "run_id": self._run_id,
+            "node_label": self._node_config.label,
+            "replica_id": self._replica_id,
+            "type": message_type,
+            "assignment_epoch": assignment_epoch if assignment_epoch is not None else self._assignment_epoch,
+        }
+        payload.update(data)
+        self._producer.produce(
+            CONTROL_TOPIC,
+            key=self._run_id,
+            value=json.dumps(payload),
+            on_delivery=on_delivery,
+        )
+        if flush:
+            undelivered_count = self._producer.flush()
+            if undelivered_count:
+                raise ControlDeliveryError(
+                    f"Control event '{message_type}' has {undelivered_count} undelivered message(s)"
+                )
+            if delivery_error is not None:
+                raise ControlDeliveryError(
+                    f"Control event '{message_type}' delivery failed: {delivery_error}"
+                )
+
+    def _on_assign(self, consumer: Consumer, partitions: list) -> None:
+        """Accept Kafka's assignment before asynchronously reporting it."""
+        consumer.assign(partitions)
+        self._assignment_observed = True
+        self._assigned_partitions = {
+            (partition.topic or self._topic, partition.partition)
+            for partition in partitions
+        }
+        self._paused = False
+        self._assignment_epoch += 1
+        assignments = [
+            {"topic": partition.topic or self._topic, "partition": partition.partition}
+            for partition in partitions
+        ]
+        self._pending_assignment_events.append((self._assignment_epoch, assignments))
+
+    def _on_revoke(self, consumer: Consumer, partitions: list) -> None:
+        """Remove revoked ownership before any subsequent offset decision."""
+        revoked = {
+            (partition.topic or self._topic, partition.partition)
+            for partition in partitions
+        }
+        pending = {(item.topic, item.partition) for item in self._batch}
+        pending.update(
+            key for key, ledger in self._partition_ledgers.items()
+            if ledger.resolved_offsets
+        )
+        pending.update(
+            (message.topic(), message.partition()) for message in self._deferred_messages
+        )
+        if revoked & pending:
+            self._rebalance_failure = True
+            self._logger.error(
+                "Kafka partitions revoked with unresolved work label=%s partitions=%s",
+                self._node_config.label,
+                sorted(revoked & pending),
+            )
+        self._assigned_partitions.difference_update(revoked)
+        self._paused = False
+        consumer.unassign()
+
+    def _publish_pending_assignments(self) -> None:
+        """Publish every queued assignment epoch in order after Kafka polling."""
+        while self._pending_assignment_events:
+            epoch, assignments = self._pending_assignment_events[0]
+            if assignments:
+                self._publish_control(
+                    "ASSIGNMENT",
+                    {"assigned_partitions": assignments},
+                    assignment_epoch=epoch,
+                )
+            else:
+                self._publish_control("IDLE_SURPLUS", {}, assignment_epoch=epoch)
+            self._pending_assignment_events.popleft()
 
     def _log_failure(self, message: Message, reason: str) -> None:
         self._logger.error("Node load failed label=%s topic=%s partition=%s offset=%s reason=%s",
@@ -195,20 +403,280 @@ class NodeLoader:
             self._log_failure(message, f"{type(exc).__name__}: {exc}")
         return False
 
+    def _buffer_message(self, message: Message) -> bool:
+        """Buffer a valid record or durably resolve one malformed record."""
+        if message.error():
+            self._log_failure(message, str(message.error()))
+            return False
+        topic, partition, offset = message.topic(), message.partition(), message.offset()
+        ledger_key = (topic, partition)
+        ledger = self._partition_ledgers.setdefault(
+            ledger_key,
+            PartitionLedger(next_offset=offset, resolved_offsets=set()),
+        )
+        try:
+            payload = message.value()
+            if payload is None:
+                raise ValueError("message payload is empty")
+            decoded = json.loads(payload.decode("utf-8"), parse_constant=_reject_json_constant)
+            if not isinstance(decoded, dict):
+                raise ValueError("JSON payload must be a top-level object")
+            pending = PendingRecord(
+                normalize_node_record(decoded, self._node_config),
+                topic,
+                partition,
+                offset,
+            )
+            if not self._batch:
+                self._batch_started_at = self._clock()
+            self._batch.append(pending)
+            return True
+        except (UnicodeDecodeError, json.JSONDecodeError, NodeRecordValidationError, ValueError) as exc:
+            reason = str(exc)
+            try:
+                self._rejection_sink.append(
+                    topic=topic,
+                    partition=partition,
+                    offset=offset,
+                    node_label=self._node_config.label,
+                    reason=reason,
+                )
+            except Exception as sink_error:
+                self._log_failure(
+                    message,
+                    f"rejection sink {type(sink_error).__name__}: {sink_error}",
+                )
+                return False
+            self._logger.warning(
+                "Malformed node record durably rejected label=%s topic=%s partition=%s "
+                "offset=%s reason=%s phase5_action=route_to_dlq",
+                self._node_config.label,
+                topic,
+                partition,
+                offset,
+                reason,
+            )
+            ledger.resolved_offsets.add(offset)
+            return self._commit_contiguous_resolutions()
+
+    def _poll_for_callbacks(self) -> bool:
+        """Dispatch Kafka callbacks and preserve any prefetched data message."""
+        if not self._assignment_observed:
+            return True
+        message = self._consumer.poll(0)
+        if message is not None:
+            self._deferred_messages.append(message)
+        return not self._rebalance_failure
+
+    def _owns(self, key: tuple[str, int]) -> bool:
+        """Return whether a partition is safe to commit under known ownership."""
+        return not self._assignment_observed or key in self._assigned_partitions
+
+    def _pause_assignments(self) -> None:
+        """Pause known assignments while a batch is unresolved."""
+        if not self._assignment_observed or self._paused or not self._assigned_partitions:
+            return
+        partitions = [
+            TopicPartition(topic, partition)
+            for topic, partition in sorted(self._assigned_partitions)
+        ]
+        self._consumer.pause(partitions)
+        self._paused = True
+
+    def _resume_assignments(self) -> None:
+        """Resume assignments only after all current work is durable."""
+        if not self._assignment_observed or not self._paused or not self._assigned_partitions:
+            return
+        partitions = [
+            TopicPartition(topic, partition)
+            for topic, partition in sorted(self._assigned_partitions)
+        ]
+        self._consumer.resume(partitions)
+        self._paused = False
+
+    @staticmethod
+    def _is_retryable_neo4j_error(error: Exception) -> bool:
+        """Classify only driver-declared Neo4j retryable failures for retry."""
+        return isinstance(error, Neo4jError) and error.is_retryable()
+
+    def _heartbeat_backoff(self, delay_seconds: float) -> bool:
+        """Wait for retry while polling often enough to retain group membership."""
+        deadline = self._clock() + delay_seconds
+        heartbeat_slice = max(
+            0.001,
+            self._loading_config.max_poll_interval_ms / 3000,
+        )
+        while True:
+            if self._shutdown_requested.is_set():
+                return False
+            if not self._poll_for_callbacks():
+                return False
+            remaining = deadline - self._clock()
+            if remaining <= 0:
+                return True
+            self._sleeper(min(heartbeat_slice, remaining))
+
+    def _write_batch_with_retry(self) -> bool:
+        """Write the current atomic batch with bounded retryable-only backoff."""
+        records = [pending.record for pending in self._batch]
+        attempts = self._loading_config.retry_max_attempts
+        for attempt in range(attempts):
+            try:
+                self._writer.write_batch(records)
+                return True
+            except Exception as exc:
+                retryable = self._is_retryable_neo4j_error(exc)
+                if not retryable or attempt + 1 >= attempts:
+                    first = self._batch[0]
+                    self._logger.error(
+                        "Node batch write failed label=%s topic=%s partition=%s offset=%s "
+                        "attempt=%s retryable=%s reason=%s",
+                        self._node_config.label,
+                        first.topic,
+                        first.partition,
+                        first.offset,
+                        attempt + 1,
+                        retryable,
+                        exc,
+                    )
+                    return False
+                delay_ms = min(
+                    self._loading_config.retry_base_delay_ms * (2 ** attempt),
+                    self._loading_config.retry_max_delay_ms,
+                )
+                if not self._heartbeat_backoff(delay_ms / 1000):
+                    return False
+        return False
+
+    def _commit_contiguous_resolutions(self) -> bool:
+        """Commit each owned partition's longest durably resolved prefix."""
+        for (topic, partition), ledger in sorted(self._partition_ledgers.items()):
+            next_offset = ledger.next_offset
+            while next_offset in ledger.resolved_offsets:
+                next_offset += 1
+            if next_offset == ledger.next_offset:
+                continue
+            if not self._poll_for_callbacks():
+                return False
+            key = (topic, partition)
+            if not self._owns(key):
+                self._logger.error(
+                    "Refusing offset commit without ownership label=%s topic=%s partition=%s",
+                    self._node_config.label,
+                    topic,
+                    partition,
+                )
+                self._rebalance_failure = True
+                return False
+            try:
+                self._consumer.commit(
+                    offsets=[TopicPartition(topic, partition, next_offset)],
+                    asynchronous=False,
+                )
+            except Exception as exc:
+                self._logger.error(
+                    "Offset commit failed label=%s topic=%s partition=%s offset=%s reason=%s",
+                    self._node_config.label,
+                    topic,
+                    partition,
+                    next_offset,
+                    exc,
+                )
+                return False
+            self._committed_next_offsets[key] = next_offset
+            for resolved_offset in range(ledger.next_offset, next_offset):
+                ledger.resolved_offsets.discard(resolved_offset)
+            ledger.next_offset = next_offset
+        return True
+
+    def _flush_batch(self) -> bool:
+        """Atomically write the batch, then commit each partition's next offset."""
+        if not self._batch:
+            return True
+        self._pause_assignments()
+        if not self._write_batch_with_retry():
+            return False
+        if not self._poll_for_callbacks():
+            return False
+        batch_keys = {(pending.topic, pending.partition) for pending in self._batch}
+        if not all(self._owns(key) for key in batch_keys):
+            self._rebalance_failure = True
+            return False
+        for pending in self._batch:
+            key = (pending.topic, pending.partition)
+            self._partition_ledgers[key].resolved_offsets.add(pending.offset)
+        if not self._commit_contiguous_resolutions():
+            return False
+        self._batch.clear()
+        self._batch_started_at = None
+        self._resume_assignments()
+        return True
+
+    def _idle_flush_due(self) -> bool:
+        if self._batch_started_at is None:
+            return False
+        return (self._clock() - self._batch_started_at) * 1000 >= self._loading_config.flush_interval_ms
+
+    def _has_uncommitted_resolutions(self) -> bool:
+        """Return whether a resolved offset is still blocked behind a gap."""
+        return any(ledger.resolved_offsets for ledger in self._partition_ledgers.values())
+
     def run(self, *, max_messages: int | None = None) -> int:
         """Poll until interrupted, capped, or a message fails closed."""
         processed = 0
         try:
             while max_messages is None or processed < max_messages:
-                message = self._consumer.poll(1.0)
+                self._publish_pending_assignments()
+                if self._rebalance_failure:
+                    return 1
+                if self._shutdown_requested.is_set():
+                    self._logger.info("Node loader gracefully stopping label=%s", self._node_config.label)
+                    if not self._flush_batch():
+                        return 1
+                    if self._deferred_messages:
+                        message = self._deferred_messages.popleft()
+                        if not self._buffer_message(message):
+                            return 1
+                        processed += 1
+                        continue
+                    if self._has_uncommitted_resolutions():
+                        self._logger.error(
+                            "Node loader cannot complete with offset gaps label=%s",
+                            self._node_config.label,
+                        )
+                        return 1
+                    self._publish_control("DRAIN_COMPLETE", {}, flush=True)
+                    return 0
+
+                if self._idle_flush_due() and not self._flush_batch():
+                    return 1
+
+                if self._deferred_messages:
+                    message = self._deferred_messages.popleft()
+                else:
+                    message = self._consumer.poll(
+                        min(1.0, self._loading_config.flush_interval_ms / 1000)
+                    )
                 if message is None:
                     continue
-                if not self.process_message(message):
+                if not self._buffer_message(message):
                     return 1
                 processed += 1
+                if len(self._batch) >= self._loading_config.unwind_batch_size and not self._flush_batch():
+                    return 1
         except KeyboardInterrupt:
             self._logger.warning("Node loader interrupted label=%s", self._node_config.label)
             return 1
+
+        if not self._flush_batch():
+            return 1
+        if self._deferred_messages or self._has_uncommitted_resolutions():
+            self._logger.error(
+                "Node loader cannot complete with deferred or offset-gap work label=%s",
+                self._node_config.label,
+            )
+            return 1
+        self._publish_control("DRAIN_COMPLETE", {}, flush=True)
         return 0
 
     def close(self) -> None:
@@ -237,6 +705,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-messages", type=int)
     parser.add_argument("--mode", choices=["bulk", "stream"], default="stream")
     parser.add_argument("--topic")
+    parser.add_argument("--run-id", default="default_run")
+    parser.add_argument("--replica-id", default="0")
     return parser
 
 
@@ -245,31 +715,69 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.max_messages is not None and args.max_messages <= 0:
         raise SystemExit("--max-messages must be positive")
+    shutdown_requested = Event()
+    previous_sigterm_handler = signal.signal(
+        signal.SIGTERM,
+        lambda _signum, _frame: shutdown_requested.set(),
+    )
     consumer = None
+    producer = None
     driver = None
     try:
         schema = load_schema(args.config)
         node_config = _select_node_config(schema, args.node_label)
+
+        kafka_bootstrap_servers = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
         consumer = Consumer({
-            "bootstrap.servers": os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+            "bootstrap.servers": kafka_bootstrap_servers,
             "group.id": os.environ.get("KAFKA_GROUP_ID", f"{schema.loading.consumer_group_id}-{node_config.label}"),
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "max.poll.interval.ms": schema.loading.max_poll_interval_ms,
             "session.timeout.ms": schema.loading.session_timeout_ms,
         })
+        producer = Producer({
+            "bootstrap.servers": kafka_bootstrap_servers,
+        })
         driver = get_neo4j_driver(*get_neo4j_credentials())
-        return NodeLoader(consumer, NodeWriter(driver, node_config), node_config, topic=args.topic).run(
-            max_messages=args.max_messages
+
+        loader = NodeLoader(
+            consumer=consumer,
+            writer=NodeWriter(driver, node_config),
+            node_config=node_config,
+            topic=args.topic,
+            producer=producer,
+            run_id=args.run_id,
+            replica_id=args.replica_id,
+            shutdown_requested=shutdown_requested,
+            loading_config=schema.loading,
+            rejection_sink=RejectionSink(
+                os.environ.get("REJECTION_LOG_PATH", schema.loading.rejection_log_path)
+            ),
         )
+        return loader.run(max_messages=args.max_messages)
     except Exception as exc:
         logger.error("Unable to start node loader: %s", exc)
         return 1
     finally:
-        if consumer is not None:
-            consumer.close()
-        if driver is not None:
-            driver.close()
+        try:
+            if consumer is not None:
+                try:
+                    consumer.close()
+                except Exception:
+                    logger.exception("Unable to close Kafka consumer during loader shutdown")
+            if producer is not None:
+                try:
+                    producer.flush()
+                except Exception:
+                    logger.exception("Unable to flush control producer during loader shutdown")
+            if driver is not None:
+                try:
+                    driver.close()
+                except Exception:
+                    logger.exception("Unable to close Neo4j driver during loader shutdown")
+        finally:
+            signal.signal(signal.SIGTERM, previous_sigterm_handler)
 
 
 if __name__ == "__main__":

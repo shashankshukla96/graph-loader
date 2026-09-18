@@ -3,9 +3,11 @@ tests/test_cli.py
 ─────────────────
 Unit tests for the CLI parser and routing.
 """
-import pytest
 import argparse
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 from src.cli import build_parser, get_neo4j_credentials, main, handle_start, handle_stop, handle_status
 from src.orchestrator.schema_initializer import SchemaInitializationError
@@ -104,45 +106,62 @@ def test_neo4j_username_uses_legacy_fallback(monkeypatch):
 @patch("src.cli.get_neo4j_driver")
 @patch("src.cli.load_schema")
 def test_handle_start_success(mock_load, mock_get_driver, mock_apply_schema, mock_docker):
-    args = argparse.Namespace(mode="bulk", config="config.yaml", network="test_net")
+    args = argparse.Namespace(mode="stream", config="config.yaml", network="test_net")
     mock_driver = MagicMock()
     mock_get_driver.return_value = mock_driver
     mock_schema = MagicMock()
-    mock_node = MagicMock()
-    mock_node.label = "Person"
-    mock_node.topic = "person_topic"
+    mock_node = SimpleNamespace(label="Person", topic="person_topic", replicas=1)
     mock_schema.nodes = [mock_node]
     mock_load.return_value = mock_schema
 
     mock_docker_instance = MagicMock()
+    mock_docker_instance.run_node_loader.return_value = [MagicMock()]
     mock_docker.return_value = mock_docker_instance
-    
+
     exit_code = handle_start(args)
-    
+
     assert exit_code == 0
     mock_load.assert_called_once_with("config.yaml")
     mock_get_driver.assert_called_once()
     mock_apply_schema.assert_called_once()
     mock_driver.close.assert_called_once()
-    
+
     mock_docker_instance.build_image.assert_called_once()
     mock_docker_instance.run_node_loader.assert_called_once_with(
         node_label="Person",
         topic="person_topic",
-        mode="bulk",
+        mode="stream",
         config_path="config.yaml",
-        replicas=mock_node.replicas,
-        network="test_net"
+        replicas=1,
+        network="test_net",
     )
+
+
+@patch("src.cli.DockerService")
+@patch("src.cli.apply_schema")
+@patch("src.cli.get_neo4j_driver")
+@patch("src.cli.load_schema")
+def test_handle_start_uses_prebuilt_image_when_requested(mock_load, mock_get_driver, mock_apply_schema, mock_docker):
+    args = argparse.Namespace(mode="stream", config="config.yaml", network="test_net", skip_image_build=True)
+    mock_schema = MagicMock()
+    mock_schema.nodes = [SimpleNamespace(label="Person", topic="person_topic", replicas=1)]
+    mock_load.return_value = mock_schema
+    mock_docker_instance = MagicMock()
+    mock_docker_instance.run_node_loader.return_value = [MagicMock()]
+    mock_docker.return_value = mock_docker_instance
+
+    assert handle_start(args) == 0
+    mock_docker_instance.build_image.assert_not_called()
+    mock_docker_instance.run_node_loader.assert_called_once()
 
 
 @patch("src.cli.load_schema")
 def test_handle_start_schema_load_failure(mock_load):
     args = argparse.Namespace(mode="bulk", config="config.yaml")
     mock_load.side_effect = Exception("File not found")
-    
+
     exit_code = handle_start(args)
-    
+
     assert exit_code == 1
 
 
@@ -152,9 +171,9 @@ def test_handle_start_schema_load_failure(mock_load):
 def test_handle_start_init_failure(mock_load, mock_get_driver, mock_apply_schema):
     args = argparse.Namespace(mode="bulk", config="config.yaml")
     mock_get_driver.side_effect = SchemaInitializationError("DB offline")
-    
+
     exit_code = handle_start(args)
-    
+
     assert exit_code == 1
     mock_load.assert_called_once()
     mock_apply_schema.assert_not_called()
@@ -165,17 +184,17 @@ def test_handle_start_init_failure(mock_load, mock_get_driver, mock_apply_schema
 @patch("src.cli.get_neo4j_driver")
 @patch("src.cli.load_schema")
 def test_handle_start_docker_launch_failure(mock_load, mock_get_driver, mock_apply_schema, mock_docker):
-    args = argparse.Namespace(mode="bulk", config="config.yaml", network="test_net")
+    args = argparse.Namespace(mode="stream", config="config.yaml", network="test_net")
     mock_schema = MagicMock()
-    mock_node1 = MagicMock()
-    mock_node2 = MagicMock()
+    mock_node1 = SimpleNamespace(label="Person", topic="person_topic", replicas=1)
+    mock_node2 = SimpleNamespace(label="Company", topic="company_topic", replicas=1)
     mock_schema.nodes = [mock_node1, mock_node2]
     mock_load.return_value = mock_schema
 
     mock_docker_instance = MagicMock()
     mock_docker.return_value = mock_docker_instance
     mock_container = MagicMock()
-    
+
     # First call succeeds, second fails
     mock_docker_instance.run_node_loader.side_effect = [[mock_container], Exception("Launch failed")]
 

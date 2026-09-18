@@ -1,0 +1,5 @@
+# IMDb publishes large, frequently refreshed source datasets. Keep them local.
+data/raw/
+data/extracted/
+data/subsets/
+reports/
