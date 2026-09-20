@@ -126,6 +126,43 @@ Each node-loader replica receives an isolated JSONL path under `/app/rejections`
 Docker bind-mounts the host `var/rejections/` directory there, so logs survive
 container removal. Inspect the host directory when investigating rejected records.
 
+## Relationship Loader Operations (Phase 3 / Slice 1)
+
+Load one configured relationship topic directly with the same durable-offset
+guarantees as node ingestion:
+
+```bash
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092 \
+python -m src.loader.edge_loader --config config/graph_schema.yaml \
+  --edge-type WORKS_AT --max-messages 10
+```
+
+Relationship events use an explicit endpoint envelope; endpoint key names are
+declared by the edge configuration:
+
+```json
+{
+  "source": {"personId": "p-001"},
+  "target": {"companyId": "c-001"},
+  "properties": {"since": "2020-01-02", "role": "Engineer"}
+}
+```
+
+The loader merges only the schema-declared labels and relationship type. It
+preflights both endpoint nodes inside the same Neo4j transaction, so a missing
+endpoint or database failure leaves the Kafka offset uncommitted. Malformed
+events are instead written and fsync'd to the rejection log with `edge_type`
+before their offsets can advance; Phase 5 will route those events to a DLQ.
+Relationship fleet scheduling, control acknowledgements, and parallel edge
+lanes are intentionally not part of this direct Slice 1 command.
+
+Bulk CLI runs additionally schedule declared relationship types after the node
+fleet has reached its durable drain. Types with disjoint endpoint labels share
+a stage; types sharing any label are drained and zero-lag verified in separate
+stages. Keep every relationship topic quiescent for the complete run: an input
+arrival after a stage captures its boundary fails that stage rather than
+claiming a successful load.
+
 ### Finite bulk runs
 
 Use bulk mode for a finite, quiescent input set:

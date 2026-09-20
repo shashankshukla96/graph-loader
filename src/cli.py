@@ -34,6 +34,8 @@ def get_neo4j_credentials() -> tuple[str, str, str]:
 
 from src.orchestrator.docker_service import DockerService
 from src.orchestrator.bulk_monitor import BulkMonitor
+from src.orchestrator.dependency_manager import build_relationship_conflict_plan
+from src.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
 
 
 def _is_running(container: object) -> bool:
@@ -72,6 +74,70 @@ def _stop_exact_containers(containers: Iterable[object]) -> list[str]:
             unresolved.append(f"{getattr(container, 'name', '<unknown>')}: {first_error}")
     return unresolved
 
+
+def _run_relationship_bulk_stages(schema, docker_service: DockerService, args: argparse.Namespace) -> int:
+    """Run deterministic, exact-container relationship bulk stages."""
+    edges = tuple(getattr(schema, "edges", ()))
+    plan = build_relationship_conflict_plan(edges)
+    run_id = uuid.uuid4().hex
+    timeout = args.bulk_timeout_seconds
+    edges_by_type = {edge.type: edge for edge in edges}
+    for stage in plan.stages:
+        stage_containers: list[object] = []
+        tracked: dict[tuple[str, str], object] = {}
+        monitor = None
+        try:
+            logger.info("Starting relationship bulk stage=%s edges=%s", stage.index, ",".join(stage.edge_types))
+            for edge_type in stage.edge_types:
+                edge = edges_by_type[edge_type]
+                containers = docker_service.run_edge_loader(
+                    edge_type=edge.type, topic=edge.topic, mode="bulk", config_path=args.config,
+                    replicas=edge.replicas, network=args.network, run_id=run_id,
+                    consumer_group_prefix=schema.loading.consumer_group_id,
+                )
+                stage_containers.extend(containers)
+                if len(containers) != edge.replicas:
+                    raise RuntimeError(f"relationship stage={stage.index} edge={edge.type} launch returned {len(containers)} replicas; expected {edge.replicas}")
+                if len({id(container) for container in containers}) != len(containers):
+                    raise RuntimeError(
+                        f"relationship stage={stage.index} edge={edge.type} launch returned duplicate container objects"
+                    )
+                for replica_id, container in enumerate(containers):
+                    if container in tracked.values():
+                        raise RuntimeError(
+                            f"relationship stage={stage.index} edge={edge.type} launch reused a container from another edge"
+                        )
+                    tracked[(edge.type, str(replica_id))] = container
+            expected = {
+                (edge_type, str(replica_id))
+                for edge_type in stage.edge_types
+                for replica_id in range(edges_by_type[edge_type].replicas)
+            }
+            if set(tracked) != expected:
+                raise RuntimeError(f"relationship stage={stage.index} replica accounting mismatch")
+            monitor = RelationshipBulkMonitor(
+                [edges_by_type[edge_type] for edge_type in stage.edge_types], run_id, expected, tracked,
+                bootstrap_servers=os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+                consumer_group_prefix=schema.loading.consumer_group_id,
+            )
+            monitor.wait_for_assignment_coverage(timeout)
+            monitor.capture_boundary()
+            monitor.wait_for_completion(timeout)
+            failures = _stop_exact_containers(stage_containers)
+            if failures:
+                raise RuntimeError(f"relationship stage={stage.index} shutdown failed: {'; '.join(failures)}")
+            monitor.wait_for_drain_complete(timeout)
+            monitor.verify_zero_lag()
+        except Exception as exc:
+            logger.error("Relationship bulk stage=%s edges=%s failed: %s", stage.index, ",".join(stage.edge_types), exc)
+            _stop_exact_containers(stage_containers)
+            return 1
+        finally:
+            if monitor is not None:
+                monitor.close()
+            _stop_exact_containers(stage_containers)
+    return 0
+
 def handle_start(args: argparse.Namespace) -> int:
     logger.info(f"Starting pipeline in {args.mode} mode with config {args.config}")
 
@@ -98,6 +164,7 @@ def handle_start(args: argparse.Namespace) -> int:
         return 1
 
     docker_service = DockerService()
+    edge_configs = tuple(getattr(schema, "edges", ()))
     if getattr(args, "skip_image_build", False):
         logger.info("Using the pre-built node loader image.")
     else:
@@ -107,6 +174,13 @@ def handle_start(args: argparse.Namespace) -> int:
         except Exception as e:
             logger.error(f"Failed to build node loader image: {e}")
             return 1
+        if edge_configs:
+            logger.info("Building relationship loader image...")
+            try:
+                docker_service.build_edge_image()
+            except Exception as e:
+                logger.error(f"Failed to build relationship loader image: {e}")
+                return 1
 
     is_bulk = args.mode == "bulk"
     bulk_timeout_seconds = getattr(args, "bulk_timeout_seconds", 300.0)
@@ -166,7 +240,7 @@ def handle_start(args: argparse.Namespace) -> int:
             raise RuntimeError(f"unable to stop bulk loader fleet: {'; '.join(stop_failures)}")
         monitor.wait_for_drain_complete(bulk_timeout_seconds)
         monitor.verify_zero_lag()
-        return 0
+        return _run_relationship_bulk_stages(schema, docker_service, args) if edge_configs else 0
     except Exception as exc:
         logger.error("Bulk run failed: %s", exc)
         if not drain_started:

@@ -9,6 +9,86 @@ class DockerService:
     def build_image(self, tag: str = "graph-loader-node:latest", dockerfile: str = "Dockerfile.node_loader"):
         self.client.images.build(path=".", dockerfile=dockerfile, tag=tag, rm=True)
 
+    def build_edge_image(self, tag: str = "graph-loader-edge:latest", dockerfile: str = "Dockerfile.edge_loader"):
+        """Build the dedicated relationship-loader image."""
+        self.client.images.build(path=".", dockerfile=dockerfile, tag=tag, rm=True)
+
+    def run_edge_loader(
+        self,
+        *,
+        edge_type: str,
+        topic: str,
+        mode: str,
+        config_path: str,
+        replicas: int = 1,
+        network: str = "graph-loader-net",
+        environment: Optional[Dict[str, str]] = None,
+        rejection_dir: str = "var/rejections",
+        run_id: Optional[str] = None,
+        consumer_group_prefix: str = "graph-loader",
+    ) -> List[docker.models.containers.Container]:
+        """Launch exact relationship loader replicas, rolling back only this call."""
+        if replicas < 1:
+            raise ValueError("replicas must be positive")
+        env = dict(environment) if environment is not None else {
+            "NEO4J_URI": os.environ.get("LOADER_NEO4J_URI", "bolt://neo4j:7687"),
+            "NEO4J_USERNAME": os.environ.get("NEO4J_USERNAME", "neo4j"),
+            "NEO4J_PASSWORD": os.environ.get("NEO4J_PASSWORD", "changeme"),
+            "KAFKA_BOOTSTRAP_SERVERS": os.environ.get(
+                "LOADER_KAFKA_BOOTSTRAP_SERVERS", "kafka:29092"
+            ),
+        }
+        host_config_path = os.path.abspath(config_path)
+        host_rejection_dir = os.path.abspath(rejection_dir)
+        os.makedirs(host_rejection_dir, exist_ok=True)
+        volumes = {
+            host_config_path: {"bind": "/app/runtime_schema.yaml", "mode": "ro"},
+            host_rejection_dir: {"bind": "/app/rejections", "mode": "rw"},
+        }
+        started_containers = []
+        try:
+            for index in range(replicas):
+                replica_id = str(index)
+                command = [
+                    "--config", "/app/runtime_schema.yaml", "--edge-type", edge_type,
+                    "--mode", mode, "--topic", topic, "--replica-id", replica_id,
+                ]
+                labels = {
+                    "app": "graph-loader", "component": "edge-loader",
+                    "edge_type": edge_type, "replica_id": replica_id,
+                }
+                name = f"graph-loader-edge-{edge_type}-{replica_id}"
+                replica_environment = dict(env)
+                rejection_suffix = ""
+                if run_id is not None:
+                    encoded_run_id = run_id.encode("utf-8").hex()
+                    if not encoded_run_id:
+                        raise ValueError("run_id must not be empty")
+                    name = f"{name}-{encoded_run_id}"
+                    command.extend(["--run-id", run_id])
+                    labels["run_id"] = run_id
+                    replica_environment["GRAPH_LOADER_RUN_ID"] = run_id
+                    replica_environment["KAFKA_GROUP_ID"] = (
+                        f"{consumer_group_prefix}-{edge_type}-{run_id}"
+                    )
+                    rejection_suffix = f"-{encoded_run_id}"
+                replica_environment["REJECTION_LOG_PATH"] = (
+                    f"/app/rejections/{edge_type}-{replica_id}{rejection_suffix}.jsonl"
+                )
+                started_containers.append(self.client.containers.run(
+                    image="graph-loader-edge:latest", name=name, command=command,
+                    environment=replica_environment, network=network, labels=labels,
+                    volumes=volumes, detach=True, remove=True,
+                ))
+        except Exception:
+            for container in started_containers:
+                try:
+                    container.stop()
+                except Exception:
+                    pass
+            raise
+        return started_containers
+
     def run_node_loader(
         self,
         node_label: str,

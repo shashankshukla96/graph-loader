@@ -75,6 +75,8 @@ class TestEdgeDDLGenerator:
                 "type": "WORKS_AT",
                 "topic": "t2",
                 "nodes": {"source": "Person", "target": "Person"},
+                "source_key_property": "id",
+                "target_key_property": "id",
                 "properties": {
                     "since": {
                         "type": "date",
@@ -123,6 +125,7 @@ def test_generate_all_ddl():
         "edges": [{
             "type": "WORKS_AT", "topic": "t2",
             "nodes": {"source": "Person", "target": "Person"},
+            "source_key_property": "id", "target_key_property": "id",
             "properties": {"since": {"type": "date", "required": True, "index": {"type": "range"}}}
         }]
     }

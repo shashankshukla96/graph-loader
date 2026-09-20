@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 from typing import Literal, List, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
 
 
 CYPHER_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -173,11 +173,13 @@ class MixAndBatchConfig(BaseModel):
     lock dependencies between concurrent loaders.
 
     Attributes:
+        lane_count: Number of deterministic directional source-hash lanes.
         batch_size: Number of edges per write batch. Must be > 0.
         forward_slot_ms: Duration in milliseconds for the forward-edge slot.
         backward_slot_ms: Duration in milliseconds for the backward-edge slot.
     """
 
+    lane_count: int = Field(default=1, ge=1, le=4096)
     batch_size: int = Field(default=1000, gt=0)
     forward_slot_ms: int = Field(default=500, gt=0)
     backward_slot_ms: int = Field(default=500, gt=0)
@@ -221,6 +223,50 @@ class DeadLetterConfig(BaseModel):
     enabled: bool = True
 
 
+class EdgeExecutionConfig(BaseModel):
+    """Select relationship execution strategy and bounded concurrency."""
+    mode: Literal["python_apoc", "native_disjoint"] = "python_apoc"
+    worker_count: int = Field(default=1, ge=1, le=64)
+
+    @field_validator("worker_count", mode="before")
+    @classmethod
+    def worker_count_is_not_bool(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("worker_count must be an integer")
+        return value
+
+
+class CoordinationConfig(BaseModel):
+    """Bounded run-scoped settings for the Phase 4 global batch clock."""
+
+    model_config = ConfigDict(frozen=True)
+
+    topic: str = "graph.loader.coordination"
+    bucket_count: int = Field(default=64, ge=1, le=4096)
+    slot_duration_ms: int = Field(default=60_000, ge=1, le=3_600_000)
+    lease_timeout_ms: int = Field(default=120_000, ge=1, le=3_600_000)
+
+    @field_validator("topic")
+    @classmethod
+    def topic_is_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("coordination topic must not be blank")
+        return value
+
+    @field_validator("bucket_count", "slot_duration_ms", "lease_timeout_ms", mode="before")
+    @classmethod
+    def integer_fields_are_not_bool(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("coordination values must be integers")
+        return value
+
+    @model_validator(mode="after")
+    def lease_covers_slot(self) -> "CoordinationConfig":
+        if self.lease_timeout_ms <= self.slot_duration_ms:
+            raise ValueError("lease_timeout_ms must be > slot_duration_ms")
+        return self
+
+
 class LoadingConfig(BaseModel):
     """Global loading behaviour shared across all loaders.
 
@@ -249,6 +295,7 @@ class LoadingConfig(BaseModel):
     retry_base_delay_ms: int = Field(default=100, gt=0, le=60_000)
     retry_max_delay_ms: int = Field(default=5_000, gt=0, le=300_000)
     rejection_log_path: str = "var/rejections/node-loader.jsonl"
+    coordination: CoordinationConfig = Field(default_factory=CoordinationConfig)
 
     @field_validator("rejection_log_path")
     @classmethod
@@ -281,16 +328,53 @@ class EdgeConfig(BaseModel):
     type: str
     topic: str
     nodes: SourceTargetConfig
+    source_key_property: str
+    target_key_property: str
+    replicas: int = Field(default=1, ge=1, le=64)
     properties: dict[str, PropertyConfig] = Field(default_factory=dict)
     mix_and_batch: MixAndBatchConfig = Field(default_factory=MixAndBatchConfig)
     retry: RetryConfig = Field(default_factory=RetryConfig)
     dead_letter: Optional[DeadLetterConfig] = None
+    execution: EdgeExecutionConfig = Field(default_factory=EdgeExecutionConfig)
+    _source_key_config: PropertyConfig | None = PrivateAttr(default=None)
+    _target_key_config: PropertyConfig | None = PrivateAttr(default=None)
 
-    @field_validator("type")
+    @field_validator("type", "source_key_property", "target_key_property")
     @classmethod
-    def edge_type_is_cypher_identifier(cls, value: str) -> str:
-        """Validate the relationship type interpolated into DDL Cypher."""
-        return _validate_cypher_identifier(value, "type")
+    def edge_type_is_cypher_identifier(cls, value: str, info) -> str:
+        """Validate relationship identifiers interpolated into Cypher."""
+        return _validate_cypher_identifier(value, info.field_name)
+
+    @field_validator("replicas", mode="before")
+    @classmethod
+    def replicas_are_not_bool(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("replicas must be an integer")
+        return value
+
+    def bind_endpoint_properties(
+        self,
+        source_property: PropertyConfig,
+        target_property: PropertyConfig,
+    ) -> None:
+        """Bind endpoint property definitions after complete graph validation.
+
+        Only :class:`GraphSchema` may call this method. The bindings are
+        internal and non-serialized; callers must use a config obtained from
+        ``load_schema()`` before normalizing relationship events.
+        """
+        self._source_key_config = source_property
+        self._target_key_config = target_property
+
+    @property
+    def source_key_config(self) -> PropertyConfig | None:
+        """Return the graph-validated source endpoint definition, if bound."""
+        return self._source_key_config
+
+    @property
+    def target_key_config(self) -> PropertyConfig | None:
+        """Return the graph-validated target endpoint definition, if bound."""
+        return self._target_key_config
 
     @field_validator("properties")
     @classmethod
@@ -327,12 +411,44 @@ class GraphSchema(BaseModel):
     loading: LoadingConfig = Field(default_factory=LoadingConfig)
 
     @model_validator(mode="after")
-    def no_duplicate_labels(self) -> "GraphSchema":
-        """Enforce uniqueness of node labels and edge types across the schema."""
+    def validate_edge_endpoints(self) -> "GraphSchema":
+        """Enforce unique types and bind each edge to declared required keys."""
         labels = [n.label for n in self.nodes]
         if len(labels) != len(set(labels)):
             raise ValueError("Duplicate node labels detected in schema.")
         types = [e.type for e in self.edges]
         if len(types) != len(set(types)):
             raise ValueError("Duplicate edge types detected in schema.")
+
+        nodes_by_label = {node.label: node for node in self.nodes}
+        for edge in self.edges:
+            for endpoint_name, label, key_property in (
+                ("source", edge.nodes.source, edge.source_key_property),
+                ("target", edge.nodes.target, edge.target_key_property),
+            ):
+                node = nodes_by_label.get(label)
+                if node is None:
+                    raise ValueError(
+                        f"Edge '{edge.type}' {endpoint_name} label '{label}' "
+                        "does not name a declared node"
+                    )
+                if key_property != node.key_property:
+                    raise ValueError(
+                        f"Edge '{edge.type}' {endpoint_name}_key_property "
+                        f"'{key_property}' must match node '{label}' key_property "
+                        f"'{node.key_property}'"
+                    )
+                property_config = node.properties.get(key_property)
+                if property_config is None or not property_config.required:
+                    raise ValueError(
+                        f"Edge '{edge.type}' {endpoint_name}_key_property "
+                        f"'{key_property}' must be a required property of node '{label}'"
+                    )
+
+            source_node = nodes_by_label[edge.nodes.source]
+            target_node = nodes_by_label[edge.nodes.target]
+            edge.bind_endpoint_properties(
+                source_node.properties[edge.source_key_property],
+                target_node.properties[edge.target_key_property],
+            )
         return self

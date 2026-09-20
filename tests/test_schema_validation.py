@@ -20,6 +20,7 @@ from pydantic import ValidationError
 from src.models.schema import (
     ConstraintConfig,
     EdgeConfig,
+    EdgeExecutionConfig,
     GraphSchema,
     IndexConfig,
     LoadingConfig,
@@ -28,12 +29,49 @@ from src.models.schema import (
     PropertyConfig,
     RetryConfig,
     SourceTargetConfig,
+    CoordinationConfig,
 )
 from src.utils.schema_loader import SchemaLoadError, load_schema
 
 # ── Project root — anchors path-dependent tests to the repo root ──────────────
 # Follows the same convention as tests/test_dev_environment.py.
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_coordination_defaults_and_validation() -> None:
+    assert CoordinationConfig().bucket_count == 64
+    with pytest.raises(ValidationError):
+        CoordinationConfig().bucket_count = 8
+    with pytest.raises(ValidationError):
+        CoordinationConfig(bucket_count=True)
+    with pytest.raises(ValidationError):
+        CoordinationConfig(topic=" ")
+    with pytest.raises(ValidationError):
+        CoordinationConfig(slot_duration_ms=20, lease_timeout_ms=10)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("bucket_count", True), ("slot_duration_ms", True), ("lease_timeout_ms", True),
+    ("bucket_count", 0), ("bucket_count", -1), ("bucket_count", 4097),
+    ("slot_duration_ms", 0), ("slot_duration_ms", -1), ("slot_duration_ms", 3_600_001),
+    ("lease_timeout_ms", 0), ("lease_timeout_ms", -1), ("lease_timeout_ms", 3_600_001),
+])
+def test_coordination_integer_bounds(field, value) -> None:
+    with pytest.raises(ValidationError):
+        CoordinationConfig(**{field: value})
+
+
+def test_loading_coordination_defaults_and_custom_yaml(tmp_path: Path) -> None:
+    data = _valid_schema_dict()
+    assert GraphSchema.model_validate(data).loading.coordination.topic == "graph.loader.coordination"
+    data.setdefault("loading", {})["coordination"] = {"topic": "clock-x", "bucket_count": 8, "slot_duration_ms": 10, "lease_timeout_ms": 20}
+    path = tmp_path / "clock.yaml"; path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    loaded = load_schema(path)
+    assert loaded.loading.coordination.bucket_count == 8
+    data["loading"]["coordination"]["bucket_count"] = 0
+    path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    with pytest.raises(SchemaLoadError):
+        load_schema(path)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -55,6 +93,8 @@ def _minimal_edge(etype: str = "KNOWS") -> dict:
         "type": etype,
         "topic": f"{etype.lower()}-events",
         "nodes": {"source": "Person", "target": "Person"},
+        "source_key_property": "personId",
+        "target_key_property": "personId",
         "properties": {"since": {"type": "date", "required": True}},
     }
 
@@ -200,7 +240,24 @@ class TestEdgeConfig:
 
     def test_mix_and_batch_defaults(self) -> None:
         edge = EdgeConfig(**_minimal_edge())
+        assert edge.mix_and_batch.lane_count == 1
         assert edge.mix_and_batch.batch_size == 1000
+
+    def test_edge_execution_defaults_and_validates_worker_count(self) -> None:
+        edge = EdgeConfig(**_minimal_edge())
+        assert edge.execution.mode == "python_apoc"
+        assert edge.execution.worker_count == 1
+        assert EdgeExecutionConfig(mode="native_disjoint", worker_count=2).worker_count == 2
+        for value in (0, 65, True):
+            with pytest.raises(ValidationError):
+                EdgeExecutionConfig(worker_count=value)  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize("lane_count", [0, -1, 4097])
+    def test_mix_and_batch_rejects_invalid_lane_count(self, lane_count: int) -> None:
+        bad = _minimal_edge()
+        bad["mix_and_batch"] = {"lane_count": lane_count}
+        with pytest.raises(ValidationError, match="lane_count"):
+            EdgeConfig(**bad)
 
     def test_self_referencing_edge_detectable(self) -> None:
         edge = EdgeConfig(**_minimal_edge("KNOWS"))
@@ -253,6 +310,41 @@ class TestGraphSchema:
         data["edges"].append(_minimal_edge("KNOWS"))  # duplicate type
         with pytest.raises(ValidationError, match="Duplicate edge types"):
             GraphSchema.model_validate(data)
+
+    @pytest.mark.parametrize(
+        ("field", "value", "match"),
+        [
+            ("source", "Missing", "source label 'Missing'"),
+            ("target", "Missing", "target label 'Missing'"),
+        ],
+    )
+    def test_unknown_edge_endpoint_label_raises(self, field: str, value: str, match: str) -> None:
+        data = _valid_schema_dict()
+        data["edges"][0]["nodes"][field] = value
+        with pytest.raises(ValidationError, match=match):
+            GraphSchema.model_validate(data)
+
+    @pytest.mark.parametrize(
+        ("field", "value", "match"),
+        [
+            ("source_key_property", "otherId", "source_key_property 'otherId'"),
+            ("target_key_property", "otherId", "target_key_property 'otherId'"),
+        ],
+    )
+    def test_edge_endpoint_key_must_match_declared_node_key(
+        self, field: str, value: str, match: str
+    ) -> None:
+        data = _valid_schema_dict()
+        data["edges"][0][field] = value
+        with pytest.raises(ValidationError, match=match):
+            GraphSchema.model_validate(data)
+
+    def test_validated_schema_binds_endpoint_property_configs(self) -> None:
+        schema = GraphSchema.model_validate(_valid_schema_dict())
+        edge = schema.edges[0]
+        assert edge.source_key_config is not None
+        assert edge.source_key_config.type == "string"
+        assert edge.target_key_config is not None
 
     def test_loading_config_defaults(self) -> None:
         schema = GraphSchema.model_validate(_valid_schema_dict())

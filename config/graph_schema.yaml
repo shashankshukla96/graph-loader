@@ -23,6 +23,11 @@ loading:
   retry_base_delay_ms: 100          # Initial exponential retry delay (ms)
   retry_max_delay_ms: 5000          # Maximum exponential retry delay (ms)
   rejection_log_path: var/rejections/node-loader.jsonl  # Phase 5 replaces this sink with DLQ
+  coordination:
+    topic: graph.loader.coordination  # Phase 4 run-scoped clock topic
+    bucket_count: 64
+    slot_duration_ms: 60000
+    lease_timeout_ms: 120000
 
 nodes:
 
@@ -105,6 +110,11 @@ edges:
     nodes:
       source: Person                # Source node label
       target: Company               # Target node label — different from source (not self-referencing)
+    source_key_property: personId
+    target_key_property: companyId
+    execution:
+      mode: python_apoc
+      worker_count: 1
 
     properties:
 
@@ -119,6 +129,7 @@ edges:
         required: false             # Optional — some records may omit this
 
     mix_and_batch:
+      lane_count: 1                 # Deterministic directional source-hash lanes
       batch_size: 1000              # Edges written per Neo4j transaction
       forward_slot_ms: 500          # Time slot for forward edges (src_id < tgt_id)
       backward_slot_ms: 500         # Time slot for backward edges (src_id > tgt_id)
@@ -153,6 +164,7 @@ edges:
         required: false
 
     mix_and_batch:
+      lane_count: 1
       batch_size: 500               # Smaller batch for self-referencing edges (higher lock contention)
       forward_slot_ms: 500
       backward_slot_ms: 500
@@ -165,3 +177,8 @@ edges:
     dead_letter:
       topic: dlq-knows
       enabled: true
+    source_key_property: personId
+    target_key_property: personId
+    execution:
+      mode: python_apoc
+      worker_count: 1

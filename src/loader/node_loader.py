@@ -4,10 +4,8 @@ from __future__ import annotations
 import argparse
 from collections import deque
 from dataclasses import dataclass
-from datetime import date, datetime
 import json
 import logging
-import math
 import os
 from pathlib import Path
 import signal
@@ -22,6 +20,7 @@ from neo4j.exceptions import Neo4jError
 from src.cli import get_neo4j_credentials
 from src.loader.control import CONTROL_TOPIC
 from src.models.schema import LoadingConfig, NodeConfig, PropertyConfig
+from src.loader.record_validation import normalize_property_value
 from src.orchestrator.schema_initializer import get_neo4j_driver
 from src.utils.schema_loader import load_schema
 
@@ -75,18 +74,28 @@ class RejectionSink:
         topic: str,
         partition: int,
         offset: int,
-        node_label: str,
         reason: str,
+        node_label: str | None = None,
+        edge_type: str | None = None,
     ) -> None:
-        """Append and fsync one metadata-only rejection record."""
+        """Append and fsync one metadata-only node or relationship rejection.
+
+        Exactly one discriminator is retained so existing node JSONL records
+        remain compatible while relationship records identify their edge type.
+        """
+        if (node_label is None) == (edge_type is None):
+            raise ValueError("exactly one of node_label or edge_type is required")
         self._path.parent.mkdir(parents=True, exist_ok=True)
         entry = {
             "topic": topic,
             "partition": partition,
             "offset": offset,
-            "node_label": node_label,
             "reason": reason,
         }
+        if node_label is not None:
+            entry["node_label"] = node_label
+        else:
+            entry["edge_type"] = edge_type
         with self._path.open("a", encoding="utf-8") as rejection_file:
             rejection_file.write(json.dumps(entry, separators=(",", ":"), sort_keys=True))
             rejection_file.write("\n")
@@ -108,53 +117,14 @@ def _raise_record_error(node_config: NodeConfig, property_name: str, reason: str
 def _normalize_property_value(
     value: object, property_config: PropertyConfig, node_config: NodeConfig, property_name: str
 ) -> object:
-    """Convert one configured scalar value to a Neo4j-driver-compatible type."""
-    property_type = property_config.type
-
-    if property_type == "string":
-        if not isinstance(value, str):
-            _raise_record_error(node_config, property_name, "must be a string")
-        return value
-
-    if property_type == "integer":
-        if isinstance(value, bool) or not isinstance(value, int):
-            _raise_record_error(node_config, property_name, "must be an integer")
-        return value
-
-    if property_type == "float":
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            _raise_record_error(node_config, property_name, "must be a finite number")
-        try:
-            numeric_value = float(value)
-        except (OverflowError, ValueError):
-            _raise_record_error(node_config, property_name, "must be a finite number")
-        if not math.isfinite(numeric_value):
-            _raise_record_error(node_config, property_name, "must be a finite number")
-        return numeric_value
-
-    if property_type == "date":
-        if not isinstance(value, str):
-            _raise_record_error(node_config, property_name, "must be an ISO-8601 date")
-        try:
-            return date.fromisoformat(value)
-        except ValueError:
-            _raise_record_error(node_config, property_name, "must be an ISO-8601 date")
-
-    if property_type == "datetime":
-        if not isinstance(value, str):
-            _raise_record_error(node_config, property_name, "must be an ISO-8601 datetime")
-        if len(value) < 11 or value[10] != "T":
-            _raise_record_error(node_config, property_name, "must use a 'T' datetime separator")
-        normalized_value = f"{value[:-1]}+00:00" if value.endswith("Z") else value
-        try:
-            parsed_value = datetime.fromisoformat(normalized_value)
-        except ValueError:
-            _raise_record_error(node_config, property_name, "must be an ISO-8601 datetime")
-        if parsed_value.tzinfo is None or parsed_value.utcoffset() is None:
-            _raise_record_error(node_config, property_name, "must include a timezone offset")
-        return parsed_value
-
-    _raise_record_error(node_config, property_name, f"has unsupported type '{property_type}'")
+    """Convert a configured scalar while retaining node-specific errors."""
+    return normalize_property_value(
+        value,
+        property_config,
+        entity_description=f"Node '{node_config.label}'",
+        property_name=property_name,
+        error_factory=NodeRecordValidationError,
+    )
 
 
 def normalize_node_record(

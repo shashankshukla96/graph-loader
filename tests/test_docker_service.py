@@ -150,3 +150,37 @@ class TestDockerService(unittest.TestCase):
         self.mock_client.containers.list.assert_called_once_with(
             all=True, filters={"label": "component=node-loader"}
         )
+
+    def test_run_edge_loader_scopes_group_and_rejection_file_by_run(self):
+        self.mock_client.containers.run.return_value = MagicMock()
+        with tempfile.TemporaryDirectory() as rejection_dir:
+            self.service.run_edge_loader(
+                edge_type="WORKS_AT", topic="works-at-events", mode="bulk",
+                config_path="config.yaml", network="test_net", rejection_dir=rejection_dir,
+                run_id="run-A", consumer_group_prefix="loader",
+            )
+        call = self.mock_client.containers.run.call_args.kwargs
+        assert call["image"] == "graph-loader-edge:latest"
+        assert call["labels"]["component"] == "edge-loader"
+        assert call["labels"]["run_id"] == "run-A"
+        assert call["environment"]["KAFKA_GROUP_ID"] == "loader-WORKS_AT-run-A"
+        assert call["environment"]["REJECTION_LOG_PATH"].endswith("WORKS_AT-0-72756e2d41.jsonl")
+        assert call["command"][-4:] == ["--replica-id", "0", "--run-id", "run-A"]
+
+    def test_build_edge_image_uses_edge_dockerfile(self):
+        self.service.build_edge_image()
+        self.mock_client.images.build.assert_called_once_with(
+            path=".", dockerfile="Dockerfile.edge_loader", tag="graph-loader-edge:latest", rm=True
+        )
+
+    def test_edge_partial_launch_rolls_back_only_started_containers(self):
+        started = MagicMock()
+        self.mock_client.containers.run.side_effect = [started, RuntimeError("launch failed")]
+        with tempfile.TemporaryDirectory() as rejection_dir:
+            with self.assertRaisesRegex(RuntimeError, "launch failed"):
+                self.service.run_edge_loader(
+                    edge_type="WORKS_AT", topic="works-at-events", mode="bulk",
+                    config_path="config.yaml", replicas=2, rejection_dir=rejection_dir,
+                    run_id="run-A",
+                )
+        started.stop.assert_called_once()
