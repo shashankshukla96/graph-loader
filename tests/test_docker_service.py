@@ -1,5 +1,6 @@
 import unittest
 import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 from src.orchestrator.docker_service import DockerService
 
@@ -166,6 +167,39 @@ class TestDockerService(unittest.TestCase):
         assert call["environment"]["KAFKA_GROUP_ID"] == "loader-WORKS_AT-run-A"
         assert call["environment"]["REJECTION_LOG_PATH"].endswith("WORKS_AT-0-72756e2d41.jsonl")
         assert call["command"][-4:] == ["--replica-id", "0", "--run-id", "run-A"]
+
+    def test_run_edge_loader_slot_gating_scopes_distinct_clock_group(self):
+        self.mock_client.containers.run.return_value = MagicMock()
+        with tempfile.TemporaryDirectory() as rejection_dir:
+            self.service.run_edge_loader(
+                edge_type="WORKS_AT", topic="works-at-events", mode="bulk",
+                config_path="config.yaml", rejection_dir=rejection_dir, run_id="run-A",
+                consumer_group_prefix="loader", slot_gating=True, coordination_topic="clock-topic",
+            )
+        call = self.mock_client.containers.run.call_args.kwargs
+        assert call["command"][-3:] == ["--slot-gating", "--coordination-topic", "clock-topic"]
+        assert call["environment"]["KAFKA_GROUP_ID"] == "loader-WORKS_AT-run-A"
+        assert call["environment"]["KAFKA_COORDINATION_GROUP_ID"] == "loader-WORKS_AT-run-A-clock-0"
+        assert call["environment"]["KAFKA_GROUP_ID"] != call["environment"]["KAFKA_COORDINATION_GROUP_ID"]
+
+    def test_run_edge_loader_rejects_incomplete_slot_contract_before_directory_or_container(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            rejection_dir = str(Path(temporary) / "not-created")
+            invalid = (
+                {"slot_gating": True, "coordination_topic": None, "run_id": "run-A"},
+                {"slot_gating": True, "coordination_topic": " ", "run_id": "run-A"},
+                {"slot_gating": False, "coordination_topic": "clock-topic", "run_id": "run-A"},
+                {"slot_gating": True, "coordination_topic": "clock-topic", "run_id": None},
+                {"slot_gating": True, "coordination_topic": "clock-topic", "run_id": " "},
+            )
+            for kwargs in invalid:
+                with self.assertRaises(ValueError):
+                    self.service.run_edge_loader(
+                        edge_type="WORKS_AT", topic="works-at-events", mode="bulk", config_path="config.yaml",
+                        rejection_dir=rejection_dir, **kwargs,
+                    )
+                assert not Path(rejection_dir).exists()
+        self.mock_client.containers.run.assert_not_called()
 
     def test_build_edge_image_uses_edge_dockerfile(self):
         self.service.build_edge_image()

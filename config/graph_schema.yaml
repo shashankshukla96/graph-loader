@@ -28,6 +28,8 @@ loading:
     bucket_count: 64
     slot_duration_ms: 60000
     lease_timeout_ms: 120000
+  slot_buffer_max_records: 10000       # Bounded unleased relationship records per loader
+  slot_worker_queue_max_batches: 32    # Bounded handoff from Kafka poller to Neo4j worker
 
 nodes:
 

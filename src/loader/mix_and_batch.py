@@ -17,6 +17,20 @@ Direction = Literal["forward", "reverse"]
 
 
 @dataclass(frozen=True)
+class EndpointBuckets:
+    """Stable configured bucket resources for one relationship endpoint pair."""
+
+    source: int
+    target: int
+
+    def __post_init__(self) -> None:
+        for name in ("source", "target"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(f"endpoint bucket {name} must be a nonnegative integer")
+
+
+@dataclass(frozen=True)
 class RoutedEdgeRecord:
     """An immutable edge event coupled to its lane and Kafka provenance."""
 
@@ -53,6 +67,25 @@ def endpoint_digest(value: object) -> bytes:
     return hashlib.blake2b(canonical_endpoint_token(value).encode("utf-8"), digest_size=16).digest()
 
 
+def endpoint_bucket(value: object, bucket_count: int) -> int:
+    """Return a stable typed endpoint bucket in ``[0, bucket_count)``."""
+    if (
+        isinstance(bucket_count, bool)
+        or not isinstance(bucket_count, int)
+        or not 1 <= bucket_count <= 4096
+    ):
+        raise ValueError("bucket_count must be an integer from 1 through 4096")
+    return int.from_bytes(endpoint_digest(value), byteorder="big", signed=False) % bucket_count
+
+
+def endpoint_buckets(record: "EdgeRecord", bucket_count: int) -> EndpointBuckets:
+    """Return the configured stable bucket for each endpoint of ``record``."""
+    return EndpointBuckets(
+        source=endpoint_bucket(record.source_key, bucket_count),
+        target=endpoint_bucket(record.target_key, bucket_count),
+    )
+
+
 class MixAndBatchPartitioner:
     """Route normalized edges deterministically without Kafka or Neo4j I/O."""
 
@@ -60,7 +93,7 @@ class MixAndBatchPartitioner:
         self._lane_count = edge_config.mix_and_batch.lane_count
 
     def _bucket(self, value: object) -> int:
-        return int.from_bytes(endpoint_digest(value), byteorder="big", signed=False) % self._lane_count
+        return endpoint_bucket(value, self._lane_count)
 
     def route(
         self, record: "EdgeRecord", *, topic: str, partition: int, offset: int

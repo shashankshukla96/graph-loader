@@ -8,7 +8,8 @@ import json
 import logging
 import os
 import signal
-from threading import Event
+from queue import Empty, Full, Queue
+from threading import Event, Lock, Thread
 import time
 from typing import Callable, Deque, Mapping, Sequence
 
@@ -27,6 +28,13 @@ from src.loader.record_validation import normalize_property_value
 from src.models.schema import EdgeConfig, LoadingConfig, PropertyConfig
 from src.orchestrator.schema_initializer import get_neo4j_driver
 from src.loader.edge_execution import build_edge_execution
+from src.loader.mix_and_batch import endpoint_buckets
+from src.loader.slot_admission import (
+    GatedPendingRecord,
+    LeaseStateError,
+    SlotAdmission,
+    SlotAwareAdmissionBuffer,
+)
 from src.utils.schema_loader import load_schema
 
 
@@ -58,6 +66,65 @@ class PendingEdgeRecord:
     topic: str
     partition: int
     offset: int
+
+
+@dataclass(frozen=True)
+class WorkerBatch:
+    """One immutable poll-owner admitted batch handed to the write worker."""
+
+    batch_id: int
+    records: tuple[PendingEdgeRecord, ...]
+    gated_records: tuple[GatedPendingRecord, ...]
+    lease_epoch: int | None
+    lease_slot_id: int | None
+    lease_expires_at_ms: int | None
+
+    def __post_init__(self) -> None:
+        if isinstance(self.batch_id, bool) or not isinstance(self.batch_id, int) or self.batch_id <= 0:
+            raise ValueError("worker batch id must be positive")
+        provenance = [(item.topic, item.partition, item.offset) for item in self.records]
+        if not provenance or len(set(provenance)) != len(provenance):
+            raise ValueError("worker batch requires unique nonempty Kafka provenance")
+        offsets: dict[tuple[str, int], list[int]] = {}
+        for topic, partition, offset in provenance:
+            offsets.setdefault((topic, partition), []).append(offset)
+        if any(values != sorted(values) for values in offsets.values()):
+            raise ValueError("worker batch offsets must be ordered per partition")
+        gated_provenance = [item.provenance for item in self.gated_records]
+        if bool(gated_provenance) != bool(self.lease_epoch is not None):
+            raise ValueError("worker gated records and lease context must agree")
+        if gated_provenance and set(gated_provenance) != set(provenance):
+            raise ValueError("worker gated provenance must match batch records")
+        context = (self.lease_epoch, self.lease_slot_id, self.lease_expires_at_ms)
+        if any(value is None for value in context) and any(value is not None for value in context):
+            raise ValueError("worker batch lease context must be complete or absent")
+
+
+@dataclass(frozen=True)
+class WorkerResult:
+    """A worker outcome validated by the poll owner before offset resolution."""
+
+    batch: WorkerBatch
+    outcome: str
+    error: Exception | None = None
+
+    def __post_init__(self) -> None:
+        if self.outcome not in {"SUCCESS", "WRITE_FAILURE", "CANCELLED_PRESTART"}:
+            raise ValueError("worker result has invalid outcome")
+        if self.outcome == "WRITE_FAILURE" and self.error is None:
+            raise ValueError("worker write failure requires an exception")
+        if self.outcome != "WRITE_FAILURE" and self.error is not None:
+            raise ValueError("successful or cancelled worker result cannot carry an exception")
+
+
+@dataclass(frozen=True)
+class InFlightResourceHold:
+    """A lock-linearized local hold exposed for Slice 3 fleet handoff."""
+
+    batch_id: int
+    endpoint_buckets: frozenset[int]
+    lease_epoch: int | None
+    slot_id: int | None
 
 
 def _raise_error(edge_config: EdgeConfig, field: str, reason: str) -> None:
@@ -255,6 +322,15 @@ class EdgeLoader:
         producer: Producer | None = None,
         run_id: str = "default_run",
         replica_id: str = "0",
+        slot_admission: SlotAdmission | None = None,
+        slot_buffer: SlotAwareAdmissionBuffer | None = None,
+        coordination_poll: Callable[[float], object | None] | None = None,
+        wall_clock_ms: Callable[[], int] | None = None,
+        queue_factory=Queue,
+        thread_factory=Thread,
+        worker_join_timeout_seconds: float = 5.0,
+        worker_wait_seconds: float = 0.01,
+        worker_deadline_clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._consumer = consumer
         self._writer = writer
@@ -273,9 +349,28 @@ class EdgeLoader:
         self._producer = producer
         self._run_id = run_id
         self._replica_id = replica_id
+        slot_dependencies = (slot_admission, slot_buffer, coordination_poll, wall_clock_ms)
+        if any(item is not None for item in slot_dependencies) and not all(item is not None for item in slot_dependencies):
+            raise LeaseStateError(
+                f"stage=lease edge={edge_config.type} run_id={run_id} reason=slot gating dependencies must be all present or all absent"
+            )
+        self._slot_admission = slot_admission
+        self._slot_buffer = slot_buffer
+        self._coordination_poll = coordination_poll
+        self._wall_clock_ms = wall_clock_ms
+        self._slot_gating = slot_admission is not None
+        if (
+            self._slot_gating
+            and slot_admission.bucket_count != self._loading_config.coordination.bucket_count
+        ):
+            raise LeaseStateError(
+                f"stage=lease edge={edge_config.type} replica={replica_id} run_id={run_id} "
+                "reason=slot admission bucket count does not match loading coordination"
+            )
         self._assignment_epoch = 0
         self._pending_assignment_events: Deque[tuple[int, list[dict[str, object]]]] = deque()
         self._batch: list[PendingEdgeRecord] = []
+        self._gated_batch: list[GatedPendingRecord] = []
         self._batch_started_at: float | None = None
         self._partition_ledgers: dict[tuple[str, int], PartitionLedger] = {}
         self._assigned_partitions: set[tuple[str, int]] = set()
@@ -283,7 +378,366 @@ class EdgeLoader:
         self._rebalance_failure = False
         self._deferred_messages: Deque[Message] = deque()
         self._paused = False
+        if (
+            isinstance(worker_join_timeout_seconds, bool) or not isinstance(worker_join_timeout_seconds, (int, float))
+            or isinstance(worker_wait_seconds, bool) or not isinstance(worker_wait_seconds, (int, float))
+            or worker_join_timeout_seconds <= 0 or worker_wait_seconds <= 0
+        ):
+            raise ValueError("worker timeouts must be positive")
+        self._worker_join_timeout_seconds = worker_join_timeout_seconds
+        self._worker_wait_seconds = worker_wait_seconds
+        self._thread_factory = thread_factory
+        self._worker_deadline_clock = worker_deadline_clock
+        self._worker_queue: Queue[WorkerBatch | object] = queue_factory(
+            maxsize=self._loading_config.slot_worker_queue_max_batches
+        )
+        self._worker_results: Queue[WorkerResult] = queue_factory(maxsize=0)
+        self._worker_sentinel = object()
+        self._worker_shutdown = Event()
+        self._worker_lock = Lock()
+        self._worker: Thread | None = None
+        self._next_worker_batch_id = 1
+        self._outstanding_batches: dict[int, WorkerBatch] = {}
+        self._permit_states: dict[int, str] = {}
+        self._delivered_results: dict[int, WorkerResult] = {}
         self._consumer.subscribe([self._topic], on_assign=self._on_assign, on_revoke=self._on_revoke)
+
+    @property
+    def inflight_resource_holds(self) -> tuple[InFlightResourceHold, ...]:
+        """Snapshot unresolved queued/started resources for a future handoff barrier."""
+        with self._worker_lock:
+            return tuple(
+                InFlightResourceHold(
+                    batch_id=batch_id,
+                    endpoint_buckets=frozenset(
+                        bucket for item in batch.gated_records
+                        for bucket in (item.buckets.source, item.buckets.target)
+                    ),
+                    lease_epoch=batch.lease_epoch,
+                    slot_id=batch.lease_slot_id,
+                )
+                for batch_id, batch in sorted(self._outstanding_batches.items())
+                if self._permit_states.get(batch_id) in {"QUEUED", "STARTED"}
+            )
+
+    def _start_worker(self) -> None:
+        """Start the non-daemon writer worker exactly once."""
+        if self._worker is None:
+            try:
+                self._worker_shutdown.clear()
+                worker = self._thread_factory(
+                    target=self._worker_loop,
+                    name=f"edge-writer-{self._edge_config.type}-{self._replica_id}",
+                    daemon=False,
+                )
+                worker.start()
+            except Exception as exc:
+                raise self._worker_failure("launch failed", exc=exc) from exc
+            self._worker = worker
+
+    def _worker_loop(self) -> None:
+        """Write only poll-owner admitted batches; never access Kafka clients."""
+        while True:
+            batch = self._worker_queue.get()
+            if batch is self._worker_sentinel:
+                return
+            assert isinstance(batch, WorkerBatch)
+            with self._worker_lock:
+                if self._worker_shutdown.is_set() or self._permit_states.get(batch.batch_id) != "QUEUED":
+                    self._worker_results.put(WorkerResult(batch, "CANCELLED_PRESTART"))
+                    continue
+                self._permit_states[batch.batch_id] = "STARTED"
+            try:
+                if self._coordinator is not None:
+                    for pending in batch.records:
+                        self._lane_batcher.add(self._partitioner.route(pending.record, topic=pending.topic, partition=pending.partition, offset=pending.offset))
+                    results = self._coordinator.execute(self._lane_batcher.drain_all())
+                    if not all(result.success for result in results):
+                        raise RuntimeError("lane execution failed")
+                else:
+                    self._writer.write_batch([pending.record for pending in batch.records])
+                self._worker_results.put(WorkerResult(batch, "SUCCESS"))
+            except Exception as exc:
+                self._worker_results.put(WorkerResult(batch, "WRITE_FAILURE", exc))
+                # A later batch cannot be written until the poll owner has
+                # observed and failed this run.  Leave it replayable instead.
+                return
+
+    def _enqueue_worker_batch(self) -> bool:
+        """Hand one lease-validated snapshot to the writer without committing it."""
+        self._poll_coordination()
+        self._revalidate_gated_batch()
+        if not self._batch:
+            return True
+        lease = self._slot_admission.current.lease if self._slot_gating and self._slot_admission.current else None
+        batch = WorkerBatch(
+            self._next_worker_batch_id, tuple(self._batch), tuple(self._gated_batch),
+            None if lease is None else lease.epoch,
+            None if lease is None else lease.slot_id,
+            None if lease is None else lease.expires_at_ms,
+        )
+        self._next_worker_batch_id += 1
+        with self._worker_lock:
+            if batch.batch_id in self._outstanding_batches:
+                raise self._slot_failure("duplicate worker batch id")
+            self._outstanding_batches[batch.batch_id] = batch
+            self._permit_states[batch.batch_id] = "QUEUED"
+        try:
+            self._worker_queue.put_nowait(batch)
+        except Full as exc:
+            with self._worker_lock:
+                self._outstanding_batches.pop(batch.batch_id, None)
+                self._permit_states.pop(batch.batch_id, None)
+            raise self._worker_failure("queue is full", batch, exc) from exc
+        self._batch.clear()
+        self._gated_batch.clear()
+        self._batch_started_at = None
+        return True
+
+    def _resolve_worker_result(self, result: WorkerResult) -> bool:
+        """Resolve only one exact successful worker snapshot in the poll owner."""
+        batch = self._outstanding_batches.get(result.batch.batch_id)
+        if batch != result.batch or result.batch.batch_id in self._delivered_results:
+            raise self._worker_failure("unexpected or duplicate result", result.batch)
+        self._delivered_results[result.batch.batch_id] = result
+        if result.outcome == "CANCELLED_PRESTART":
+            with self._worker_lock:
+                self._outstanding_batches.pop(result.batch.batch_id, None)
+                self._permit_states.pop(result.batch.batch_id, None)
+                self._delivered_results.pop(result.batch.batch_id, None)
+            return True
+        if result.outcome != "SUCCESS":
+            raise self._worker_failure(f"outcome={result.outcome}", result.batch, result.error)
+        self._poll_coordination(release_owned=False)
+        self._verify_written_gated_batch(batch.gated_records)
+        if not self._poll_for_callbacks():
+            return False
+        keys = {(item.topic, item.partition) for item in batch.records}
+        if not all(self._owns(key) for key in keys):
+            self._rebalance_failure = True
+            return False
+        for pending in batch.records:
+            self._partition_ledgers[(pending.topic, pending.partition)].resolved_offsets.add(pending.offset)
+        if not self._commit_contiguous_resolutions():
+            return False
+        with self._worker_lock:
+            self._permit_states[result.batch.batch_id] = "RESULT"
+            self._outstanding_batches.pop(result.batch.batch_id, None)
+            self._permit_states.pop(result.batch.batch_id, None)
+            self._delivered_results.pop(result.batch.batch_id, None)
+        self._release_slot_buffer()
+        return True
+
+    def _drain_worker_results(self) -> bool:
+        """Process all delivered worker outcomes in the poll-owner thread."""
+        while True:
+            try:
+                result = self._worker_results.get_nowait()
+            except Empty:
+                return True
+            if not self._resolve_worker_result(result):
+                return False
+
+    def _stop_worker(self) -> bool:
+        """Request and join the writer worker after all results are resolved."""
+        if self._worker is None:
+            return True
+        self._worker_shutdown.set()
+        try:
+            now = self._worker_deadline_clock()
+            deadline = now + self._worker_join_timeout_seconds
+        except Exception:
+            return False
+        sentinel_sent = False
+        stalled_clock_reads = 0
+        while True:
+            try:
+                current = self._worker_deadline_clock()
+            except Exception:
+                return False
+            if current >= deadline:
+                return False
+            if current <= now:
+                stalled_clock_reads += 1
+                # A frozen injected deadline clock must not turn shutdown into
+                # an unbounded busy loop.  Real monotonic clocks are allowed a
+                # few equal-resolution reads around a nonblocking queue poll.
+                if stalled_clock_reads >= 3:
+                    return False
+            else:
+                stalled_clock_reads = 0
+            now = current
+            if not self._worker.is_alive():
+                self._worker = None
+                return True
+            if not sentinel_sent:
+                try:
+                    self._worker_queue.put_nowait(self._worker_sentinel)
+                    sentinel_sent = True
+                except Full:
+                    self._consumer.poll(0)
+                    try:
+                        self._poll_coordination()
+                        if not self._drain_worker_results():
+                            return False
+                    except Exception:
+                        return False
+                    continue
+            self._worker.join(timeout=min(self._worker_wait_seconds, max(0.0, deadline - current)))
+            if not self._worker.is_alive():
+                self._worker = None
+                return True
+            try:
+                self._consumer.poll(0)
+                self._poll_coordination()
+                if not self._drain_worker_results():
+                    return False
+            except Exception:
+                return False
+        return False
+
+    def _slot_now_ms(self) -> int:
+        """Return an injected wall-clock value only while slot gating is active."""
+        assert self._wall_clock_ms is not None
+        try:
+            value = self._wall_clock_ms()
+        except Exception as exc:
+            raise self._slot_failure("wall clock failed", exc) from exc
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise self._slot_failure("wall clock returned invalid value")
+        return value
+
+    def _slot_failure(self, reason: str, exc: Exception | None = None) -> LeaseStateError:
+        """Return one attributed lease failure without exposing control payloads."""
+        lease = self._slot_admission.current if self._slot_admission is not None else None
+        suffix = "" if lease is None else f" epoch={lease.epoch} slot={lease.slot_id}"
+        error = LeaseStateError(
+            f"stage=lease edge={self._edge_config.type} replica={self._replica_id} "
+            f"run_id={self._run_id}{suffix} reason={reason}"
+        )
+        if exc is not None:
+            error.__cause__ = exc
+        return error
+
+    def _worker_failure(self, reason: str, batch: WorkerBatch | None = None, exc: Exception | None = None) -> RuntimeError:
+        """Return an attributed worker failure without exposing record payloads."""
+        suffix = ""
+        if batch is not None and batch.lease_epoch is not None:
+            suffix = f" epoch={batch.lease_epoch} slot={batch.lease_slot_id}"
+        error = RuntimeError(
+            f"stage=worker edge={self._edge_config.type} replica={self._replica_id} run_id={self._run_id}{suffix} reason={reason}"
+        )
+        if exc is not None:
+            error.__cause__ = exc
+        return error
+
+    def _append_gated_batch(self, items: Sequence[GatedPendingRecord]) -> None:
+        """Append lease-owned records to the ordinary batch while retaining metadata."""
+        if not items:
+            return
+        if not self._batch:
+            self._batch_started_at = self._clock()
+        self._gated_batch.extend(items)
+        self._batch.extend(item.pending for item in items)
+
+    def _release_slot_buffer(self) -> None:
+        """Move currently owned lease-gated work into the write batch."""
+        if not self._slot_gating:
+            return
+        assert self._slot_admission is not None and self._slot_buffer is not None
+        try:
+            blocked = frozenset(
+                bucket for hold in self.inflight_resource_holds for bucket in hold.endpoint_buckets
+            )
+            released = self._slot_buffer.release_owned(
+                self._slot_admission, now_ms=self._slot_now_ms(), blocked_buckets=blocked
+            )
+        except LeaseStateError as exc:
+            raise self._slot_failure("slot buffer release failed", exc) from exc
+        self._append_gated_batch(released)
+
+    def _poll_coordination(self, *, release_owned: bool = True) -> None:
+        """Drain coordination values before any admission or write boundary."""
+        if not self._slot_gating:
+            return
+        assert self._coordination_poll is not None and self._slot_admission is not None
+        while True:
+            lease = self._slot_admission.current
+            suffix = "" if lease is None else f" epoch={lease.epoch} slot={lease.slot_id}"
+            try:
+                message = self._coordination_poll(0)
+            except Exception as exc:
+                raise self._slot_failure("coordination poll failed", exc) from exc
+            if message is None:
+                return
+            if hasattr(message, "error") and message.error():
+                raise self._slot_failure("coordination consumer error")
+            value = message.value() if hasattr(message, "value") else message
+            if not isinstance(value, bytes):
+                raise self._slot_failure("coordination value is not bytes")
+            try:
+                accepted = self._slot_admission.accept_lease(value, now_ms=self._slot_now_ms())
+            except LeaseStateError as exc:
+                raise self._slot_failure("clock lease rejected", exc) from exc
+            if accepted:
+                self._cancel_queued_for_new_lease()
+            if accepted and release_owned:
+                self._release_slot_buffer()
+
+    def _cancel_queued_for_new_lease(self) -> None:
+        """Cancel only not-started old-generation batches and re-buffer them."""
+        if not self._slot_gating or self._slot_buffer is None:
+            return
+        returning: list[GatedPendingRecord] = []
+        with self._worker_lock:
+            for batch_id, batch in self._outstanding_batches.items():
+                if self._permit_states.get(batch_id) == "QUEUED":
+                    self._permit_states[batch_id] = "CANCELLED_PRESTART"
+                    returning.extend(batch.gated_records)
+        if returning:
+            try:
+                self._slot_buffer.requeue(returning)
+            except LeaseStateError as exc:
+                raise self._slot_failure("queued worker batch requeue failed", exc) from exc
+
+    def _revalidate_gated_batch(self) -> None:
+        """Requeue work that lost lease ownership before a durable write starts."""
+        if not self._slot_gating or not self._gated_batch:
+            return
+        assert self._slot_admission is not None and self._slot_buffer is not None
+        owned: list[GatedPendingRecord] = []
+        returned: list[GatedPendingRecord] = []
+        now_ms = self._slot_now_ms()
+        try:
+            for item in self._gated_batch:
+                if self._slot_admission.owns(item.buckets, now_ms=now_ms):
+                    owned.append(item)
+                else:
+                    returned.append(item)
+        except LeaseStateError as exc:
+            raise self._slot_failure("batch lease revalidation failed", exc) from exc
+        if returned:
+            try:
+                self._slot_buffer.requeue(returned)
+            except LeaseStateError as exc:
+                raise self._slot_failure("slot buffer requeue failed", exc) from exc
+        self._gated_batch = owned
+        self._batch = [item.pending for item in owned]
+        if not self._batch:
+            self._batch_started_at = None
+
+    def _verify_written_gated_batch(self, written: Sequence[GatedPendingRecord]) -> None:
+        """Fail closed when a lease changed while a synchronous write blocked."""
+        if not self._slot_gating or not written:
+            return
+        assert self._slot_admission is not None
+        now_ms = self._slot_now_ms()
+        try:
+            for item in written:
+                if not self._slot_admission.owns(item.buckets, now_ms=now_ms):
+                    raise LeaseStateError("lease ownership changed during durable write")
+        except LeaseStateError as exc:
+            raise self._slot_failure("post-write lease revalidation failed", exc) from exc
 
     def _on_assign(self, consumer: Consumer, partitions: list) -> None:
         """Accept Kafka ownership before any offset can be resolved."""
@@ -307,15 +761,30 @@ class EdgeLoader:
         """Fail closed if Kafka revokes partitions with unresolved work."""
         revoked = {(partition.topic or self._topic, partition.partition) for partition in partitions}
         pending = {(item.topic, item.partition) for item in self._batch}
+        with self._worker_lock:
+            for batch in self._outstanding_batches.values():
+                pending.update((item.topic, item.partition) for item in batch.records)
+            for result in self._delivered_results.values():
+                pending.update((item.topic, item.partition) for item in result.batch.records)
+        if self._slot_buffer is not None:
+            pending.update(self._slot_buffer.unresolved_partitions)
         pending.update(key for key, ledger in self._partition_ledgers.items() if ledger.resolved_offsets)
         pending.update((message.topic(), message.partition()) for message in self._deferred_messages)
         if revoked & pending:
             self._rebalance_failure = True
-            self._logger.error(
-                "Kafka partitions revoked with unresolved relationship work edge=%s partitions=%s",
-                self._edge_config.type,
-                sorted(revoked & pending),
-            )
+            if self._slot_gating:
+                lease = self._slot_admission.current if self._slot_admission is not None else None
+                suffix = "" if lease is None else f" epoch={lease.epoch} slot={lease.slot_id}"
+                self._logger.error(
+                    "stage=rebalance edge=%s replica=%s run_id=%s%s revoked unresolved partitions=%s",
+                    self._edge_config.type, self._replica_id, self._run_id, suffix, sorted(revoked & pending),
+                )
+            else:
+                self._logger.error(
+                    "Kafka partitions revoked with unresolved relationship work edge=%s partitions=%s",
+                    self._edge_config.type,
+                    sorted(revoked & pending),
+                )
         # ``unassign()`` releases the entire current assignment, even when a
         # cooperative callback reports only a subset.  Do not advertise any
         # remaining partition as owned after that call.
@@ -479,9 +948,19 @@ class EdgeLoader:
                 raise ValueError("message payload is empty")
             decoded = json.loads(payload.decode("utf-8"), parse_constant=_reject_json_constant)
             record = normalize_edge_record(decoded, self._edge_config)
+            pending_record = PendingEdgeRecord(record, topic, partition, offset)
+            if self._slot_gating:
+                assert self._slot_buffer is not None
+                buckets = endpoint_buckets(record, self._loading_config.coordination.bucket_count)
+                try:
+                    self._slot_buffer.add(pending_record, buckets)
+                except LeaseStateError as exc:
+                    raise self._slot_failure("slot buffer add failed", exc) from exc
+                self._release_slot_buffer()
+                return True
             if not self._batch:
                 self._batch_started_at = self._clock()
-            self._batch.append(PendingEdgeRecord(record, topic, partition, offset))
+            self._batch.append(pending_record)
             return True
         except (UnicodeDecodeError, json.JSONDecodeError, EdgeRecordValidationError, ValueError) as exc:
             reason = str(exc)
@@ -506,8 +985,15 @@ class EdgeLoader:
 
     def _flush_batch(self) -> bool:
         """Durably write the current batch, then resolve/commit its offsets."""
+        if self._slot_gating:
+            if self._worker is not None:
+                return self._enqueue_worker_batch()
+            self._poll_coordination()
+            self._revalidate_gated_batch()
         if not self._batch:
             return True
+        written_batch = tuple(self._batch)
+        written_gated_batch = tuple(self._gated_batch)
         self._pause_assignments()
         try:
             if self._coordinator is not None:
@@ -527,18 +1013,24 @@ class EdgeLoader:
                 self._edge_config.type, first.topic, first.partition, first.offset, exc,
             )
             return False
+        if self._slot_gating:
+            self._poll_coordination(release_owned=False)
+            self._verify_written_gated_batch(written_gated_batch)
         if not self._poll_for_callbacks():
             return False
-        batch_keys = {(pending.topic, pending.partition) for pending in self._batch}
+        batch_keys = {(pending.topic, pending.partition) for pending in written_batch}
         if not all(self._owns(key) for key in batch_keys):
             self._rebalance_failure = True
             return False
-        for pending in self._batch:
+        for pending in written_batch:
             self._partition_ledgers[(pending.topic, pending.partition)].resolved_offsets.add(pending.offset)
         if not self._commit_contiguous_resolutions():
             return False
         self._batch.clear()
+        self._gated_batch.clear()
         self._batch_started_at = None
+        if self._slot_gating:
+            self._release_slot_buffer()
         self._resume_assignments()
         return True
 
@@ -552,6 +1044,9 @@ class EdgeLoader:
 
     def _finish_run(self) -> bool:
         """Flush all prefetched work, then durably declare a bulk drain."""
+        if self._slot_gating:
+            self._poll_coordination()
+            self._release_slot_buffer()
         if not self._flush_batch():
             return False
         while self._deferred_messages:
@@ -559,6 +1054,31 @@ class EdgeLoader:
                 return False
             if not self._flush_batch():
                 return False
+        while self._outstanding_batches or self._batch:
+            if self._batch and not self._flush_batch():
+                return False
+            self._poll_coordination()
+            if self._slot_gating and self._slot_admission is not None:
+                self._slot_admission.require_current(now_ms=self._slot_now_ms())
+            if not self._drain_worker_results():
+                return False
+            if self._outstanding_batches:
+                self._consumer.poll(0)
+                try:
+                    result = self._worker_results.get(timeout=self._worker_wait_seconds)
+                except Empty:
+                    continue
+                if not self._resolve_worker_result(result):
+                    return False
+        if self._slot_gating and not self._stop_worker():
+            raise self._worker_failure("shutdown failed")
+        if self._slot_buffer is not None and len(self._slot_buffer):
+            self._logger.error(
+                "Relationship loader cannot complete with unleased work edge=%s replica=%s",
+                self._edge_config.type,
+                self._replica_id,
+            )
+            return False
         if self._has_uncommitted_resolutions():
             self._logger.error(
                 "Relationship loader cannot complete with offset gaps edge=%s replica=%s",
@@ -574,7 +1094,14 @@ class EdgeLoader:
         """Run until cap, shutdown, or an unsafe Kafka/Neo4j condition."""
         processed = 0
         try:
+            if self._slot_gating:
+                self._start_worker()
             while max_messages is None or processed < max_messages:
+                self._poll_coordination()
+                if self._slot_gating and self._slot_admission is not None and self._slot_admission.current is not None:
+                    self._slot_admission.require_current(now_ms=self._slot_now_ms())
+                if not self._drain_worker_results():
+                    return 1
                 self._publish_pending_assignments()
                 if self._rebalance_failure:
                     return 1
@@ -592,6 +1119,9 @@ class EdgeLoader:
                     if self._deferred_messages
                     else self._consumer.poll(min(1.0, self._loading_config.flush_interval_ms / 1000))
                 )
+                self._poll_coordination()
+                if not self._drain_worker_results():
+                    return 1
                 if message is None:
                     continue
                 if not self._buffer_message(message):
@@ -599,6 +1129,7 @@ class EdgeLoader:
                 processed += 1
                 if len(self._batch) >= self._loading_config.unwind_batch_size and not self._flush_batch():
                     return 1
+            return 0 if self._finish_run() else 1
         except KeyboardInterrupt:
             self._logger.warning("Relationship loader interrupted edge=%s", self._edge_config.type)
             return 1
@@ -610,17 +1141,18 @@ class EdgeLoader:
                 exc,
             )
             return 1
-
-        try:
-            return 0 if self._finish_run() else 1
-        except ControlDeliveryError as exc:
-            self._logger.error(
-                "Relationship lifecycle acknowledgement failed edge=%s replica=%s reason=%s",
-                self._edge_config.type,
-                self._replica_id,
-                exc,
-            )
+        except LeaseStateError as exc:
+            self._logger.error("Relationship slot lease failure edge=%s replica=%s reason=%s", self._edge_config.type, self._replica_id, exc)
             return 1
+        except RuntimeError as exc:
+            self._logger.error("Relationship worker failure edge=%s replica=%s reason=%s", self._edge_config.type, self._replica_id, exc)
+            return 1
+        finally:
+            if self._worker is not None and not self._stop_worker():
+                self._logger.error(
+                    "stage=worker edge=%s replica=%s run_id=%s reason=shutdown join failed",
+                    self._edge_config.type, self._replica_id, self._run_id,
+                )
 
     def close(self) -> None:
         """Close the owned Kafka consumer."""
@@ -643,36 +1175,86 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--topic")
     parser.add_argument("--mode", choices=["bulk", "stream"], default="stream")
     parser.add_argument("--replica-id", default="0")
-    parser.add_argument("--run-id", default="default_run")
+    parser.add_argument("--run-id", default=None)
+    parser.add_argument("--slot-gating", action="store_true")
+    parser.add_argument("--coordination-topic")
     parser.add_argument("--max-messages", type=int)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run a selected edge loader and close Kafka/Neo4j resources on all paths."""
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     if args.max_messages is not None and args.max_messages <= 0:
         raise SystemExit("--max-messages must be positive")
+    if args.coordination_topic is not None and not args.slot_gating:
+        parser.error("--coordination-topic requires --slot-gating")
+    if args.slot_gating and (not isinstance(args.coordination_topic, str) or not args.coordination_topic.strip()):
+        parser.error("--slot-gating requires a nonblank --coordination-topic")
+    if args.slot_gating and (not isinstance(args.run_id, str) or not args.run_id.strip()):
+        parser.error("--slot-gating requires an explicitly supplied nonblank --run-id")
+    run_id = args.run_id if args.run_id is not None else "default_run"
     shutdown_requested = Event()
     previous_sigterm_handler = signal.signal(
         signal.SIGTERM, lambda _signum, _frame: shutdown_requested.set()
     )
     consumer = None
+    coordination_consumer = None
     producer = None
     driver = None
+    edge_config = None
+    exit_code = 1
+    finalization_error = False
     try:
         schema = load_schema(args.config)
         edge_config = _select_edge_config(schema, args.edge_type)
+        bootstrap_servers = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+        work_group = os.environ.get(
+            "KAFKA_GROUP_ID", f"{schema.loading.consumer_group_id}-{edge_config.type}"
+        )
+        coordination_group = None
+        if args.slot_gating:
+            coordination_group = os.environ.get(
+                "KAFKA_COORDINATION_GROUP_ID",
+                f"{work_group}-clock-{edge_config.type}-{run_id}-{args.replica_id}",
+            )
+            if not isinstance(work_group, str) or not work_group.strip():
+                raise ValueError("stage=coordination reason=work consumer group is blank")
+            if not isinstance(coordination_group, str) or not coordination_group.strip():
+                raise ValueError("stage=coordination reason=coordination consumer group is blank")
+            if work_group == coordination_group:
+                raise ValueError("stage=coordination reason=work and coordination consumer groups must differ")
         consumer = Consumer({
-            "bootstrap.servers": os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
-            "group.id": os.environ.get(
-                "KAFKA_GROUP_ID", f"{schema.loading.consumer_group_id}-{edge_config.type}"
-            ),
+            "bootstrap.servers": bootstrap_servers,
+            "group.id": work_group,
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "max.poll.interval.ms": schema.loading.max_poll_interval_ms,
             "session.timeout.ms": schema.loading.session_timeout_ms,
         })
+        slot_kwargs = {}
+        if args.slot_gating:
+            coordination_consumer = Consumer({
+                "bootstrap.servers": bootstrap_servers,
+                "group.id": coordination_group,
+                "enable.auto.commit": False,
+                "auto.offset.reset": "earliest",
+                "max.poll.interval.ms": schema.loading.max_poll_interval_ms,
+                "session.timeout.ms": schema.loading.session_timeout_ms,
+            })
+            coordination_consumer.subscribe([args.coordination_topic])
+            slot_kwargs = {
+                "slot_admission": SlotAdmission(
+                    edge_type=edge_config.type, run_id=run_id,
+                    bucket_count=schema.loading.coordination.bucket_count,
+                ),
+                "slot_buffer": SlotAwareAdmissionBuffer(
+                    max_records=schema.loading.slot_buffer_max_records,
+                ),
+                "coordination_poll": coordination_consumer.poll,
+                "wall_clock_ms": lambda: int(time.time() * 1000),
+            }
         if args.mode == "bulk":
             producer = Producer({"bootstrap.servers": os.environ.get(
                 "KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"
@@ -693,32 +1275,55 @@ def main(argv: list[str] | None = None) -> int:
             lane_batcher=lane_batcher,
             coordinator=coordinator,
             producer=producer,
-            run_id=args.run_id,
+            run_id=run_id,
             replica_id=args.replica_id,
+            **slot_kwargs,
         )
-        return loader.run(max_messages=args.max_messages)
+        exit_code = loader.run(max_messages=args.max_messages)
     except Exception as exc:
         logger.error("Unable to start relationship loader: %s", exc)
-        return 1
+        exit_code = 1
     finally:
         try:
+            if coordination_consumer is not None:
+                try:
+                    coordination_consumer.close()
+                except Exception as exc:
+                    finalization_error = True
+                    logger.error(
+                        "stage=coordination edge=%s replica=%s run_id=%s reason=close failed: %s",
+                        args.edge_type, args.replica_id, run_id, exc,
+                    )
             if consumer is not None:
                 try:
                     consumer.close()
-                except Exception:
-                    logger.exception("Unable to close Kafka consumer during relationship-loader shutdown")
+                except Exception as exc:
+                    finalization_error = True
+                    logger.error(
+                        "stage=shutdown edge=%s replica=%s run_id=%s component=work-consumer reason=close failed: %s",
+                        args.edge_type, args.replica_id, run_id, exc,
+                    )
             if producer is not None:
                 try:
                     producer.flush()
-                except Exception:
-                    logger.exception("Unable to flush relationship control producer during shutdown")
+                except Exception as exc:
+                    finalization_error = True
+                    logger.error(
+                        "stage=shutdown edge=%s replica=%s run_id=%s component=producer reason=flush failed: %s",
+                        args.edge_type, args.replica_id, run_id, exc,
+                    )
             if driver is not None:
                 try:
                     driver.close()
-                except Exception:
-                    logger.exception("Unable to close Neo4j driver during relationship-loader shutdown")
+                except Exception as exc:
+                    finalization_error = True
+                    logger.error(
+                        "stage=shutdown edge=%s replica=%s run_id=%s component=driver reason=close failed: %s",
+                        args.edge_type, args.replica_id, run_id, exc,
+                    )
         finally:
             signal.signal(signal.SIGTERM, previous_sigterm_handler)
+    return 1 if finalization_error else exit_code
 
 
 if __name__ == "__main__":

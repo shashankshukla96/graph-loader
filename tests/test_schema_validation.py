@@ -74,6 +74,22 @@ def test_loading_coordination_defaults_and_custom_yaml(tmp_path: Path) -> None:
         load_schema(path)
 
 
+def test_slot_admission_capacity_defaults_bounds_and_field_immutability() -> None:
+    config = LoadingConfig()
+    assert (config.slot_buffer_max_records, config.slot_worker_queue_max_batches) == (10_000, 32)
+    with pytest.raises(ValidationError):
+        config.slot_buffer_max_records = 3
+    with pytest.raises(ValidationError):
+        config.slot_worker_queue_max_batches = 3
+    for field, value in (
+        ("slot_buffer_max_records", True), ("slot_buffer_max_records", 0),
+        ("slot_buffer_max_records", 100_001), ("slot_worker_queue_max_batches", True),
+        ("slot_worker_queue_max_batches", 0), ("slot_worker_queue_max_batches", 1_025),
+    ):
+        with pytest.raises(ValidationError):
+            LoadingConfig(**{field: value})
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 

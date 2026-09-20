@@ -8,7 +8,8 @@ import pytest
 
 from src.loader.edge_loader import EdgeRecord
 from src.loader.mix_and_batch import (
-    LaneBatcher, MixAndBatchPartitioner, RoutedEdgeRecord, canonical_endpoint_token, endpoint_digest,
+    LaneBatcher, MixAndBatchPartitioner, RoutedEdgeRecord, canonical_endpoint_token, endpoint_bucket,
+    endpoint_buckets, endpoint_digest,
 )
 from src.utils.schema_loader import load_schema
 from pathlib import Path
@@ -50,6 +51,19 @@ def test_routed_record_rejects_invalid_runtime_metadata(overrides: dict[str, obj
 def test_typed_endpoint_tokens_distinguish_integer_and_string() -> None:
     assert canonical_endpoint_token(1) != canonical_endpoint_token("1")
     assert endpoint_digest(1) != endpoint_digest("1")
+    assert endpoint_bucket(1, 17) != endpoint_bucket("1", 17)
+
+
+def test_endpoint_buckets_are_typed_deterministic_and_validate_count() -> None:
+    record = EdgeRecord("p-1", "c-1", {})
+    assert endpoint_buckets(record, 7) == endpoint_buckets(record, 7)
+    assert 0 <= endpoint_buckets(record, 7).source < 7
+    with pytest.raises(ValueError, match="bucket_count"):
+        endpoint_bucket("p-1", True)
+    with pytest.raises(ValueError, match="bucket_count"):
+        endpoint_bucket("p-1", 0)
+    with pytest.raises(ValueError, match="bucket_count"):
+        endpoint_bucket("p-1", 4097)
 
 
 def test_partitioner_is_deterministic_and_directional() -> None:

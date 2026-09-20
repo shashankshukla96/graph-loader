@@ -97,8 +97,14 @@ def decode_clock_lease(payload: bytes, *, expected_run_id: str, now_ms: int) -> 
         raise ClockProtocolError("clock payload is not valid JSON") from exc
     if not isinstance(data, dict):
         raise ClockProtocolError("clock payload must be an object")
+    required_fields = {
+        "run_id", "epoch", "slot_id", "issued_at_ms", "expires_at_ms",
+        "active_edge_types", "bucket_owners",
+    }
+    if set(data) != required_fields:
+        raise ClockProtocolError("clock payload has missing or unexpected field")
     try:
-        lease = _validated(**{key: data[key] for key in ("run_id", "epoch", "slot_id", "issued_at_ms", "expires_at_ms", "active_edge_types", "bucket_owners")})
+        lease = _validated(**{key: data[key] for key in required_fields})
     except KeyError as exc:
         raise ClockProtocolError("clock payload has missing field") from exc
     if lease.expires_at_ms <= now_ms:

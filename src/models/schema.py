@@ -296,12 +296,21 @@ class LoadingConfig(BaseModel):
     retry_max_delay_ms: int = Field(default=5_000, gt=0, le=300_000)
     rejection_log_path: str = "var/rejections/node-loader.jsonl"
     coordination: CoordinationConfig = Field(default_factory=CoordinationConfig)
+    slot_buffer_max_records: int = Field(default=10_000, ge=1, le=100_000, frozen=True)
+    slot_worker_queue_max_batches: int = Field(default=32, ge=1, le=1_024, frozen=True)
 
     @field_validator("rejection_log_path")
     @classmethod
     def rejection_log_path_is_not_blank(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("rejection_log_path must not be blank")
+        return value
+
+    @field_validator("slot_buffer_max_records", "slot_worker_queue_max_batches", mode="before")
+    @classmethod
+    def slot_capacity_fields_are_not_bool(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("slot capacity values must be integers")
         return value
 
     @model_validator(mode="after")

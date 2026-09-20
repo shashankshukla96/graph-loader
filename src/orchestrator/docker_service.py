@@ -26,10 +26,19 @@ class DockerService:
         rejection_dir: str = "var/rejections",
         run_id: Optional[str] = None,
         consumer_group_prefix: str = "graph-loader",
+        slot_gating: bool = False,
+        coordination_topic: Optional[str] = None,
     ) -> List[docker.models.containers.Container]:
         """Launch exact relationship loader replicas, rolling back only this call."""
         if replicas < 1:
             raise ValueError("replicas must be positive")
+        if coordination_topic is not None and not slot_gating:
+            raise ValueError("coordination_topic requires slot_gating")
+        if slot_gating:
+            if not isinstance(coordination_topic, str) or not coordination_topic.strip():
+                raise ValueError("slot_gating requires a nonblank coordination_topic")
+            if not isinstance(run_id, str) or not run_id.strip():
+                raise ValueError("slot_gating requires a nonblank run_id")
         env = dict(environment) if environment is not None else {
             "NEO4J_URI": os.environ.get("LOADER_NEO4J_URI", "bolt://neo4j:7687"),
             "NEO4J_USERNAME": os.environ.get("NEO4J_USERNAME", "neo4j"),
@@ -72,6 +81,11 @@ class DockerService:
                         f"{consumer_group_prefix}-{edge_type}-{run_id}"
                     )
                     rejection_suffix = f"-{encoded_run_id}"
+                if slot_gating:
+                    command.extend(["--slot-gating", "--coordination-topic", coordination_topic])
+                    replica_environment["KAFKA_COORDINATION_GROUP_ID"] = (
+                        f"{consumer_group_prefix}-{edge_type}-{run_id}-clock-{replica_id}"
+                    )
                 replica_environment["REJECTION_LOG_PATH"] = (
                     f"/app/rejections/{edge_type}-{replica_id}{rejection_suffix}.jsonl"
                 )

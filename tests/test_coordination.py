@@ -1,4 +1,5 @@
 import pytest
+import json
 from types import SimpleNamespace
 
 from src.orchestrator.coordination import ClockLease, ClockProtocolError, ClockPublishError, GlobalBatchClock, decode_clock_lease, encode_clock_lease
@@ -75,6 +76,13 @@ def test_decode_error_does_not_echo_payload():
     with pytest.raises(ClockProtocolError) as error:
         decode_clock_lease(("{bad:" + sentinel).encode(), expected_run_id="run", now_ms=1)
     assert sentinel not in str(error.value)
+
+
+def test_decode_rejects_unknown_protocol_fields() -> None:
+    payload = json.loads(encode_clock_lease(_lease()).decode("utf-8"))
+    payload["unexpected"] = "ignored-by-older-parser"
+    with pytest.raises(ClockProtocolError, match="unexpected"):
+        decode_clock_lease(json.dumps(payload).encode("utf-8"), expected_run_id="run", now_ms=11)
 
 
 def _clock(*, now=lambda: 100, producer=None):
