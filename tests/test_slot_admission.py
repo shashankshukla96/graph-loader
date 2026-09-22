@@ -8,6 +8,8 @@ from src.loader.edge_loader import EdgeRecord, PendingEdgeRecord
 from src.loader.mix_and_batch import EndpointBuckets
 from src.loader.slot_admission import GatedPendingRecord, LeaseStateError, SlotAdmission, SlotAwareAdmissionBuffer
 from src.orchestrator.coordination import ClockLease, encode_clock_lease
+from src.orchestrator.dependency_manager import build_conflict_families
+from src.orchestrator.rotation import build_rotation_plan
 
 
 def _payload(*, epoch: int = 1, slot_id: int = 0, owners=None, run_id: str = "run") -> bytes:
@@ -120,3 +122,50 @@ def test_slot_buffer_rejects_capacity_and_duplicate_arrival_sequence() -> None:
     empty = SlotAwareAdmissionBuffer(max_records=2)
     with pytest.raises(LeaseStateError, match="arrival sequence"):
         empty.requeue((first, other))
+
+
+def test_legacy_slot_admission_rejects_label_scoped_lease_without_inferring_global_owner() -> None:
+    payload = encode_clock_lease(ClockLease(
+        run_id="run", epoch=1, slot_id=0, issued_at_ms=10, expires_at_ms=100,
+        active_edge_types=("BOUGHT", "WORKS_AT"),
+        bucket_owners={0: "WORKS_AT", 1: "WORKS_AT", 2: "BOUGHT", 3: "BOUGHT"},
+        shared_bucket_owners={"Person": {0: "WORKS_AT", 1: "WORKS_AT", 2: "BOUGHT", 3: "BOUGHT"}},
+    ))
+    admission = _admission()
+    with pytest.raises(LeaseStateError, match="label-scoped lease requires rotation-aware admission"):
+        admission.accept_lease(payload, now_ms=11)
+    assert admission.current is None
+
+
+def test_rotation_aware_admission_uses_shared_labels_not_global_projection() -> None:
+    class Edge:
+        def __init__(self, edge_type, source, target):
+            self.type = edge_type
+            self.nodes = type("Nodes", (), {"source": source, "target": target})()
+
+    plan = build_rotation_plan(build_conflict_families([
+        Edge("WORKS_AT", "Person", "Company"), Edge("BOUGHT", "Person", "Product"),
+    ]), bucket_count=4)
+    lease = ClockLease(
+        "run", 0, 0, 10, 100, ("BOUGHT", "WORKS_AT"),
+        {bucket: "BOUGHT" for bucket in range(4)}, plan.owners_for_epoch(0),
+    )
+    works = SlotAdmission(
+        edge_type="WORKS_AT", run_id="run", bucket_count=4,
+        rotation_plan=plan, endpoint_labels=("Person", "Company"),
+    )
+    bought = SlotAdmission(
+        edge_type="BOUGHT", run_id="run", bucket_count=4,
+        rotation_plan=plan, endpoint_labels=("Person", "Product"),
+    )
+    payload = encode_clock_lease(lease, rotation_plan=plan)
+    assert works.accept_lease(payload, now_ms=11)
+    assert bought.accept_lease(payload, now_ms=11)
+    assert works.owns(EndpointBuckets(0, 3), now_ms=11) is False
+    assert bought.owns(EndpointBuckets(0, 3), now_ms=11) is True
+    for labels in (("Company", "Person"), ("Person", "Product")):
+        with pytest.raises(LeaseStateError, match="endpoint labels do not match"):
+            SlotAdmission(
+                edge_type="WORKS_AT", run_id="run", bucket_count=4,
+                rotation_plan=plan, endpoint_labels=labels,
+            )

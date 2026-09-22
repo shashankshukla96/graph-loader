@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from neo4j import Driver
-from neo4j.exceptions import CypherSyntaxError
+from neo4j.exceptions import ClientError, CypherSyntaxError
 
 from src.models.schema import EdgeConfig
 
@@ -34,6 +34,19 @@ def probe_server_capabilities(driver: Driver) -> ServerCapabilities:
         return ServerCapabilities(neo4j_version=version, cypher_25=True)
     except CypherSyntaxError:
         return ServerCapabilities(neo4j_version=version, cypher_25=False)
+    except ClientError as exc:
+        # Neo4j 5.26 reports an unavailable Cypher 25 dialect as an argument
+        # error rather than a syntax error.  This probe issues only the fixed
+        # Cypher-25 statement, so recognize that exact server response while
+        # preserving authentication, authorization, and unrelated failures.
+        message = str(getattr(exc, "message", "")).lower()
+        if (
+            exc.code == "Neo.ClientError.Statement.ArgumentError"
+            and "cypher version" in message
+            and "25" in message
+        ):
+            return ServerCapabilities(neo4j_version=version, cypher_25=False)
+        raise
 
 
 def require_execution_mode(mode: str, capabilities: ServerCapabilities) -> None:
@@ -54,7 +67,8 @@ def build_apoc_locked_upsert_query(edge_config: EdgeConfig) -> str:
         "CALL { WITH all_nodes UNWIND all_nodes AS n WITH DISTINCT n AS dist_n "
         "ORDER BY id(dist_n) RETURN collect(dist_n) AS sorted_nodes }\n"
         "CALL apoc.lock.nodes(sorted_nodes)\n"
-        f"UNWIND rels AS rel MERGE (rel.s)-[r:`{edge_config.type}`]->(rel.t) SET r += rel.props"
+        f"UNWIND rels AS rel WITH rel.s AS s, rel.t AS t, rel.props AS props "
+        f"MERGE (s)-[r:`{edge_config.type}`]->(t) SET r += props"
     )
 
 
@@ -188,12 +202,12 @@ class LaneExecutionCoordinator:
 
 
 def build_edge_execution(edge_config: EdgeConfig, driver: Driver, *, executor_factory=ThreadPoolExecutor):
-    """Probe before loader subscription and construct selected execution components."""
+    """Construct the selected writer before the loader subscribes to Kafka."""
     from src.loader.edge_loader import EdgeWriter, MissingRelationshipEndpointError
     from src.loader.mix_and_batch import LaneBatcher, MixAndBatchPartitioner
-    capabilities = probe_server_capabilities(driver)
-    require_execution_mode(edge_config.execution.mode, capabilities)
     if edge_config.execution.mode == "native_disjoint":
+        capabilities = probe_server_capabilities(driver)
+        require_execution_mode(edge_config.execution.mode, capabilities)
         writer = NativeDisjointEdgeWriter(driver, edge_config, capabilities,
             missing_endpoint_error_factory=MissingRelationshipEndpointError)
     else:

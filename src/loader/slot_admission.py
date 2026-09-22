@@ -6,6 +6,7 @@ from typing import Iterable, TYPE_CHECKING
 
 from src.loader.mix_and_batch import EndpointBuckets
 from src.orchestrator.coordination import ClockLease, ClockProtocolError, decode_clock_lease
+from src.orchestrator.rotation import RotationPlan
 
 if TYPE_CHECKING:
     from src.loader.edge_loader import PendingEdgeRecord
@@ -124,7 +125,9 @@ class SlotAwareAdmissionBuffer:
 class SlotAdmission:
     """Reject unsafe clock input and decide one edge's current ownership."""
 
-    def __init__(self, *, edge_type: str, run_id: str, bucket_count: int) -> None:
+    def __init__(self, *, edge_type: str, run_id: str, bucket_count: int,
+                 rotation_plan: RotationPlan | None = None,
+                 endpoint_labels: tuple[str, str] | None = None) -> None:
         if not isinstance(edge_type, str) or not edge_type.strip():
             raise LeaseStateError("lease admission requires a nonblank edge type")
         if not isinstance(run_id, str) or not run_id.strip():
@@ -138,6 +141,22 @@ class SlotAdmission:
         self._edge_type = edge_type
         self._run_id = run_id
         self._bucket_count = bucket_count
+        if (rotation_plan is None) != (endpoint_labels is None):
+            raise LeaseStateError("rotation-aware admission requires plan and endpoint labels together")
+        if rotation_plan is not None:
+            if not isinstance(rotation_plan, RotationPlan) or rotation_plan.bucket_count != bucket_count:
+                raise LeaseStateError("rotation-aware admission plan does not match bucket count")
+            if edge_type not in {item for family in rotation_plan.families for item in family.edge_types}:
+                raise LeaseStateError(f"rotation-aware admission edge={edge_type} is absent from plan")
+            if (not isinstance(endpoint_labels, tuple) or len(endpoint_labels) != 2
+                    or any(not isinstance(label, str) or not label.strip() for label in endpoint_labels)):
+                raise LeaseStateError("rotation-aware admission endpoint labels are invalid")
+            family = next(family for family in rotation_plan.families if edge_type in family.edge_types)
+            expected_order = family.edge_endpoint_order.get(edge_type)
+            if expected_order is None or endpoint_labels != expected_order:
+                raise LeaseStateError("rotation-aware admission endpoint labels do not match plan")
+        self._rotation_plan = rotation_plan
+        self._endpoint_labels = endpoint_labels
         self._current: ActiveSlotLease | None = None
 
     @property
@@ -172,11 +191,18 @@ class SlotAdmission:
         if not self._valid_now(now_ms):
             raise self._context("invalid current time")
         try:
-            lease = decode_clock_lease(payload, expected_run_id=self._run_id, now_ms=now_ms)
+            lease = decode_clock_lease(
+                payload, expected_run_id=self._run_id, now_ms=now_ms,
+                rotation_plan=self._rotation_plan,
+            )
         except ClockProtocolError as exc:
             raise self._context(f"invalid clock lease: {exc}") from exc
         if lease is None:
             return False
+        if lease.shared_bucket_owners and self._rotation_plan is None:
+            raise self._context(
+                "label-scoped lease requires rotation-aware admission", lease
+            )
         if set(lease.bucket_owners) != set(range(self._bucket_count)):
             raise self._context("lease bucket ownership does not match configured bucket count", lease)
         if self._edge_type not in lease.active_edge_types:
@@ -211,6 +237,18 @@ class SlotAdmission:
                 raise self._context("invalid current time")
             return False
         lease = self.require_current(now_ms=now_ms).lease
+        if self._rotation_plan is not None:
+            assert self._endpoint_labels is not None
+            family = next(
+                family for family in self._rotation_plan.families
+                if self._edge_type in family.edge_types
+            )
+            for label, bucket in zip(self._endpoint_labels, (buckets.source, buckets.target)):
+                if label not in family.edge_shared_labels[self._edge_type]:
+                    continue
+                if lease.shared_bucket_owners.get(label, {}).get(bucket) != self._edge_type:
+                    return False
+            return True
         return (
             lease.bucket_owners[buckets.source] == self._edge_type
             and lease.bucket_owners[buckets.target] == self._edge_type

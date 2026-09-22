@@ -9,7 +9,16 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from src.cli import build_parser, get_neo4j_credentials, main, handle_start, handle_stop, handle_status, _run_relationship_bulk_stages
+from src.cli import (
+    _run_relationship_bulk_stages,
+    _run_rotating_relationship_fleet,
+    build_parser,
+    get_neo4j_credentials,
+    handle_start,
+    handle_status,
+    handle_stop,
+    main,
+)
 from src.orchestrator.dependency_manager import RelationshipConflictPlan, RelationshipStage
 from src.orchestrator.schema_initializer import SchemaInitializationError
 
@@ -21,6 +30,10 @@ def test_parser_start_valid():
     assert args.mode == "bulk"
     assert args.config == "config/graph_schema.yaml"
     assert hasattr(args, "func")
+
+
+def test_parser_accepts_optional_run_id():
+    assert build_parser().parse_args(["start", "--mode", "bulk", "--run-id", "e2e-run_42"]).run_id == "e2e-run_42"
 
 
 def test_parser_start_missing_mode(capsys):
@@ -175,6 +188,235 @@ def test_relationship_second_conflict_stage_waits_for_first_zero_lag(mock_plan, 
 
 def assert_first_stage_is_only_launch(docker):
     assert docker.run_edge_loader.call_count == 1
+
+
+def _rotating_edge(edge_type, topic, source, target, replicas=1):
+    return SimpleNamespace(
+        type=edge_type, topic=topic, replicas=replicas,
+        nodes=SimpleNamespace(source=source, target=target, is_self_referencing=source == target),
+    )
+
+
+@patch("src.cli.RelationshipBulkMonitor")
+def test_rotating_fleet_launches_every_eligible_type_before_clock_and_monitor(monitor_cls):
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    bought = _rotating_edge("BOUGHT", "bought", "Person", "Product", replicas=2)
+    schema = SimpleNamespace(
+        edges=[works, bought],
+        loading=SimpleNamespace(
+            consumer_group_id="loader",
+            coordination=SimpleNamespace(topic="clock-topic", bucket_count=2),
+        ),
+    )
+    first, second, third, clock = MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    docker = MagicMock()
+    docker.run_edge_loader.side_effect = [[second, third], [first]]
+    docker.run_global_batch_clock.return_value = clock
+    monitor = MagicMock(); monitor_cls.return_value = monitor
+    monitor.wait_for_drain_complete.side_effect = lambda _timeout: (
+        first.stop.assert_called(), second.stop.assert_called(), third.stop.assert_called(), clock.stop.assert_not_called()
+    )
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_rotating_relationship_fleet(schema, docker, args) == 0
+
+    assert [call.kwargs["edge_type"] for call in docker.run_edge_loader.call_args_list] == ["BOUGHT", "WORKS_AT"]
+    shared_run_ids = {call.kwargs["run_id"] for call in docker.run_edge_loader.call_args_list}
+    assert len(shared_run_ids) == 1
+    for call in docker.run_edge_loader.call_args_list:
+        assert call.kwargs["slot_gating"] is True
+        assert call.kwargs["fleet_edge_types"] == "BOUGHT,WORKS_AT"
+        assert call.kwargs["coordination_topic"] == "clock-topic"
+    clock_call = docker.run_global_batch_clock.call_args.kwargs
+    assert clock_call["run_id"] == shared_run_ids.pop()
+    assert clock_call["fleet_edge_types"] == "BOUGHT,WORKS_AT"
+    assert clock_call["coordination_topic"] == "clock-topic"
+    monitor_cls.assert_called_once()
+    assert monitor.wait_for_assignment_coverage.call_args.args == (1,)
+    assert monitor.wait_for_clock_lease.call_args.args == (1,)
+    assert monitor.wait_for_rotating_completion.call_args.args == (1,)
+    monitor.wait_for_completion.assert_not_called()
+    assert first.stop.call_count >= 1 and second.stop.call_count >= 1 and third.stop.call_count >= 1
+    assert clock.stop.call_count >= 1
+
+
+@patch("src.cli.RelationshipBulkMonitor")
+def test_rotating_fleet_clock_launch_failure_stops_only_returned_edges(monitor_cls):
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    schema = SimpleNamespace(
+        edges=[works],
+        loading=SimpleNamespace(
+            consumer_group_id="loader",
+            coordination=SimpleNamespace(topic="clock-topic", bucket_count=1),
+        ),
+    )
+    edge_container = MagicMock()
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [edge_container]
+    docker.run_global_batch_clock.side_effect = RuntimeError("clock launch failed")
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_rotating_relationship_fleet(schema, docker, args) == 1
+
+    monitor_cls.assert_not_called()
+    edge_container.stop.assert_called()
+    assert [call[0] for call in docker.mock_calls].count("run_edge_loader") == 1
+
+
+def test_rotating_fleet_defers_self_referencing_edges_without_launching_them():
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    schema = SimpleNamespace(
+        edges=[knows],
+        loading=SimpleNamespace(
+            consumer_group_id="loader",
+            coordination=SimpleNamespace(topic="clock-topic", bucket_count=1),
+        ),
+    )
+    docker = MagicMock()
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_rotating_relationship_fleet(schema, docker, args) == 1
+    docker.run_edge_loader.assert_not_called()
+    docker.run_global_batch_clock.assert_not_called()
+
+
+def test_rotating_fleet_generic_edge_launch_failure_names_stage_run_and_edge(caplog):
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    schema = SimpleNamespace(
+        edges=[works],
+        loading=SimpleNamespace(
+            consumer_group_id="loader",
+            coordination=SimpleNamespace(topic="clock-topic", bucket_count=1),
+        ),
+    )
+    docker = MagicMock()
+    docker.run_edge_loader.side_effect = RuntimeError("docker unavailable")
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_rotating_relationship_fleet(schema, docker, args) == 1
+    assert "stage=launch run_id=" in caplog.text
+    assert "edge=WORKS_AT reason=docker unavailable" in caplog.text
+
+
+def test_rotating_fleet_generic_clock_launch_failure_names_clock_stage_and_run(caplog):
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    schema = SimpleNamespace(
+        edges=[works],
+        loading=SimpleNamespace(
+            consumer_group_id="loader",
+            coordination=SimpleNamespace(topic="clock-topic", bucket_count=1),
+        ),
+    )
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [MagicMock()]
+    docker.run_global_batch_clock.side_effect = RuntimeError("clock unavailable")
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_rotating_relationship_fleet(schema, docker, args) == 1
+    assert "stage=clock run_id=" in caplog.text
+    assert "reason=launch failed: clock unavailable" in caplog.text
+
+
+@patch("src.cli.RelationshipBulkMonitor")
+def test_rotating_fleet_cleanup_failure_names_exact_edge_and_replica(monitor_cls, caplog):
+    class FailingEdgeContainer:
+        name = "opaque-container"
+        attrs = {"State": {"Status": "running"}}
+
+        def reload(self):
+            return None
+
+        def stop(self):
+            raise RuntimeError("stop denied")
+
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    schema = SimpleNamespace(
+        edges=[works],
+        loading=SimpleNamespace(
+            consumer_group_id="loader",
+            coordination=SimpleNamespace(topic="clock-topic", bucket_count=1),
+        ),
+    )
+    edge = FailingEdgeContainer()
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [edge]
+    docker.run_global_batch_clock.return_value = MagicMock()
+    monitor = MagicMock(); monitor.wait_for_assignment_coverage.side_effect = RuntimeError("monitor failed")
+    monitor_cls.return_value = monitor
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_rotating_relationship_fleet(schema, docker, args) == 1
+    assert "stage=shutdown run_id=" in caplog.text
+    assert "edge=WORKS_AT replica=0: stop denied" in caplog.text
+
+
+@patch("src.cli.signal.signal", return_value=object())
+@patch("src.cli.RelationshipBulkMonitor")
+def test_stream_fleet_supervises_without_bulk_completion_or_zero_lag(monitor_cls, _signal):
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    schema = SimpleNamespace(
+        edges=[works],
+        loading=SimpleNamespace(
+            consumer_group_id="loader",
+            coordination=SimpleNamespace(topic="clock-topic", bucket_count=1, lease_timeout_ms=20),
+        ),
+    )
+    edge, clock = MagicMock(), MagicMock()
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [edge]
+    docker.run_global_batch_clock.return_value = clock
+    monitor = MagicMock(); monitor_cls.return_value = monitor
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1, mode="stream", run_id="stream-run")
+
+    assert _run_rotating_relationship_fleet(schema, docker, args) == 0
+    assert docker.run_edge_loader.call_args.kwargs["run_id"] == "stream-run"
+    assert docker.run_global_batch_clock.call_args.kwargs["run_id"] == "stream-run"
+    assert monitor_cls.call_args.args[1] == "stream-run"
+    assert monitor.supervise_stream.call_args.kwargs["initial_lease_timeout_seconds"] == pytest.approx(0.02)
+    monitor.wait_for_assignment_coverage.assert_not_called()
+    monitor.capture_boundary.assert_not_called()
+    monitor.wait_for_rotating_completion.assert_not_called()
+    monitor.wait_for_drain_complete.assert_not_called()
+    monitor.verify_zero_lag.assert_not_called()
+    assert clock.stop.call_count >= 1 and edge.stop.call_count >= 1
+
+
+@patch("src.cli.DockerService")
+@patch("src.cli.get_neo4j_driver")
+@patch("src.cli.load_schema")
+def test_handle_start_invalid_run_id_rejects_before_docker_launch(mock_load, mock_driver, mock_docker):
+    mock_load.return_value = SimpleNamespace(nodes=(), edges=())
+    args = argparse.Namespace(mode="stream", config="config.yaml", network="test-net", run_id="not valid!", skip_image_build=True)
+
+    assert handle_start(args) == 1
+    mock_docker.assert_not_called()
+    mock_driver.assert_not_called()
+
+
+@patch("src.cli.signal.signal", return_value=object())
+@patch("src.cli.RelationshipBulkMonitor")
+def test_stream_supervisor_failure_stops_exact_clock_before_edge(monitor_cls, _signal):
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    schema = SimpleNamespace(
+        edges=[works],
+        loading=SimpleNamespace(
+            consumer_group_id="loader",
+            coordination=SimpleNamespace(topic="clock-topic", bucket_count=1, lease_timeout_ms=20),
+        ),
+    )
+    events = []
+    edge, clock = MagicMock(), MagicMock()
+    edge.stop.side_effect = lambda: events.append("edge")
+    clock.stop.side_effect = lambda: events.append("clock")
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [edge]
+    docker.run_global_batch_clock.return_value = clock
+    monitor = MagicMock(); monitor.supervise_stream.side_effect = RuntimeError("clock lease expired")
+    monitor_cls.return_value = monitor
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1, mode="stream", run_id="stream-run")
+
+    assert _run_rotating_relationship_fleet(schema, docker, args) == 1
+    assert events[:2] == ["clock", "edge"]
 
 
 @patch("src.cli.DockerService")

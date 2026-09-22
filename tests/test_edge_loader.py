@@ -977,7 +977,7 @@ def test_edge_loader_main_slot_gating_uses_distinct_coordination_consumer(schema
          patch("src.loader.edge_loader.load_schema", return_value=schema), \
          patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
         assert edge_loader_main([
-            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "clock-topic",
+            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT",
             "--run-id", "run-42", "--replica-id", "2", "--max-messages", "1",
         ]) == 0
     work_config, clock_config = (call.args[0] for call in consumer_cls.call_args_list)
@@ -986,7 +986,7 @@ def test_edge_loader_main_slot_gating_uses_distinct_coordination_consumer(schema
     assert clock_config["auto.offset.reset"] == "earliest"
     assert work_config["group.id"] != clock_config["group.id"]
     assert clock_config["group.id"].endswith("WORKS_AT-run-42-2")
-    clock_consumer.subscribe.assert_called_once_with(["clock-topic"])
+    clock_consumer.subscribe.assert_called_once_with(["graph.loader.coordination"])
     assert loader_cls.call_args.kwargs["slot_admission"].bucket_count == schema.loading.coordination.bucket_count
     assert loader_cls.call_args.kwargs["coordination_poll"] == clock_consumer.poll
     work_consumer.close.assert_called_once()
@@ -1017,7 +1017,7 @@ def test_edge_loader_main_rejects_equal_groups_before_resources(schema) -> None:
          patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls, \
          patch("src.loader.edge_loader.load_schema", return_value=schema):
         assert edge_loader_main([
-            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "clock-topic", "--run-id", "run-1",
+            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1",
         ]) == 1
     consumer_cls.assert_not_called()
     driver_cls.assert_not_called()
@@ -1034,7 +1034,7 @@ def test_edge_loader_main_accepts_distinct_coordination_group_override(schema) -
          patch("src.loader.edge_loader.load_schema", return_value=schema), \
          patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
         assert edge_loader_main([
-            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "clock-topic", "--run-id", "run-1",
+            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1",
         ]) == 0
     assert [call.args[0]["group.id"] for call in consumer_cls.call_args_list] == ["work-override", "clock-override"]
 
@@ -1045,7 +1045,7 @@ def test_edge_loader_main_coordination_construction_failure_closes_work_consumer
          patch("src.loader.edge_loader.load_schema", return_value=schema), \
          patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls:
         assert edge_loader_main([
-            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "clock-topic", "--run-id", "run-1",
+            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1",
         ]) == 1
     work.close.assert_called_once()
     driver_cls.assert_not_called()
@@ -1059,7 +1059,7 @@ def test_edge_loader_main_coordination_subscription_failure_closes_both_consumer
          patch("src.loader.edge_loader.load_schema", return_value=schema), \
          patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls:
         assert edge_loader_main([
-            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "clock-topic", "--run-id", "run-1",
+            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1",
         ]) == 1
     clock.close.assert_called_once()
     work.close.assert_called_once()
@@ -1078,7 +1078,7 @@ def test_edge_loader_main_close_failures_are_attributed_and_finish_cleanup(schem
          patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
          patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
         assert edge_loader_main([
-            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "clock-topic", "--run-id", "run-1", "--replica-id", "7",
+            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1", "--replica-id", "7",
         ]) == 1
     assert "stage=coordination edge=WORKS_AT replica=7 run_id=run-1 reason=close failed" in caplog.text
     assert "stage=shutdown edge=WORKS_AT replica=7 run_id=run-1 component=work-consumer" in caplog.text
@@ -1277,3 +1277,46 @@ def test_edge_loader_failed_coordinator_keeps_offsets_uncommitted(works_at) -> N
     coordinator.execute.return_value = (LaneExecutionResult(1, (routed,), False, RuntimeError("boom")),)
     assert EdgeLoader(consumer, writer, works_at, partitioner=partitioner, lane_batcher=batcher, coordinator=coordinator).run(max_messages=1) == 1
     consumer.commit.assert_not_called()
+
+
+def test_worker_coordinator_failure_retains_first_lane_cause(works_at) -> None:
+    consumer, writer, coordinator, partitioner, batcher = MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    pending = PendingEdgeRecord(_record(), "works-at-events", 0, 3)
+    routed = MagicMock(); routed.record = pending.record; routed.topic = pending.topic; routed.partition = pending.partition; routed.offset = pending.offset
+    partitioner.route.return_value = routed; batcher.drain_all.return_value = [(routed,)]
+    root_cause, later_cause = RuntimeError("neo4j diagnostic"), RuntimeError("later lane diagnostic")
+    coordinator.execute.return_value = (
+        LaneExecutionResult(1, (routed,), False, root_cause),
+        LaneExecutionResult(2, (routed,), False, later_cause),
+    )
+    loader = EdgeLoader(consumer, writer, works_at, partitioner=partitioner, lane_batcher=batcher, coordinator=coordinator)
+    batch = WorkerBatch(1, (pending,), (), None, None, None)
+    loader._outstanding_batches[batch.batch_id] = batch
+    loader._permit_states[batch.batch_id] = "QUEUED"
+    loader._worker_queue.put(batch)
+    loader._worker_queue.put(loader._worker_sentinel)
+    loader._worker_loop()
+    result = loader._worker_results.get_nowait()
+    assert result.outcome == "WRITE_FAILURE"
+    assert isinstance(result.error, RuntimeError)
+    assert str(result.error) == "lane execution failed"
+    assert result.error.__cause__ is root_cause
+    consumer.commit.assert_not_called()
+
+
+def test_gated_worker_failure_logs_chained_cause_without_record_payload(works_at) -> None:
+    consumer, writer, coordinator, partitioner, batcher = MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    secret_key = "must-not-appear-in-worker-log"
+    consumer.poll.return_value = _message(_payload().replace(b"p-001", secret_key.encode()), offset=3)
+    routed = MagicMock(); routed.record = _record(); routed.topic = "works-at-events"; routed.partition = 0; routed.offset = 3
+    partitioner.route.return_value = routed; batcher.drain_all.return_value = [(routed,)]
+    coordinator.execute.return_value = (LaneExecutionResult(1, (routed,), False, RuntimeError("database failure")),)
+    loader = _gated_loader(consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None])
+    event_logger = MagicMock(); loader._logger = event_logger
+    loader._coordinator, loader._partitioner, loader._lane_batcher = coordinator, partitioner, batcher
+    assert loader.run(max_messages=1) == 1
+    consumer.commit.assert_not_called()
+    error_call = event_logger.error.call_args
+    assert error_call.kwargs["exc_info"] is True
+    assert "stage=worker edge=WORKS_AT replica=0" in str(error_call.args[3])
+    assert secret_key not in str(error_call)

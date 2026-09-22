@@ -27,6 +27,9 @@ from src.loader.node_loader import (
 from src.loader.record_validation import normalize_property_value
 from src.models.schema import EdgeConfig, LoadingConfig, PropertyConfig
 from src.orchestrator.schema_initializer import get_neo4j_driver
+from src.orchestrator.dependency_manager import build_conflict_families
+from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_fleet_edges
+from src.orchestrator.rotation import build_rotation_plan
 from src.loader.edge_execution import build_edge_execution
 from src.loader.mix_and_batch import endpoint_buckets
 from src.loader.slot_admission import (
@@ -452,8 +455,11 @@ class EdgeLoader:
                     for pending in batch.records:
                         self._lane_batcher.add(self._partitioner.route(pending.record, topic=pending.topic, partition=pending.partition, offset=pending.offset))
                     results = self._coordinator.execute(self._lane_batcher.drain_all())
-                    if not all(result.success for result in results):
-                        raise RuntimeError("lane execution failed")
+                    failed = next((result for result in results if not result.success), None)
+                    if failed is not None:
+                        if failed.exception is None:
+                            raise RuntimeError("lane execution failed")
+                        raise RuntimeError("lane execution failed") from failed.exception
                 else:
                     self._writer.write_batch([pending.record for pending in batch.records])
                 self._worker_results.put(WorkerResult(batch, "SUCCESS"))
@@ -1145,7 +1151,10 @@ class EdgeLoader:
             self._logger.error("Relationship slot lease failure edge=%s replica=%s reason=%s", self._edge_config.type, self._replica_id, exc)
             return 1
         except RuntimeError as exc:
-            self._logger.error("Relationship worker failure edge=%s replica=%s reason=%s", self._edge_config.type, self._replica_id, exc)
+            self._logger.error(
+                "Relationship worker failure edge=%s replica=%s reason=%s",
+                self._edge_config.type, self._replica_id, exc, exc_info=True,
+            )
             return 1
         finally:
             if self._worker is not None and not self._stop_worker():
@@ -1178,6 +1187,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--slot-gating", action="store_true")
     parser.add_argument("--coordination-topic")
+    parser.add_argument("--fleet-edge-types")
     parser.add_argument("--max-messages", type=int)
     return parser
 
@@ -1190,10 +1200,14 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--max-messages must be positive")
     if args.coordination_topic is not None and not args.slot_gating:
         parser.error("--coordination-topic requires --slot-gating")
+    if args.fleet_edge_types is not None and not args.slot_gating:
+        parser.error("--fleet-edge-types requires --slot-gating")
     if args.slot_gating and (not isinstance(args.coordination_topic, str) or not args.coordination_topic.strip()):
         parser.error("--slot-gating requires a nonblank --coordination-topic")
     if args.slot_gating and (not isinstance(args.run_id, str) or not args.run_id.strip()):
         parser.error("--slot-gating requires an explicitly supplied nonblank --run-id")
+    if args.slot_gating and (not isinstance(args.fleet_edge_types, str) or not args.fleet_edge_types.strip()):
+        parser.error("--slot-gating requires --fleet-edge-types")
     run_id = args.run_id if args.run_id is not None else "default_run"
     shutdown_requested = Event()
     previous_sigterm_handler = signal.signal(
@@ -1209,6 +1223,18 @@ def main(argv: list[str] | None = None) -> int:
     try:
         schema = load_schema(args.config)
         edge_config = _select_edge_config(schema, args.edge_type)
+        rotation_plan = None
+        if args.slot_gating:
+            if args.coordination_topic != schema.loading.coordination.topic:
+                raise ValueError("stage=lease reason=coordination topic does not match schema")
+            fleet_types = parse_fleet_edge_types(args.fleet_edge_types)
+            fleet_edges = select_fleet_edges(schema.edges, fleet_types)
+            if edge_config.type not in fleet_types:
+                raise ValueError("stage=lease reason=edge type is absent from fleet contract")
+            rotation_plan = build_rotation_plan(
+                build_conflict_families(fleet_edges),
+                bucket_count=schema.loading.coordination.bucket_count,
+            )
         bootstrap_servers = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
         work_group = os.environ.get(
             "KAFKA_GROUP_ID", f"{schema.loading.consumer_group_id}-{edge_config.type}"
@@ -1248,6 +1274,8 @@ def main(argv: list[str] | None = None) -> int:
                 "slot_admission": SlotAdmission(
                     edge_type=edge_config.type, run_id=run_id,
                     bucket_count=schema.loading.coordination.bucket_count,
+                    rotation_plan=rotation_plan,
+                    endpoint_labels=(edge_config.nodes.source, edge_config.nodes.target),
                 ),
                 "slot_buffer": SlotAwareAdmissionBuffer(
                     max_records=schema.loading.slot_buffer_max_records,

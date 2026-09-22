@@ -174,10 +174,10 @@ class TestDockerService(unittest.TestCase):
             self.service.run_edge_loader(
                 edge_type="WORKS_AT", topic="works-at-events", mode="bulk",
                 config_path="config.yaml", rejection_dir=rejection_dir, run_id="run-A",
-                consumer_group_prefix="loader", slot_gating=True, coordination_topic="clock-topic",
+                consumer_group_prefix="loader", slot_gating=True, coordination_topic="clock-topic", fleet_edge_types="WORKS_AT",
             )
         call = self.mock_client.containers.run.call_args.kwargs
-        assert call["command"][-3:] == ["--slot-gating", "--coordination-topic", "clock-topic"]
+        assert call["command"][-5:] == ["--slot-gating", "--coordination-topic", "clock-topic", "--fleet-edge-types", "WORKS_AT"]
         assert call["environment"]["KAFKA_GROUP_ID"] == "loader-WORKS_AT-run-A"
         assert call["environment"]["KAFKA_COORDINATION_GROUP_ID"] == "loader-WORKS_AT-run-A-clock-0"
         assert call["environment"]["KAFKA_GROUP_ID"] != call["environment"]["KAFKA_COORDINATION_GROUP_ID"]
@@ -206,6 +206,18 @@ class TestDockerService(unittest.TestCase):
         self.mock_client.images.build.assert_called_once_with(
             path=".", dockerfile="Dockerfile.edge_loader", tag="graph-loader-edge:latest", rm=True
         )
+
+    def test_run_global_clock_is_exact_and_run_scoped(self):
+        self.mock_client.containers.run.return_value = MagicMock()
+        clock = self.service.run_global_batch_clock(
+            run_id="run-A", config_path="config.yaml", fleet_edge_types="BOUGHT,WORKS_AT",
+            coordination_topic="graph.loader.coordination",
+        )
+        assert clock is self.mock_client.containers.run.return_value
+        call = self.mock_client.containers.run.call_args.kwargs
+        assert call["name"] == "graph-loader-clock-72756e2d41"
+        assert call["labels"] == {"app": "graph-loader", "component": "global-batch-clock", "run_id": "run-A"}
+        assert "--fleet-edge-types" in call["command"]
 
     def test_edge_partial_launch_rolls_back_only_started_containers(self):
         started = MagicMock()

@@ -2,6 +2,7 @@
 from datetime import date
 from unittest.mock import MagicMock
 import pytest
+from neo4j.exceptions import ClientError
 
 from src.loader.edge_execution import ApocLockedEdgeWriter, LaneExecutionCoordinator, NativeDisjointEdgeWriter, ServerCapabilities, ExecutionModeError, build_apoc_locked_upsert_query, build_edge_execution
 from src.loader.mix_and_batch import RoutedEdgeRecord
@@ -25,10 +26,11 @@ def test_apoc_query_uses_sorted_distinct_locks_and_schema_identifiers():
     query = build_apoc_locked_upsert_query(_edge())
     assert "WITH DISTINCT n AS dist_n ORDER BY id(dist_n)" in query
     assert "CALL apoc.lock.nodes(sorted_nodes)" in query
-    assert "MERGE (rel.s)-[r:`WORKS_AT`]->(rel.t)" in query
+    assert "WITH rel.s AS s, rel.t AS t, rel.props AS props MERGE (s)-[r:`WORKS_AT`]->(t) SET r += props" in query
+    assert "MERGE (rel.s)-[r:`WORKS_AT`]->(rel.t)" not in query
     knows = build_apoc_locked_upsert_query(_knows())
     assert "MATCH (t:`Person` {`personId`: row.target_key})" in knows
-    assert "MERGE (rel.s)-[r:`KNOWS`]->(rel.t)" in knows
+    assert "MERGE (s)-[r:`KNOWS`]->(t) SET r += props" in knows
 
 
 def test_apoc_writer_preflights_then_consumes_locks_and_commits():
@@ -173,3 +175,29 @@ def test_build_execution_refuses_native_before_constructing_components(monkeypat
     monkeypatch.setattr("src.loader.edge_execution.probe_server_capabilities", lambda _driver: ServerCapabilities("5.21", False))
     with pytest.raises(ExecutionModeError):
         build_edge_execution(edge, MagicMock())
+
+
+def test_build_native_maps_neo4j_526_cypher25_rejection_before_constructing_writer(monkeypatch):
+    edge = _edge(); edge.execution.mode = "native_disjoint"
+    driver = MagicMock(); driver.get_server_info.return_value.agent = "Neo4j/5.26.30"
+    session = driver.session.return_value.__enter__.return_value
+    session.run.side_effect = ClientError._hydrate_neo4j(
+        code="Neo.ClientError.Statement.ArgumentError",
+        message="25 is not a valid option for cypher version. Valid options are: 5",
+    )
+    native_writer = MagicMock()
+    monkeypatch.setattr("src.loader.edge_execution.NativeDisjointEdgeWriter", native_writer)
+    with pytest.raises(ExecutionModeError, match="native_disjoint.*5.26.30"):
+        build_edge_execution(edge, driver)
+    native_writer.assert_not_called()
+
+
+def test_build_default_apoc_execution_does_not_probe_cypher_25():
+    driver = MagicMock()
+    edge = _edge()
+    assert edge.execution.mode == "python_apoc"
+    writer, _partitioner, _batcher, coordinator = build_edge_execution(edge, driver)
+    assert isinstance(writer, ApocLockedEdgeWriter)
+    assert coordinator._mode == "python_apoc"
+    driver.get_server_info.assert_not_called()
+    driver.session.assert_not_called()

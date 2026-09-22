@@ -29,6 +29,18 @@ def test_capability_probe_maps_unsupported_syntax_to_false() -> None:
     assert probe_server_capabilities(driver).cypher_25 is False
 
 
+def test_capability_probe_maps_neo4j_526_cypher_version_argument_error_to_false() -> None:
+    driver = MagicMock()
+    driver.get_server_info.return_value.agent = "Neo4j/5.26.30"
+    session = driver.session.return_value.__enter__.return_value
+    session.run.side_effect = ClientError._hydrate_neo4j(
+        code="Neo.ClientError.Statement.ArgumentError",
+        message="25 is not a valid option for cypher version. Valid options are: 5",
+    )
+    capabilities = probe_server_capabilities(driver)
+    assert capabilities == ServerCapabilities("Neo4j/5.26.30", False)
+
+
 def test_capability_probe_propagates_connectivity_failure() -> None:
     driver = MagicMock()
     driver.session.side_effect = ServiceUnavailable("offline")

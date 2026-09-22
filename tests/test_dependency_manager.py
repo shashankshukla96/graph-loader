@@ -4,7 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.orchestrator.dependency_manager import build_relationship_conflict_plan
+from src.orchestrator.dependency_manager import (
+    build_conflict_families,
+    build_relationship_conflict_plan,
+)
 
 
 def _edge(edge_type: str, source: str, target: str):
@@ -99,3 +102,33 @@ def test_duplicate_types_are_rejected_for_direct_callers():
             _edge("WORKS_AT", "Person", "Company"),
             _edge("WORKS_AT", "Person", "Vendor"),
         ])
+
+
+def test_conflict_families_preserve_only_component_shared_labels():
+    families = build_conflict_families([
+        _edge("WORKS_AT", "Person", "Company"),
+        _edge("BOUGHT", "Person", "Product"),
+        _edge("SUPPLIES", "Vendor", "Stock"),
+    ])
+
+    assert [family.edge_types for family in families] == [("BOUGHT", "WORKS_AT"), ("SUPPLIES",)]
+    shared, isolated = families
+    assert shared.shared_labels == ("Person",)
+    assert dict(shared.edge_endpoint_labels) == {
+        "BOUGHT": frozenset({"Person", "Product"}),
+        "WORKS_AT": frozenset({"Company", "Person"}),
+    }
+    assert dict(shared.edge_shared_labels) == {
+        "BOUGHT": frozenset({"Person"}), "WORKS_AT": frozenset({"Person"}),
+    }
+    assert isolated.shared_labels == ()
+
+
+def test_conflict_families_are_stable_for_transitive_components_and_reject_self_reference():
+    edges = [_edge("AB", "A", "B"), _edge("BC", "B", "C"), _edge("CD", "C", "D")]
+    family = build_conflict_families(edges)[0]
+    assert family.edge_types == ("AB", "BC", "CD")
+    assert family.shared_labels == ("B", "C")
+    assert family == build_conflict_families(list(reversed(edges)))[0]
+    with pytest.raises(ValueError, match="edge=KNOWS is self-referencing"):
+        build_conflict_families([_edge("KNOWS", "Person", "Person")])
