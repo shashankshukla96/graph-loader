@@ -1,7 +1,8 @@
 import os
 import docker
 from typing import List, Dict, Optional
-from src.orchestrator.fleet_contract import parse_fleet_edge_types
+from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_shared_fleet_edges
+from src.utils.schema_loader import SchemaLoadError, load_schema
 
 class DockerService:
     def __init__(self, client: docker.DockerClient = None):
@@ -72,9 +73,32 @@ class DockerService:
             if not isinstance(run_id, str) or not run_id.strip():
                 raise ValueError("slot_gating requires a nonblank run_id")
             try:
-                parse_fleet_edge_types(fleet_edge_types)
+                canonical_fleet_types = parse_fleet_edge_types(fleet_edge_types)
             except ValueError as exc:
-                raise ValueError("slot_gating requires canonical fleet_edge_types") from exc
+                raise ValueError(
+                    f"stage=launch run_id={run_id} edge={edge_type} "
+                    f"reason=invalid shared fleet contract: {exc}"
+                ) from exc
+            if edge_type not in canonical_fleet_types:
+                raise ValueError(
+                    f"stage=launch run_id={run_id} edge={edge_type} "
+                    "reason=edge type is absent from fleet_edge_types"
+                )
+            try:
+                schema = load_schema(config_path)
+                selected_edge_types = {
+                    edge.type for edge in select_shared_fleet_edges(schema.edges, canonical_fleet_types)
+                }
+            except (SchemaLoadError, ValueError) as exc:
+                raise ValueError(
+                    f"stage=launch run_id={run_id} edge={edge_type} "
+                    f"reason=invalid shared fleet contract: {exc}"
+                ) from exc
+            if edge_type not in selected_edge_types:
+                raise ValueError(
+                    f"stage=launch run_id={run_id} edge={edge_type} "
+                    "reason=edge type is absent from selected shared fleet"
+                )
         env = dict(environment) if environment is not None else {
             "NEO4J_URI": os.environ.get("LOADER_NEO4J_URI", "bolt://neo4j:7687"),
             "NEO4J_USERNAME": os.environ.get("NEO4J_USERNAME", "neo4j"),

@@ -10,6 +10,10 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 from src.cli import (
+    _derive_relationship_phase_run_id,
+    _run_isolated_relationship_bulk_phase,
+    _run_isolated_relationship_stream_phase,
+    _run_relationship_orchestration,
     _run_relationship_bulk_stages,
     _run_rotating_relationship_fleet,
     build_parser,
@@ -195,6 +199,289 @@ def _rotating_edge(edge_type, topic, source, target, replicas=1):
         type=edge_type, topic=topic, replicas=replicas,
         nodes=SimpleNamespace(source=source, target=target, is_self_referencing=source == target),
     )
+
+
+@patch("src.cli.RelationshipBulkMonitor")
+def test_isolated_bulk_phase_uses_exact_clock_free_finite_lifecycle(monitor_cls):
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person", replicas=2)
+    first, second = MagicMock(), MagicMock()
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [first, second]
+    monitor = MagicMock()
+    monitor_cls.return_value = monitor
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_isolated_relationship_bulk_phase(
+        knows, docker, args, run_id="parent-isolated-0", phase_index=0,
+        consumer_group_prefix="loader",
+    ) == 0
+
+    launch = docker.run_edge_loader.call_args.kwargs
+    assert launch == {
+        "edge_type": "KNOWS", "topic": "knows", "mode": "bulk", "config_path": "config.yaml",
+        "replicas": 2, "network": "test-net", "run_id": "parent-isolated-0",
+        "consumer_group_prefix": "loader", "slot_gating": False,
+    }
+    docker.run_global_batch_clock.assert_not_called()
+    assert monitor_cls.call_args.args[0] == [knows]
+    assert monitor_cls.call_args.args[1] == "parent-isolated-0"
+    assert "rotation_plan" not in monitor_cls.call_args.kwargs
+    assert "coordination_topic" not in monitor_cls.call_args.kwargs
+    monitor.wait_for_assignment_coverage.assert_called_once_with(1)
+    monitor.capture_boundary.assert_called_once_with()
+    monitor.wait_for_completion.assert_called_once_with(1)
+    monitor.wait_for_drain_complete.assert_called_once_with(1)
+    monitor.verify_zero_lag.assert_called_once_with()
+    monitor.close.assert_called_once_with()
+    assert first.stop.call_count >= 1 and second.stop.call_count >= 1
+
+
+@patch("src.cli.RelationshipBulkMonitor")
+def test_isolated_bulk_phase_rejects_duplicate_response_and_stops_only_returned(monitor_cls, caplog):
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person", replicas=2)
+    duplicated = MagicMock()
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [duplicated, duplicated]
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_isolated_relationship_bulk_phase(
+        knows, docker, args, run_id="isolated-run", phase_index=3,
+        consumer_group_prefix="loader",
+    ) == 1
+
+    monitor_cls.assert_not_called()
+    assert duplicated.stop.call_count >= 1
+    assert "stage=isolation run_id=isolated-run phase=3 edge=KNOWS" in caplog.text
+    docker.run_global_batch_clock.assert_not_called()
+
+
+@patch("src.cli.RelationshipBulkMonitor")
+def test_isolated_bulk_phase_monitor_failure_stops_exact_loader_and_closes_monitor(monitor_cls, caplog):
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    container = MagicMock()
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [container]
+    monitor = MagicMock()
+    monitor.wait_for_completion.side_effect = RuntimeError("durable write failed")
+    monitor_cls.return_value = monitor
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_isolated_relationship_bulk_phase(
+        knows, docker, args, run_id="isolated-run", phase_index=1,
+        consumer_group_prefix="loader",
+    ) == 1
+
+    assert container.stop.call_count >= 1
+    monitor.close.assert_called_once_with()
+    assert "stage=isolation run_id=isolated-run phase=1 edge=KNOWS" in caplog.text
+    docker.run_global_batch_clock.assert_not_called()
+
+
+@patch("src.cli.RelationshipBulkMonitor")
+def test_isolated_bulk_phase_drain_failure_names_exact_replica_and_stops_no_unrelated_container(monitor_cls, caplog):
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    container, unrelated = MagicMock(), MagicMock()
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [container]
+    monitor = MagicMock()
+    monitor.wait_for_drain_complete.side_effect = RuntimeError("edge=KNOWS replica=0 drain failed")
+    monitor_cls.return_value = monitor
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_isolated_relationship_bulk_phase(
+        knows, docker, args, run_id="isolated-run", phase_index=2,
+        consumer_group_prefix="loader",
+    ) == 1
+
+    assert container.stop.call_count >= 1
+    unrelated.stop.assert_not_called()
+    assert "stage=isolation run_id=isolated-run phase=2 edge=KNOWS" in caplog.text
+    assert "edge=KNOWS replica=0 drain failed" in caplog.text
+    monitor.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("run_id, phase_index", [("bad run", 0), ("isolated-run", True), ("isolated-run", -1)])
+def test_isolated_bulk_phase_validates_inputs_before_docker(run_id, phase_index, caplog):
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    docker = MagicMock()
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_isolated_relationship_bulk_phase(
+        knows, docker, args, run_id=run_id, phase_index=phase_index,
+        consumer_group_prefix="loader",
+    ) == 1
+
+    docker.run_edge_loader.assert_not_called()
+    assert "stage=isolation" in caplog.text
+
+
+def test_isolated_bulk_phase_rejects_shared_edge_before_docker():
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    docker = MagicMock()
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_isolated_relationship_bulk_phase(
+        works, docker, args, run_id="isolated-run", phase_index=0,
+        consumer_group_prefix="loader",
+    ) == 1
+
+    docker.run_edge_loader.assert_not_called()
+
+
+def test_isolated_bulk_phase_rejects_truthy_forged_self_reference_before_docker():
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    knows.nodes.is_self_referencing = 1
+    docker = MagicMock()
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_isolated_relationship_bulk_phase(
+        knows, docker, args, run_id="isolated-run", phase_index=0,
+        consumer_group_prefix="loader",
+    ) == 1
+
+    docker.run_edge_loader.assert_not_called()
+
+
+def test_relationship_phase_run_ids_are_deterministic_bounded_and_distinct():
+    parent = "p" * 128
+    first = _derive_relationship_phase_run_id(parent, phase_kind="isolated", phase_index=0, edge_type="KNOWS")
+    assert first == _derive_relationship_phase_run_id(parent, phase_kind="isolated", phase_index=0, edge_type="KNOWS")
+    assert len(first) <= 128
+    assert first != _derive_relationship_phase_run_id(parent, phase_kind="isolated", phase_index=1, edge_type="KNOWS")
+    assert first != _derive_relationship_phase_run_id(parent, phase_kind="shared", phase_index=0, edge_type="shared")
+
+
+@patch("src.cli._run_isolated_relationship_bulk_phase")
+@patch("src.cli._run_rotating_relationship_fleet")
+def test_bulk_orchestration_runs_shared_before_each_isolated_phase(shared_fleet, isolated_phase):
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    schema = SimpleNamespace(edges=[knows, works], loading=SimpleNamespace(consumer_group_id="loader"))
+    docker = MagicMock()
+    args = argparse.Namespace(mode="bulk", config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+    shared_fleet.return_value = 0
+    isolated_phase.side_effect = lambda *_args, **_kwargs: shared_fleet.assert_called_once() or 0
+
+    assert _run_relationship_orchestration(schema, docker, args, parent_run_id="parent-run") == 0
+
+    assert shared_fleet.call_args.kwargs["selected_edges"] == (works,)
+    assert isolated_phase.call_args.args[0] is knows
+    assert isolated_phase.call_args.kwargs["phase_index"] == 0
+    assert isolated_phase.call_args.kwargs["run_id"] != shared_fleet.call_args.kwargs["phase_run_id"]
+
+
+@patch("src.cli._run_isolated_relationship_bulk_phase")
+@patch("src.cli._run_rotating_relationship_fleet")
+def test_bulk_orchestration_shared_failure_blocks_isolated_with_full_phase_attribution(shared_fleet, isolated_phase, caplog):
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    schema = SimpleNamespace(edges=[works, knows], loading=SimpleNamespace(consumer_group_id="loader"))
+    shared_fleet.return_value = 1
+    args = argparse.Namespace(mode="bulk", config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_relationship_orchestration(schema, MagicMock(), args, parent_run_id="parent-run") == 1
+
+    isolated_phase.assert_not_called()
+    assert "parent_run_id=parent-run phase_run_id=" in caplog.text
+    assert "phase=0 edge=shared failed" in caplog.text
+
+
+@patch("src.cli._run_isolated_relationship_stream_phase")
+def test_stream_orchestration_allows_one_isolated_edge_without_shared_clock(isolated_stream):
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    schema = SimpleNamespace(edges=[knows], loading=SimpleNamespace(consumer_group_id="loader"))
+    args = argparse.Namespace(mode="stream", config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+    docker = MagicMock()
+    isolated_stream.return_value = 0
+
+    assert _run_relationship_orchestration(schema, docker, args, parent_run_id="stream-parent") == 0
+
+    assert isolated_stream.call_args.args[:3] == (knows, docker, args)
+    assert isolated_stream.call_args.kwargs["parent_run_id"] == "stream-parent"
+    docker.run_global_batch_clock.assert_not_called()
+
+
+@patch("src.cli.signal.signal", return_value=object())
+@patch("src.cli.RelationshipBulkMonitor")
+def test_isolated_stream_phase_uses_no_slot_clock_free_nonterminal_supervision(monitor_cls, _signal):
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    container, unrelated = MagicMock(), MagicMock()
+    docker = MagicMock()
+    docker.run_edge_loader.return_value = [container]
+    monitor = MagicMock()
+    monitor.supervise_stream.side_effect = lambda shutdown: shutdown.set()
+    monitor_cls.return_value = monitor
+    args = argparse.Namespace(mode="stream", config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_isolated_relationship_stream_phase(
+        knows, docker, args, run_id="phase-run", phase_index=0,
+        consumer_group_prefix="loader", parent_run_id="parent-run",
+    ) == 0
+
+    assert docker.run_edge_loader.call_args.kwargs == {
+        "edge_type": "KNOWS", "topic": "knows", "mode": "stream", "config_path": "config.yaml",
+        "replicas": 1, "network": "test-net", "run_id": "phase-run",
+        "consumer_group_prefix": "loader", "slot_gating": False,
+    }
+    docker.run_global_batch_clock.assert_not_called()
+    shutdown = monitor.supervise_stream.call_args.args[0]
+    assert shutdown.is_set()
+    monitor.capture_boundary.assert_not_called()
+    monitor.wait_for_completion.assert_not_called()
+    monitor.verify_zero_lag.assert_not_called()
+    assert container.stop.call_count >= 1
+    unrelated.stop.assert_not_called()
+    monitor.close.assert_called_once_with()
+
+
+def test_stream_orchestration_rejects_mixed_and_multiple_isolated_before_relationship_launch():
+    works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    follows = _rotating_edge("FOLLOWS", "follows", "User", "User")
+    args = argparse.Namespace(mode="stream", config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+    for edges in ([works, knows], [knows, follows]):
+        docker = MagicMock()
+        schema = SimpleNamespace(edges=edges, loading=SimpleNamespace(consumer_group_id="loader"))
+        assert _run_relationship_orchestration(schema, docker, args, parent_run_id="stream-parent") == 1
+        docker.run_edge_loader.assert_not_called()
+        docker.run_global_batch_clock.assert_not_called()
+
+
+def test_selected_rotating_fleet_rejects_self_reference_before_docker_launch():
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    schema = SimpleNamespace(
+        edges=[knows],
+        loading=SimpleNamespace(consumer_group_id="loader", coordination=SimpleNamespace(topic="clock", bucket_count=1)),
+    )
+    docker = MagicMock()
+    args = argparse.Namespace(mode="bulk", config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_rotating_relationship_fleet(schema, docker, args, selected_edges=(knows,)) == 1
+
+    docker.run_edge_loader.assert_not_called()
+    docker.run_global_batch_clock.assert_not_called()
+
+
+@patch("src.cli._run_relationship_orchestration")
+@patch("src.cli.DockerService")
+@patch("src.cli.apply_schema")
+@patch("src.cli.get_neo4j_driver")
+@patch("src.cli.load_schema")
+def test_handle_start_stream_generates_relationship_parent_run_id_when_omitted(
+    mock_load, mock_driver_factory, mock_apply_schema, mock_docker, orchestration,
+):
+    knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
+    mock_load.return_value = SimpleNamespace(nodes=(), edges=[knows])
+    mock_driver_factory.return_value = MagicMock()
+    mock_docker.return_value = MagicMock()
+    orchestration.return_value = 0
+    args = argparse.Namespace(mode="stream", config="config.yaml", network="test-net", skip_image_build=True)
+
+    assert handle_start(args) == 0
+
+    parent_run_id = orchestration.call_args.kwargs["parent_run_id"]
+    assert isinstance(parent_run_id, str) and len(parent_run_id) == 32
+    assert orchestration.call_args.args[:3] == (mock_load.return_value, mock_docker.return_value, args)
 
 
 @patch("src.cli.RelationshipBulkMonitor")

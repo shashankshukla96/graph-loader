@@ -34,6 +34,19 @@ def test_clock_runner_rejects_topic_split_before_kafka():
     producer.assert_not_called()
 
 
+def test_clock_runner_rejects_self_reference_fleet_before_kafka():
+    schema = _schema()
+    knows = SimpleNamespace(
+        type="KNOWS", topic="knows", replicas=1,
+        nodes=SimpleNamespace(source="Person", target="Person", is_self_referencing=True),
+    )
+    schema.edges = (*schema.edges, knows)
+    with patch("src.orchestrator.clock_runner.load_schema", return_value=schema), \
+         patch("src.orchestrator.clock_runner.Producer") as producer:
+        assert main(["--config", "schema.yaml", "--run-id", "run", "--fleet-edge-types", "KNOWS", "--coordination-topic", "clock-topic"]) == 1
+    producer.assert_not_called()
+
+
 def test_clock_runner_passes_exact_rotation_plan_to_global_clock():
     producer, global_clock = MagicMock(), MagicMock()
     global_clock.run.return_value = 0

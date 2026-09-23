@@ -406,29 +406,31 @@ class RelationshipBulkMonitor:
             raise BulkMonitorError("relationship boundary has not been captured")
         self._wait(timeout_seconds, "rotating completion", self._at_rotating_boundary)
 
-    def supervise_stream(self, shutdown_requested, *, initial_lease_timeout_seconds: float) -> None:
-        """Keep one exact rotating stream fleet healthy until explicit shutdown.
+    def supervise_stream(self, shutdown_requested, *, initial_lease_timeout_seconds: float | None = None) -> None:
+        """Keep one exact stream fleet healthy until explicit shutdown.
 
         Stream supervision deliberately has no watermark/boundary or lag-based
         success path.  The supplied Event-compatible object makes termination
         deterministic for the CLI and tests alike.
         """
-        if self._rotation_plan is None:
-            raise BulkMonitorError("stream supervision requires a rotation monitor")
         if not hasattr(shutdown_requested, "is_set"):
             raise BulkMonitorError("stream supervision requires a shutdown event")
-        try:
-            self.wait_for_clock_lease(initial_lease_timeout_seconds)
-        except BulkTimeoutError as exc:
-            raise self._failure(
-                BulkTimeoutError,
-                "initial stream clock lease timed out",
-            ) from exc
+        if self._rotation_plan is not None:
+            if initial_lease_timeout_seconds is None or initial_lease_timeout_seconds <= 0:
+                raise BulkMonitorError("rotation stream supervision requires a positive initial lease timeout")
+            try:
+                self.wait_for_clock_lease(initial_lease_timeout_seconds)
+            except BulkTimeoutError as exc:
+                raise self._failure(
+                    BulkTimeoutError,
+                    "initial stream clock lease timed out",
+                ) from exc
         while not shutdown_requested.is_set():
-            self._check_clock_health()
+            if self._rotation_plan is not None:
+                self._check_clock_health()
             self._check_health()
             self._poll()
-            if not self._has_current_clock_lease():
+            if self._rotation_plan is not None and not self._has_current_clock_lease():
                 raise BulkMonitorError(
                     f"stage=monitor run_id={self._run_id} stream has no current clock lease {self._clock_context()}"
                 )

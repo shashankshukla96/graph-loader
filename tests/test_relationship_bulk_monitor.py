@@ -411,3 +411,20 @@ def test_stream_supervisor_propagates_exact_clock_exit_with_monitor_context():
 
     with pytest.raises(Exception, match="stage=monitor run_id=run-rotation clock exited"):
         monitor.supervise_stream(NeverShutdown(), initial_lease_timeout_seconds=1)
+
+
+def test_nonrotation_stream_supervisor_stays_live_without_clock_or_lag_completion():
+    monitor, _, _, _, _ = _monitor()
+
+    class Shutdown:
+        requested = False
+
+        def is_set(self):
+            return self.requested
+
+    shutdown = Shutdown()
+    monitor._sleep = lambda _seconds: setattr(shutdown, "requested", True)
+    monitor.supervise_stream(shutdown)
+
+    assert monitor._coordination is None
+    assert monitor._rotation_plan is None

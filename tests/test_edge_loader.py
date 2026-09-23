@@ -994,6 +994,18 @@ def test_edge_loader_main_slot_gating_uses_distinct_coordination_consumer(schema
     driver.close.assert_called_once()
 
 
+def test_edge_loader_main_rejects_self_reference_slot_fleet_before_kafka(schema) -> None:
+    with patch("src.loader.edge_loader.Consumer") as consumer_cls, \
+         patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls, \
+         patch("src.loader.edge_loader.load_schema", return_value=schema):
+        assert edge_loader_main([
+            "--edge-type", "KNOWS", "--slot-gating", "--coordination-topic", "graph.loader.coordination",
+            "--fleet-edge-types", "KNOWS", "--run-id", "run-isolation",
+        ]) == 1
+    consumer_cls.assert_not_called()
+    driver_cls.assert_not_called()
+
+
 @pytest.mark.parametrize("argv", [
     ["--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "clock-topic"],
     ["--edge-type", "WORKS_AT", "--slot-gating", "--run-id", "run-1"],

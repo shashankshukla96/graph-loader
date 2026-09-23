@@ -4,6 +4,7 @@ src/cli.py
 Command-line interface for the Neo4j Graph Loader.
 """
 import argparse
+import hashlib
 import sys
 import logging
 import os
@@ -55,6 +56,8 @@ from src.orchestrator.dependency_manager import (
 from src.orchestrator.fleet_contract import select_fleet_edges
 from src.orchestrator.rotation import build_rotation_plan
 from src.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
+from src.models.schema import EdgeConfig
+from src.orchestrator.isolation import build_relationship_isolation_plan
 
 
 def _is_running(container: object) -> bool:
@@ -163,7 +166,266 @@ def _run_relationship_bulk_stages(schema, docker_service: DockerService, args: a
     return 0
 
 
-def _run_rotating_relationship_fleet(schema, docker_service: DockerService, args: argparse.Namespace) -> int:
+def _run_isolated_relationship_bulk_phase(
+    edge: EdgeConfig,
+    docker_service: DockerService,
+    args: argparse.Namespace,
+    *,
+    run_id: str,
+    phase_index: int,
+    consumer_group_prefix: str,
+) -> int:
+    """Prove one exact, clock-free self-reference relationship bulk phase drained."""
+    edge_type = getattr(edge, "type", "<unknown>")
+    context = f"stage=isolation run_id={run_id} phase={phase_index} edge={edge_type}"
+    try:
+        if _validated_run_id(run_id) is None:
+            raise ValueError("run id must be nonblank")
+        if isinstance(phase_index, bool) or not isinstance(phase_index, int) or phase_index < 0:
+            raise ValueError("phase must be a nonnegative integer")
+        if not isinstance(consumer_group_prefix, str) or not consumer_group_prefix.strip():
+            raise ValueError("consumer group prefix must be nonblank")
+        if edge.nodes.is_self_referencing is not True:
+            raise ValueError("edge is not self-referencing")
+    except (AttributeError, ValueError) as exc:
+        logger.error("%s failed: %s", context, exc)
+        return 1
+
+    containers: list[object] = []
+    tracked: dict[tuple[str, str], object] = {}
+    monitor = None
+    try:
+        returned = docker_service.run_edge_loader(
+            edge_type=edge.type,
+            topic=edge.topic,
+            mode="bulk",
+            config_path=args.config,
+            replicas=edge.replicas,
+            network=args.network,
+            run_id=run_id,
+            consumer_group_prefix=consumer_group_prefix,
+            slot_gating=False,
+        )
+        containers.extend(returned)
+        if len(returned) != edge.replicas:
+            raise RuntimeError(
+                f"launch returned {len(returned)} replicas; expected {edge.replicas}"
+            )
+        if len({id(container) for container in returned}) != len(returned):
+            raise RuntimeError("launch returned duplicate container objects")
+        tracked = {(edge.type, str(replica_id)): container for replica_id, container in enumerate(returned)}
+        expected = {(edge.type, str(replica_id)) for replica_id in range(edge.replicas)}
+        if set(tracked) != expected:
+            raise RuntimeError("replica accounting mismatch")
+        monitor = RelationshipBulkMonitor(
+            [edge], run_id, expected, tracked,
+            bootstrap_servers=os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+            consumer_group_prefix=consumer_group_prefix,
+        )
+        timeout = args.bulk_timeout_seconds
+        monitor.wait_for_assignment_coverage(timeout)
+        monitor.capture_boundary()
+        monitor.wait_for_completion(timeout)
+        identities = {
+            id(container): f"edge={replica_edge_type} replica={replica_id}"
+            for (replica_edge_type, replica_id), container in tracked.items()
+        }
+        failures = _stop_exact_containers(containers, identities=identities)
+        if failures:
+            raise RuntimeError(f"shutdown failed: {'; '.join(failures)}")
+        monitor.wait_for_drain_complete(timeout)
+        monitor.verify_zero_lag()
+        return 0
+    except Exception as exc:
+        logger.error("%s failed: %s", context, exc)
+        failures = _stop_exact_containers(
+            containers,
+            identities={
+                id(container): f"edge={replica_edge_type} replica={replica_id}"
+                for (replica_edge_type, replica_id), container in tracked.items()
+            },
+        )
+        if failures:
+            logger.error("%s cleanup failed: %s", context, "; ".join(failures))
+        return 1
+    finally:
+        if monitor is not None:
+            monitor.close()
+        _stop_exact_containers(
+            containers,
+            identities={
+                id(container): f"edge={replica_edge_type} replica={replica_id}"
+                for (replica_edge_type, replica_id), container in tracked.items()
+            },
+        )
+
+
+def _derive_relationship_phase_run_id(
+    parent_run_id: str, *, phase_kind: str, phase_index: int, edge_type: str,
+) -> str:
+    """Derive one bounded collision-resistant child ID from an exact parent."""
+    if _validated_run_id(parent_run_id) != parent_run_id:
+        raise ValueError("parent run id must be valid")
+    if not isinstance(phase_kind, str) or not phase_kind or not phase_kind.replace("_", "").isalnum():
+        raise ValueError("phase kind must be nonblank alphanumeric text")
+    if isinstance(phase_index, bool) or not isinstance(phase_index, int) or phase_index < 0:
+        raise ValueError("phase index must be a nonnegative integer")
+    if not isinstance(edge_type, str) or not edge_type:
+        raise ValueError("phase edge type must be nonblank")
+    digest = hashlib.sha256(
+        f"{parent_run_id}|{phase_kind}|{phase_index}|{edge_type}".encode("utf-8")
+    ).hexdigest()[:24]
+    suffix = f".{phase_kind}.{phase_index}.{digest}"
+    if len(suffix) >= 128:
+        suffix = f".phase.{digest}"
+    return f"{parent_run_id[:128 - len(suffix)]}{suffix}"
+
+
+def _run_isolated_relationship_stream_phase(
+    edge: EdgeConfig,
+    docker_service: DockerService,
+    args: argparse.Namespace,
+    *,
+    run_id: str,
+    phase_index: int,
+    consumer_group_prefix: str,
+    parent_run_id: str,
+) -> int:
+    """Keep one exact self-reference stream alive without a clock or lease."""
+    context = (
+        f"stage=isolation parent_run_id={parent_run_id} phase_run_id={run_id} "
+        f"phase={phase_index} edge={getattr(edge, 'type', '<unknown>')}"
+    )
+    if edge.nodes.is_self_referencing is not True:
+        logger.error("%s failed: edge is not self-referencing", context)
+        return 1
+    containers: list[object] = []
+    tracked: dict[tuple[str, str], object] = {}
+    monitor = None
+    try:
+        returned = docker_service.run_edge_loader(
+            edge_type=edge.type, topic=edge.topic, mode="stream", config_path=args.config,
+            replicas=edge.replicas, network=args.network, run_id=run_id,
+            consumer_group_prefix=consumer_group_prefix, slot_gating=False,
+        )
+        containers.extend(returned)
+        if len(returned) != edge.replicas:
+            raise RuntimeError(f"launch returned {len(returned)} replicas; expected {edge.replicas}")
+        if len({id(container) for container in returned}) != len(returned):
+            raise RuntimeError("launch returned duplicate container objects")
+        tracked = {(edge.type, str(replica_id)): container for replica_id, container in enumerate(returned)}
+        expected = {(edge.type, str(replica_id)) for replica_id in range(edge.replicas)}
+        if set(tracked) != expected:
+            raise RuntimeError("replica accounting mismatch")
+        monitor = RelationshipBulkMonitor(
+            [edge], run_id, expected, tracked,
+            bootstrap_servers=os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+            consumer_group_prefix=consumer_group_prefix,
+        )
+        shutdown = Event()
+        previous_int = signal.signal(signal.SIGINT, lambda *_args: shutdown.set())
+        previous_term = signal.signal(signal.SIGTERM, lambda *_args: shutdown.set())
+        try:
+            monitor.supervise_stream(shutdown)
+        finally:
+            signal.signal(signal.SIGINT, previous_int)
+            signal.signal(signal.SIGTERM, previous_term)
+        failures = _stop_exact_containers(
+            containers,
+            identities={
+                id(container): f"edge={edge_type} replica={replica_id}"
+                for (edge_type, replica_id), container in tracked.items()
+            },
+        )
+        if failures:
+            raise RuntimeError(f"shutdown failed: {'; '.join(failures)}")
+        return 0
+    except Exception as exc:
+        logger.error("%s failed: %s", context, exc)
+        _stop_exact_containers(
+            containers,
+            identities={
+                id(container): f"edge={edge_type} replica={replica_id}"
+                for (edge_type, replica_id), container in tracked.items()
+            },
+        )
+        return 1
+    finally:
+        if monitor is not None:
+            monitor.close()
+        _stop_exact_containers(containers)
+
+
+def _run_relationship_orchestration(
+    schema, docker_service: DockerService, args: argparse.Namespace, *, parent_run_id: str,
+) -> int:
+    """Run selected clock fleet and absolute self-reference phases in policy order."""
+    try:
+        if _validated_run_id(parent_run_id) != parent_run_id:
+            raise ValueError("parent run id must be valid")
+        plan = build_relationship_isolation_plan(tuple(getattr(schema, "edges", ())))
+        edges_by_type = {edge.type: edge for edge in schema.edges}
+    except (AttributeError, ValueError) as exc:
+        logger.error("stage=isolation parent_run_id=%s failed: %s", parent_run_id, exc)
+        return 1
+    shared_edges = tuple(edges_by_type[edge_type] for edge_type in plan.shared_edge_types)
+    mode = getattr(args, "mode", "bulk")
+    if mode == "stream":
+        if shared_edges and plan.isolated_phases:
+            logger.error("stage=isolation parent_run_id=%s policy=mixed-stream shared and isolated relationships cannot run together", parent_run_id)
+            return 1
+        if len(plan.isolated_phases) > 1:
+            logger.error("stage=isolation parent_run_id=%s policy=multi-isolated-stream phases=%s", parent_run_id, len(plan.isolated_phases))
+            return 1
+        if plan.isolated_phases:
+            phase = plan.isolated_phases[0]
+            phase_run_id = _derive_relationship_phase_run_id(
+                parent_run_id, phase_kind="isolated", phase_index=phase.index, edge_type=phase.edge_type,
+            )
+            result = _run_isolated_relationship_stream_phase(
+                edges_by_type[phase.edge_type], docker_service, args, run_id=phase_run_id,
+                phase_index=phase.index, consumer_group_prefix=schema.loading.consumer_group_id,
+                parent_run_id=parent_run_id,
+            )
+            if result:
+                logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=%s edge=%s failed", parent_run_id, phase_run_id, phase.index, phase.edge_type)
+            return result
+        if not shared_edges:
+            return 0
+        phase_run_id = _derive_relationship_phase_run_id(parent_run_id, phase_kind="shared", phase_index=0, edge_type="shared")
+        result = _run_rotating_relationship_fleet(
+            schema, docker_service, args, selected_edges=shared_edges, phase_run_id=phase_run_id,
+        )
+        if result:
+            logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=0 edge=shared failed", parent_run_id, phase_run_id)
+        return result
+
+    if shared_edges:
+        phase_run_id = _derive_relationship_phase_run_id(parent_run_id, phase_kind="shared", phase_index=0, edge_type="shared")
+        result = _run_rotating_relationship_fleet(
+            schema, docker_service, args, selected_edges=shared_edges, phase_run_id=phase_run_id,
+        )
+        if result:
+            logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=0 edge=shared failed", parent_run_id, phase_run_id)
+            return result
+    for phase in plan.isolated_phases:
+        phase_run_id = _derive_relationship_phase_run_id(
+            parent_run_id, phase_kind="isolated", phase_index=phase.index, edge_type=phase.edge_type,
+        )
+        result = _run_isolated_relationship_bulk_phase(
+            edges_by_type[phase.edge_type], docker_service, args, run_id=phase_run_id,
+            phase_index=phase.index, consumer_group_prefix=schema.loading.consumer_group_id,
+        )
+        if result:
+            logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=%s edge=%s failed", parent_run_id, phase_run_id, phase.index, phase.edge_type)
+            return result
+    return 0
+
+
+def _run_rotating_relationship_fleet(
+    schema, docker_service: DockerService, args: argparse.Namespace, *,
+    selected_edges: tuple[EdgeConfig, ...] | None = None, phase_run_id: str | None = None,
+) -> int:
     """Run one exact eligible-edge fleet under a single run-scoped clock.
 
     The caller owns neither a discovered Docker set nor a global Kafka group:
@@ -172,18 +434,27 @@ def _run_rotating_relationship_fleet(schema, docker_service: DockerService, args
     lifecycle it builds upon.
     """
     all_edges = tuple(getattr(schema, "edges", ()))
-    self_references = tuple(edge for edge in all_edges if edge.nodes.is_self_referencing)
-    if self_references:
-        deferred = ",".join(sorted(edge.type for edge in self_references))
-        logger.error(
-            "stage=launch reason=self-referencing relationship types require Phase 4 Slice 4 policy edges=%s",
-            deferred,
-        )
-        return 1
-    eligible = tuple(edge for edge in all_edges if not edge.nodes.is_self_referencing)
-    if not eligible:
-        return 0
     try:
+        isolation_plan = build_relationship_isolation_plan(all_edges)
+        if selected_edges is None:
+            self_references = tuple(edge for edge in all_edges if edge.nodes.is_self_referencing)
+            if self_references:
+                deferred = ",".join(sorted(edge.type for edge in self_references))
+                logger.error(
+                    "stage=launch reason=self-referencing relationship types require Phase 4 Slice 4 policy edges=%s",
+                    deferred,
+                )
+                return 1
+            eligible = all_edges
+        else:
+            eligible = tuple(selected_edges)
+            selected_types = tuple(sorted(edge.type for edge in eligible))
+            if selected_types != isolation_plan.shared_edge_types:
+                raise ValueError("selected rotating fleet must contain exactly every shared schema edge")
+            if any(edge.nodes.is_self_referencing is not False for edge in eligible):
+                raise ValueError("selected rotating fleet contains a self-referencing edge")
+        if not eligible:
+            return 0
         # Keep Phase 3's graph construction an explicit pre-launch validation.
         build_relationship_conflict_plan(eligible)
         fleet_edge_types = ",".join(sorted(edge.type for edge in eligible))
@@ -198,7 +469,7 @@ def _run_rotating_relationship_fleet(schema, docker_service: DockerService, args
         return 1
 
     try:
-        run_id = _validated_run_id(getattr(args, "run_id", None)) or uuid.uuid4().hex
+        run_id = _validated_run_id(phase_run_id if phase_run_id is not None else getattr(args, "run_id", None)) or uuid.uuid4().hex
     except ValueError as exc:
         logger.error("stage=launch reason=invalid run id: %s", exc)
         return 1
@@ -399,7 +670,8 @@ def handle_start(args: argparse.Namespace) -> int:
     if is_bulk and bulk_timeout_seconds <= 0:
         logger.error("--bulk-timeout-seconds must be positive")
         return 1
-    run_id = explicit_run_id or (uuid.uuid4().hex if is_bulk else None)
+    parent_run_id = explicit_run_id or uuid.uuid4().hex
+    run_id = parent_run_id if is_bulk or explicit_run_id is not None else None
     started_containers = []
     tracked_containers = {}
     monitor = None
@@ -433,7 +705,9 @@ def handle_start(args: argparse.Namespace) -> int:
             return 1
 
     if not is_bulk:
-        return _run_rotating_relationship_fleet(schema, docker_service, args) if edge_configs else 0
+        return _run_relationship_orchestration(
+            schema, docker_service, args, parent_run_id=parent_run_id,
+        ) if edge_configs else 0
 
     try:
         monitor = BulkMonitor(
@@ -452,7 +726,9 @@ def handle_start(args: argparse.Namespace) -> int:
             raise RuntimeError(f"unable to stop bulk loader fleet: {'; '.join(stop_failures)}")
         monitor.wait_for_drain_complete(bulk_timeout_seconds)
         monitor.verify_zero_lag()
-        return _run_rotating_relationship_fleet(schema, docker_service, args) if edge_configs else 0
+        return _run_relationship_orchestration(
+            schema, docker_service, args, parent_run_id=parent_run_id,
+        ) if edge_configs else 0
     except Exception as exc:
         logger.error("Bulk run failed: %s", exc)
         if not drain_started:

@@ -12,7 +12,7 @@ from confluent_kafka import Producer
 
 from src.orchestrator.coordination import GlobalBatchClock
 from src.orchestrator.dependency_manager import build_conflict_families
-from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_fleet_edges
+from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_shared_fleet_edges
 from src.orchestrator.rotation import build_rotation_plan
 from src.utils.schema_loader import load_schema
 
@@ -35,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
         schema = load_schema(args.config)
         if args.coordination_topic != schema.loading.coordination.topic:
             raise ValueError("stage=clock reason=coordination topic does not match schema")
-        edges = select_fleet_edges(schema.edges, types)
+        edges = select_shared_fleet_edges(schema.edges, types)
         plan = build_rotation_plan(build_conflict_families(edges), bucket_count=schema.loading.coordination.bucket_count)
         producer = Producer({"bootstrap.servers": os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")})
         shutdown = Event()

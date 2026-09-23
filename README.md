@@ -181,8 +181,20 @@ containers it created. Each loader flushes and acknowledges its drain before the
 CLI performs a final zero-lag check. A nonzero result leaves no claim of a
 successful bulk load; inspect the run's logs and rejection files before retrying.
 
+For relationships, the bulk order is deterministic. All non-self-referencing
+types first run in the shared, clock-governed fleet; after its exact loaders and
+clock have drained and been removed, each self-reference such as
+`Person-KNOWS-Person` runs alone in lexical type order. Every phase has a
+run-scoped derived ID, and a failure prevents later phases from launching.
+Self-reference phases keep the Phase 3 directional lanes and APOC locking but
+do not create a clock lease or join the shared fleet.
+
 Stream mode is intentionally open-ended: it starts the configured fleet and does
-not stop it merely because current Kafka lag is zero.
+not stop it merely because current Kafka lag is zero. A stream schema may have
+either shared relationship types or exactly one self-referencing relationship
+type. Mixed shared/self-reference streams, and streams with multiple isolated
+self-reference types, are rejected before relationship loaders launch because
+an open-ended stream cannot safely yield into a later absolute phase.
 
 The CLI runs on the host and therefore uses `localhost` endpoints from `.env`.
 Node-loader containers use the Docker-network defaults `bolt://neo4j:7687` and

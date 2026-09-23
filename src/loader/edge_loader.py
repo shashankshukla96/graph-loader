@@ -28,7 +28,7 @@ from src.loader.record_validation import normalize_property_value
 from src.models.schema import EdgeConfig, LoadingConfig, PropertyConfig
 from src.orchestrator.schema_initializer import get_neo4j_driver
 from src.orchestrator.dependency_manager import build_conflict_families
-from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_fleet_edges
+from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_shared_fleet_edges
 from src.orchestrator.rotation import build_rotation_plan
 from src.loader.edge_execution import build_edge_execution
 from src.loader.mix_and_batch import endpoint_buckets
@@ -1228,7 +1228,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.coordination_topic != schema.loading.coordination.topic:
                 raise ValueError("stage=lease reason=coordination topic does not match schema")
             fleet_types = parse_fleet_edge_types(args.fleet_edge_types)
-            fleet_edges = select_fleet_edges(schema.edges, fleet_types)
+            fleet_edges = select_shared_fleet_edges(schema.edges, fleet_types)
             if edge_config.type not in fleet_types:
                 raise ValueError("stage=lease reason=edge type is absent from fleet contract")
             rotation_plan = build_rotation_plan(

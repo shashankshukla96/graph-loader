@@ -1,8 +1,10 @@
 import unittest
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from src.orchestrator.docker_service import DockerService
+from src.utils.schema_loader import SchemaLoadError
 
 class TestDockerService(unittest.TestCase):
     def setUp(self):
@@ -170,12 +172,18 @@ class TestDockerService(unittest.TestCase):
 
     def test_run_edge_loader_slot_gating_scopes_distinct_clock_group(self):
         self.mock_client.containers.run.return_value = MagicMock()
-        with tempfile.TemporaryDirectory() as rejection_dir:
-            self.service.run_edge_loader(
-                edge_type="WORKS_AT", topic="works-at-events", mode="bulk",
-                config_path="config.yaml", rejection_dir=rejection_dir, run_id="run-A",
-                consumer_group_prefix="loader", slot_gating=True, coordination_topic="clock-topic", fleet_edge_types="WORKS_AT",
-            )
+        schema = SimpleNamespace(edges=(
+            SimpleNamespace(type="WORKS_AT", nodes=SimpleNamespace(
+                source="Person", target="Company", is_self_referencing=False,
+            )),
+        ))
+        with patch("src.orchestrator.docker_service.load_schema", return_value=schema):
+            with tempfile.TemporaryDirectory() as rejection_dir:
+                self.service.run_edge_loader(
+                    edge_type="WORKS_AT", topic="works-at-events", mode="bulk",
+                    config_path="config.yaml", rejection_dir=rejection_dir, run_id="run-A",
+                    consumer_group_prefix="loader", slot_gating=True, coordination_topic="clock-topic", fleet_edge_types="WORKS_AT",
+                )
         call = self.mock_client.containers.run.call_args.kwargs
         assert call["command"][-5:] == ["--slot-gating", "--coordination-topic", "clock-topic", "--fleet-edge-types", "WORKS_AT"]
         assert call["environment"]["KAFKA_GROUP_ID"] == "loader-WORKS_AT-run-A"
@@ -199,6 +207,64 @@ class TestDockerService(unittest.TestCase):
                         rejection_dir=rejection_dir, **kwargs,
                     )
                 assert not Path(rejection_dir).exists()
+        self.mock_client.containers.run.assert_not_called()
+
+    def test_run_edge_loader_rejects_forged_slot_edge_before_directory_or_container(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            rejection_dir = str(Path(temporary) / "not-created")
+            with self.assertRaisesRegex(
+                ValueError,
+                r"stage=launch run_id=run-A edge=KNOWS.*absent from fleet_edge_types",
+            ):
+                self.service.run_edge_loader(
+                    edge_type="KNOWS", topic="knows-events", mode="bulk", config_path="config.yaml",
+                    rejection_dir=rejection_dir, slot_gating=True, coordination_topic="clock-topic",
+                    fleet_edge_types="WORKS_AT", run_id="run-A",
+                )
+            assert not Path(rejection_dir).exists()
+        self.mock_client.containers.run.assert_not_called()
+
+    def test_run_edge_loader_rejects_self_reference_contract_before_directory_or_container(self):
+        schema = SimpleNamespace(edges=(
+            SimpleNamespace(type="KNOWS", nodes=SimpleNamespace(
+                source="Person", target="Person", is_self_referencing=True,
+            )),
+            SimpleNamespace(type="WORKS_AT", nodes=SimpleNamespace(
+                source="Person", target="Company", is_self_referencing=False,
+            )),
+        ))
+        with tempfile.TemporaryDirectory() as temporary:
+            rejection_dir = str(Path(temporary) / "not-created")
+            with patch("src.orchestrator.docker_service.load_schema", return_value=schema):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    r"stage=launch run_id=run-A edge=KNOWS.*every eligible schema edge",
+                ):
+                    self.service.run_edge_loader(
+                        edge_type="KNOWS", topic="knows-events", mode="bulk", config_path="config.yaml",
+                        rejection_dir=rejection_dir, slot_gating=True, coordination_topic="clock-topic",
+                        fleet_edge_types="KNOWS,WORKS_AT", run_id="run-A",
+                    )
+            assert not Path(rejection_dir).exists()
+        self.mock_client.containers.run.assert_not_called()
+
+    def test_run_edge_loader_attributes_schema_load_failure_before_directory_or_container(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            rejection_dir = str(Path(temporary) / "not-created")
+            with patch(
+                "src.orchestrator.docker_service.load_schema",
+                side_effect=SchemaLoadError("invalid schema"),
+            ):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    r"stage=launch run_id=run-A edge=WORKS_AT.*invalid schema",
+                ):
+                    self.service.run_edge_loader(
+                        edge_type="WORKS_AT", topic="works-at-events", mode="bulk", config_path="config.yaml",
+                        rejection_dir=rejection_dir, slot_gating=True, coordination_topic="clock-topic",
+                        fleet_edge_types="WORKS_AT", run_id="run-A",
+                    )
+            assert not Path(rejection_dir).exists()
         self.mock_client.containers.run.assert_not_called()
 
     def test_build_edge_image_uses_edge_dockerfile(self):
