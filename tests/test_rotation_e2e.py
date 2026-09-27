@@ -76,6 +76,7 @@ def test_shared_person_rotation_bulk_e2e() -> None:
             "consumer_group_id": prefix,
             "flush_interval_ms": 25,
             "unwind_batch_size": 1,
+            "slot_buffer_max_records": 1,
             "coordination": {
                 "topic": topics["clock"], "bucket_count": 2,
                 "slot_duration_ms": 10_000, "lease_timeout_ms": 30_000,

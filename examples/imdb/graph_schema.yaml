@@ -1,12 +1,18 @@
-# Node schema used by publish_and_load_nodes.py. The relationship declarations
-# model all relationships emitted by build_subset.py, but are not loaded until
-# the Phase 3 edge writer exists.
+# Schema used by publish_and_load_nodes.py. Both generated node and
+# relationship TSVs are published through the production bulk loader.
 loading:
   mode: bulk
   consumer_group_id: imdb-example
   unwind_batch_size: 500
   flush_interval_ms: 1000
   rejection_log_path: var/rejections/imdb-node-loader.jsonl
+  # Streaming uses these leases; finite bulk runs schedule relationship types
+  # when their endpoint labels are free and do not wait for fixed clock slots.
+  coordination:
+    topic: graph.loader.coordination
+    bucket_count: 64
+    slot_duration_ms: 30000
+    lease_timeout_ms: 90000
 
 nodes:
   - label: Title
@@ -74,17 +80,17 @@ nodes:
       num_votes: {type: integer, required: true}
 
 edges:
-  - {type: HAS_GENRE, topic: imdb-has-genre, nodes: {source: Title, target: Genre}, properties: {title_id: {type: string, required: true}}}
-  - {type: HAS_TITLE_TYPE, topic: imdb-has-title-type, nodes: {source: Title, target: TitleType}, properties: {title_id: {type: string, required: true}}}
-  - {type: HAS_PROFESSION, topic: imdb-has-profession, nodes: {source: Person, target: Profession}, properties: {person_id: {type: string, required: true}}}
-  - {type: KNOWN_FOR, topic: imdb-known-for, nodes: {source: Person, target: Title}, properties: {person_id: {type: string, required: true}}}
-  - {type: CREDITED_ON, topic: imdb-credited-on, nodes: {source: Person, target: Title}, properties: {category: {type: string, required: true}}}
-  - {type: ACTED_IN, topic: imdb-acted-in, nodes: {source: Person, target: Title}, properties: {category: {type: string, required: true}}}
-  - {type: PLAYED, topic: imdb-played, nodes: {source: Person, target: Character}, properties: {title_id: {type: string, required: true}}}
-  - {type: DIRECTED, topic: imdb-directed, nodes: {source: Person, target: Title}, properties: {person_id: {type: string, required: true}}}
-  - {type: WROTE, topic: imdb-wrote, nodes: {source: Person, target: Title}, properties: {person_id: {type: string, required: true}}}
-  - {type: EPISODE_OF, topic: imdb-episode-of, nodes: {source: Title, target: Title}, properties: {episode_id: {type: string, required: true}}}
-  - {type: HAS_ALTERNATIVE_TITLE, topic: imdb-has-alternative-title, nodes: {source: Title, target: AlternativeTitle}, properties: {aka_id: {type: string, required: true}}}
-  - {type: AVAILABLE_IN_REGION, topic: imdb-available-in-region, nodes: {source: AlternativeTitle, target: Region}, properties: {aka_id: {type: string, required: true}}}
-  - {type: IN_LANGUAGE, topic: imdb-in-language, nodes: {source: AlternativeTitle, target: Language}, properties: {aka_id: {type: string, required: true}}}
-  - {type: HAS_RATING, topic: imdb-has-rating, nodes: {source: Title, target: Rating}, properties: {rating_id: {type: string, required: true}}}
+  - {type: HAS_GENRE, topic: imdb-has-genre, nodes: {source: Title, target: Genre}, source_key_property: tconst, target_key_property: name, properties: {title_id: {type: string, required: true}}}
+  - {type: HAS_TITLE_TYPE, topic: imdb-has-title-type, nodes: {source: Title, target: TitleType}, source_key_property: tconst, target_key_property: name, properties: {title_id: {type: string, required: true}}}
+  - {type: HAS_PROFESSION, topic: imdb-has-profession, nodes: {source: Person, target: Profession}, source_key_property: nconst, target_key_property: name, properties: {person_id: {type: string, required: true}}}
+  - {type: KNOWN_FOR, topic: imdb-known-for, nodes: {source: Person, target: Title}, source_key_property: nconst, target_key_property: tconst, properties: {person_id: {type: string, required: true}}}
+  - {type: CREDITED_ON, topic: imdb-credited-on, nodes: {source: Person, target: Title}, source_key_property: nconst, target_key_property: tconst, properties: {category: {type: string, required: true}}}
+  - {type: ACTED_IN, topic: imdb-acted-in, nodes: {source: Person, target: Title}, source_key_property: nconst, target_key_property: tconst, properties: {category: {type: string, required: true}}}
+  - {type: PLAYED, topic: imdb-played, nodes: {source: Person, target: Character}, source_key_property: nconst, target_key_property: name, properties: {title_id: {type: string, required: true}}}
+  - {type: DIRECTED, topic: imdb-directed, nodes: {source: Person, target: Title}, source_key_property: nconst, target_key_property: tconst, properties: {person_id: {type: string, required: true}}}
+  - {type: WROTE, topic: imdb-wrote, nodes: {source: Person, target: Title}, source_key_property: nconst, target_key_property: tconst, properties: {person_id: {type: string, required: true}}}
+  - {type: EPISODE_OF, topic: imdb-episode-of, nodes: {source: Title, target: Title}, source_key_property: tconst, target_key_property: tconst, properties: {episode_id: {type: string, required: true}}}
+  - {type: HAS_ALTERNATIVE_TITLE, topic: imdb-has-alternative-title, nodes: {source: Title, target: AlternativeTitle}, source_key_property: tconst, target_key_property: aka_id, properties: {aka_id: {type: string, required: true}}}
+  - {type: AVAILABLE_IN_REGION, topic: imdb-available-in-region, nodes: {source: AlternativeTitle, target: Region}, source_key_property: aka_id, target_key_property: code, properties: {aka_id: {type: string, required: true}}}
+  - {type: IN_LANGUAGE, topic: imdb-in-language, nodes: {source: AlternativeTitle, target: Language}, source_key_property: aka_id, target_key_property: code, properties: {aka_id: {type: string, required: true}}}
+  - {type: HAS_RATING, topic: imdb-has-rating, nodes: {source: Title, target: Rating}, source_key_property: tconst, target_key_property: rating_id, properties: {rating_id: {type: string, required: true}}}

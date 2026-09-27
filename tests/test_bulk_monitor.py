@@ -129,6 +129,43 @@ def _cover_all_partitions(monitor: BulkMonitor) -> None:
     monitor._decode_control(_control(_assignment("Company", "0", 1, [{"topic": "company-events", "partition": 0}])))
 
 
+def test_completed_node_label_can_drain_before_other_labels(schema):
+    offsets = {
+        "graph-loader-Person": {("person-events", 0): 3, ("person-events", 1): 2},
+        "graph-loader-Company": {("company-events", 0): 0},
+    }
+    monitor, _, _, _, _, containers = _monitor(schema, offsets=offsets)
+    _cover_all_partitions(monitor)
+    monitor.capture_boundary()
+
+    assert monitor.wait_for_next_label_completion({"Person", "Company"}, 1) == "Person"
+    for replica, container in containers.items():
+        if replica[0] == "Person":
+            container.attrs["State"]["Status"] = "exited"
+            monitor._decode_control(_control({
+                "run_id": "run-1", "node_label": "Person", "replica_id": replica[1],
+                "type": "DRAIN_COMPLETE", "assignment_epoch": 1,
+            }))
+    monitor.wait_for_label_drain_complete("Person", 1)
+    monitor.verify_label_zero_lag("Person")
+
+    # Stopping one replica can rebalance its finished consumer group. Its
+    # retained assignment no longer forms a global exact cover, but Company
+    # still has a valid live cover and must be allowed to finish.
+    monitor._decode_control(_control(_assignment("Person", "1", 2, [
+        {"topic": "person-events", "partition": 0},
+        {"topic": "person-events", "partition": 1},
+    ])))
+    monitor._decode_control(_control({
+        "run_id": "run-1", "node_label": "Person", "replica_id": "1",
+        "type": "DRAIN_COMPLETE", "assignment_epoch": 2,
+    }))
+    assert not monitor._has_assignment_coverage()
+
+    offsets["graph-loader-Company"][("company-events", 0)] = 4
+    assert monitor.wait_for_next_label_completion({"Company"}, 1) == "Company"
+
+
 def test_assignment_coverage_is_run_and_epoch_scoped(schema):
     monitor, *_ = _monitor(schema)
     monitor._decode_control(_control({**_assignment("Person", "0", 5, [{"topic": "person-events", "partition": 0}]), "run_id": "old"}))
@@ -139,6 +176,35 @@ def test_assignment_coverage_is_run_and_epoch_scoped(schema):
 
     assert monitor._has_assignment_coverage() is True
     assert monitor._acks[("Person", "0")].epoch == 2
+
+
+def test_assignment_coverage_drains_foreign_control_backlog_in_one_iteration(schema):
+    monitor, _, _, control, _, _ = _monitor(schema)
+    foreign = _control({**_assignment("Person", "0", 1, [{"topic": "person-events", "partition": 0}]), "run_id": "prior-run"})
+    control.poll.side_effect = [
+        *([foreign] * 50),
+        _control(_assignment("Person", "0", 1, [{"topic": "person-events", "partition": 0}])),
+        _control(_assignment("Person", "1", 1, [{"topic": "person-events", "partition": 1}])),
+        _control(_assignment("Company", "0", 1, [{"topic": "company-events", "partition": 0}])),
+    ]
+
+    monitor._poll_control()
+
+    assert monitor._has_assignment_coverage()
+    assert control.poll.call_count == 53
+    assert all(call.args[0] in {0.01, 0.1} for call in control.poll.call_args_list)
+
+
+def test_control_backlog_drain_is_bounded_before_the_next_health_check(schema):
+    monitor, _, _, control, _, containers = _monitor(schema)
+    foreign = _control({**_assignment("Person", "0", 1, [{"topic": "person-events", "partition": 0}]), "run_id": "prior-run"})
+    control.poll.side_effect = [foreign] * 1_002
+
+    monitor._poll_control()
+
+    assert control.poll.call_count == 1_001
+    monitor._check_container_health()
+    next(iter(containers.values())).reload.assert_called_once_with()
 
 
 @pytest.mark.parametrize("bad_label,bad_replica", [([], "0"), ("Person", {}), ("", "0"), ("Person", "")])
@@ -242,6 +308,23 @@ def test_completion_rejects_late_arrival_and_missing_offsets(schema):
     assert unresolved._at_boundary() is False
 
 
+def test_empty_partition_needs_no_offset_but_nonempty_partition_still_does(schema):
+    monitor, _, _, _, _, _ = _monitor(schema, offsets={
+        "graph-loader-Person": {("person-events", 0): 3, ("person-events", 1): 2},
+        "graph-loader-Company": {},
+    })
+    _cover_all_partitions(monitor)
+    monitor._boundary = {
+        ("person-events", 0): 3,
+        ("person-events", 1): 2,
+        ("company-events", 0): 0,
+    }
+    monitor._watermarks = lambda: dict(monitor._boundary)
+
+    assert monitor._at_boundary() is True
+    monitor.verify_zero_lag()
+
+
 def test_completion_clips_stalled_admin_future_to_stage_deadline(schema):
     monitor, admin, _, _, _, _ = _monitor(schema)
     _cover_all_partitions(monitor)
@@ -286,7 +369,8 @@ def test_drain_polls_ack_before_accepting_auto_removed_container(schema):
             "type": "DRAIN_COMPLETE", "assignment_epoch": 1,
         }))
     # Control records arrive after one exact container has already vanished.
-    control.poll.side_effect = acknowledgements
+    pending_acknowledgements = iter(acknowledgements)
+    control.poll.side_effect = lambda *_args: next(pending_acknowledgements, None)
     containers[("Person", "0")].reload.side_effect = NotFound("gone")
     # An exited object has the same delayed-control race as an auto-removed one.
     containers[("Company", "0")].attrs = {"State": {"Status": "exited", "ExitCode": 0}}

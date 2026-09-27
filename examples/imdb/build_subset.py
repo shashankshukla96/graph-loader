@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Build a bounded, breadth-first IMDb graph subset from unmodified TSV input.
 
-``--titles N`` selects the first N eligible titles in ``title.basics.tsv``.
+``--titles N`` selects N eligible titles in ``title.basics.tsv`` after
+``--offset`` eligible titles have been skipped.
 ``--depth`` is the number of Title↔Person credit hops to traverse from those
 seeds.  Title and person budgets keep a small seed from expanding into the
 entire IMDb catalogue; pass explicit budgets for larger demonstrations.
@@ -200,6 +201,10 @@ def source_subset(input_dir: Path, destination: Path, titles: set[str], people: 
 
 def graph_subset(input_dir: Path, destination: Path, titles: set[str], people: set[str]) -> dict[str, int]:
     """Create graph-oriented node and relationship TSVs for the selected IDs."""
+    # Credits can refer to IDs absent from the corresponding IMDb basics file.
+    # Only IDs that will actually become nodes may be used as edge endpoints.
+    titles = {row["tconst"] for row in rows(input_dir / "title.basics.tsv") if row["tconst"] in titles}
+    people = {row["nconst"] for row in rows(input_dir / "name.basics.tsv") if row["nconst"] in people}
     node_dir, relationship_dir = destination / "nodes", destination / "relationships"
     sinks = {
         "title": TsvSink(node_dir / "title.tsv", ["tconst", "title_type", "primary_title", "original_title", "is_adult", "start_year", "end_year", "runtime_minutes"]),
@@ -321,17 +326,23 @@ def graph_subset(input_dir: Path, destination: Path, titles: set[str], people: s
     return {"titles": len(titles), "people": len(people), **{kind: len(values) for kind, values in seen.items()}}
 
 
-def select_seed_titles(path: Path, count: int, include_adult: bool, *, verbose: bool) -> set[str]:
+def select_seed_titles(path: Path, count: int, include_adult: bool, *, offset: int = 0, verbose: bool) -> set[str]:
     selected: set[str] = set()
+    skip_remaining = offset
     for frame in tsv_chunks(path, ["tconst", "titleType", "primaryTitle", "isAdult"], "seed-title selection", verbose=verbose):
         eligible = frame["titleType"].ne(MISSING) & frame["titleType"].ne("") & frame["primaryTitle"].ne(MISSING) & frame["primaryTitle"].ne("")
         if not include_adult:
             eligible &= frame["isAdult"].eq("0")
-        for title_id in frame.loc[eligible, "tconst"]:
+        eligible_ids = frame.loc[eligible, "tconst"]
+        if skip_remaining:
+            skipped = min(skip_remaining, len(eligible_ids))
+            eligible_ids = eligible_ids.iloc[skipped:]
+            skip_remaining -= skipped
+        for title_id in eligible_ids:
             selected.add(title_id)
             if len(selected) == count:
                 return selected
-    raise ValueError(f"only found {len(selected)} eligible titles; requested {count}")
+    raise ValueError(f"only found {len(selected)} eligible titles after offset {offset}; requested {count}")
 
 
 def main() -> int:
@@ -340,6 +351,7 @@ def main() -> int:
     parser.add_argument("--input-dir", type=Path, default=Path("examples/imdb/data/extracted"))
     parser.add_argument("--output-dir", type=Path, default=Path("examples/imdb/data/subsets"))
     parser.add_argument("--titles", type=int, required=True, help="number of seed titles")
+    parser.add_argument("--offset", type=int, default=0, help="eligible seed titles to skip before selecting --titles (default: 0)")
     parser.add_argument("--depth", type=int, default=2, help="Title↔Person credit hops from the seed titles")
     parser.add_argument("--max-titles", type=int, help="final title budget (default: ten times --titles)")
     parser.add_argument("--max-people", type=int, help="final person budget (default: fifty times --titles)")
@@ -347,9 +359,9 @@ def main() -> int:
     parser.add_argument("--verbose", action="store_true", help="log million-row progress and phase durations")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    logger.info("Building IMDb subset from %s to %s with %s seed titles and depth %s", args.input_dir, args.output_dir, args.titles, args.depth)
-    if args.titles < 1 or args.depth < 0:
-        parser.error("--titles must be positive and --depth cannot be negative")
+    logger.info("Building IMDb subset from %s to %s with %s seed titles, offset %s, and depth %s", args.input_dir, args.output_dir, args.titles, args.offset, args.depth)
+    if args.titles < 1 or args.offset < 0 or args.depth < 0:
+        parser.error("--titles must be positive; --offset and --depth cannot be negative")
     missing = [name for name in REQUIRED_FILES if not (args.input_dir / name).is_file()]
     if missing:
         parser.error(f"missing extracted IMDb files: {', '.join(missing)}")
@@ -360,7 +372,7 @@ def main() -> int:
         parser.error("budgets must be positive and --max-titles cannot be below --titles")
 
     logger.info("Using title budget %s and person budget %s", title_limit, person_limit)
-    titles = select_seed_titles(args.input_dir / "title.basics.tsv", args.titles, args.include_adult, verbose=args.verbose)
+    titles = select_seed_titles(args.input_dir / "title.basics.tsv", args.titles, args.include_adult, offset=args.offset, verbose=args.verbose)
     logger.info("Selected %s seed title(s): %s", len(titles), ", ".join(sorted(titles)))
     people: set[str] = set()
     title_frontier, person_frontier = set(titles), set()
@@ -377,7 +389,8 @@ def main() -> int:
         if not title_frontier and not person_frontier:
             break
 
-    output = args.output_dir / f"titles-{args.titles}-depth-{args.depth}"
+    subset_name = f"titles-{args.titles}-depth-{args.depth}" if args.offset == 0 else f"titles-{args.titles}-offset-{args.offset}-depth-{args.depth}"
+    output = args.output_dir / subset_name
     logger.info("Writing source subset with %s title(s) and %s person(s) to %s", len(titles), len(people), output)
     source_subset(args.input_dir, output / "source", titles, people, verbose=args.verbose)
     # Graph derivation now scans only the tiny filtered source copies, rather
@@ -386,6 +399,7 @@ def main() -> int:
     counts = graph_subset(output / "source", output / "graph", titles, people)
     manifest = {
         "seed_titles": args.titles,
+        "seed_offset": args.offset,
         "depth": args.depth,
         "title_budget": title_limit,
         "person_budget": person_limit,

@@ -21,6 +21,7 @@ from src.cli import get_neo4j_credentials
 from src.loader.control import CONTROL_TOPIC
 from src.models.schema import LoadingConfig, NodeConfig, PropertyConfig
 from src.loader.record_validation import normalize_property_value
+from src.loader.write_timing_capture import configure_write_timing_capture
 from src.orchestrator.schema_initializer import get_neo4j_driver
 from src.utils.schema_loader import load_schema
 
@@ -490,9 +491,17 @@ class NodeLoader:
         """Write the current atomic batch with bounded retryable-only backoff."""
         records = [pending.record for pending in self._batch]
         attempts = self._loading_config.retry_max_attempts
+        started_at = time.perf_counter()
         for attempt in range(attempts):
             try:
                 self._writer.write_batch(records)
+                self._logger.info(
+                    "stage=node-write label=%s topic=%s replica=%s run_id=%s "
+                    "records=%s attempts=%s write_ms=%.3f",
+                    self._node_config.label, self._topic, self._replica_id,
+                    self._run_id, len(records), attempt + 1,
+                    (time.perf_counter() - started_at) * 1000,
+                )
                 return True
             except Exception as exc:
                 retryable = self._is_retryable_neo4j_error(exc)
@@ -500,13 +509,14 @@ class NodeLoader:
                     first = self._batch[0]
                     self._logger.error(
                         "Node batch write failed label=%s topic=%s partition=%s offset=%s "
-                        "attempt=%s retryable=%s reason=%s",
+                        "attempt=%s retryable=%s write_ms=%.3f reason=%s",
                         self._node_config.label,
                         first.topic,
                         first.partition,
                         first.offset,
                         attempt + 1,
                         retryable,
+                        (time.perf_counter() - started_at) * 1000,
                         exc,
                     )
                     return False
@@ -683,6 +693,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Run one selected node loader and close all resources on every path."""
     args = build_parser().parse_args(argv)
+    configure_write_timing_capture(logger, "node-write")
     if args.max_messages is not None and args.max_messages <= 0:
         raise SystemExit("--max-messages must be positive")
     shutdown_requested = Event()
@@ -751,4 +762,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     raise SystemExit(main())

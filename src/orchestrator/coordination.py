@@ -126,7 +126,7 @@ def encode_clock_lease(lease: ClockLease, *, rotation_plan: RotationPlan | None 
 
 
 def decode_clock_lease(payload: bytes, *, expected_run_id: str, now_ms: int, rotation_plan: RotationPlan | None = None) -> ClockLease | None:
-    """Validate a lease, returning None only for a fully valid foreign run."""
+    """Validate structure, then ignore foreign runs even after their expiry."""
     if not isinstance(expected_run_id, str) or not expected_run_id.strip():
         raise ClockProtocolError("expected_run_id must be nonblank")
     _integer(now_ms, "now_ms")
@@ -153,10 +153,10 @@ def decode_clock_lease(payload: bytes, *, expected_run_id: str, now_ms: int, rot
         lease = _validated(**{key: data[key] for key in required_fields})
     except KeyError as exc:
         raise ClockProtocolError("clock payload has missing field") from exc
-    if lease.expires_at_ms <= now_ms:
-        raise ClockProtocolError("clock lease has expired")
     if lease.run_id != expected_run_id:
         return None
+    if lease.expires_at_ms <= now_ms:
+        raise ClockProtocolError("clock lease has expired")
     _validate_rotation_plan(lease, rotation_plan)
     return lease
 

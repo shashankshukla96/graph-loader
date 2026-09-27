@@ -12,7 +12,7 @@
 - **Neo4j 5.x Enterprise** — graph database (`neo4j:5-enterprise` Docker image)
 - **Confluent Community Kafka** (`confluentinc/cp-kafka:7.7.0`) — Kafka broker in KRaft mode (no Zookeeper)
 - **Shell / Makefile** — developer convenience wrapper
-- **pytest + testcontainers-python** — for the smoke-test story
+- **pytest + testcontainers-python** — for the smoke-test storydo
 
 **Existing source files relevant to this slice:** None — clean repository.
 

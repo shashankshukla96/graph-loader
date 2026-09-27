@@ -145,6 +145,15 @@ def test_exited_and_removed_edge_container_require_current_drain_ack():
     monitor._check_health(True)
 
 
+def test_crashed_edge_reports_exit_code_and_log_tail():
+    monitor, _, _, _, container = _monitor()
+    container.attrs = {"State": {"Status": "exited", "ExitCode": 1}}
+    container.logs.return_value = b"Relationship slot lease failure: slot buffer add failed"
+    with pytest.raises(Exception, match="exit_code=1.*slot buffer add failed"):
+        monitor._check_health()
+    container.logs.assert_called_once_with(tail=30, stdout=True, stderr=True)
+
+
 def test_missing_committed_offset_fails_zero_lag():
     monitor, admin, _, _, _ = _monitor()
     monitor._decode_control(_message(_assignment()))
@@ -153,6 +162,19 @@ def test_missing_committed_offset_fails_zero_lag():
     admin.list_consumer_group_offsets.return_value = {"graph-loader-WORKS_AT-run-1": future}
     with pytest.raises(Exception, match="nonzero lag"):
         monitor.verify_zero_lag()
+
+
+def test_empty_partition_without_a_kafka_commit_reaches_and_verifies_zero_boundary():
+    """Kafka creates no group offset when an assigned bulk topic has no data."""
+    monitor, admin, watermark, _, _ = _monitor()
+    monitor._decode_control(_message(_assignment()))
+    watermark.get_watermark_offsets.return_value = (0, 0)
+    monitor.capture_boundary()
+    future = MagicMock(); future.result.return_value = SimpleNamespace(topic_partitions=[])
+    admin.list_consumer_group_offsets.return_value = {"graph-loader-WORKS_AT-run-1": future}
+
+    assert monitor._at_boundary()
+    monitor.verify_zero_lag()
 
 
 def _rotation_monitor():
@@ -238,19 +260,19 @@ def test_rotation_monitor_rejects_duplicate_and_stale_lease_without_replacing_cu
     assert monitor.clock_lease.epoch == 1
 
 
-def test_rotation_monitor_rejects_malformed_foreign_run_lease_before_filtering():
+def test_rotation_monitor_ignores_expired_foreign_run_lease():
     monitor, plan, _, _, now = _rotation_monitor()
     now[0] = 1_000
     foreign = json.loads(_rotation_lease(plan, run_id="finished-run", expires=20).decode())
-    with pytest.raises(Exception, match="invalid clock lease.*expired"):
-        monitor._decode_clock(_message(foreign))
+    monitor._decode_clock(_message(foreign))
     assert monitor.clock_lease is None
 
 
 def test_rotation_monitor_clock_health_is_exact_and_attributed():
     monitor, _, _, clock, _ = _rotation_monitor()
-    clock.attrs = {"State": {"Status": "exited"}}
-    with pytest.raises(Exception, match="stage=monitor run_id=run-rotation clock exited.*epoch=unknown"):
+    clock.attrs = {"State": {"Status": "exited", "ExitCode": 2}}
+    clock.logs.return_value = b"clock publish failed"
+    with pytest.raises(Exception, match="clock exited status=exited exit_code=2.*clock publish failed.*epoch=unknown"):
         monitor._check_clock_health()
 
 

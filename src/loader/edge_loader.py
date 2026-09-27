@@ -32,6 +32,7 @@ from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_share
 from src.orchestrator.rotation import build_rotation_plan
 from src.loader.edge_execution import build_edge_execution
 from src.loader.mix_and_batch import endpoint_buckets
+from src.loader.write_timing_capture import configure_write_timing_capture
 from src.loader.slot_admission import (
     GatedPendingRecord,
     LeaseStateError,
@@ -381,6 +382,8 @@ class EdgeLoader:
         self._rebalance_failure = False
         self._deferred_messages: Deque[Message] = deque()
         self._paused = False
+        self._write_paused = False
+        self._buffer_paused = False
         if (
             isinstance(worker_join_timeout_seconds, bool) or not isinstance(worker_join_timeout_seconds, (int, float))
             or isinstance(worker_wait_seconds, bool) or not isinstance(worker_wait_seconds, (int, float))
@@ -450,6 +453,7 @@ class EdgeLoader:
                     self._worker_results.put(WorkerResult(batch, "CANCELLED_PRESTART"))
                     continue
                 self._permit_states[batch.batch_id] = "STARTED"
+            started_at = time.perf_counter()
             try:
                 if self._coordinator is not None:
                     for pending in batch.records:
@@ -462,8 +466,22 @@ class EdgeLoader:
                         raise RuntimeError("lane execution failed") from failed.exception
                 else:
                     self._writer.write_batch([pending.record for pending in batch.records])
+                self._logger.info(
+                    "stage=edge-write edge=%s topic=%s replica=%s run_id=%s "
+                    "records=%s write_ms=%.3f",
+                    self._edge_config.type, self._topic, self._replica_id,
+                    self._run_id, len(batch.records),
+                    (time.perf_counter() - started_at) * 1000,
+                )
                 self._worker_results.put(WorkerResult(batch, "SUCCESS"))
             except Exception as exc:
+                self._logger.error(
+                    "Relationship worker write failed edge=%s topic=%s replica=%s "
+                    "run_id=%s records=%s write_ms=%.3f reason=%s",
+                    self._edge_config.type, self._topic, self._replica_id,
+                    self._run_id, len(batch.records),
+                    (time.perf_counter() - started_at) * 1000, exc,
+                )
                 self._worker_results.put(WorkerResult(batch, "WRITE_FAILURE", exc))
                 # A later batch cannot be written until the poll owner has
                 # observed and failed this run.  Leave it replayable instead.
@@ -498,6 +516,7 @@ class EdgeLoader:
         self._batch.clear()
         self._gated_batch.clear()
         self._batch_started_at = None
+        self._refresh_slot_backpressure()
         return True
 
     def _resolve_worker_result(self, result: WorkerResult) -> bool:
@@ -661,6 +680,25 @@ class EdgeLoader:
         except LeaseStateError as exc:
             raise self._slot_failure("slot buffer release failed", exc) from exc
         self._append_gated_batch(released)
+        self._refresh_slot_backpressure()
+
+    def _slot_capacity_used(self) -> int:
+        """Reserve room for records that may return from an unstarted write."""
+        if self._slot_buffer is None:
+            return 0
+        with self._worker_lock:
+            queued = sum(
+                len(batch.gated_records)
+                for batch_id, batch in self._outstanding_batches.items()
+                if self._permit_states.get(batch_id) == "QUEUED"
+            )
+        return len(self._slot_buffer) + len(self._gated_batch) + queued
+
+    def _refresh_slot_backpressure(self) -> None:
+        if self._slot_buffer is None:
+            return
+        self._buffer_paused = self._slot_capacity_used() >= self._slot_buffer.max_records
+        self._sync_assignment_pause()
 
     def _poll_coordination(self, *, release_owned: bool = True) -> None:
         """Drain coordination values before any admission or write boundary."""
@@ -705,6 +743,7 @@ class EdgeLoader:
                 self._slot_buffer.requeue(returning)
             except LeaseStateError as exc:
                 raise self._slot_failure("queued worker batch requeue failed", exc) from exc
+            self._refresh_slot_backpressure()
 
     def _revalidate_gated_batch(self) -> None:
         """Requeue work that lost lease ownership before a durable write starts."""
@@ -731,6 +770,7 @@ class EdgeLoader:
         self._batch = [item.pending for item in owned]
         if not self._batch:
             self._batch_started_at = None
+        self._refresh_slot_backpressure()
 
     def _verify_written_gated_batch(self, written: Sequence[GatedPendingRecord]) -> None:
         """Fail closed when a lease changed while a synchronous write blocked."""
@@ -753,6 +793,8 @@ class EdgeLoader:
             (partition.topic or self._topic, partition.partition) for partition in partitions
         }
         self._paused = False
+        self._write_paused = False
+        self._refresh_slot_backpressure()
         self._assignment_epoch += 1
         if self._producer is not None:
             self._pending_assignment_events.append((
@@ -796,6 +838,7 @@ class EdgeLoader:
         # remaining partition as owned after that call.
         self._assigned_partitions.clear()
         self._paused = False
+        self._write_paused = False
         consumer.unassign()
         self._assignment_epoch += 1
         if self._producer is not None:
@@ -893,48 +936,87 @@ class EdgeLoader:
         message = self._consumer.poll(0)
         if message is not None:
             self._deferred_messages.append(message)
+            self._refresh_slot_backpressure()
         return not self._rebalance_failure
 
     def _owns(self, key: tuple[str, int]) -> bool:
         return not self._assignment_observed or key in self._assigned_partitions
 
     def _pause_assignments(self) -> None:
-        if not self._assignment_observed or self._paused or not self._assigned_partitions:
-            return
-        self._consumer.pause(
-            [TopicPartition(topic, partition) for topic, partition in sorted(self._assigned_partitions)]
-        )
-        self._paused = True
+        self._write_paused = True
+        self._sync_assignment_pause()
 
     def _resume_assignments(self) -> None:
-        if not self._assignment_observed or not self._paused or not self._assigned_partitions:
+        self._write_paused = False
+        self._sync_assignment_pause()
+
+    def _sync_assignment_pause(self) -> None:
+        if not self._assignment_observed or not self._assigned_partitions:
             return
-        self._consumer.resume(
-            [TopicPartition(topic, partition) for topic, partition in sorted(self._assigned_partitions)]
-        )
-        self._paused = False
+        should_pause = self._write_paused or self._buffer_paused
+        if should_pause == self._paused:
+            return
+        partitions = [TopicPartition(topic, partition) for topic, partition in sorted(self._assigned_partitions)]
+        if should_pause:
+            self._consumer.pause(partitions)
+        else:
+            self._consumer.resume(partitions)
+        self._paused = should_pause
 
     def _commit_contiguous_resolutions(self) -> bool:
-        """Synchronously commit only each owned partition's durable prefix."""
+        """Synchronously commit all owned durable prefixes in one request."""
+        offsets: list[TopicPartition] = []
+        advances: list[tuple[PartitionLedger, int]] = []
+        if not self._poll_for_callbacks():
+            self._rebalance_failure = True
+            return False
         for (topic, partition), ledger in sorted(self._partition_ledgers.items()):
             next_offset = ledger.next_offset
             while next_offset in ledger.resolved_offsets:
                 next_offset += 1
             if next_offset == ledger.next_offset:
                 continue
-            if not self._poll_for_callbacks() or not self._owns((topic, partition)):
+            if not self._owns((topic, partition)):
                 self._rebalance_failure = True
                 return False
-            try:
-                self._consumer.commit(
-                    offsets=[TopicPartition(topic, partition, next_offset)], asynchronous=False
-                )
-            except Exception as exc:
+            offsets.append(TopicPartition(topic, partition, next_offset))
+            advances.append((ledger, next_offset))
+        if not offsets:
+            return True
+        try:
+            committed = self._consumer.commit(offsets=offsets, asynchronous=False)
+        except Exception as exc:
+            self._logger.error(
+                "Relationship offset commit failed edge=%s offsets=%s reason=%s",
+                self._edge_config.type,
+                [(item.topic, item.partition, item.offset) for item in offsets], exc,
+            )
+            return False
+        # The real synchronous Consumer API returns one TopicPartition per
+        # requested offset.  Mocks used by older unit tests return an opaque
+        # sentinel, so only inspect per-partition results when a list is given.
+        if committed is None:
+            self._logger.error(
+                "Relationship offset commit returned no result edge=%s",
+                self._edge_config.type,
+            )
+            return False
+        if isinstance(committed, list):
+            expected = {(item.topic, item.partition): item.offset for item in offsets}
+            returned = {(item.topic, item.partition): item for item in committed}
+            if (
+                len(committed) != len(offsets)
+                or set(returned) != set(expected)
+                or any(item.error is not None or item.offset != expected[key]
+                       for key, item in returned.items())
+            ):
                 self._logger.error(
-                    "Relationship offset commit failed edge=%s topic=%s partition=%s offset=%s reason=%s",
-                    self._edge_config.type, topic, partition, next_offset, exc,
+                    "Relationship offset commit returned incomplete results edge=%s offsets=%s",
+                    self._edge_config.type,
+                    [(item.topic, item.partition, item.offset) for item in offsets],
                 )
                 return False
+        for ledger, next_offset in advances:
             ledger.resolved_offsets.difference_update(range(ledger.next_offset, next_offset))
             ledger.next_offset = next_offset
         return True
@@ -963,6 +1045,7 @@ class EdgeLoader:
                 except LeaseStateError as exc:
                     raise self._slot_failure("slot buffer add failed", exc) from exc
                 self._release_slot_buffer()
+                self._refresh_slot_backpressure()
                 return True
             if not self._batch:
                 self._batch_started_at = self._clock()
@@ -1000,7 +1083,13 @@ class EdgeLoader:
             return True
         written_batch = tuple(self._batch)
         written_gated_batch = tuple(self._gated_batch)
-        self._pause_assignments()
+        # Bulk writes are synchronous and the poll owner cannot take another
+        # work message until this batch is durable.  Keep broker prefetching
+        # active; pausing every flush adds nearly a second before the next
+        # batch in this workload.  Lease-gated writes retain their pause.
+        if self._slot_gating:
+            self._pause_assignments()
+        started_at = time.perf_counter()
         try:
             if self._coordinator is not None:
                 for pending in self._batch:
@@ -1008,17 +1097,35 @@ class EdgeLoader:
                         pending.record, topic=pending.topic, partition=pending.partition, offset=pending.offset
                     ))
                 results = self._coordinator.execute(self._lane_batcher.drain_all())
-                if not all(result.success for result in results):
+                failed = next((result for result in results if not result.success), None)
+                if failed is not None:
+                    self._logger.error(
+                        "Relationship write failed edge=%s topic=%s replica=%s "
+                        "run_id=%s records=%s write_ms=%.3f reason=%s",
+                        self._edge_config.type, self._topic, self._replica_id,
+                        self._run_id, len(written_batch),
+                        (time.perf_counter() - started_at) * 1000,
+                        failed.exception or "lane execution failed",
+                    )
                     return False
             else:
                 self._writer.write_batch([pending.record for pending in self._batch])
         except Exception as exc:
             first = self._batch[0]
             self._logger.error(
-                "Relationship write failed edge=%s topic=%s partition=%s offset=%s reason=%s",
-                self._edge_config.type, first.topic, first.partition, first.offset, exc,
+                "Relationship write failed edge=%s topic=%s partition=%s offset=%s "
+                "records=%s write_ms=%.3f reason=%s",
+                self._edge_config.type, first.topic, first.partition, first.offset,
+                len(written_batch), (time.perf_counter() - started_at) * 1000, exc,
             )
             return False
+        self._logger.info(
+            "stage=edge-write edge=%s topic=%s replica=%s run_id=%s "
+            "records=%s write_ms=%.3f",
+            self._edge_config.type, self._topic, self._replica_id,
+            self._run_id, len(written_batch),
+            (time.perf_counter() - started_at) * 1000,
+        )
         if self._slot_gating:
             self._poll_coordination(release_owned=False)
             self._verify_written_gated_batch(written_gated_batch)
@@ -1037,7 +1144,8 @@ class EdgeLoader:
         self._batch_started_at = None
         if self._slot_gating:
             self._release_slot_buffer()
-        self._resume_assignments()
+        if self._slot_gating:
+            self._resume_assignments()
         return True
 
     def _idle_flush_due(self) -> bool:
@@ -1053,12 +1161,15 @@ class EdgeLoader:
         if self._slot_gating:
             self._poll_coordination()
             self._release_slot_buffer()
-        if not self._flush_batch():
-            return False
-        while self._deferred_messages:
-            if not self._buffer_message(self._deferred_messages.popleft()):
-                return False
-            if not self._flush_batch():
+        else:
+            # Stop fetching new work once the caller requests a finite drain.
+            # One final pause is cheap; pausing every write batch is not.
+            self._pause_assignments()
+        while self._deferred_messages or self._batch:
+            while self._deferred_messages and len(self._batch) < self._loading_config.unwind_batch_size:
+                if not self._buffer_message(self._deferred_messages.popleft()):
+                    return False
+            if self._batch and not self._flush_batch():
                 return False
         while self._outstanding_batches or self._batch:
             if self._batch and not self._flush_batch():
@@ -1120,11 +1231,20 @@ class EdgeLoader:
                     return 0 if self._finish_run() else 1
                 if self._idle_flush_due() and not self._flush_batch():
                     return 1
+                if self._slot_gating and self._buffer_paused:
+                    # Continue polling for rebalances while Kafka work fetches
+                    # are paused. A prefetched work message stays unresolved.
+                    message = self._consumer.poll(min(1.0, self._loading_config.flush_interval_ms / 1000))
+                    if message is not None:
+                        self._deferred_messages.append(message)
+                        self._refresh_slot_backpressure()
+                    continue
                 message = (
                     self._deferred_messages.popleft()
                     if self._deferred_messages
                     else self._consumer.poll(min(1.0, self._loading_config.flush_interval_ms / 1000))
                 )
+                self._refresh_slot_backpressure()
                 self._poll_coordination()
                 if not self._drain_worker_results():
                     return 1
@@ -1196,6 +1316,7 @@ def main(argv: list[str] | None = None) -> int:
     """Run a selected edge loader and close Kafka/Neo4j resources on all paths."""
     parser = build_parser()
     args = parser.parse_args(argv)
+    configure_write_timing_capture(logger, "edge-write")
     if args.max_messages is not None and args.max_messages <= 0:
         raise SystemExit("--max-messages must be positive")
     if args.coordination_topic is not None and not args.slot_gating:
@@ -1355,4 +1476,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     raise SystemExit(main())

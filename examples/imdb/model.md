@@ -12,8 +12,9 @@ example:
 | AlternativeTitle, Region, Language | `title.akas.tsv` |
 | Rating | `title.ratings.tsv` |
 
-The subset also generates the relationship model below.  These files remain
-local until the loader supports relationship events:
+The subset generates and publishes the relationship model below. Each TSV row
+is converted to the production edge-event envelope using the endpoint key
+properties declared in `graph_schema.yaml`:
 
 - `HAS_GENRE`, `HAS_TITLE_TYPE`
 - `HAS_PROFESSION`, `KNOWN_FOR`

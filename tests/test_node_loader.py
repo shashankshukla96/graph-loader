@@ -903,6 +903,20 @@ def test_retryable_write_uses_bounded_capped_backoff_and_pauses(person_config) -
     assert consumer.poll.call_count >= 3
 
 
+def test_node_batch_log_reports_write_duration(person_config) -> None:
+    consumer, writer, event_logger = MagicMock(), MagicMock(), MagicMock()
+    loader = NodeLoader(consumer, writer, person_config, event_logger=event_logger)
+    assert loader._buffer_message(_message(b'{"personId":"p-1","name":"Ada"}'))
+
+    with patch("src.loader.node_loader.time.perf_counter", side_effect=[1.0, 1.0125]):
+        assert loader._write_batch_with_retry()
+
+    message, *values = event_logger.info.call_args.args
+    rendered = message % tuple(values)
+    assert "stage=node-write label=Person" in rendered
+    assert "records=1 attempts=1 write_ms=12.500" in rendered
+
+
 def test_retry_exhaustion_and_nonretryable_errors_fail_closed(person_config) -> None:
     for errors, expected_calls in [
         ([TransientError("one"), TransientError("two")], 2),

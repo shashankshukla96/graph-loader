@@ -4,6 +4,7 @@ tests/test_cli.py
 Unit tests for the CLI parser and routing.
 """
 import argparse
+from threading import Condition, Event, Thread
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
@@ -14,6 +15,7 @@ from src.cli import (
     _run_isolated_relationship_bulk_phase,
     _run_isolated_relationship_stream_phase,
     _run_relationship_orchestration,
+    _run_completion_driven_bulk_edges,
     _run_relationship_bulk_stages,
     _run_rotating_relationship_fleet,
     build_parser,
@@ -352,7 +354,7 @@ def test_relationship_phase_run_ids_are_deterministic_bounded_and_distinct():
 
 
 @patch("src.cli._run_isolated_relationship_bulk_phase")
-@patch("src.cli._run_rotating_relationship_fleet")
+@patch("src.cli._run_completion_driven_bulk_edges")
 def test_bulk_orchestration_runs_shared_before_each_isolated_phase(shared_fleet, isolated_phase):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
@@ -364,14 +366,15 @@ def test_bulk_orchestration_runs_shared_before_each_isolated_phase(shared_fleet,
 
     assert _run_relationship_orchestration(schema, docker, args, parent_run_id="parent-run") == 0
 
-    assert shared_fleet.call_args.kwargs["selected_edges"] == (works,)
+    assert shared_fleet.call_args.args[0] == (works,)
+    assert shared_fleet.call_args.kwargs["consumer_group_prefix"] == "loader"
     assert isolated_phase.call_args.args[0] is knows
     assert isolated_phase.call_args.kwargs["phase_index"] == 0
-    assert isolated_phase.call_args.kwargs["run_id"] != shared_fleet.call_args.kwargs["phase_run_id"]
+    assert isolated_phase.call_args.kwargs["run_id"] != shared_fleet.call_args.kwargs["parent_run_id"]
 
 
 @patch("src.cli._run_isolated_relationship_bulk_phase")
-@patch("src.cli._run_rotating_relationship_fleet")
+@patch("src.cli._run_completion_driven_bulk_edges")
 def test_bulk_orchestration_shared_failure_blocks_isolated_with_full_phase_attribution(shared_fleet, isolated_phase, caplog):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
@@ -382,8 +385,89 @@ def test_bulk_orchestration_shared_failure_blocks_isolated_with_full_phase_attri
     assert _run_relationship_orchestration(schema, MagicMock(), args, parent_run_id="parent-run") == 1
 
     isolated_phase.assert_not_called()
-    assert "parent_run_id=parent-run phase_run_id=" in caplog.text
-    assert "phase=0 edge=shared failed" in caplog.text
+    assert "parent_run_id=parent-run shared relationship phase failed" in caplog.text
+
+
+@patch("src.cli._run_bulk_relationship_edge")
+def test_bulk_scheduler_starts_next_conflict_as_soon_as_labels_are_released(run_edge):
+    first = _rotating_edge("A", "a", "Person", "Title")
+    blocked = _rotating_edge("B", "b", "Person", "Genre")
+    independent = _rotating_edge("C", "c", "Region", "Language")
+    started = {edge.type: Event() for edge in (first, blocked, independent)}
+    release = {edge.type: Event() for edge in (first, blocked, independent)}
+
+    def run(edge, *_args, **_kwargs):
+        started[edge.type].set()
+        assert release[edge.type].wait(3)
+        return 0
+
+    run_edge.side_effect = run
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+    result = []
+    thread = Thread(target=lambda: result.append(_run_completion_driven_bulk_edges(
+        (first, blocked, independent), MagicMock(), args,
+        parent_run_id="bulk-run", consumer_group_prefix="loader",
+    )))
+    thread.start()
+    try:
+        assert started["A"].wait(3)
+        assert started["C"].wait(3)
+        assert not started["B"].is_set()
+        release["A"].set()
+        assert started["B"].wait(3)
+        assert not release["C"].is_set()
+    finally:
+        for event in release.values():
+            event.set()
+        thread.join(3)
+    assert not thread.is_alive()
+    assert result == [0]
+
+
+@patch("src.cli._run_bulk_relationship_edge")
+def test_bulk_scheduler_failure_blocks_conflicting_pending_edge(run_edge):
+    first = _rotating_edge("A", "a", "Person", "Title")
+    blocked = _rotating_edge("B", "b", "Person", "Genre")
+    run_edge.return_value = 1
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_completion_driven_bulk_edges(
+        (first, blocked), MagicMock(), args,
+        parent_run_id="bulk-run", consumer_group_prefix="loader",
+    ) == 1
+    assert [call.args[0].type for call in run_edge.call_args_list] == ["A"]
+
+
+@patch("src.cli._run_bulk_relationship_edge", return_value=0)
+def test_bulk_scheduler_waits_for_both_node_labels(run_edge):
+    edge = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    ready: set[str] = set()
+    condition = Condition()
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+    result = []
+    thread = Thread(target=lambda: result.append(_run_completion_driven_bulk_edges(
+        (edge,), MagicMock(), args,
+        parent_run_id="bulk-run", consumer_group_prefix="loader",
+        ready_labels=ready, ready_condition=condition,
+    )))
+    thread.start()
+    try:
+        with condition:
+            ready.add("Person")
+            condition.notify_all()
+        assert not run_edge.called
+        with condition:
+            ready.add("Company")
+            condition.notify_all()
+        thread.join(3)
+    finally:
+        with condition:
+            ready.update(("Person", "Company"))
+            condition.notify_all()
+        thread.join(3)
+    assert not thread.is_alive()
+    assert result == [0]
+    run_edge.assert_called_once()
 
 
 @patch("src.cli._run_isolated_relationship_stream_phase")
@@ -528,7 +612,7 @@ def test_rotating_fleet_launches_every_eligible_type_before_clock_and_monitor(mo
 
 
 @patch("src.cli.RelationshipBulkMonitor")
-def test_rotating_fleet_clock_launch_failure_stops_only_returned_edges(monitor_cls):
+def test_rotating_fleet_clock_launch_failure_does_not_launch_edges(monitor_cls):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     schema = SimpleNamespace(
         edges=[works],
@@ -546,8 +630,8 @@ def test_rotating_fleet_clock_launch_failure_stops_only_returned_edges(monitor_c
     assert _run_rotating_relationship_fleet(schema, docker, args) == 1
 
     monitor_cls.assert_not_called()
-    edge_container.stop.assert_called()
-    assert [call[0] for call in docker.mock_calls].count("run_edge_loader") == 1
+    edge_container.stop.assert_not_called()
+    assert [call[0] for call in docker.mock_calls].count("run_edge_loader") == 0
 
 
 def test_rotating_fleet_defers_self_referencing_edges_without_launching_them():
@@ -740,6 +824,65 @@ def test_handle_start_success(mock_load, mock_get_driver, mock_apply_schema, moc
         replicas=1,
         network="test_net",
     )
+
+
+@patch("src.cli._run_relationship_orchestration", return_value=0)
+@patch("src.cli._run_completion_driven_bulk_edges")
+@patch("src.cli.BulkMonitor")
+@patch("src.cli.DockerService")
+@patch("src.cli.apply_schema")
+@patch("src.cli.get_neo4j_driver")
+@patch("src.cli.load_schema")
+def test_bulk_starts_edge_after_its_node_labels_drain(
+    mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler, orchestration,
+):
+    person = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    schema = SimpleNamespace(
+        nodes=[
+            SimpleNamespace(label="Person", topic="person", replicas=1),
+            SimpleNamespace(label="Company", topic="company", replicas=1),
+        ],
+        edges=[person], loading=SimpleNamespace(consumer_group_id="loader"),
+    )
+    mock_load.return_value = schema
+    mock_driver.return_value = MagicMock()
+    person_container, company_container = MagicMock(), MagicMock()
+    docker = MagicMock()
+    docker.run_node_loader.side_effect = [[person_container], [company_container]]
+    mock_docker.return_value = docker
+    monitor = MagicMock()
+    saw_person = Event()
+    calls = iter(("Person", "Company"))
+
+    def next_label(*_args):
+        label = next(calls)
+        if label == "Company":
+            assert saw_person.wait(3)
+        return label
+
+    monitor.wait_for_next_label_completion.side_effect = next_label
+    monitor_cls.return_value = monitor
+
+    def run_scheduler(*_args, ready_labels, ready_condition, **_kwargs):
+        with ready_condition:
+            assert ready_condition.wait_for(lambda: "Person" in ready_labels, timeout=3)
+            assert person_container.stop.called
+            assert not company_container.stop.called
+            saw_person.set()
+            assert ready_condition.wait_for(lambda: "Company" in ready_labels, timeout=3)
+        return 0
+
+    scheduler.side_effect = run_scheduler
+    args = argparse.Namespace(
+        mode="bulk", config="config.yaml", network="test-net",
+        skip_image_build=True, bulk_timeout_seconds=3,
+    )
+
+    assert handle_start(args) == 0
+    assert [call.args[0] for call in monitor.wait_for_label_drain_complete.call_args_list] == ["Person", "Company"]
+    assert [call.args[0] for call in monitor.verify_label_zero_lag.call_args_list] == ["Person", "Company"]
+    orchestration.assert_called_once()
+    assert orchestration.call_args.kwargs["shared_already_loaded"] is True
 
 
 @patch("src.cli.DockerService")

@@ -73,7 +73,16 @@ class RelationshipBulkMonitor:
         self._groups = {edge_type: f"{consumer_group_prefix}-{edge_type}-{run_id}" for edge_type in self._edges}
         self._clock, self._sleep, self._interval = clock, sleep, poll_interval_seconds
         self._admin = admin_client or AdminClient({"bootstrap.servers": bootstrap_servers})
-        self._watermark = watermark_consumer or Consumer({"bootstrap.servers": bootstrap_servers, "group.id": f"graph-loader-edge-watermark-{run_id}", "enable.auto.commit": False})
+        # This consumer only queries topic watermarks; it never owns work
+        # partitions or calls poll in the lifecycle loop.  Keep its local
+        # poll watchdog above the maximum supported bulk stage so a valid
+        # long rotation cannot emit a misleading MAXPOLL group-leave event.
+        self._watermark = watermark_consumer or Consumer({
+            "bootstrap.servers": bootstrap_servers,
+            "group.id": f"graph-loader-edge-watermark-{run_id}",
+            "enable.auto.commit": False,
+            "max.poll.interval.ms": 3_600_000,
+        })
         self._control = control_consumer or Consumer({"bootstrap.servers": bootstrap_servers, "group.id": f"graph-loader-edge-monitor-{run_id}", "enable.auto.commit": False, "auto.offset.reset": "earliest"})
         self._rotation_plan = rotation_plan
         self._coordination_topic = coordination_topic
@@ -232,9 +241,23 @@ class RelationshipBulkMonitor:
                 ack = self._acks.get(replica)
                 if allow_drain and ack is not None and self._drains.get(replica) == ack.epoch:
                     continue
+                exit_code = state.get("ExitCode") if status != "removed" else None
+                log_tail = ""
+                if status != "removed":
+                    try:
+                        raw_logs = container.logs(tail=30, stdout=True, stderr=True)
+                        if isinstance(raw_logs, bytes):
+                            log_tail = raw_logs.decode("utf-8", errors="replace").strip()[-2000:]
+                        elif isinstance(raw_logs, str):
+                            log_tail = raw_logs.strip()[-2000:]
+                    except Exception:
+                        pass
+                diagnostic = f" status={status} exit_code={exit_code}"
+                if log_tail:
+                    diagnostic += f" log_tail={log_tail!r}"
                 raise self._failure(
                     LoaderCrashError,
-                    f"relationship stage={self._stage()} edge={replica[0]} replica={replica[1]} exited before drain acknowledgement",
+                    f"relationship stage={self._stage()} edge={replica[0]} replica={replica[1]} exited before drain acknowledgement{diagnostic}",
                 )
 
     def _check_clock_health(self) -> None:
@@ -252,8 +275,22 @@ class RelationshipBulkMonitor:
                 f"stage=monitor run_id={self._run_id} clock inspect failed {self._clock_context()}: {exc}"
             ) from exc
         if status not in {"running", "created", "restarting"}:
+            exit_code = state.get("ExitCode") if status != "removed" else None
+            log_tail = ""
+            if status != "removed":
+                try:
+                    raw_logs = self._tracked_clock.logs(tail=30, stdout=True, stderr=True)
+                    if isinstance(raw_logs, bytes):
+                        log_tail = raw_logs.decode("utf-8", errors="replace").strip()[-2000:]
+                    elif isinstance(raw_logs, str):
+                        log_tail = raw_logs.strip()[-2000:]
+                except Exception:
+                    pass
+            diagnostic = f" exit_code={exit_code}"
+            if log_tail:
+                diagnostic += f" log_tail={log_tail!r}"
             raise LoaderCrashError(
-                f"stage=monitor run_id={self._run_id} clock exited status={status} {self._clock_context()}"
+                f"stage=monitor run_id={self._run_id} clock exited status={status}{diagnostic} {self._clock_context()}"
             )
 
     def _decode_clock(self, message: object) -> None:
@@ -444,10 +481,7 @@ class RelationshipBulkMonitor:
         if not self._coverage() or self._boundary is None:
             return False
         commits = self._commits()
-        return all(
-            commits[key] is not None and commits[key] >= boundary
-            for key, boundary in self._boundary.items()
-        )
+        return self._commits_reach_boundary(commits)
 
     def _at_rotating_boundary(self) -> bool:
         """Return true only for one live-lease all-edge durable snapshot."""
@@ -457,8 +491,14 @@ class RelationshipBulkMonitor:
         if not self._coverage() or self._boundary is None:
             return False
         commits = self._commits()
+        return self._commits_reach_boundary(commits)
+
+    def _commits_reach_boundary(self, commits: Mapping[WorkPartition, int | None]) -> bool:
+        """Accept Kafka's absent commit only for a captured empty partition."""
+        assert self._boundary is not None
         return all(
-            commits[key] is not None and commits[key] >= boundary
+            (commits[key] is not None and commits[key] >= boundary)
+            or (boundary == 0 and commits[key] is None)
             for key, boundary in self._boundary.items()
         )
 
@@ -496,6 +536,8 @@ class RelationshipBulkMonitor:
             )
         self._check_health(self._draining); self._assert_quiescent(); commits = self._commits()
         for key, boundary in self._boundary.items():
+            if boundary == 0 and commits[key] is None:
+                continue
             if commits[key] != boundary:
                 raise self._failure(
                     OffsetResolutionError,

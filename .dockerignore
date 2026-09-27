@@ -8,3 +8,7 @@ tests/
 plan/
 .git/
 .agents/
+# IMDb's extracted and generated data are runtime inputs mounted/read by the
+# publisher; loader images only need application source and dependency files.
+examples/imdb/data/
+var/

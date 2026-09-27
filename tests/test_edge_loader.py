@@ -7,6 +7,7 @@ import threading
 import time
 from queue import Queue
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -423,15 +424,42 @@ def test_slot_wall_clock_failure_is_contextual_and_fails_closed(works_at) -> Non
     consumer.commit.assert_not_called()
 
 
-def test_slot_buffer_saturation_is_attributed_and_leaves_offsets_uncommitted(works_at, caplog) -> None:
+def test_slot_buffer_backpressure_resumes_after_owned_work_is_written(works_at) -> None:
     consumer, writer = MagicMock(), MagicMock()
-    consumer.poll.side_effect = [_message(_payload(), offset=3), _message(_payload(), offset=4)]
-    loader = _gated_loader(consumer, writer, works_at, [_clock_lease_payload(1, "BOUGHT"), None])
+    consumer.poll.return_value = None
+    loader = _gated_loader(consumer, writer, works_at, [
+        _clock_lease_payload(1, "BOUGHT"), None,
+        _clock_lease_payload(2, "WORKS_AT"), None,
+    ])
     loader._slot_buffer = SlotAwareAdmissionBuffer(max_records=1)
-    assert loader.run(max_messages=2) == 1
+    loader._on_assign(consumer, [TopicPartition("works-at-events", 0)])
+    loader._poll_coordination()
+    assert loader._buffer_message(_message(_payload(), offset=3))
+    consumer.pause.assert_called_once()
     writer.write_batch.assert_not_called()
     consumer.commit.assert_not_called()
-    assert "stage=lease edge=WORKS_AT replica=0 run_id=run-slot epoch=1 slot=1" in caplog.text
+
+    loader._poll_coordination()
+    assert len(loader._slot_buffer) == 0
+    assert loader._buffer_paused  # the unstarted batch can still be requeued
+    assert loader._flush_batch()
+    writer.write_batch.assert_called_once()
+    assert consumer.commit.call_args.kwargs["offsets"][0].offset == 4
+    consumer.resume.assert_called_once()
+    assert not loader._buffer_paused
+
+
+def test_slot_backpressure_reserves_space_for_queued_worker_batch(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    loader = _gated_loader(consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None])
+    loader._slot_buffer = SlotAwareAdmissionBuffer(max_records=1)
+    loader._on_assign(consumer, [TopicPartition("works-at-events", 0)])
+    loader._poll_coordination()
+    assert loader._buffer_message(_message(_payload(), offset=3))
+    assert loader._enqueue_worker_batch()
+    assert loader._buffer_paused
+    assert len(loader._slot_buffer) == 0
+    consumer.resume.assert_not_called()
 
 
 def test_gated_revoke_of_buffered_record_is_attributed_and_fails_closed(works_at, caplog) -> None:
@@ -459,15 +487,18 @@ def test_worker_batch_and_result_invariants_reject_unsafe_state() -> None:
         WorkerResult(batch, "SUCCESS", RuntimeError("no"))
 
 
-def test_gated_writer_executes_off_the_kafka_polling_thread(works_at) -> None:
+def test_gated_writer_executes_off_the_kafka_polling_thread(works_at, caplog) -> None:
     consumer, writer = MagicMock(), MagicMock()
     consumer.poll.return_value = _message(_payload(), offset=3)
     seen_threads: list[int] = []
     writer.write_batch.side_effect = lambda _records: seen_threads.append(threading.get_ident())
     loader = _gated_loader(consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None])
-    assert loader.run(max_messages=1) == 0
+    with caplog.at_level("INFO", logger="src.loader.edge_loader"):
+        assert loader.run(max_messages=1) == 0
     assert seen_threads and seen_threads[0] != threading.get_ident()
     assert consumer.commit.call_count == 1
+    assert "stage=edge-write edge=WORKS_AT" in caplog.text
+    assert "records=1 write_ms=" in caplog.text
 
 
 def test_gated_loader_with_no_control_message_keeps_work_uncommitted(works_at) -> None:
@@ -552,7 +583,9 @@ def test_blocked_worker_leaves_all_kafka_calls_in_poll_owner_thread(works_at) ->
     started, release = threading.Event(), threading.Event()
     calls: list[tuple[str, int]] = []
     consumer.poll.side_effect = lambda timeout: (calls.append(("poll", threading.get_ident())), _message(_payload(), offset=3))[1]
-    consumer.commit.side_effect = lambda **_kwargs: calls.append(("commit", threading.get_ident()))
+    consumer.commit.side_effect = lambda **kwargs: (
+        calls.append(("commit", threading.get_ident())), kwargs["offsets"]
+    )[1]
     writer.write_batch.side_effect = lambda _records: (started.set(), release.wait(1))
     loader = _gated_loader(consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None])
     result: list[int] = []
@@ -779,7 +812,9 @@ def test_edge_loader_writes_before_committing_next_offset(works_at) -> None:
     consumer.poll.return_value = _message(_payload(), offset=9)
     call_order: list[str] = []
     writer.write_batch.side_effect = lambda _records: call_order.append("write")
-    consumer.commit.side_effect = lambda **_kwargs: call_order.append("commit")
+    consumer.commit.side_effect = lambda **kwargs: (
+        call_order.append("commit"), kwargs["offsets"]
+    )[1]
     loader = EdgeLoader(consumer, writer, works_at)
 
     assert loader.run(max_messages=1) == 0
@@ -855,8 +890,83 @@ def test_edge_loader_commits_independent_partitions(works_at) -> None:
     )
 
     assert loader.run(max_messages=2) == 0
-    committed = [call.kwargs["offsets"][0] for call in consumer.commit.call_args_list]
+    consumer.commit.assert_called_once()
+    committed = consumer.commit.call_args.kwargs["offsets"]
     assert [(item.partition, item.offset) for item in committed] == [(1, 8), (2, 12)]
+    assert consumer.commit.call_args.kwargs["asynchronous"] is False
+
+
+def test_bulk_edge_flush_keeps_kafka_fetching(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    loader = EdgeLoader(consumer, writer, works_at)
+    loader._on_assign(consumer, [TopicPartition("works-at-events", 0)])
+    assert loader._buffer_message(_message(_payload(), offset=3))
+
+    assert loader._flush_batch()
+    writer.write_batch.assert_called_once()
+    consumer.commit.assert_called_once()
+    consumer.pause.assert_not_called()
+    consumer.resume.assert_not_called()
+
+
+def test_bulk_edge_batch_log_reports_write_duration(works_at) -> None:
+    consumer, writer, event_logger = MagicMock(), MagicMock(), MagicMock()
+    loader = EdgeLoader(consumer, writer, works_at, event_logger=event_logger)
+    assert loader._buffer_message(_message(_payload(), offset=3))
+
+    with patch("src.loader.edge_loader.time.perf_counter", side_effect=[2.0, 2.027]):
+        assert loader._flush_batch()
+
+    message, *values = event_logger.info.call_args.args
+    rendered = message % tuple(values)
+    assert "stage=edge-write edge=WORKS_AT" in rendered
+    assert "records=1 write_ms=27.000" in rendered
+
+
+def test_partial_edge_offset_commit_keeps_all_ledgers_unresolved(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    loader = EdgeLoader(consumer, writer, works_at)
+    loader._on_assign(consumer, [TopicPartition("works-at-events", 1), TopicPartition("works-at-events", 2)])
+    assert loader._buffer_message(_message(_payload(), partition=1, offset=7))
+    assert loader._buffer_message(_message(_payload(), partition=2, offset=11))
+    consumer.commit.return_value = [
+        SimpleNamespace(topic="works-at-events", partition=1, offset=8, error=None),
+        SimpleNamespace(topic="works-at-events", partition=2, offset=12, error=RuntimeError("rejected")),
+    ]
+
+    assert loader._flush_batch() is False
+    consumer.commit.assert_called_once()
+    assert loader._partition_ledgers[("works-at-events", 1)].next_offset == 7
+    assert loader._partition_ledgers[("works-at-events", 2)].next_offset == 11
+
+
+def test_missing_synchronous_commit_result_keeps_offset_unresolved(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.commit.return_value = None
+    loader = EdgeLoader(consumer, writer, works_at)
+    assert loader._buffer_message(_message(_payload(), offset=3))
+
+    assert loader._flush_batch() is False
+    assert loader._partition_ledgers[("works-at-events", 0)].next_offset == 3
+
+
+def test_bulk_drain_batches_prefetched_records(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = None
+    loader = EdgeLoader(
+        consumer, writer, works_at,
+        loading_config=LoadingConfig(unwind_batch_size=500),
+    )
+    loader._on_assign(consumer, [TopicPartition("works-at-events", 0)])
+    loader._deferred_messages.extend(
+        _message(_payload(), offset=offset) for offset in range(1001)
+    )
+
+    assert loader._finish_run()
+    assert [len(call.args[0]) for call in writer.write_batch.call_args_list] == [500, 500, 1]
+    assert consumer.commit.call_count == 3
+    consumer.pause.assert_called_once()
+    consumer.resume.assert_not_called()
 
 
 def test_later_malformed_offset_waits_behind_earlier_valid_gap(works_at) -> None:

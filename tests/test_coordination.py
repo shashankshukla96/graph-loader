@@ -34,8 +34,9 @@ def test_direct_lease_rejects_invalid_container_types():
     with pytest.raises(ClockProtocolError): _lease(bucket_owners=[(0, "BOUGHT")])
 
 
-def test_foreign_malformed_and_expired_leases_fail_closed():
+def test_foreign_expired_lease_is_ignored_but_malformed_and_current_expired_fail_closed():
     assert decode_clock_lease(encode_clock_lease(_lease(run_id="other")), expected_run_id="run", now_ms=11) is None
+    assert decode_clock_lease(encode_clock_lease(_lease(run_id="other")), expected_run_id="run", now_ms=20) is None
     with pytest.raises(ClockProtocolError): decode_clock_lease(b"bad", expected_run_id="run", now_ms=1)
     with pytest.raises(ClockProtocolError): decode_clock_lease(encode_clock_lease(_lease()), expected_run_id="run", now_ms=20)
     with pytest.raises(ClockProtocolError): decode_clock_lease(b'{"run_id":"other","run_id":"other"}', expected_run_id="run", now_ms=1)
@@ -85,6 +86,13 @@ def test_decode_rejects_unknown_protocol_fields() -> None:
     payload["unexpected"] = "ignored-by-older-parser"
     with pytest.raises(ClockProtocolError, match="unexpected"):
         decode_clock_lease(json.dumps(payload).encode("utf-8"), expected_run_id="run", now_ms=11)
+
+
+def test_malformed_foreign_lease_is_rejected_even_when_expired() -> None:
+    payload = json.loads(encode_clock_lease(_lease(run_id="other")).decode("utf-8"))
+    payload["bucket_owners"] = {"bad": "BOUGHT"}
+    with pytest.raises(ClockProtocolError):
+        decode_clock_lease(json.dumps(payload).encode(), expected_run_id="run", now_ms=20)
 
 
 def _clock(*, now=lambda: 100, producer=None):

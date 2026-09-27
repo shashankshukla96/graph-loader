@@ -11,8 +11,9 @@ import os
 import re
 import signal
 import uuid
-from collections.abc import Iterable
-from threading import Event
+from collections.abc import Callable, Iterable
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from threading import Condition, Event, Lock
 
 from docker.errors import NotFound
 
@@ -102,6 +103,17 @@ def _stop_exact_containers(
     return unresolved
 
 
+def _remove_exact_containers(containers: Iterable[object]) -> None:
+    """Remove only retained run containers after their diagnostics were read."""
+    for container in containers:
+        try:
+            container.remove(force=True)
+        except NotFound:
+            pass
+        except Exception as exc:
+            logger.error("stage=shutdown container cleanup failed: %s", exc)
+
+
 def _run_relationship_bulk_stages(schema, docker_service: DockerService, args: argparse.Namespace) -> int:
     """Run deterministic, exact-container relationship bulk stages."""
     edges = tuple(getattr(schema, "edges", ()))
@@ -163,30 +175,37 @@ def _run_relationship_bulk_stages(schema, docker_service: DockerService, args: a
             if monitor is not None:
                 monitor.close()
             _stop_exact_containers(stage_containers)
+            _remove_exact_containers(stage_containers)
     return 0
 
 
-def _run_isolated_relationship_bulk_phase(
+def _run_bulk_relationship_edge(
     edge: EdgeConfig,
     docker_service: DockerService,
     args: argparse.Namespace,
     *,
     run_id: str,
-    phase_index: int,
     consumer_group_prefix: str,
+    phase_index: int | None = None,
+    cancelled: Event | None = None,
+    on_launch: Callable[[str, tuple[object, ...]], None] | None = None,
 ) -> int:
-    """Prove one exact, clock-free self-reference relationship bulk phase drained."""
+    """Run one edge through its exact finite Kafka boundary and drain proof."""
     edge_type = getattr(edge, "type", "<unknown>")
-    context = f"stage=isolation run_id={run_id} phase={phase_index} edge={edge_type}"
+    context = (
+        f"stage=bulk-edge run_id={run_id} edge={edge_type}"
+        if phase_index is None else
+        f"stage=isolation run_id={run_id} phase={phase_index} edge={edge_type}"
+    )
     try:
         if _validated_run_id(run_id) is None:
             raise ValueError("run id must be nonblank")
-        if isinstance(phase_index, bool) or not isinstance(phase_index, int) or phase_index < 0:
+        if phase_index is not None and (isinstance(phase_index, bool) or not isinstance(phase_index, int) or phase_index < 0):
             raise ValueError("phase must be a nonnegative integer")
         if not isinstance(consumer_group_prefix, str) or not consumer_group_prefix.strip():
             raise ValueError("consumer group prefix must be nonblank")
-        if edge.nodes.is_self_referencing is not True:
-            raise ValueError("edge is not self-referencing")
+        if edge.nodes.is_self_referencing is not (phase_index is not None):
+            raise ValueError("edge self-reference does not match bulk phase")
     except (AttributeError, ValueError) as exc:
         logger.error("%s failed: %s", context, exc)
         return 1
@@ -195,6 +214,8 @@ def _run_isolated_relationship_bulk_phase(
     tracked: dict[tuple[str, str], object] = {}
     monitor = None
     try:
+        if cancelled is not None and cancelled.is_set():
+            return 1
         returned = docker_service.run_edge_loader(
             edge_type=edge.type,
             topic=edge.topic,
@@ -207,6 +228,10 @@ def _run_isolated_relationship_bulk_phase(
             slot_gating=False,
         )
         containers.extend(returned)
+        if on_launch is not None:
+            on_launch(edge.type, tuple(returned))
+        if cancelled is not None and cancelled.is_set():
+            raise RuntimeError("another bulk relationship edge failed")
         if len(returned) != edge.replicas:
             raise RuntimeError(
                 f"launch returned {len(returned)} replicas; expected {edge.replicas}"
@@ -258,6 +283,131 @@ def _run_isolated_relationship_bulk_phase(
                 for (replica_edge_type, replica_id), container in tracked.items()
             },
         )
+        _remove_exact_containers(containers)
+
+
+def _run_isolated_relationship_bulk_phase(
+    edge: EdgeConfig,
+    docker_service: DockerService,
+    args: argparse.Namespace,
+    *,
+    run_id: str,
+    phase_index: int,
+    consumer_group_prefix: str,
+) -> int:
+    """Prove one exact, clock-free self-reference relationship bulk phase drained."""
+    return _run_bulk_relationship_edge(
+        edge, docker_service, args, run_id=run_id,
+        phase_index=phase_index, consumer_group_prefix=consumer_group_prefix,
+    )
+
+
+def _run_completion_driven_bulk_edges(
+    edges: tuple[EdgeConfig, ...], docker_service: DockerService,
+    args: argparse.Namespace, *, parent_run_id: str, consumer_group_prefix: str,
+    ready_labels: set[str] | None = None,
+    ready_condition: Condition | None = None,
+    cancelled: Event | None = None,
+) -> int:
+    """Run disjoint endpoint-label edges concurrently; release labels after drain."""
+    if not edges:
+        return 0
+    try:
+        plan = build_relationship_conflict_plan(edges)
+        if _validated_run_id(parent_run_id) != parent_run_id:
+            raise ValueError("parent run id must be valid")
+        if any(edge.nodes.is_self_referencing is not False for edge in edges):
+            raise ValueError("shared bulk schedule contains a self-referencing edge")
+    except (AttributeError, ValueError) as exc:
+        logger.error("stage=bulk-scheduler parent_run_id=%s failed: %s", parent_run_id, exc)
+        return 1
+
+    by_type = {edge.type: edge for edge in edges}
+    pending = set(by_type)
+    active: dict[object, str] = {}
+    launched: dict[str, tuple[object, ...]] = {}
+    launch_lock = Lock()
+    cancelled = cancelled or Event()
+    if ready_labels is None:
+        ready_labels = {
+            label for edge in edges for label in (edge.nodes.source, edge.nodes.target)
+        }
+    if ready_condition is None:
+        ready_condition = Condition()
+
+    def register(edge_type: str, containers: tuple[object, ...]) -> None:
+        with launch_lock:
+            launched[edge_type] = containers
+
+    # A future only releases its endpoint labels after zero lag and
+    # DRAIN_COMPLETE are proved.
+    with ThreadPoolExecutor(max_workers=len(edges), thread_name_prefix="bulk-edge") as executor:
+        while pending or active:
+            if cancelled.is_set():
+                with launch_lock:
+                    running = tuple(container for edge_type in active.values() for container in launched.get(edge_type, ()))
+                _stop_exact_containers(running)
+                for future in active:
+                    try:
+                        future.result()
+                    except Exception:
+                        pass
+                return 1
+            occupied = set(active.values())
+            for edge_type in sorted(pending):
+                with ready_condition:
+                    dependencies_ready = {
+                        by_type[edge_type].nodes.source,
+                        by_type[edge_type].nodes.target,
+                    }.issubset(ready_labels)
+                if not dependencies_ready:
+                    continue
+                if plan.conflicts[edge_type] & occupied:
+                    continue
+                run_id = _derive_relationship_phase_run_id(
+                    parent_run_id, phase_kind="bulk", phase_index=0, edge_type=edge_type,
+                )
+                logger.info("Starting bulk relationship edge=%s run_id=%s", edge_type, run_id)
+                future = executor.submit(
+                    _run_bulk_relationship_edge, by_type[edge_type], docker_service, args,
+                    run_id=run_id, consumer_group_prefix=consumer_group_prefix,
+                    cancelled=cancelled, on_launch=register,
+                )
+                active[future] = edge_type
+                pending.remove(edge_type)
+                occupied.add(edge_type)
+            if not active:
+                with ready_condition:
+                    ready_condition.wait(timeout=0.25)
+                continue
+            completed, _ = wait(active, timeout=0.25, return_when=FIRST_COMPLETED)
+            if not completed:
+                continue
+            failures = []
+            for future in completed:
+                edge_type = active.pop(future)
+                try:
+                    if future.result() != 0:
+                        failures.append(edge_type)
+                except Exception as exc:
+                    logger.error("stage=bulk-scheduler edge=%s failed: %s", edge_type, exc)
+                    failures.append(edge_type)
+            if failures:
+                cancelled.set()
+                with launch_lock:
+                    running = tuple(container for edge_type in active.values() for container in launched.get(edge_type, ()))
+                _stop_exact_containers(running)
+                for future in active:
+                    try:
+                        future.result()
+                    except Exception:
+                        pass
+                logger.error(
+                    "stage=bulk-scheduler parent_run_id=%s failed edges=%s",
+                    parent_run_id, ",".join(sorted(failures)),
+                )
+                return 1
+    return 0
 
 
 def _derive_relationship_phase_run_id(
@@ -354,12 +504,14 @@ def _run_isolated_relationship_stream_phase(
         if monitor is not None:
             monitor.close()
         _stop_exact_containers(containers)
+        _remove_exact_containers(containers)
 
 
 def _run_relationship_orchestration(
     schema, docker_service: DockerService, args: argparse.Namespace, *, parent_run_id: str,
+    shared_already_loaded: bool = False,
 ) -> int:
-    """Run selected clock fleet and absolute self-reference phases in policy order."""
+    """Run completion-driven bulk or clocked stream edges with isolation."""
     try:
         if _validated_run_id(parent_run_id) != parent_run_id:
             raise ValueError("parent run id must be valid")
@@ -400,13 +552,13 @@ def _run_relationship_orchestration(
             logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=0 edge=shared failed", parent_run_id, phase_run_id)
         return result
 
-    if shared_edges:
-        phase_run_id = _derive_relationship_phase_run_id(parent_run_id, phase_kind="shared", phase_index=0, edge_type="shared")
-        result = _run_rotating_relationship_fleet(
-            schema, docker_service, args, selected_edges=shared_edges, phase_run_id=phase_run_id,
+    if shared_edges and not shared_already_loaded:
+        result = _run_completion_driven_bulk_edges(
+            shared_edges, docker_service, args, parent_run_id=parent_run_id,
+            consumer_group_prefix=schema.loading.consumer_group_id,
         )
         if result:
-            logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=0 edge=shared failed", parent_run_id, phase_run_id)
+            logger.error("stage=bulk-scheduler parent_run_id=%s shared relationship phase failed", parent_run_id)
             return result
     for phase in plan.isolated_phases:
         phase_run_id = _derive_relationship_phase_run_id(
@@ -481,6 +633,19 @@ def _run_rotating_relationship_fleet(
     monitor = None
     timeout = args.bulk_timeout_seconds
     try:
+        # Establish the run-scoped clock before any gated edge process starts.
+        # A loader may poll its coordination consumer immediately at startup;
+        # launching the clock first prevents a fleet-start race from making its
+        # first admissible lease depend on scheduler timing.
+        try:
+            clock_container = docker_service.run_global_batch_clock(
+                run_id=run_id, config_path=args.config, fleet_edge_types=fleet_edge_types,
+                coordination_topic=coordination_topic, network=args.network,
+            )
+        except Exception as exc:
+            raise RuntimeError(f"stage=clock run_id={run_id} reason=launch failed: {exc}") from exc
+        if clock_container is None:
+            raise RuntimeError(f"stage=clock run_id={run_id} launch returned no container")
         for edge_type in fleet_edge_types.split(","):
             edge = edges_by_type[edge_type]
             try:
@@ -513,15 +678,6 @@ def _run_rotating_relationship_fleet(
         }
         if set(tracked) != expected:
             raise RuntimeError(f"stage=launch run_id={run_id} relationship replica accounting mismatch")
-        try:
-            clock_container = docker_service.run_global_batch_clock(
-                run_id=run_id, config_path=args.config, fleet_edge_types=fleet_edge_types,
-                coordination_topic=coordination_topic, network=args.network,
-            )
-        except Exception as exc:
-            raise RuntimeError(f"stage=clock run_id={run_id} reason=launch failed: {exc}") from exc
-        if clock_container is None:
-            raise RuntimeError(f"stage=clock run_id={run_id} launch returned no container")
         monitor = RelationshipBulkMonitor(
             fleet_edges, run_id, expected, tracked,
             bootstrap_servers=os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
@@ -612,7 +768,9 @@ def _run_rotating_relationship_fleet(
             monitor.close()
         if clock_container is not None:
             _stop_exact_containers([clock_container])
+            _remove_exact_containers([clock_container])
         _stop_exact_containers(edge_containers)
+        _remove_exact_containers(edge_containers)
 
 def handle_start(args: argparse.Namespace) -> int:
     logger.info(f"Starting pipeline in {args.mode} mode with config {args.config}")
@@ -660,7 +818,8 @@ def handle_start(args: argparse.Namespace) -> int:
             logger.info("Building relationship loader image...")
             try:
                 docker_service.build_edge_image()
-                docker_service.build_clock_image()
+                if args.mode == "stream":
+                    docker_service.build_clock_image()
             except Exception as e:
                 logger.error(f"stage=clock Failed to build relationship loader image: {e}")
                 return 1
@@ -719,6 +878,64 @@ def handle_start(args: argparse.Namespace) -> int:
         )
         monitor.wait_for_assignment_coverage(bulk_timeout_seconds)
         monitor.capture_boundary()
+        isolation_plan = build_relationship_isolation_plan(edge_configs)
+        shared_types = set(isolation_plan.shared_edge_types)
+        shared_edges = tuple(edge for edge in edge_configs if edge.type in shared_types)
+        if shared_edges:
+            node_labels = {node.label for node in schema.nodes}
+            missing_endpoints = {
+                label for edge in shared_edges
+                for label in (edge.nodes.source, edge.nodes.target)
+                if label not in node_labels
+            }
+            if missing_endpoints:
+                raise ValueError(f"relationship endpoints lack node loaders: {sorted(missing_endpoints)}")
+            ready_labels: set[str] = set()
+            ready_condition = Condition()
+            scheduler_cancelled = Event()
+            with ThreadPoolExecutor(max_workers=1, thread_name_prefix="bulk-scheduler") as scheduler_executor:
+                edge_future = scheduler_executor.submit(
+                    _run_completion_driven_bulk_edges,
+                    shared_edges, docker_service, args, parent_run_id=parent_run_id,
+                    consumer_group_prefix=schema.loading.consumer_group_id,
+                    ready_labels=ready_labels, ready_condition=ready_condition,
+                    cancelled=scheduler_cancelled,
+                )
+                try:
+                    remaining_labels = {node.label for node in schema.nodes}
+                    while remaining_labels:
+                        label = monitor.wait_for_next_label_completion(
+                            remaining_labels, bulk_timeout_seconds,
+                        )
+                        label_containers = [
+                            container for (node_label, _), container in tracked_containers.items()
+                            if node_label == label
+                        ]
+                        drain_started = True
+                        failures = _stop_exact_containers(label_containers)
+                        if failures:
+                            raise RuntimeError(
+                                f"unable to stop node label={label}: {'; '.join(failures)}"
+                            )
+                        monitor.wait_for_label_drain_complete(label, bulk_timeout_seconds)
+                        monitor.verify_label_zero_lag(label)
+                        with ready_condition:
+                            ready_labels.add(label)
+                            ready_condition.notify_all()
+                        remaining_labels.remove(label)
+                    if edge_future.result() != 0:
+                        raise RuntimeError("shared bulk relationship scheduler failed")
+                except Exception:
+                    scheduler_cancelled.set()
+                    with ready_condition:
+                        ready_condition.notify_all()
+                    _stop_exact_containers(started_containers)
+                    edge_future.result()
+                    raise
+            return _run_relationship_orchestration(
+                schema, docker_service, args, parent_run_id=parent_run_id,
+                shared_already_loaded=True,
+            )
         monitor.wait_for_completion(bulk_timeout_seconds)
         drain_started = True
         stop_failures = _stop_exact_containers(started_containers)

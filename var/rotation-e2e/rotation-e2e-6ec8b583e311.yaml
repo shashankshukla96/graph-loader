@@ -1,0 +1,63 @@
+edges:
+- nodes:
+    source: Person
+    target: Company
+  properties:
+    kind:
+      required: true
+      type: string
+  source_key_property: id
+  target_key_property: id
+  topic: rotation-e2e-6ec8b583e311-works
+  type: WORKS_AT
+- nodes:
+    source: Person
+    target: Product
+  properties:
+    kind:
+      required: true
+      type: string
+  source_key_property: id
+  target_key_property: id
+  topic: rotation-e2e-6ec8b583e311-bought
+  type: BOUGHT
+loading:
+  consumer_group_id: rotation-e2e-6ec8b583e311
+  coordination:
+    bucket_count: 2
+    lease_timeout_ms: 800
+    slot_duration_ms: 100
+    topic: rotation-e2e-6ec8b583e311-clock
+  flush_interval_ms: 25
+  unwind_batch_size: 1
+nodes:
+- key_property: id
+  label: Person
+  properties:
+    id:
+      required: true
+      type: string
+    name:
+      required: true
+      type: string
+  topic: rotation-e2e-6ec8b583e311-person
+- key_property: id
+  label: Company
+  properties:
+    id:
+      required: true
+      type: string
+    name:
+      required: true
+      type: string
+  topic: rotation-e2e-6ec8b583e311-company
+- key_property: id
+  label: Product
+  properties:
+    id:
+      required: true
+      type: string
+    name:
+      required: true
+      type: string
+  topic: rotation-e2e-6ec8b583e311-product

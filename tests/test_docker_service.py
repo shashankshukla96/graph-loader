@@ -164,11 +164,31 @@ class TestDockerService(unittest.TestCase):
             )
         call = self.mock_client.containers.run.call_args.kwargs
         assert call["image"] == "graph-loader-edge:latest"
+        assert call["remove"] is False
         assert call["labels"]["component"] == "edge-loader"
         assert call["labels"]["run_id"] == "run-A"
         assert call["environment"]["KAFKA_GROUP_ID"] == "loader-WORKS_AT-run-A"
         assert call["environment"]["REJECTION_LOG_PATH"].endswith("WORKS_AT-0-72756e2d41.jsonl")
         assert call["command"][-4:] == ["--replica-id", "0", "--run-id", "run-A"]
+
+    def test_write_timing_directory_reaches_node_and_edge_replicas(self):
+        self.mock_client.containers.run.return_value = MagicMock()
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict("os.environ", {"GRAPH_LOADER_TIMING_DIR": directory}):
+                self.service.run_node_loader(
+                    node_label="Person", topic="person_topic", mode="bulk",
+                    config_path="config.yaml", network="test_net", rejection_dir=directory,
+                )
+                node_call = self.mock_client.containers.run.call_args.kwargs
+                self.service.run_edge_loader(
+                    edge_type="WORKS_AT", topic="works-at-events", mode="bulk",
+                    config_path="config.yaml", network="test_net", rejection_dir=directory,
+                )
+                edge_call = self.mock_client.containers.run.call_args.kwargs
+        assert node_call["volumes"][directory] == {"bind": "/app/write-timings", "mode": "rw"}
+        assert node_call["environment"]["GRAPH_LOADER_TIMING_LOG_PATH"] == "/app/write-timings/node-Person-0.log"
+        assert edge_call["volumes"][directory] == {"bind": "/app/write-timings", "mode": "rw"}
+        assert edge_call["environment"]["GRAPH_LOADER_TIMING_LOG_PATH"] == "/app/write-timings/edge-WORKS_AT-0.log"
 
     def test_run_edge_loader_slot_gating_scopes_distinct_clock_group(self):
         self.mock_client.containers.run.return_value = MagicMock()

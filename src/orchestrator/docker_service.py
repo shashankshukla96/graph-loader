@@ -4,6 +4,17 @@ from typing import List, Dict, Optional
 from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_shared_fleet_edges
 from src.utils.schema_loader import SchemaLoadError, load_schema
 
+
+def _mount_write_timing_directory(volumes: dict) -> bool:
+    """Expose the optional host timing directory to loader containers."""
+    host_directory = os.environ.get("GRAPH_LOADER_TIMING_DIR")
+    if not host_directory:
+        return False
+    host_directory = os.path.abspath(host_directory)
+    os.makedirs(host_directory, exist_ok=True)
+    volumes[host_directory] = {"bind": "/app/write-timings", "mode": "rw"}
+    return True
+
 class DockerService:
     def __init__(self, client: docker.DockerClient = None):
         self.client = client or docker.from_env()
@@ -40,7 +51,7 @@ class DockerService:
             environment=env, network=network,
             labels={"app": "graph-loader", "component": "global-batch-clock", "run_id": run_id},
             volumes={os.path.abspath(config_path): {"bind": "/app/runtime_schema.yaml", "mode": "ro"}},
-            detach=True, remove=True,
+            detach=True, remove=False,
         )
 
     def run_edge_loader(
@@ -114,6 +125,7 @@ class DockerService:
             host_config_path: {"bind": "/app/runtime_schema.yaml", "mode": "ro"},
             host_rejection_dir: {"bind": "/app/rejections", "mode": "rw"},
         }
+        capture_timings = _mount_write_timing_directory(volumes)
         started_containers = []
         try:
             for index in range(replicas):
@@ -152,15 +164,23 @@ class DockerService:
                 replica_environment["REJECTION_LOG_PATH"] = (
                     f"/app/rejections/{edge_type}-{replica_id}{rejection_suffix}.jsonl"
                 )
+                if capture_timings:
+                    replica_environment["GRAPH_LOADER_TIMING_LOG_PATH"] = (
+                        f"/app/write-timings/edge-{edge_type}-{replica_id}.log"
+                    )
                 started_containers.append(self.client.containers.run(
                     image="graph-loader-edge:latest", name=name, command=command,
                     environment=replica_environment, network=network, labels=labels,
-                    volumes=volumes, detach=True, remove=True,
+                    volumes=volumes, detach=True, remove=False,
                 ))
         except Exception:
             for container in started_containers:
                 try:
                     container.stop()
+                except Exception:
+                    pass
+                try:
+                    container.remove(force=True)
                 except Exception:
                     pass
             raise
@@ -209,6 +229,7 @@ class DockerService:
             host_config_path: {"bind": "/app/runtime_schema.yaml", "mode": "ro"},
             host_rejection_dir: {"bind": "/app/rejections", "mode": "rw"},
         }
+        capture_timings = _mount_write_timing_directory(volumes)
 
         started_containers = []
         try:
@@ -219,6 +240,10 @@ class DockerService:
                 replica_environment["REJECTION_LOG_PATH"] = (
                     f"/app/rejections/{node_label}-{replica_id}.jsonl"
                 )
+                if capture_timings:
+                    replica_environment["GRAPH_LOADER_TIMING_LOG_PATH"] = (
+                        f"/app/write-timings/node-{node_label}-{replica_id}.log"
+                    )
                 replica_command = [*command, "--replica-id", replica_id]
                 replica_labels = {**labels, "replica_id": replica_id}
                 if run_id is not None:

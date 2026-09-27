@@ -67,6 +67,11 @@ class SlotAwareAdmissionBuffer:
         return len(self._items)
 
     @property
+    def max_records(self) -> int:
+        """Return the configured bound so the poll owner can apply backpressure."""
+        return self._max_records
+
+    @property
     def unresolved_partitions(self) -> set[tuple[str, int]]:
         """Return every partition with retained valid unleased work."""
         return {(item.pending.topic, item.pending.partition) for item in self._items}

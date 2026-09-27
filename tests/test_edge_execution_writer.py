@@ -1,5 +1,6 @@
 """Unit tests for the APOC-locked relationship writer."""
 from datetime import date
+from threading import Barrier, get_ident
 from unittest.mock import MagicMock
 import pytest
 from neo4j.exceptions import ClientError
@@ -168,6 +169,24 @@ def test_python_coordinator_uses_configured_workers_per_distinct_lane():
     writer = MagicMock(); routed = lambda lane, offset: RoutedEdgeRecord(_record(), "t", 0, offset, lane, "forward", 0, 0)
     LaneExecutionCoordinator(writer, mode="python_apoc", worker_count=3, executor_factory=Executor).execute([(routed(1,1),), (routed(1,2),), (routed(2,3),)])
     assert captured["workers"] == 3
+
+
+def test_python_coordinator_writes_four_lanes_concurrently():
+    barrier = Barrier(4)
+    worker_threads = set()
+
+    class Writer:
+        def write_batch(self, records):
+            worker_threads.add(get_ident())
+            barrier.wait(timeout=3)
+
+    routed = lambda lane: RoutedEdgeRecord(_record(f"p-{lane}"), "t", lane, 0, lane, "forward", lane, 0)
+    results = LaneExecutionCoordinator(Writer(), mode="python_apoc", worker_count=4).execute(
+        [(routed(lane),) for lane in range(4)]
+    )
+    assert len(worker_threads) == 4
+    assert len(results) == 4
+    assert all(result.success for result in results)
 
 
 def test_build_execution_refuses_native_before_constructing_components(monkeypatch):

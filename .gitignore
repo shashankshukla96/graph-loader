@@ -9,3 +9,4 @@ build/
 *.egg-info/
 .venv/
 venv/
+var/neo4j/logs/
