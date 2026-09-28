@@ -4,6 +4,7 @@ tests/test_cli.py
 Unit tests for the CLI parser and routing.
 """
 import argparse
+import json
 from threading import Condition, Event, Thread
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
@@ -204,7 +205,8 @@ def _rotating_edge(edge_type, topic, source, target, replicas=1):
 
 
 @patch("src.cli.RelationshipBulkMonitor")
-def test_isolated_bulk_phase_uses_exact_clock_free_finite_lifecycle(monitor_cls):
+def test_isolated_bulk_phase_uses_exact_clock_free_finite_lifecycle(monitor_cls, tmp_path, monkeypatch):
+    monkeypatch.setenv("GRAPH_LOADER_TIMING_DIR", str(tmp_path))
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person", replicas=2)
     first, second = MagicMock(), MagicMock()
     docker = MagicMock()
@@ -236,6 +238,10 @@ def test_isolated_bulk_phase_uses_exact_clock_free_finite_lifecycle(monitor_cls)
     monitor.verify_zero_lag.assert_called_once_with()
     monitor.close.assert_called_once_with()
     assert first.stop.call_count >= 1 and second.stop.call_count >= 1
+    timing = json.loads((tmp_path / "stage-KNOWS.json").read_text())
+    assert timing["edge_type"] == "KNOWS"
+    assert timing["succeeded"] is True
+    assert timing["elapsed_seconds"] >= 0
 
 
 @patch("src.cli.RelationshipBulkMonitor")
@@ -436,6 +442,24 @@ def test_bulk_scheduler_failure_blocks_conflicting_pending_edge(run_edge):
         parent_run_id="bulk-run", consumer_group_prefix="loader",
     ) == 1
     assert [call.args[0].type for call in run_edge.call_args_list] == ["A"]
+
+
+@patch("src.cli._run_bulk_relationship_edge", return_value=0)
+def test_bulk_scheduler_records_each_edge_lifecycle(run_edge, tmp_path, monkeypatch):
+    monkeypatch.setenv("GRAPH_LOADER_TIMING_DIR", str(tmp_path))
+    edge = _rotating_edge("WORKS_AT", "works", "Person", "Company")
+    args = argparse.Namespace(config="config.yaml", network="test-net", bulk_timeout_seconds=1)
+
+    assert _run_completion_driven_bulk_edges(
+        (edge,), MagicMock(), args,
+        parent_run_id="bulk-run", consumer_group_prefix="loader",
+    ) == 0
+
+    timing = json.loads((tmp_path / "stage-WORKS_AT.json").read_text(encoding="utf-8"))
+    assert timing["edge_type"] == "WORKS_AT"
+    assert timing["succeeded"] is True
+    assert timing["elapsed_seconds"] >= 0
+    assert timing["started_utc"] <= timing["completed_utc"]
 
 
 @patch("src.cli._run_bulk_relationship_edge", return_value=0)

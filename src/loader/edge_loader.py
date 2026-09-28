@@ -342,6 +342,10 @@ class EdgeLoader:
         self._topic = topic or edge_config.topic
         self._logger = event_logger
         self._loading_config = loading_config or LoadingConfig(unwind_batch_size=1)
+        self._outer_batch_size = (
+            self._loading_config.edge_unwind_batch_size
+            or self._loading_config.unwind_batch_size
+        )
         self._rejection_sink = rejection_sink or RejectionSink(
             self._loading_config.rejection_log_path
         )
@@ -1166,7 +1170,7 @@ class EdgeLoader:
             # One final pause is cheap; pausing every write batch is not.
             self._pause_assignments()
         while self._deferred_messages or self._batch:
-            while self._deferred_messages and len(self._batch) < self._loading_config.unwind_batch_size:
+            while self._deferred_messages and len(self._batch) < self._outer_batch_size:
                 if not self._buffer_message(self._deferred_messages.popleft()):
                     return False
             if self._batch and not self._flush_batch():
@@ -1253,7 +1257,7 @@ class EdgeLoader:
                 if not self._buffer_message(message):
                     return 1
                 processed += 1
-                if len(self._batch) >= self._loading_config.unwind_batch_size and not self._flush_batch():
+                if len(self._batch) >= self._outer_batch_size and not self._flush_batch():
                     return 1
             return 0 if self._finish_run() else 1
         except KeyboardInterrupt:

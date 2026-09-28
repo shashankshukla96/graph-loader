@@ -5,14 +5,18 @@ Command-line interface for the Neo4j Graph Loader.
 """
 import argparse
 import hashlib
+import json
 import sys
 import logging
 import os
 import re
 import signal
+import time
 import uuid
 from collections.abc import Callable, Iterable
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from datetime import datetime, timezone
+from pathlib import Path
 from threading import Condition, Event, Lock
 
 from docker.errors import NotFound
@@ -296,10 +300,47 @@ def _run_isolated_relationship_bulk_phase(
     consumer_group_prefix: str,
 ) -> int:
     """Prove one exact, clock-free self-reference relationship bulk phase drained."""
-    return _run_bulk_relationship_edge(
-        edge, docker_service, args, run_id=run_id,
-        phase_index=phase_index, consumer_group_prefix=consumer_group_prefix,
-    )
+    started_monotonic = time.monotonic()
+    started_utc = datetime.now(timezone.utc).isoformat()
+    succeeded = False
+    try:
+        result = _run_bulk_relationship_edge(
+            edge, docker_service, args, run_id=run_id,
+            phase_index=phase_index, consumer_group_prefix=consumer_group_prefix,
+        )
+        succeeded = result == 0
+        return result
+    finally:
+        elapsed_seconds = time.monotonic() - started_monotonic
+        completed_utc = datetime.now(timezone.utc).isoformat()
+        logger.info(
+            "stage=bulk-edge-complete edge=%s elapsed_s=%.3f outcome=%s",
+            edge.type, elapsed_seconds, "succeeded" if succeeded else "failed",
+        )
+        _record_bulk_edge_stage_timing(
+            edge.type, started_utc, completed_utc, elapsed_seconds, succeeded,
+        )
+
+
+def _record_bulk_edge_stage_timing(
+    edge_type: str, started_utc: str, completed_utc: str,
+    elapsed_seconds: float, succeeded: bool,
+) -> None:
+    """Keep a per-type lifecycle measurement beside Docker write timings."""
+    directory = os.environ.get("GRAPH_LOADER_TIMING_DIR")
+    if not directory:
+        return
+    try:
+        path = Path(directory) / f"stage-{edge_type}.json"
+        path.write_text(json.dumps({
+            "edge_type": edge_type,
+            "started_utc": started_utc,
+            "completed_utc": completed_utc,
+            "elapsed_seconds": elapsed_seconds,
+            "succeeded": succeeded,
+        }) + "\n", encoding="utf-8")
+    except OSError as exc:
+        logger.warning("Could not record bulk edge timing edge=%s: %s", edge_type, exc)
 
 
 def _run_completion_driven_bulk_edges(
@@ -325,6 +366,7 @@ def _run_completion_driven_bulk_edges(
     by_type = {edge.type: edge for edge in edges}
     pending = set(by_type)
     active: dict[object, str] = {}
+    started: dict[object, tuple[float, str]] = {}
     launched: dict[str, tuple[object, ...]] = {}
     launch_lock = Lock()
     cancelled = cancelled or Event()
@@ -368,12 +410,14 @@ def _run_completion_driven_bulk_edges(
                     parent_run_id, phase_kind="bulk", phase_index=0, edge_type=edge_type,
                 )
                 logger.info("Starting bulk relationship edge=%s run_id=%s", edge_type, run_id)
+                started_at = (time.monotonic(), datetime.now(timezone.utc).isoformat())
                 future = executor.submit(
                     _run_bulk_relationship_edge, by_type[edge_type], docker_service, args,
                     run_id=run_id, consumer_group_prefix=consumer_group_prefix,
                     cancelled=cancelled, on_launch=register,
                 )
                 active[future] = edge_type
+                started[future] = started_at
                 pending.remove(edge_type)
                 occupied.add(edge_type)
             if not active:
@@ -386,12 +430,23 @@ def _run_completion_driven_bulk_edges(
             failures = []
             for future in completed:
                 edge_type = active.pop(future)
+                started_monotonic, started_utc = started.pop(future)
+                succeeded = False
                 try:
-                    if future.result() != 0:
-                        failures.append(edge_type)
+                    succeeded = future.result() == 0
                 except Exception as exc:
                     logger.error("stage=bulk-scheduler edge=%s failed: %s", edge_type, exc)
+                if not succeeded:
                     failures.append(edge_type)
+                elapsed_seconds = time.monotonic() - started_monotonic
+                completed_utc = datetime.now(timezone.utc).isoformat()
+                logger.info(
+                    "stage=bulk-edge-complete edge=%s elapsed_s=%.3f outcome=%s",
+                    edge_type, elapsed_seconds, "succeeded" if succeeded else "failed",
+                )
+                _record_bulk_edge_stage_timing(
+                    edge_type, started_utc, completed_utc, elapsed_seconds, succeeded,
+                )
             if failures:
                 cancelled.set()
                 with launch_lock:

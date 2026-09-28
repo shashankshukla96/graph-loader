@@ -969,6 +969,20 @@ def test_bulk_drain_batches_prefetched_records(works_at) -> None:
     consumer.resume.assert_not_called()
 
 
+def test_edge_outer_batch_override_does_not_change_node_batch_size(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = None
+    loading = LoadingConfig(unwind_batch_size=500, edge_unwind_batch_size=2000)
+    loader = EdgeLoader(consumer, writer, works_at, loading_config=loading)
+    loader._deferred_messages.extend(
+        _message(_payload(), offset=offset) for offset in range(2001)
+    )
+
+    assert loading.unwind_batch_size == 500
+    assert loader._finish_run()
+    assert [len(call.args[0]) for call in writer.write_batch.call_args_list] == [2000, 1]
+
+
 def test_later_malformed_offset_waits_behind_earlier_valid_gap(works_at) -> None:
     consumer, writer, sink = MagicMock(), MagicMock(), MagicMock()
     loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink)

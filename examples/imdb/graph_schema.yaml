@@ -4,6 +4,7 @@ loading:
   mode: bulk
   consumer_group_id: imdb-example
   unwind_batch_size: 500
+  edge_unwind_batch_size: 2000
   flush_interval_ms: 1000
   rejection_log_path: var/rejections/imdb-node-loader.jsonl
   # Streaming uses these leases; finite bulk runs schedule relationship types

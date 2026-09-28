@@ -367,6 +367,7 @@ class TestGraphSchema:
         assert schema.loading.mode == "stream"
         assert schema.loading.consumer_group_id == "graph-loader"
         assert schema.loading.unwind_batch_size == 500
+        assert schema.loading.edge_unwind_batch_size is None
         assert schema.loading.flush_interval_ms == 1000
         assert schema.loading.retry_max_attempts == 3
         assert schema.loading.retry_base_delay_ms == 100
@@ -376,10 +377,11 @@ class TestGraphSchema:
     @pytest.mark.parametrize(
         ("field", "value"),
         [
-            ("unwind_batch_size", 0), ("flush_interval_ms", 0),
+            ("unwind_batch_size", 0), ("edge_unwind_batch_size", 0), ("flush_interval_ms", 0),
             ("retry_max_attempts", 0), ("retry_base_delay_ms", 0),
             ("retry_max_delay_ms", 0), ("rejection_log_path", "  "),
             ("unwind_batch_size", -1), ("unwind_batch_size", 10_001),
+            ("edge_unwind_batch_size", 10_001),
             ("flush_interval_ms", 60_001), ("retry_max_attempts", 11),
             ("retry_base_delay_ms", 60_001), ("retry_max_delay_ms", 300_001),
         ],
@@ -395,9 +397,10 @@ class TestGraphSchema:
         data.setdefault("loading", {}).update({"retry_base_delay_ms": 1000, "retry_max_delay_ms": 100})
         with pytest.raises(ValidationError, match="retry_max_delay_ms"):
             GraphSchema.model_validate(data)
-        data["loading"].update({"unwind_batch_size": 25, "flush_interval_ms": 50, "retry_base_delay_ms": 10, "retry_max_delay_ms": 100, "rejection_log_path": "tmp/reject.jsonl"})
+        data["loading"].update({"unwind_batch_size": 25, "edge_unwind_batch_size": 2000, "flush_interval_ms": 50, "retry_base_delay_ms": 10, "retry_max_delay_ms": 100, "rejection_log_path": "tmp/reject.jsonl"})
         schema = GraphSchema.model_validate(data)
         assert schema.loading.unwind_batch_size == 25
+        assert schema.loading.edge_unwind_batch_size == 2000
         assert schema.loading.rejection_log_path == "tmp/reject.jsonl"
 
 

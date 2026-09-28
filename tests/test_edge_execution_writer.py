@@ -25,13 +25,22 @@ def _record(key="p-1"):
 
 def test_apoc_query_uses_sorted_distinct_locks_and_schema_identifiers():
     query = build_apoc_locked_upsert_query(_edge())
-    assert "WITH DISTINCT n AS dist_n ORDER BY id(dist_n)" in query
+    assert "CALL (all_nodes) { UNWIND all_nodes AS n" in query
+    assert "WITH DISTINCT n AS dist_n ORDER BY elementId(dist_n)" in query
     assert "CALL apoc.lock.nodes(sorted_nodes)" in query
     assert "WITH rel.s AS s, rel.t AS t, rel.props AS props MERGE (s)-[r:`WORKS_AT`]->(t) SET r += props" in query
     assert "MERGE (rel.s)-[r:`WORKS_AT`]->(rel.t)" not in query
     knows = build_apoc_locked_upsert_query(_knows())
     assert "MATCH (t:`Person` {`personId`: row.target_key})" in knows
     assert "MERGE (s)-[r:`KNOWS`]->(t) SET r += props" in knows
+
+
+def test_endpoint_preflight_returns_one_aggregate_validation_row():
+    writer = ApocLockedEdgeWriter(MagicMock(), _edge(), missing_endpoint_error_factory=MissingRelationshipEndpointError)
+    assert "WITH row_index, source_matches, count(t) AS target_matches" in writer._preflight
+    assert "RETURN count(*) AS checked_rows" in writer._preflight
+    assert "AS invalid_rows" in writer._preflight
+    assert "RETURN row_index, source_matches" not in writer._preflight
 
 
 def test_apoc_writer_preflights_then_consumes_locks_and_commits():
@@ -42,7 +51,7 @@ def test_apoc_writer_preflights_then_consumes_locks_and_commits():
     preflight.consume.side_effect = lambda: order.append("preflight")
     locked.consume.side_effect = lambda: order.append("locked")
     tx.commit.side_effect = lambda: order.append("commit")
-    preflight.__iter__.return_value = iter([{"source_matches": 1, "target_matches": 1}, {"source_matches": 1, "target_matches": 1}])
+    preflight.__iter__.return_value = iter([{"checked_rows": 2, "invalid_rows": 0}])
     tx.run.side_effect = [preflight, locked]
     ApocLockedEdgeWriter(driver, _edge(), missing_endpoint_error_factory=MissingRelationshipEndpointError).write_batch([_record(), _record("p-2")])
     rows = tx.run.call_args_list[0].kwargs["rows"]
@@ -56,17 +65,32 @@ def test_apoc_writer_preflights_then_consumes_locks_and_commits():
 def test_apoc_writer_missing_endpoint_never_locks_or_commits():
     driver = MagicMock(); session = driver.session.return_value.__enter__.return_value
     tx = session.begin_transaction.return_value.__enter__.return_value; preflight = MagicMock()
-    preflight.__iter__.return_value = iter([{"source_matches": 0, "target_matches": 1}]); tx.run.return_value = preflight
+    preflight.__iter__.return_value = iter([{"checked_rows": 1, "invalid_rows": 1}]); tx.run.return_value = preflight
     with pytest.raises(MissingRelationshipEndpointError):
         ApocLockedEdgeWriter(driver, _edge(), missing_endpoint_error_factory=MissingRelationshipEndpointError).write(_record())
     preflight.consume.assert_called_once_with()
     assert tx.run.call_count == 1; tx.commit.assert_not_called()
 
 
+@pytest.mark.parametrize("status", [
+    [],
+    [{"checked_rows": 0, "invalid_rows": 0}],
+    [{"checked_rows": 1, "invalid_rows": 0}, {"checked_rows": 1, "invalid_rows": 0}],
+])
+def test_apoc_writer_incomplete_or_nonaggregate_preflight_fails_closed(status):
+    driver = MagicMock(); session = driver.session.return_value.__enter__.return_value
+    tx = session.begin_transaction.return_value.__enter__.return_value
+    preflight = MagicMock(); preflight.__iter__.return_value = iter(status); tx.run.return_value = preflight
+    with pytest.raises(MissingRelationshipEndpointError):
+        ApocLockedEdgeWriter(driver, _edge(), missing_endpoint_error_factory=MissingRelationshipEndpointError).write(_record())
+    assert tx.run.call_count == 1
+    tx.commit.assert_not_called()
+
+
 def test_apoc_writer_driver_failure_never_commits():
     driver = MagicMock(); session = driver.session.return_value.__enter__.return_value
     tx = session.begin_transaction.return_value.__enter__.return_value; preflight = MagicMock()
-    preflight.__iter__.return_value = iter([{"source_matches": 1, "target_matches": 1}])
+    preflight.__iter__.return_value = iter([{"checked_rows": 1, "invalid_rows": 0}])
     tx.run.side_effect = [preflight, RuntimeError("apoc failed")]
     with pytest.raises(RuntimeError, match="apoc failed"):
         ApocLockedEdgeWriter(driver, _edge(), missing_endpoint_error_factory=MissingRelationshipEndpointError).write(_record())
@@ -76,7 +100,7 @@ def test_apoc_writer_driver_failure_never_commits():
 def test_native_writer_preflights_then_checks_committed_status():
     driver = MagicMock(); first = driver.session.return_value.__enter__.return_value
     second = MagicMock(); driver.session.return_value.__enter__.side_effect = [first, second]
-    preflight, native = MagicMock(), MagicMock(); preflight.__iter__.return_value = iter([{"source_matches": 1, "target_matches": 1}])
+    preflight, native = MagicMock(), MagicMock(); preflight.__iter__.return_value = iter([{"checked_rows": 1, "invalid_rows": 0}])
     native.__iter__.return_value = iter([{"status": {"committed": True, "errorMessage": None}}])
     first.run.return_value = preflight; second.run.return_value = native
     writer = NativeDisjointEdgeWriter(driver, _edge(), ServerCapabilities("2026.06", True), missing_endpoint_error_factory=MissingRelationshipEndpointError)
@@ -102,7 +126,7 @@ def test_native_writer_refuses_unsupported_and_noncommitted_status():
 def test_native_writer_failed_status_raises(status):
     driver = MagicMock(); first = MagicMock(); second = MagicMock()
     driver.session.return_value.__enter__.side_effect = [first, second]
-    preflight, native = MagicMock(), MagicMock(); preflight.__iter__.return_value = iter([{"source_matches": 1, "target_matches": 1}]); native.__iter__.return_value = iter([{"status": status}])
+    preflight, native = MagicMock(), MagicMock(); preflight.__iter__.return_value = iter([{"checked_rows": 1, "invalid_rows": 0}]); native.__iter__.return_value = iter([{"status": status}])
     first.run.return_value = preflight; second.run.return_value = native
     with pytest.raises(ExecutionModeError):
         NativeDisjointEdgeWriter(driver, _edge(), ServerCapabilities("2026", True), missing_endpoint_error_factory=MissingRelationshipEndpointError).write(_record())
@@ -111,7 +135,7 @@ def test_native_writer_failed_status_raises(status):
 
 def test_native_preflight_miss_skips_second_session():
     driver = MagicMock(); first = MagicMock(); driver.session.return_value.__enter__.return_value = first
-    preflight = MagicMock(); preflight.__iter__.return_value = iter([{"source_matches": 0, "target_matches": 1}]); first.run.return_value = preflight
+    preflight = MagicMock(); preflight.__iter__.return_value = iter([{"checked_rows": 1, "invalid_rows": 1}]); first.run.return_value = preflight
     with pytest.raises(MissingRelationshipEndpointError):
         NativeDisjointEdgeWriter(driver, _edge(), ServerCapabilities("2026", True), missing_endpoint_error_factory=MissingRelationshipEndpointError).write(_record())
     preflight.consume.assert_called_once_with(); assert driver.session.call_count == 1
@@ -124,7 +148,7 @@ def test_native_runtime_error_propagates_and_write_delegates():
     writer.write_batch.assert_called_once()
     driver = MagicMock(); first = MagicMock(); second = MagicMock()
     driver.session.return_value.__enter__.side_effect = [first, second]
-    preflight = MagicMock(); preflight.__iter__.return_value = iter([{"source_matches": 1, "target_matches": 1}]); first.run.return_value = preflight
+    preflight = MagicMock(); preflight.__iter__.return_value = iter([{"checked_rows": 1, "invalid_rows": 0}]); first.run.return_value = preflight
     second.run.side_effect = RuntimeError("native boom")
     with pytest.raises(RuntimeError, match="native boom"):
         NativeDisjointEdgeWriter(driver, _edge(), ServerCapabilities("2026", True), missing_endpoint_error_factory=MissingRelationshipEndpointError).write(_record())
@@ -134,7 +158,7 @@ def test_native_runtime_error_propagates_and_write_delegates():
 def test_native_empty_status_fails_closed():
     driver = MagicMock(); first = MagicMock(); second = MagicMock()
     driver.session.return_value.__enter__.side_effect = [first, second]
-    preflight, native = MagicMock(), MagicMock(); preflight.__iter__.return_value = iter([{"source_matches": 1, "target_matches": 1}]); native.__iter__.return_value = iter([])
+    preflight, native = MagicMock(), MagicMock(); preflight.__iter__.return_value = iter([{"checked_rows": 1, "invalid_rows": 0}]); native.__iter__.return_value = iter([])
     first.run.return_value = preflight; second.run.return_value = native
     with pytest.raises(ExecutionModeError, match="no batch status"):
         NativeDisjointEdgeWriter(driver, _edge(), ServerCapabilities("2026", True), missing_endpoint_error_factory=MissingRelationshipEndpointError).write(_record())

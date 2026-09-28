@@ -120,6 +120,14 @@ python examples/imdb/publish_and_load_nodes.py \
   --skip-image-build --report-dir examples/imdb/reports
 ```
 
+The IMDb schema uses a 2,000-record relationship outer flush, based on the
+10k-seed comparison in `reports/edge-outer-batch-benchmark/comparison.md`.
+Use `--edge-batch-size 500` to override it for a comparison. Node batches
+default to `loading.unwind_batch_size` (500); use `--node-batch-size 750` to
+override them independently. Both options accept 1–10,000 records. Each
+relationship writer lane retains its separate `mix_and_batch.batch_size` limit
+of 1,000. The timing report records both effective outer batch sizes.
+
 `--edge-consumers 1 --edge-writers 4` is the default; specify both explicitly
 when comparing runs. Remove `--skip-image-build` after changing loader source.
 

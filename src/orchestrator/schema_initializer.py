@@ -54,7 +54,12 @@ def get_neo4j_driver(
     for attempt in range(max_retries + 1):
         driver = None
         try:
-            driver = GraphDatabase.driver(uri, auth=(user, password))
+            # Re-running idempotent schema DDL produces informational "already
+            # exists" notifications. Keep real Neo4j warnings visible while
+            # omitting that repeated noise from loader container logs.
+            driver = GraphDatabase.driver(
+                uri, auth=(user, password), notifications_min_severity="WARNING"
+            )
             driver.verify_connectivity()
             logger.info("Successfully connected to Neo4j.")
             return driver

@@ -75,6 +75,15 @@ class WriteTimingSummary:
     max_ms: float = 0.0
 
 
+@dataclass(frozen=True)
+class EdgeStageTiming:
+    edge_type: str
+    started_utc: str
+    completed_utc: str
+    elapsed_seconds: float
+    succeeded: bool
+
+
 def read_write_timings(directory: Path) -> dict[str, WriteTimingSummary]:
     """Sum successful Neo4j batch timings captured by the loader replicas."""
     summaries: dict[str, WriteTimingSummary] = {}
@@ -101,6 +110,22 @@ def read_write_timings(directory: Path) -> dict[str, WriteTimingSummary]:
                 max(previous.max_ms, write_ms),
             )
     return summaries
+
+
+def read_edge_stage_timings(directory: Path) -> dict[str, EdgeStageTiming]:
+    """Read scheduler wall times for each finite bulk edge stage."""
+    timings: dict[str, EdgeStageTiming] = {}
+    for path in sorted(directory.glob("stage-*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        timing = EdgeStageTiming(
+            edge_type=payload["edge_type"],
+            started_utc=payload["started_utc"],
+            completed_utc=payload["completed_utc"],
+            elapsed_seconds=float(payload["elapsed_seconds"]),
+            succeeded=payload["succeeded"],
+        )
+        timings[timing.edge_type] = timing
+    return timings
 
 
 def run_bulk_loader_with_timings(
@@ -162,13 +187,21 @@ def require_empty_topics(bootstrap_servers: str, topics: list[str]) -> None:
         "enable.auto.commit": False,
     })
     try:
-        metadata = consumer.list_topics(timeout=20)
-        occupied: list[str] = []
         deadline = time.monotonic() + 30
+        while True:
+            metadata = consumer.list_topics(timeout=20)
+            unavailable = [
+                topic for topic in topics
+                if topic not in metadata.topics or metadata.topics[topic].error is not None
+            ]
+            if not unavailable:
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError(f"cannot inspect Kafka topic {unavailable[0]}")
+            time.sleep(0.25)
+        occupied: list[str] = []
         for topic in topics:
             topic_metadata = metadata.topics.get(topic)
-            if topic_metadata is None or topic_metadata.error is not None:
-                raise RuntimeError(f"cannot inspect Kafka topic {topic}")
             retained = 0
             for partition in topic_metadata.partitions:
                 while True:
@@ -323,10 +356,18 @@ def build_loader_images() -> float:
 
 def create_runtime_schema(
     source: Path, consumer_workers: int, edge_writers: int = 4, edge_consumers: int = 1,
+    edge_batch_size: int | None = None, node_batch_size: int | None = None,
 ) -> Path:
-    """Create an ephemeral schema with node replicas and edge writer lanes."""
+    """Create an ephemeral schema with worker counts and independent batch overrides."""
     with source.open("r", encoding="utf-8") as input_file:
         raw_schema = yaml.safe_load(input_file)
+    if node_batch_size is not None:
+        # Preserve the original edge fallback if this schema has no explicit edge size.
+        if edge_batch_size is None and raw_schema["loading"].get("edge_unwind_batch_size") is None:
+            raw_schema["loading"]["edge_unwind_batch_size"] = raw_schema["loading"].get("unwind_batch_size", 500)
+        raw_schema["loading"]["unwind_batch_size"] = node_batch_size
+    if edge_batch_size is not None:
+        raw_schema["loading"]["edge_unwind_batch_size"] = edge_batch_size
     for node in raw_schema["nodes"]:
         node["replicas"] = consumer_workers
     for edge in raw_schema["edges"]:
@@ -361,6 +402,8 @@ def write_run_report(
     write_timings: dict[str, WriteTimingSummary] | None = None,
     edge_writers: int = 1,
     edge_consumers: int = 1,
+    node_batch_size: int = 500,
+    edge_batch_size: int = 500,
     timing_directory: Path | None = None,
 ) -> Path:
     """Write the one human-readable timing record for this example run."""
@@ -383,6 +426,8 @@ def write_run_report(
         f"- Node-loader containers per node type: {consumer_workers}",
         f"- Edge writer threads per edge type: {edge_writers}",
         f"- Edge consumer containers per edge type: {edge_consumers}",
+        f"- Node outer batch size: {node_batch_size}",
+        f"- Edge outer batch size: {edge_batch_size}",
         f"- Node-loader containers started: {consumer_count if consumer_exit_code == 0 else 'not confirmed'}",
         f"- Node records sent to Kafka: {total_nodes}",
         f"- Relationship records sent to Kafka: {total_relationships}",
@@ -434,6 +479,24 @@ def write_run_report(
             "Write times sum successful node batch calls and edge flushes. An edge flush can run several lane writes concurrently, and replicas can overlap; these totals are not end-to-end wall-clock durations. Records count batch inputs and can include replay after a failed offset commit.",
             "",
         ])
+    edge_stages = read_edge_stage_timings(timing_directory) if timing_directory else {}
+    if edge_stages:
+        lines.extend([
+            "## Bulk edge lifecycle by graph type",
+            "",
+            "| Edge type | Started (UTC) | Completed (UTC) | Elapsed | Outcome |",
+            "| --- | --- | --- | ---: | --- |",
+        ])
+        for edge_type, stage in sorted(edge_stages.items()):
+            lines.append(
+                f"| {edge_type} | {stage.started_utc} | {stage.completed_utc} | "
+                f"{stage.elapsed_seconds:.3f}s | {'succeeded' if stage.succeeded else 'failed'} |"
+            )
+        lines.extend([
+            "",
+            "Each elapsed time includes the edge container lifecycle, Kafka consumption, drain acknowledgement, and zero-lag verification. Different non-conflicting edge types can overlap.",
+            "",
+        ])
     lines.extend([
         "",
         "The publication and image-build durations overlap; the parallel-phase duration is the elapsed wall time before consumers can start. The final lifecycle duration includes Docker consumer launch, Kafka consumption, Neo4j node and relationship writes, drain, and zero-lag verification.",
@@ -481,11 +544,19 @@ def main() -> int:
         "--edge-consumers", type=int, default=1,
         help="Kafka consumer containers per edge type (default: 1)",
     )
+    parser.add_argument(
+        "--node-batch-size", type=int,
+        help="node outer flush size (default: schema setting, 500 for IMDb)",
+    )
+    parser.add_argument(
+        "--edge-batch-size", type=int,
+        help="edge outer flush size (default: schema setting, 2000 for IMDb)",
+    )
     parser.add_argument("--publish-only", action="store_true", help="do not start the Neo4j bulk loader")
     parser.add_argument(
         "--skip-image-build",
         action="store_true",
-        help="use an existing graph-loader-node image instead of building one",
+        help="use existing graph-loader-node and graph-loader-edge images instead of building them",
     )
     parser.add_argument(
         "--report-dir",
@@ -503,11 +574,17 @@ def main() -> int:
         parser.error(f"subset is missing generated graph TSVs: {', '.join(missing)}")
     if args.publish_workers < 1 or args.partitions < 1 or not 1 <= args.edge_writers <= 64 or not 1 <= args.edge_consumers <= 64:
         parser.error("--publish-workers and --partitions must be positive; --edge-writers and --edge-consumers must be 1–64")
+    if args.edge_batch_size is not None and not 1 <= args.edge_batch_size <= 10_000:
+        parser.error("--edge-batch-size must be 1–10000")
+    if args.node_batch_size is not None and not 1 <= args.node_batch_size <= 10_000:
+        parser.error("--node-batch-size must be 1–10000")
     consumer_workers = args.partitions if args.consumer_workers is None else args.consumer_workers
     if consumer_workers < 1:
         parser.error("--consumer-workers must be positive")
 
     schema = load_schema(SCHEMA_PATH)
+    node_batch_size = args.node_batch_size or schema.loading.unwind_batch_size
+    edge_batch_size = args.edge_batch_size or schema.loading.edge_unwind_batch_size or schema.loading.unwind_batch_size
     if not args.publish_only and args.bulk_timeout_seconds <= 0:
         parser.error("--bulk-timeout-seconds must be positive")
     node_config_by_topic = {node.topic: node for node in schema.nodes}
@@ -583,6 +660,8 @@ def main() -> int:
             consumer_exit_code=None,
             edge_writers=args.edge_writers,
             edge_consumers=args.edge_consumers,
+            node_batch_size=node_batch_size,
+            edge_batch_size=edge_batch_size,
         )
         print(f"Wrote timing report to {report_path}")
         return 0
@@ -606,6 +685,8 @@ def main() -> int:
                 consumer_exit_code=1,
                 edge_writers=args.edge_writers,
                 edge_consumers=args.edge_consumers,
+                node_batch_size=node_batch_size,
+                edge_batch_size=edge_batch_size,
             )
             print(f"Wrote timing report to {report_path}")
             print(f"Loader image build failed; consumer fleet will not start: {exc}", file=sys.stderr)
@@ -614,7 +695,10 @@ def main() -> int:
         print("Using existing node and edge images; image build skipped")
 
     consumer_lifecycle_started = time.monotonic()
-    runtime_schema = create_runtime_schema(SCHEMA_PATH, consumer_workers, args.edge_writers, args.edge_consumers)
+    runtime_schema = create_runtime_schema(
+        SCHEMA_PATH, consumer_workers, args.edge_writers, args.edge_consumers,
+        edge_batch_size=args.edge_batch_size, node_batch_size=args.node_batch_size,
+    )
     try:
         environment = os.environ.copy()
         environment["KAFKA_BOOTSTRAP_SERVERS"] = args.kafka_bootstrap
@@ -649,6 +733,8 @@ def main() -> int:
             write_timings=write_timings,
             edge_writers=args.edge_writers,
             edge_consumers=args.edge_consumers,
+            node_batch_size=node_batch_size,
+            edge_batch_size=edge_batch_size,
             timing_directory=timing_directory,
         )
         print(f"Wrote timing report to {report_path}")

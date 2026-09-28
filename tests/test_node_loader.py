@@ -573,6 +573,19 @@ def test_node_loader_flushes_at_configured_batch_size(person_config) -> None:
     assert (committed.topic, committed.partition, committed.offset) == ("person-events", 0, 5)
 
 
+def test_successful_assigned_node_flush_keeps_broker_prefetch_active(person_config) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    loader = NodeLoader(consumer, writer, person_config)
+    loader._on_assign(consumer, [TopicPartition("person-events", 0)])
+    assert loader._buffer_message(_message(b'{"personId":"p-1","name":"Ada"}', offset=3))
+
+    assert loader._flush_batch() is True
+
+    consumer.pause.assert_not_called()
+    consumer.resume.assert_not_called()
+    consumer.commit.assert_called_once()
+
+
 def test_node_loader_final_flushes_partial_batch_at_message_cap(person_config) -> None:
     consumer, writer, producer = MagicMock(), MagicMock(), MagicMock()
     producer.flush.return_value = 0

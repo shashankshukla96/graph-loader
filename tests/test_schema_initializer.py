@@ -20,6 +20,11 @@ class TestNeo4jConnection:
         driver = get_neo4j_driver("bolt://localhost:7687", "neo4j", "password")
         
         assert driver == mock_driver
+        mock_driver_factory.assert_called_once_with(
+            "bolt://localhost:7687",
+            auth=("neo4j", "password"),
+            notifications_min_severity="WARNING",
+        )
         mock_driver.verify_connectivity.assert_called_once()
         
     @patch("src.orchestrator.schema_initializer.time.sleep")

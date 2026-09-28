@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -56,6 +57,21 @@ def test_topic_preflight_retries_new_topic_leader_election() -> None:
     consumer.close.assert_called_once()
 
 
+def test_topic_preflight_waits_for_new_topic_metadata() -> None:
+    consumer = MagicMock()
+    consumer.list_topics.side_effect = [
+        SimpleNamespace(topics={"imdb-title": SimpleNamespace(error=RuntimeError("leader pending"))}),
+        SimpleNamespace(topics={"imdb-title": SimpleNamespace(error=None, partitions={0: object()})}),
+    ]
+    consumer.get_watermark_offsets.return_value = (0, 0)
+    with patch("examples.imdb.publish_and_load_nodes.Consumer", return_value=consumer), patch(
+        "examples.imdb.publish_and_load_nodes.time.sleep"
+    ) as sleep:
+        require_empty_topics("kafka:9092", ["imdb-title"])
+    sleep.assert_called_once_with(0.25)
+    consumer.close.assert_called_once()
+
+
 def test_typed_payload_converts_imdb_numeric_tsv_values() -> None:
     schema = load_schema(Path(__file__).resolve().parents[1] / "graph_schema.yaml")
     person = next(node for node in schema.nodes if node.label == "Person")
@@ -82,7 +98,62 @@ def test_runtime_schema_sets_consumer_replicas_and_is_isolated() -> None:
         assert {edge.replicas for edge in schema.edges} == {1}
         assert {edge.execution.worker_count for edge in schema.edges} == {4}
         assert {edge.mix_and_batch.lane_count for edge in schema.edges} == {4}
+        assert schema.loading.unwind_batch_size == 500
+        assert schema.loading.edge_unwind_batch_size == 2000
         assert "replicas:" not in source.read_text(encoding="utf-8")
+    finally:
+        runtime.unlink(missing_ok=True)
+
+
+def test_runtime_schema_overrides_only_edge_outer_batch_size() -> None:
+    source = Path(__file__).resolve().parents[1] / "graph_schema.yaml"
+    runtime = create_runtime_schema(source, consumer_workers=4, edge_batch_size=500)
+    try:
+        schema = load_schema(runtime)
+        assert schema.loading.unwind_batch_size == 500
+        assert schema.loading.edge_unwind_batch_size == 500
+        assert {edge.mix_and_batch.batch_size for edge in schema.edges} == {1000}
+    finally:
+        runtime.unlink(missing_ok=True)
+
+
+def test_runtime_schema_overrides_only_node_outer_batch_size() -> None:
+    source = Path(__file__).resolve().parents[1] / "graph_schema.yaml"
+    runtime = create_runtime_schema(source, consumer_workers=4, node_batch_size=750)
+    try:
+        schema = load_schema(runtime)
+        assert schema.loading.unwind_batch_size == 750
+        assert schema.loading.edge_unwind_batch_size == 2000
+        assert {edge.mix_and_batch.batch_size for edge in schema.edges} == {1000}
+    finally:
+        runtime.unlink(missing_ok=True)
+
+
+def test_node_override_preserves_edge_fallback_without_explicit_edge_size(tmp_path: Path) -> None:
+    source = Path(__file__).resolve().parents[1] / "graph_schema.yaml"
+    schema_without_edge_size = tmp_path / "graph_schema.yaml"
+    schema_without_edge_size.write_text(
+        source.read_text(encoding="utf-8").replace("  edge_unwind_batch_size: 2000\n", ""),
+        encoding="utf-8",
+    )
+    runtime = create_runtime_schema(schema_without_edge_size, consumer_workers=4, node_batch_size=750)
+    try:
+        schema = load_schema(runtime)
+        assert schema.loading.unwind_batch_size == 750
+        assert schema.loading.edge_unwind_batch_size == 500
+    finally:
+        runtime.unlink(missing_ok=True)
+
+
+def test_runtime_schema_accepts_both_batch_overrides() -> None:
+    source = Path(__file__).resolve().parents[1] / "graph_schema.yaml"
+    runtime = create_runtime_schema(
+        source, consumer_workers=4, node_batch_size=750, edge_batch_size=3000,
+    )
+    try:
+        schema = load_schema(runtime)
+        assert schema.loading.unwind_batch_size == 750
+        assert schema.loading.edge_unwind_batch_size == 3000
     finally:
         runtime.unlink(missing_ok=True)
 
@@ -188,6 +259,15 @@ def test_publish_edge_tsv_uses_source_identifier_for_kafka_key(tmp_path: Path) -
 
 
 def test_run_report_includes_all_requested_timing_categories(tmp_path: Path) -> None:
+    timing_directory = tmp_path / "imdb-write-timings-probe"
+    timing_directory.mkdir()
+    (timing_directory / "stage-ACTED_IN.json").write_text(json.dumps({
+        "edge_type": "ACTED_IN",
+        "started_utc": "2026-09-17T00:00:01+00:00",
+        "completed_utc": "2026-09-17T00:00:04+00:00",
+        "elapsed_seconds": 3.0,
+        "succeeded": True,
+    }), encoding="utf-8")
     (tmp_path / "node-Person-0.log").write_text(
         "stage=node-write label=Person topic=imdb-person replica=0 run_id=run-1 records=12 attempts=1 write_ms=40.000\n"
         "stage=node-write label=Person topic=imdb-person replica=0 run_id=run-1 records=8 attempts=1 write_ms=20.000\n",
@@ -216,7 +296,9 @@ def test_run_report_includes_all_requested_timing_categories(tmp_path: Path) -> 
         consumer_exit_code=0,
         write_timings=write_timings,
         edge_writers=4,
-        timing_directory=tmp_path / "imdb-write-timings-probe",
+        node_batch_size=750,
+        edge_batch_size=2000,
+        timing_directory=timing_directory,
     )
 
     content = report.read_text(encoding="utf-8")
@@ -225,9 +307,12 @@ def test_run_report_includes_all_requested_timing_categories(tmp_path: Path) -> 
     assert "Relationship records sent to Kafka: 3" in content
     assert "Graph records sent to Kafka: 23" in content
     assert "Edge writer threads per edge type: 4" in content
+    assert "Node outer batch size: 750" in content
+    assert "Edge outer batch size: 2000" in content
     assert "Raw Neo4j write timing logs: `imdb-write-timings-probe/`" in content
     assert "Kafka consumption + Neo4j graph loading + drain verification" in content
     assert "20" in content
     assert "## Neo4j writes by graph type" in content
     assert "| person | `imdb-person` | 20 | 2 | 0.060s | 30.0ms | 40.0ms |" in content
     assert "| ACTED_IN | `imdb-acted-in` | 3 | 1 | 0.009s | 9.0ms | 9.0ms |" in content
+    assert "| ACTED_IN | 2026-09-17T00:00:01+00:00 | 2026-09-17T00:00:04+00:00 | 3.000s | succeeded |" in content

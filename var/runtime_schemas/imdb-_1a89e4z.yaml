@@ -1,0 +1,392 @@
+loading:
+  mode: bulk
+  consumer_group_id: imdb-example
+  unwind_batch_size: 500
+  edge_unwind_batch_size: 2000
+  flush_interval_ms: 1000
+  rejection_log_path: var/rejections/imdb-node-loader.jsonl
+  coordination:
+    topic: graph.loader.coordination
+    bucket_count: 64
+    slot_duration_ms: 30000
+    lease_timeout_ms: 90000
+nodes:
+- label: Title
+  topic: imdb-title
+  key_property: tconst
+  properties:
+    tconst:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+    title_type:
+      type: string
+      required: true
+    primary_title:
+      type: string
+      required: true
+    original_title:
+      type: string
+      required: false
+    is_adult:
+      type: integer
+      required: true
+    start_year:
+      type: integer
+      required: false
+    end_year:
+      type: integer
+      required: false
+    runtime_minutes:
+      type: integer
+      required: false
+  replicas: 4
+- label: Person
+  topic: imdb-person
+  key_property: nconst
+  properties:
+    nconst:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+    name:
+      type: string
+      required: true
+    primary_name:
+      type: string
+      required: true
+    birth_year:
+      type: integer
+      required: false
+    death_year:
+      type: integer
+      required: false
+  replicas: 4
+- label: Genre
+  topic: imdb-genre
+  key_property: name
+  properties:
+    name:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+  replicas: 4
+- label: Profession
+  topic: imdb-profession
+  key_property: name
+  properties:
+    name:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+  replicas: 4
+- label: Character
+  topic: imdb-character
+  key_property: name
+  properties:
+    name:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+  replicas: 4
+- label: TitleType
+  topic: imdb-title-type
+  key_property: name
+  properties:
+    name:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+  replicas: 4
+- label: Region
+  topic: imdb-region
+  key_property: code
+  properties:
+    code:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+  replicas: 4
+- label: Language
+  topic: imdb-language
+  key_property: code
+  properties:
+    code:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+  replicas: 4
+- label: AlternativeTitle
+  topic: imdb-alternative-title
+  key_property: aka_id
+  properties:
+    aka_id:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+    title_id:
+      type: string
+      required: true
+    ordering:
+      type: integer
+      required: true
+    title:
+      type: string
+      required: true
+    is_original_title:
+      type: integer
+      required: true
+  replicas: 4
+- label: Rating
+  topic: imdb-rating
+  key_property: rating_id
+  properties:
+    rating_id:
+      type: string
+      required: true
+      constraint:
+        type: uniqueness
+    title_id:
+      type: string
+      required: true
+    average_rating:
+      type: float
+      required: true
+    num_votes:
+      type: integer
+      required: true
+  replicas: 4
+edges:
+- type: HAS_GENRE
+  topic: imdb-has-genre
+  nodes:
+    source: Title
+    target: Genre
+  source_key_property: tconst
+  target_key_property: name
+  properties:
+    title_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: HAS_TITLE_TYPE
+  topic: imdb-has-title-type
+  nodes:
+    source: Title
+    target: TitleType
+  source_key_property: tconst
+  target_key_property: name
+  properties:
+    title_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: HAS_PROFESSION
+  topic: imdb-has-profession
+  nodes:
+    source: Person
+    target: Profession
+  source_key_property: nconst
+  target_key_property: name
+  properties:
+    person_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: KNOWN_FOR
+  topic: imdb-known-for
+  nodes:
+    source: Person
+    target: Title
+  source_key_property: nconst
+  target_key_property: tconst
+  properties:
+    person_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: CREDITED_ON
+  topic: imdb-credited-on
+  nodes:
+    source: Person
+    target: Title
+  source_key_property: nconst
+  target_key_property: tconst
+  properties:
+    category:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: ACTED_IN
+  topic: imdb-acted-in
+  nodes:
+    source: Person
+    target: Title
+  source_key_property: nconst
+  target_key_property: tconst
+  properties:
+    category:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: PLAYED
+  topic: imdb-played
+  nodes:
+    source: Person
+    target: Character
+  source_key_property: nconst
+  target_key_property: name
+  properties:
+    title_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: DIRECTED
+  topic: imdb-directed
+  nodes:
+    source: Person
+    target: Title
+  source_key_property: nconst
+  target_key_property: tconst
+  properties:
+    person_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: WROTE
+  topic: imdb-wrote
+  nodes:
+    source: Person
+    target: Title
+  source_key_property: nconst
+  target_key_property: tconst
+  properties:
+    person_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: EPISODE_OF
+  topic: imdb-episode-of
+  nodes:
+    source: Title
+    target: Title
+  source_key_property: tconst
+  target_key_property: tconst
+  properties:
+    episode_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: HAS_ALTERNATIVE_TITLE
+  topic: imdb-has-alternative-title
+  nodes:
+    source: Title
+    target: AlternativeTitle
+  source_key_property: tconst
+  target_key_property: aka_id
+  properties:
+    aka_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: AVAILABLE_IN_REGION
+  topic: imdb-available-in-region
+  nodes:
+    source: AlternativeTitle
+    target: Region
+  source_key_property: aka_id
+  target_key_property: code
+  properties:
+    aka_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: IN_LANGUAGE
+  topic: imdb-in-language
+  nodes:
+    source: AlternativeTitle
+    target: Language
+  source_key_property: aka_id
+  target_key_property: code
+  properties:
+    aka_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4
+- type: HAS_RATING
+  topic: imdb-has-rating
+  nodes:
+    source: Title
+    target: Rating
+  source_key_property: tconst
+  target_key_property: rating_id
+  properties:
+    rating_id:
+      type: string
+      required: true
+  replicas: 1
+  execution:
+    worker_count: 4
+  mix_and_batch:
+    lane_count: 4

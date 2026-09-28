@@ -444,7 +444,7 @@ class NodeLoader:
         return not self._assignment_observed or key in self._assigned_partitions
 
     def _pause_assignments(self) -> None:
-        """Pause known assignments while a batch is unresolved."""
+        """Pause known assignments during retry backoff while polling callbacks."""
         if not self._assignment_observed or self._paused or not self._assigned_partitions:
             return
         partitions = [
@@ -455,7 +455,7 @@ class NodeLoader:
         self._paused = True
 
     def _resume_assignments(self) -> None:
-        """Resume assignments only after all current work is durable."""
+        """Resume retry-paused assignments after all current work is durable."""
         if not self._assignment_observed or not self._paused or not self._assigned_partitions:
             return
         partitions = [
@@ -520,6 +520,10 @@ class NodeLoader:
                         exc,
                     )
                     return False
+                # Backoff polls for group callbacks. Pause only on this rare
+                # retry path so those polls do not accumulate more data while
+                # the current batch is still unresolved.
+                self._pause_assignments()
                 delay_ms = min(
                     self._loading_config.retry_base_delay_ms * (2 ** attempt),
                     self._loading_config.retry_max_delay_ms,
@@ -573,7 +577,9 @@ class NodeLoader:
         """Atomically write the batch, then commit each partition's next offset."""
         if not self._batch:
             return True
-        self._pause_assignments()
+        # The poll owner writes synchronously and cannot consume another batch
+        # before this one is durable. Leave broker prefetch active on the
+        # ordinary path; pausing each flush delays the next fetch.
         if not self._write_batch_with_retry():
             return False
         if not self._poll_for_callbacks():

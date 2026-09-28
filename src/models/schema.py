@@ -277,7 +277,10 @@ class LoadingConfig(BaseModel):
         max_poll_interval_ms: Maximum time between Kafka ``poll()`` calls
             before the broker considers the consumer dead (milliseconds).
         session_timeout_ms: Kafka session timeout (milliseconds).
-        unwind_batch_size: Maximum records in one node UNWIND transaction (default 500).
+        unwind_batch_size: Maximum records in a node batch, and the edge outer
+            batch when no edge-specific size is configured (default 500).
+        edge_unwind_batch_size: Optional edge outer batch size (default: use
+            ``unwind_batch_size``). The per-lane Neo4j limit is separate.
         flush_interval_ms: Idle partial-batch flush interval in milliseconds (default 1000).
         retry_max_attempts: Node-write attempts including the first (default 3).
         retry_base_delay_ms: Initial node-write retry delay in milliseconds (default 100).
@@ -290,6 +293,7 @@ class LoadingConfig(BaseModel):
     max_poll_interval_ms: int = Field(default=300_000, gt=0)
     session_timeout_ms: int = Field(default=45_000, gt=0)
     unwind_batch_size: int = Field(default=500, gt=0, le=10_000)
+    edge_unwind_batch_size: int | None = Field(default=None, gt=0, le=10_000)
     flush_interval_ms: int = Field(default=1_000, gt=0, le=60_000)
     retry_max_attempts: int = Field(default=3, ge=1, le=10)
     retry_base_delay_ms: int = Field(default=100, gt=0, le=60_000)

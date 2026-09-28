@@ -64,8 +64,8 @@ def build_apoc_locked_upsert_query(edge_config: EdgeConfig) -> str:
         f"MATCH (s:`{edge_config.nodes.source}` {{`{edge_config.source_key_property}`: row.source_key}})\n"
         f"MATCH (t:`{edge_config.nodes.target}` {{`{edge_config.target_key_property}`: row.target_key}})\n"
         "WITH collect({s:s,t:t,props:row.properties}) AS rels, collect(s)+collect(t) AS all_nodes\n"
-        "CALL { WITH all_nodes UNWIND all_nodes AS n WITH DISTINCT n AS dist_n "
-        "ORDER BY id(dist_n) RETURN collect(dist_n) AS sorted_nodes }\n"
+        "CALL (all_nodes) { UNWIND all_nodes AS n WITH DISTINCT n AS dist_n "
+        "ORDER BY elementId(dist_n) RETURN collect(dist_n) AS sorted_nodes }\n"
         "CALL apoc.lock.nodes(sorted_nodes)\n"
         f"UNWIND rels AS rel WITH rel.s AS s, rel.t AS t, rel.props AS props "
         f"MERGE (s)-[r:`{edge_config.type}`]->(t) SET r += props"
@@ -73,13 +73,16 @@ def build_apoc_locked_upsert_query(edge_config: EdgeConfig) -> str:
 
 
 def _preflight_query(edge_config: EdgeConfig) -> str:
+    """Return one aggregate endpoint-validity row for an entire transaction."""
     return (
         "UNWIND range(0, size($rows) - 1) AS row_index\n"
         "WITH row_index, $rows[row_index] AS row\n"
         f"OPTIONAL MATCH (s:`{edge_config.nodes.source}` {{`{edge_config.source_key_property}`: row.source_key}})\n"
         "WITH row_index, row, count(s) AS source_matches\n"
         f"OPTIONAL MATCH (t:`{edge_config.nodes.target}` {{`{edge_config.target_key_property}`: row.target_key}})\n"
-        "RETURN row_index, source_matches, count(t) AS target_matches"
+        "WITH row_index, source_matches, count(t) AS target_matches\n"
+        "RETURN count(*) AS checked_rows, "
+        "sum(CASE WHEN source_matches = 1 AND target_matches = 1 THEN 0 ELSE 1 END) AS invalid_rows"
     )
 
 
@@ -110,7 +113,11 @@ class ApocLockedEdgeWriter:
                 result = transaction.run(self._preflight, rows=rows)
                 counts = list(result)
                 result.consume()
-                if any(row["source_matches"] != 1 or row["target_matches"] != 1 for row in counts):
+                if (
+                    len(counts) != 1
+                    or counts[0]["checked_rows"] != len(rows)
+                    or counts[0]["invalid_rows"] != 0
+                ):
                     raise self._error_factory(f"Edge '{self._edge_type}' did not resolve exactly one source and target endpoint")
                 transaction.run(self._query, rows=rows).consume()
                 transaction.commit()
@@ -142,7 +149,11 @@ class NativeDisjointEdgeWriter:
         with self._driver.session() as session:
             preflight = session.run(self._preflight, rows=rows)
             counts = list(preflight); preflight.consume()
-            if any(r["source_matches"] != 1 or r["target_matches"] != 1 for r in counts):
+            if (
+                len(counts) != 1
+                or counts[0]["checked_rows"] != len(rows)
+                or counts[0]["invalid_rows"] != 0
+            ):
                 raise self._error_factory(f"Edge '{self._edge_type}' did not resolve exactly one source and target endpoint")
         with self._driver.session() as session:
             result = session.run(self._query, rows=rows, concurrency=self._concurrency, batch_size=self._batch_size)
