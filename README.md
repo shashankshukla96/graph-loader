@@ -231,6 +231,8 @@ topics, with `order_by` or `precedence` conflict rules).
 
 ## Development
 
+* Development dependencies: `python -m pip install -r requirements-dev.txt`
+  (includes runtime dependencies and the IMDb example tools).
 * Unit tests: `make test-unit` (runs `tests` and `examples/imdb/tests`, excluding integration and smoke).
   Docker-backed smoke tests for the local stack: `python -m pytest tests/test_dev_environment.py -v -m smoke`.
 * Opt-in end-to-end tests run against your developer stack and need

@@ -1,9 +1,8 @@
-# Development and CI tooling. Not installed into any loader image
-# (Dockerfile.node_loader / Dockerfile.edge_loader / Dockerfile.clock
-# install only requirements.txt).
+# Complete development/test environment, including the IMDb example tests.
+# Loader images install only requirements.txt.
+-r requirements.txt
+-r examples/imdb/requirements.txt
+pytest>=8.0,<10
+testcontainers[neo4j,kafka]>=4.8,<5
 ruff==0.16.9
 actionlint-py==1.7.12.25
-# make validate-workflows' yaml.safe_load pass needs PyYAML. requirements.txt
-# already pins pyyaml>=6.0 for the loader images, but a dev-tooling target
-# should not silently depend on the production requirements file too.
-pyyaml>=6.0

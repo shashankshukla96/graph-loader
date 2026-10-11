@@ -1,3 +1,4 @@
-# Optional local tooling for examples/imdb/build_subset.py.
-# Kept outside the production loader image dependencies.
-pandas>=2.2
+# Install alongside the root requirements.txt for the complete IMDb example.
+# These tools are not needed by the production loader containers.
+pandas>=2.2,<3
+python-dotenv>=1.0,<2

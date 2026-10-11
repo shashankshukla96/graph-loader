@@ -1,11 +1,11 @@
-pytest>=8.0
-testcontainers[neo4j,kafka]>=4.8
+# Runtime dependencies for the CLI and loader containers (Python 3.12).
 neo4j>=5.20,<7
-confluent-kafka>=2.5
-pydantic>=2.7
-pyyaml>=6.0
-docker>=7.1.0
-python-dotenv>=1.0
-neo4j-rust-ext
-numpy>=1.26
-prometheus_client>=0.20
+confluent-kafka>=2.5,<3
+pydantic>=2.7,<3
+PyYAML>=6.0,<7
+docker>=7.1.0,<8
+# The extension selects an exactly matching Neo4j driver version.
+# Keep both dependencies below driver 7: transaction fencing relies on <7.
+neo4j-rust-ext>=5.20,<7
+numpy>=1.26,<3
+prometheus-client>=0.20,<1
