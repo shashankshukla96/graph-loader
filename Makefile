@@ -1,4 +1,4 @@
-.PHONY: dev dev-down dev-logs lint test-unit build-images validate-workflows stress-100k stress-1m
+.PHONY: dev dev-down dev-logs lint test-unit build-images stress-100k stress-1m
 
 dev:
 	@bash scripts/start_dev.sh
@@ -23,10 +23,6 @@ build-images:
 	docker build -f Dockerfile.node_loader -t graph-loader-node:$(IMAGE_TAG) .
 	docker build -f Dockerfile.edge_loader -t graph-loader-edge:$(IMAGE_TAG) .
 	docker build -f Dockerfile.clock -t graph-loader-clock:$(IMAGE_TAG) .
-
-validate-workflows:
-	python3 -c "import yaml, glob; [yaml.safe_load(open(f, encoding='utf-8')) for f in glob.glob('.github/workflows/*.yml')]"
-	actionlint
 
 .PHONY: monitoring-up monitoring-down monitoring-validate
 
@@ -82,7 +78,7 @@ monitoring-validate:
 
 .PHONY: stress-100k stress-1m
 
-# Phase 6 Slice 4: star-topology stress tiers (tests/stress/). Both need
+# Star-topology stress tiers (tests/stress/). Both need
 # scratch/throwaway Neo4j + Kafka via testcontainers -- never the shared
 # graph-loader-neo4j/graph-loader-kafka containers.
 stress-100k:

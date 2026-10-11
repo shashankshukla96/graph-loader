@@ -1,21 +1,11 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# There is no tests/__init__.py, no root conftest.py, and no installed/
-# editable package, so `from src...` imports inside test modules only
-# resolve when the repo root is on sys.path. `python -m pytest` gets that
-# for free; a bare `pytest` invocation does not (pytest's default prepend
-# import mode only puts each test file's own containing directory, here
-# `tests/`, on sys.path). Set it explicitly so bare `pytest`, IDE test
-# runners, and `python -m pytest` all behave the same way, and a future
-# bare-`pytest` invocation (in a Makefile target, CI step, or a
-# contributor's shell) can't silently reintroduce
-# "ModuleNotFoundError: No module named 'src'" (found while validating
-# P6-S1's CI workflows in a fresh venv).
+# Keep repository imports consistent in pytest, python -m pytest and IDEs.
 pythonpath = ["."]
 markers = [
     "smoke: environment smoke tests (require docker compose up)",
     "integration: integration tests against a live database",
-    "stress: heavyweight star-topology/hub-node scale tests under tests/stress/ (opt-in via -m stress, or run as part of -m integration in the advisory CI job at the 100k tier; the 1M tier additionally requires GRAPH_LOADER_STRESS_SCALE=1000000)",
+    "stress: heavyweight star-topology/hub-node scale tests under tests/stress/ (requires Docker; the 1M tier additionally requires GRAPH_LOADER_STRESS_SCALE=1000000)",
     "real_stream_groups: keep the real src.cli._prepare_stream_consumer_groups (tests/conftest.py stubs it for unit tests)",
 ]
 
@@ -23,14 +13,7 @@ markers = [
 target-version = "py312"
 
 [tool.ruff.lint]
-# Pyflakes (F) plus only the pycodestyle "E" codes that are actually
-# clean on this tree, selected explicitly rather than relying on ruff's
-# real default (effectively every rule category it ships, ~416 rules) or
-# on the commonly assumed "E4,E7,E9,F" shorthand. Once the ignore list
-# below removes the E7xx sub-codes that fire on this codebase's existing,
-# intentional style, the set of codes actually enforced is narrower than
-# that shorthand — this repo's lint baseline must pass without a reformat
-# (plan/v5-v6-orchestration.md, "Lint baseline").
+# Preserve the existing lint baseline without requiring a full reformat.
 select = [
     "E4",   # import syntax (E401 multiple-imports-on-line: 0 hits; E402 excluded below)
     "E7",   # statement/comparison style (most sub-codes excluded below; E711/E712/E713/E714/E721/E722/E703: 0 hits)

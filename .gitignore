@@ -9,4 +9,8 @@ build/
 *.egg-info/
 .venv/
 venv/
-var/neo4j/logs/
+# Runtime data, generated schemas, and rejection output stay local.
+/var/*
+!/var/rejections/
+/var/rejections/*
+!/var/rejections/.gitkeep

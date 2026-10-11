@@ -1,28 +1,26 @@
 # Changelog
 
-Changes on `feat/streaming-observability` relative to `main` (`git log main..HEAD`,
-2026-09-29 to 2026-10-01, 327 commits, code and docs as of `3d435be`). Nothing
-has been released under a version number yet. The CLI on `main` had only
-`start --mode {bulk,stream}` with `--config`, `--network`, `--skip-image-build`,
-`--bulk-timeout-seconds` and `--run-id`, plus `stop` and `status`; stream used the
-Phase 4 global batch clock and bulk used the classic APOC-locked loaders.
+## Unreleased
+
+No versioned release has been published. These notes describe the current
+implementation and changes from the original loader.
 
 See [docs/CLI.md](docs/CLI.md) for every current flag,
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together and
 [docs/USAGE.md](docs/USAGE.md) for the reference.
 
-## Upgrade notes / breaking changes
+### Upgrade notes / breaking changes
 
-Read these before upgrading a deployment that ran `main`, or any earlier build
-of this branch. Each item says what changed and what to do.
+Read these before upgrading from the original loader or an earlier development
+build. Each item says what changed and what to do.
 
-**Read first: `dead_letter` blocks that `main` ignored are now live.** `main`'s
+**Read first: `dead_letter` blocks that the original loader ignored are now live.** The original loader’s
 own `config/graph_schema.yaml` has `dead_letter` blocks with `enabled: true`
 that did nothing there. Now: a plain bulk start selects the lease mode (which
 needs `tx_timeout_ms >= 6000`); the DLQ, parking-lot and parked-pair-index
 topics are created; a stream run launches a retry consumer; and malformed
 records go to the DLQ instead of the rejection file. *What to do:* review every
-`dead_letter` block; set `enabled: false` to keep `main`'s behaviour.
+`dead_letter` block; set `enabled: false` to keep the original loader’s behaviour.
 
 1. **Planned is the bulk default.** `start --mode bulk` now loads relationships
    in planned mode (`--edge-plan` with every setting derived automatically): a
@@ -67,11 +65,11 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
    `--stream-group-member-wait-seconds S`), and a running fleet stops with exit 1
    (`stage=consumer-groups reason=foreign_members`) if another member joins.
    *What to do:* stop the old fleet first, then find its run id `R` (the old
-   containers' `run_id` label, or `kafka-consumer-groups --list`; `main` used a
-   random UUID per start, so it is not predictable). Fleets from `main` (the
+   containers' `run_id` label, or `kafka-consumer-groups --list`; the original loader used a
+   random UUID per start, so it is not predictable). Fleets from the original loader (the
    clock-rotation path, groups `<R>.shared.0.<h>` / `<R>.isolated.<i>.<h>`): start
    once with `--stream-clock-rotation --run-id <R>`, then drop both flags.
-   Earlier lease-fleet builds of this branch: `--run-id <R>` alone is enough. The
+   Earlier lease-fleet builds: `--run-id <R>` alone is enough. The
    CLI copies the old groups' offsets once (only offsets inside the partition's
    current range, never over an existing commit) and logs
    `reason=migrated_legacy_offsets`. Without `--run-id` nothing is migrated and a
@@ -133,14 +131,16 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
     `--bucket-lease-buckets`, `--bucket-lease-outer-batch-size` and
     `--bucket-lease-keyed-max-nodes`; update scripts (an alias and its new name
     with different values is an error).
-12. **Local Docker stack changes.** `docker-compose.yaml` now pins Neo4j to CPUs
+12. **Local Docker stack changes.** Without environment overrides, Compose pins Neo4j to CPUs
     `0-7` (heap 8G, page cache 12G) and Kafka to CPUs `8-11` (4g), and stores data
     under `${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}` as bind mounts (Neo4j logs
     move to `${GRAPH_LOADER_DATA_DIR}/neo4j/logs`; `NEO4J_AUTH` is hard-coded to
     `neo4j/${NEO4J_PASSWORD}`) instead
     of named volumes (so `docker compose down -v` no longer removes it). Existing
     named-volume data is not migrated. *What to do:* set the `NEO4J_*`/`KAFKA_*`
-    sizing and `GRAPH_LOADER_DATA_DIR` in `.env` for your machine. `make
+    sizing and `GRAPH_LOADER_DATA_DIR` in `.env` for your machine. The current
+    `.env.example` uses local `./var/data`, smaller memory values and blank CPU
+    sets to disable pinning. `make
     build-images` (new) tags `:latest`, the CLI default (`IMAGE_TAG=x` plus the
     `GRAPH_LOADER_*_IMAGE` variables to override).
 13. **Other visible behaviour.** All containers run with `init`, so a SIGTERM
@@ -178,26 +178,26 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
     message when Docker is unreachable; `GRAPH_LOADER_VERSION` is forwarded to
     containers; the `--run-id` help text now describes its real scope.
 
-## Phase 5: streaming resilience
+### Streaming resilience
 
-* **Bucket-lease streaming (P5-S1).** The bucket-lease coordinator becomes
+* **Bucket-lease streaming.** The bucket-lease coordinator becomes
   streaming's default zero-wait mechanism: settings renamed `bucket_lease_*`;
   server-side generation token; client reconnect with bounded backoff; abort,
   never commit, on a broken lease connection; supervised, restartable, run-scoped
   lease server (`bucket_lease` settings for health checks, restart count and
   backoff); stream relationship loaders and, later, stream node loaders write
   through it. The clock path is deprecated (`--stream-clock-rotation`).
-* **Dead-letter queue (P5-S2).** Opt-in `dead_letter` block per node label and
+* **Dead-letter queue.** Opt-in `dead_letter` block per node label and
   relationship type: envelope codec, DLQ producer and topic auto-creation, node
   and edge loaders route malformed records to the DLQ, CLI provisions DLQ topics
   before launch, and a new **`replay-dlq`** command republishes envelopes
   (`--reason-code`, `--since`, `--until`, `--limit`, `--target-topic`, `--dlq-topic`,
   `--dry-run`). Without `dead_letter` the fsync'd rejection file remains.
-* **Row-level DLQ for missing endpoints (P5-S3).** Edge-before-node rows go to
+* **Row-level DLQ for missing endpoints.** Edge-before-node rows go to
   the DLQ row by row with a two-attempt write and `retry_after_ms` (envelope v2,
   v1 still decoded). With `dead_letter.enabled: true` only: always on in stream; in bulk classic/lease only with
   `dead_letter.route_missing_endpoints_in_bulk`; never in planned mode.
-* **Retry consumer and parking lot (P5-S4).** A fleet-wide retry consumer
+* **Retry consumer and parking lot.** A fleet-wide retry consumer
   (`--retry-consumer-replicas`, default 1) retries DLQ rows with backoff under
   leases and parks them after `dead_letter.max_retry_attempts` in a parking-lot
   topic (`replay-dlq --parked`). The parked-pair index keeps a newer record of a
@@ -209,28 +209,26 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
 * **Stable stream consumer groups** and the fenced BEGIN (see upgrade notes 4
   and 5), plus `LEASE_MERGE_ROWS` passthrough and a lease restart-count reset.
 
-## Phase 6: observability and hardening
+### Observability and hardening
 
-* **CI (P6-S1).** Blocking CI workflow (lint, unit tests, image builds), advisory
-  nightly/manual integration workflow, local workflow validation.
-* **Metrics (P6-S2).** Prometheus endpoint per process (`GRAPH_LOADER_METRICS_*`,
+* **Metrics.** Prometheus endpoint per process (`GRAPH_LOADER_METRICS_*`,
   default port 9464), CLI/orchestrator host-side metrics, periodic atomic
   snapshots (`GRAPH_LOADER_METRICS_SNAPSHOT_*`), the `graph_loader_dlq_backlog`
   gauge (split by `queue`: `dlq` or `parked`), opt-in
   `GRAPH_LOADER_METRICS_BIND_ADDR` for the CLI endpoint.
-* **Monitoring stack (P6-S3).** Prometheus Docker service discovery, example
+* **Monitoring stack.** Prometheus Docker service discovery, example
   alert rules, a Prometheus + Grafana Compose profile and starter dashboard,
   `scripts/validate_monitoring.py`, `make monitoring-up|down|validate`, and
   [docs/MONITORING.md](docs/MONITORING.md).
-* **Stress and regression tests (P6-S4).** Star-topology stress tests proving zero
-  lock waits in planned and lease modes (100k tier and a 1M nightly tier),
+* **Stress and regression tests.** Star-topology stress tests proving zero
+  lock waits in planned and lease modes (100k and opt-in 1M tiers),
   correctness regressions across the three bulk modes.
-* **Graceful shutdown (P6-S5).** One CLI-wide SIGINT/SIGTERM handler for bulk and
+* **Graceful shutdown.** One CLI-wide SIGINT/SIGTERM handler for bulk and
   stream, no orphaned node containers, monitors that abort promptly, normalised
   exit codes for loaders and writers, an operator guide ("Stopping a run safely"
   in USAGE).
 
-## Planned mode, lease mode and external planner (before Phase 5/6)
+### Planned mode, lease mode and external planner
 
 * New bulk relationship modes: **`--edge-plan`** (globally planned node-disjoint
   chunks, dispatcher, writer pool, completion ledger, library planner with
@@ -249,7 +247,7 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
 * Infrastructure: configurable `NEO4J_DATABASE`, `LOADER_CPUSET`, pinned CPUs for
   Neo4j and Kafka, Neo4j query-log rotation config, CSV metrics.
 
-## v7: multi-topic and multi-pair relationship types
+### Multi-topic and multi-pair relationship types
 
 * **Several topics per relationship type** (`topics:`), with a conflict rule per
   type: `order_by` (newest value wins, every mode), `precedence` (later-listed
@@ -268,9 +266,9 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
 * **Bulk default is planned**, with `--edge-classic` (see upgrade note 1).
 * Per-type lag panels and alerts, DLQ envelope and parked-pair-index admission
   panels, `examples/multi_topic` (single-pair and multi-pair schemas), docs YAML
-  snippet test (`tests/test_docs_yaml_snippets.py`), and Docker proof harnesses.
+  snippet test (`tests/test_docs_yaml_snippets.py`).
 
-## Post-test fixes
+### Reliability fixes
 
 * **Shutdown robustness:** `init=True` containers (a SIGTERM during startup is
   not lost); a `409 removal already in progress` is treated as success during
@@ -293,3 +291,24 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
   with a quick start, [CLI reference](docs/CLI.md),
   [architecture](docs/ARCHITECTURE.md), [history](docs/HISTORY.md) and this
   changelog.
+
+### Repository maintenance
+
+* Runtime dependencies are separate from development/test tools; install
+  `requirements-dev.txt` for tests and lint, or the IMDb example requirements
+  alongside `requirements.txt` for its publisher and dataset builder.
+* Python 3.12 is used by all loader images and the lint configuration.
+* `.env.example` distinguishes host and container connections, provides local
+  data and memory defaults, and removes unused settings. Blank CPU sets now
+  disable Compose CPU pinning.
+* Planning and implementation records and authoring workflows are retained on
+  `codex/implementation-archive`. Generated `var/` output stays local.
+* GitHub Actions workflows are not included in the current tree; validation
+  commands are documented in [USAGE](docs/USAGE.md#13-development-and-validation).
+
+### Known limitation
+
+Retry-consumer resolution memory does not survive a process restart. Under
+`arrival` ordering, redelivered parked records can overwrite newer values.
+Declare `order_by` to prevent stale property writes; durable resolution markers
+are not implemented. See [USAGE](docs/USAGE.md) for the full retry limitations.

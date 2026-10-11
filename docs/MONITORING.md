@@ -4,8 +4,7 @@ Related docs: [CLI reference](CLI.md), [Architecture](ARCHITECTURE.md), [Changel
 
 An optional, local Prometheus + Grafana stack that discovers every
 loader/writer/dispatcher/lease-server/clock container on `graph-loader-net`
-by Docker label, scrapes the metrics endpoints P6-S2 (`docs/USAGE.md` §8)
-already exposes, and provides a starter dashboard and a set of example
+by Docker label, scrapes the loader metrics endpoints ([USAGE](USAGE.md) §8), and provides a starter dashboard and a set of example
 alert rules.
 
 **What this is not:** a production-grade, long-lived, multi-tenant
@@ -34,21 +33,17 @@ This guide covers:
 - **Grafana** (`grafana/grafana-oss:11.3.1`) is pre-provisioned with the
   Prometheus datasource and one starter dashboard; no manual click-through
   setup.
-- **No Pushgateway.** The original epic text proposed one for bulk runs
-  shorter than a scrape interval; the orchestrator's P6-Q1 decision drops
-  it entirely (`plan/v5-v6-orchestration.md`). Bulk-run durability for a
-  container shorter than one scrape interval is already solved by P6-S2
-  Story 9's periodic + exit-time snapshot — **if `GRAPH_LOADER_TIMING_DIR` is set** —
-  into that directory (filename pattern
-  `metrics-<kind>[-<name>][-<replica>].prom`, Prometheus text format,
-  per `docs/USAGE.md`'s own wording) — this stack does live pull
-  scraping only.
+- **No Pushgateway.** This stack uses live pull scraping. For containers
+  shorter-lived than a scrape interval, periodic and exit-time snapshots
+  preserve metrics when `GRAPH_LOADER_TIMING_DIR` is set. Files use
+  `metrics-<kind>[-<name>][-<replica>].prom` in Prometheus text format;
+  see [USAGE](USAGE.md).
 - **Off by default.** `docker compose up` alone never starts Prometheus or
   Grafana; this file's containers are defined in a separate override file,
   `docker-compose.monitoring.yml`, never referenced by the base
   `docker-compose.yaml`.
 - **Prometheus down never affects a load.** Every loader/writer/dispatcher
-  process's metrics HTTP server (P6-S2) never blocks or crashes if nobody
+  process's metrics HTTP server never blocks or crashes if nobody
   scrapes it. Prometheus is a pull-based, passive observer: it calls out to
   loader containers; no loader container calls in to Prometheus, waits on
   a shared volume, or blocks on Prometheus's liveness in any way.
@@ -176,7 +171,7 @@ than silently papering over a future divergence.
 IP — Prometheus, itself a container on `graph-loader-net`, reaches every
 target directly over that network. It never uses the host-published
 `127.0.0.1:<ephemeral>` port mapping (`ports={"9464/tcp": ("127.0.0.1",
-None)}`) that P6-S2 also adds — that mapping is for a human on the host to
+None)}`) that the Docker launcher adds — that mapping is for a human on the host to
 `curl` one container directly, a different consumer of the same port.
 
 **Port note.** The metrics port is **9464**
@@ -195,7 +190,7 @@ never happens today; it is not itself read from the Docker label.
 whose total lifetime is shorter than `refresh_interval + scrape_interval`
 (2s + 3s = under ~5s here) can legitimately exit and be reaped before
 Prometheus ever discovers it. Its only durable record in that case is
-P6-S2 Story 9's periodic + exit-time `.prom` snapshot file, not a Prometheus series at
+the loader's periodic + exit-time `.prom` snapshot file, not a Prometheus series at
 all. This stack's tuning is chosen so the documented IMDb 20k-seed bulk run
 (~60s end-to-end, `docs/USAGE.md` §9) gets many scrapes per container — not
 to guarantee every possible run shape is seen live.
@@ -207,7 +202,7 @@ the separate `graph-loader-cli` host-gateway job that targets it.
 
 ## 4. Cardinality budget
 
-P6-S2's own metric-label budget is bounded by schema size (label/type
+The loader's metric-label budget is bounded by schema size (label/type
 count), never by record volume, and deliberately excludes `run_id` from
 every *metric* label — a long-lived Prometheus server scraping many runs
 over weeks would otherwise accumulate one time series per historical
@@ -216,14 +211,14 @@ over weeks would otherwise accumulate one time series per historical
 This stack adds `run_id` back as a **target** label (via Docker SD
 relabeling, §3 point 4), not a metric label: it is a disposable, local,
 short-retention stack (48h default, `MONITORING_RETENTION`), not the
-long-lived production backend P6-S2's decision was written against. The
+long-lived production backend the metrics design targets. The
 growth this adds is bounded by *concurrently running or recently-retained*
 runs within the retention window, not by history.
 
 **If you run this stack long-lived in a shared environment:** delete the
 `run_id` relabel rule (the `source_labels`/`target_label` pair for
 `run_id`, two lines) in `monitoring/prometheus/prometheus.yml` to
-reproduce P6-S2's own metric-label discipline at the target-label level
+reproduce the loader's metric-label discipline at the target-label level
 too. Doing so also empties the dashboard's `run_id` template variable and
 breaks the `{{ $labels.run_id }}` annotations and `by (le, run_id)`
 grouping in `alerts/lag_and_errors.yml`/`alerts/concurrency.yml`/
@@ -460,7 +455,7 @@ proxies.
 
 ## 7. Known limitations
 
-- **No Pushgateway.** See §1; P6-S2's periodic + exit-time `.prom` snapshot is the
+- **No Pushgateway.** See §1; the loader's periodic + exit-time `.prom` snapshot is the
   durable record for a run shorter than a scrape interval.
 - **DLQ backlog is edge-only and retry-consumer-scoped** (§6): there is
   no depth metric for a node DLQ, and no per-topic depth for anything else;
@@ -468,8 +463,7 @@ proxies.
 - **`graph_loader_consumer_lag_records` and the planner series
   (`graph_loader_planner_rows_read_total`,
   `graph_loader_planner_chunks_published_total`) are CLI-only, and
-  scraping them needs one opt-in step every other series doesn't (found
-  during P6-S3, closed during P6-S5).** These are emitted only by the
+  scraping them needs one opt-in step every other series doesn't.** These are emitted only by the
   host-side CLI process, whose metrics server binds `127.0.0.1` on the
   *host* by default — Docker service discovery (the `graph-loader` job)
   never finds it, and a bridge-networked Prometheus container cannot
@@ -502,16 +496,14 @@ proxies.
     unscraped by this stack exactly as before this option existed, with
     the three consumer-lag alert rules and the dashboard's consumer-lag
     panel still annotated as dead-by-default for the same reason.
-    (P6-S5 Story 6 added a test proving a SIGTERM-driven stream run
-    leaves a parseable `metrics-cli.prom` snapshot.)
+    A SIGTERM-driven stream run also leaves a parseable `metrics-cli.prom` snapshot.
 - **The planned dispatcher's control port (7701) is only ever the
   default** in this codebase today — see §3's known gap if that ever
   changes.
 - **`docker compose ... config` does not check that `graph-loader-net`
   exists** — only `docker compose ... up` does (verified empirically).
   Don't rely on `config` to catch a missing base stack.
-- **This slice never claims "every short-lived container is always
-  scraped"** — see §3's scrape-vs-container-lifetime boundary.
+- **Short-lived containers can exit before being scraped** — see §3's scrape-vs-container-lifetime boundary.
 - **These Makefile targets are Linux-host-only** (§5's `DOCKER_GID` note).
 - **Containers launched on a network other than `graph-loader-net` are
   silently dropped**, not shown as an error anywhere (§3's discovery

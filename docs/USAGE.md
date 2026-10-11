@@ -26,7 +26,7 @@ This guide covers everything a library user needs:
 10. [Operations: reruns, cleanup, failures](#10-operations-reruns-cleanup-failures)
 11. [Troubleshooting](#11-troubleshooting)
 12. [Limitations](#12-limitations)
-13. [Continuous integration](#13-continuous-integration)
+13. [Development and validation](#13-development-and-validation)
 
 For a five-minute version see the top-level [README](../README.md#quick-start-about-5-minutes);
 for complete runnable examples see [`examples/`](../examples/README.md).
@@ -84,19 +84,20 @@ Related docs: [CLI.md](CLI.md) (command and flag reference),
 ### Local services
 
 `docker compose up -d neo4j kafka` starts both services from
-[`docker-compose.yaml`](../docker-compose.yaml). Their resources are pinned so
-that loader containers cannot compete with the database. Each setting can be
-overridden with an environment variable (or in `.env`):
+[`docker-compose.yaml`](../docker-compose.yaml). The defaults below target a larger benchmark host. `.env.example` overrides
+them with smaller memory values, local `./var/data` storage, and blank CPU
+sets that disable pinning. Each setting can be overridden in the environment
+or in `.env`:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `NEO4J_CPUSET` | `0-7` | CPUs reserved for Neo4j |
+| `NEO4J_CPUSET` | `0-7` | CPUs reserved for Neo4j; empty disables pinning |
 | `NEO4J_HEAP_SIZE` | `8G` | Neo4j JVM heap (initial = max) |
 | `NEO4J_PAGECACHE_SIZE` | `12G` | Neo4j page cache |
 | `NEO4J_METRICS_INTERVAL` | `5s` | CSV metrics interval (GC, heap, page cache, transactions) |
 | `NEO4J_QUERY_LOG_ROTATION_SIZE` / `NEO4J_QUERY_LOG_KEEP_FILES` | `512 MB` / `20` | Query-log rotation size (e.g. `512 MB`) / files kept. Neo4j 5 has no rotation settings, so `config/neo4j/server-logs.xml` (mounted read-only at `/graph-loader-conf/server-logs.xml` and selected via `server.logs.config`; mounting into `conf/` breaks the entrypoint's chown) applies them to `query.log`; its defaults of 20 MB x 7 rotate lock-wait evidence away within minutes of a bulk run. Needs a Neo4j container restart to change |
 | `NEO4J_QUERY_LOG_PARAMETERS` | `true` | `db.logs.query.parameter_logging_enabled`; set `false` for very large runs to shrink the query log |
-| `KAFKA_CPUSET` | `8-11` | CPUs reserved for Kafka |
+| `KAFKA_CPUSET` | `8-11` | CPUs reserved for Kafka; empty disables pinning |
 | `KAFKA_MEM_LIMIT` / `KAFKA_HEAP_OPTS` | `4g` / `-Xms2g -Xmx2g` | Kafka memory |
 | `GRAPH_LOADER_DATA_DIR` | `/mnt/graph-loader/data` | Host directory for Neo4j and Kafka data |
 | `KAFKA_EXTERNAL_HOST` | `localhost` | Address Kafka advertises to host clients |
@@ -178,11 +179,11 @@ edges:
 | `retry_max_attempts`, `retry_base_delay_ms`, `retry_max_delay_ms` | `3`, `100`, `5000` | Retry of retryable Neo4j errors for node writes |
 | `max_poll_interval_ms`, `session_timeout_ms`, `heartbeat_interval_ms` | `300000`, `45000`, `500` | Kafka consumer settings |
 | `rejection_log_path` | `var/rejections/node-loader.jsonl` | Where node loaders record malformed records |
-| `coordination` | see code | **Deprecated.** Settings of the Phase 4 global batch clock (topic, buckets, slot and lease timings); read only by the deprecated `--stream-clock-rotation` path, ignored by the default bucket-lease fleet |
+| `coordination` | see code | **Deprecated.** Settings of the legacy global batch clock (topic, buckets, slot and lease timings); read only by the deprecated `--stream-clock-rotation` path, ignored by the default bucket-lease fleet |
 | `bucket_lease`, `retry_consumer`, `coordination` | see code | These three blocks reject unknown keys: a typo such as `retry_consumer.poll_timeout` (for `poll_timeout_ms`) fails the schema load with "Extra inputs are not permitted" instead of being silently ignored. `loading` itself, `dead_letter`, the edge-level `mix_and_batch`, `retry` and `execution` blocks, and `topics` entries (`TopicEndpoints`) do the same. (The `nodes[]` and `edges[]` entries themselves, and `properties`, do not reject unknown keys) |
 | `bucket_lease.tx_timeout_ms`, `.expected_chunk_commit_ms`, `.restart_quiet_margin_ms`, `.reconnect_timeout_ms` | `30000`, `1000`, `5000`, `60000` | Fencing and lease-server restart timing (section 12). `tx_timeout_ms` (`T`, 1000–600000, at least 10 x `expected_chunk_commit_ms`) is the Neo4j transaction timeout: leased writes get at most `T` minus 4 s (fenced BEGIN), planned and other unleased writes get the flat `T`. It **must be at least 6000 in the lease modes** (stream, `--edge-leases`, and the bulk lease mode chosen because of `dead_letter`); the check is not applied under `--stream-clock-rotation`; `restart_quiet_margin_ms` is at least 2000; `reconnect_timeout_ms` `0` means unbounded. `reconnect_timeout_ms + T + (T + margin)` must stay under `max_poll_interval_ms - 5000` unless `reconnect_timeout_ms` is `0` |
 | `bucket_lease.max_consecutive_restarts`, `.restart_count_reset_ms` | `5`, `600000` | Streaming-only: the run fails after this many consecutive lease-server restarts. A restarted server that stays running for `restart_count_reset_ms` after its quiet period `Q` resets the count (and the restart backoff), so deaths far apart never add up to the cap |
-| `retry_consumer.poll_timeout_ms`, `.backlog_check_interval_ms`, `.due_batch_coalesce_ms` | `500`, `10000`, `200` | Streaming-only (P5-S4): the retry consumer's Kafka `poll()` timeout, how often it recomputes `graph_loader_dlq_backlog`, and how long it waits after a tick's first due record before writing, so near-simultaneous due records from other partitions can join the same batch |
+| `retry_consumer.poll_timeout_ms`, `.backlog_check_interval_ms`, `.due_batch_coalesce_ms` | `500`, `10000`, `200` | Streaming-only: the retry consumer's Kafka `poll()` timeout, how often it recomputes `graph_loader_dlq_backlog`, and how long it waits after a tick's first due record before writing, so near-simultaneous due records from other partitions can join the same batch |
 | `retry_consumer.max_records_per_partition`, `.max_batch_records`, `.write_workers` | `1000`, `2000`, `4` | Streaming-only: retry drain throughput. A DLQ partition may hold up to `max_records_per_partition` due, unresolved records (held records do not pause it; it is paused only at that bound); `max_batch_records` due records flush a batch at once instead of waiting out `due_batch_coalesce_ms` (and cap the records read per poll tick); `write_workers` is the number of concurrent lease-holding write threads per edge type, per label pair for a type of several label pairs (live-fleet mode: up to pairs x `write_workers`; standalone mode writes `mix_and_batch.batch_size`-row transactions sequentially). Each edge type's due records are written as one batch, then re-DLQ'd/parked/blocked with one producer flush and one parked-pair-index flush, and each partition's offset is committed once, below its lowest unresolved record |
 | `retry_consumer.max_overflow_held_per_partition` | `null` (= 10 x `max_records_per_partition`) | Streaming-only (v7-S4): how many rows blocked behind an earlier row of their pair one DLQ partition may hold locally *beyond* `max_records_per_partition`. These overflow holds stay outstanding (the commit never passes them) but do not count towards the pause, so the partition keeps fetching its roots' next copies; beyond this bound a blocked row is re-published (a DLQ copy). Each held row keeps its envelope in memory, so the worst case per DLQ partition is (`max_records_per_partition` + this value) x the envelope size (up to the 8 MiB envelope cap; typically a few KiB); budget the retry consumer's memory for that times its assigned partitions. `0` disables overflow holds |
 
@@ -207,7 +208,7 @@ loading:
 | `key_property` | Property used to `MERGE` nodes; must be declared under `properties` with `required: true` |
 | `replicas` | Node-loader containers for this label. When omitted in bulk mode: 1 if the topic holds fewer than 10,000 records, otherwise one per partition up to 8 |
 | `properties` | Map of property name to `{type, required, constraint, index}` |
-| `dead_letter` | Optional `{topic, enabled}`. Opts this label into DLQ routing for malformed records (Phase 5 Slice 2); see the dead-letter section below. Omitted (the default): malformed records keep going to `rejection_log_path`, unchanged. `max_retry_attempts`, `parked_topic` and `route_missing_endpoints_in_bulk` are relationship-only and are **rejected** on a node when set to a non-default value (an explicit default loads) |
+| `dead_letter` | Optional `{topic, enabled}`. Opts this label into DLQ routing for malformed records; see the dead-letter section below. Omitted (the default): malformed records keep going to `rejection_log_path`, unchanged. `max_retry_attempts`, `parked_topic` and `route_missing_endpoints_in_bulk` are relationship-only and are **rejected** on a node when set to a non-default value (an explicit default loads) |
 
 ### `edges[]` fields
 
@@ -220,7 +221,7 @@ loading:
 | `source_key_property`, `target_key_property` | Must be the key property of the respective label (likewise per `topics` mapping entry) |
 | `properties` | Relationship properties, same format as node properties |
 | `replicas`, `mix_and_batch`, `retry`, `execution` | Tuning of the per-type loaders. Classic uses all of them (including `mix_and_batch.lane_count` and the slot timings, which exist only for classic and `--stream-clock-rotation`). Lease modes use `replicas`, `execution.worker_count` and `mix_and_batch.batch_size`, but not `lane_count`. Planned mode ignores them. Planned, lease and stream modes require `execution.mode: python_apoc` (`native_disjoint` needs `--edge-classic`) |
-| `dead_letter` | Optional `{topic, enabled, max_retry_attempts, parked_topic, route_missing_endpoints_in_bulk}`. Opts this type into DLQ routing for malformed records (Phase 5 Slice 2), for both the classic and bucket-lease relationship loaders, in bulk and stream mode; planned mode ignores it and keeps failing closed (see section 12). `max_retry_attempts`/`parked_topic` additionally opt into the retry consumer's bounded-attempts/parking-lot mechanism (Phase 5 Slice 4) — but that consumer is **streaming-only**: the bucket-lease fleet launches it automatically (section 5.3); bulk's own opt-in DLQ routing (`route_missing_endpoints_in_bulk`) has no automatic retry consumer at all (see section 10's non-goal note) |
+| `dead_letter` | Optional `{topic, enabled, max_retry_attempts, parked_topic, route_missing_endpoints_in_bulk}`. Opts this type into DLQ routing for malformed records, for both the classic and bucket-lease relationship loaders, in bulk and stream mode; planned mode ignores it and keeps failing closed (see section 12). `max_retry_attempts`/`parked_topic` additionally opt into the retry consumer's bounded-attempts/parking-lot mechanism — but that consumer is **streaming-only**: the bucket-lease fleet launches it automatically (section 5.3); bulk's own opt-in DLQ routing (`route_missing_endpoints_in_bulk`) has no automatic retry consumer at all (see section 10's non-goal note) |
 | `order_by` | Optional; names one of this type's own declared `properties`. The *alternative* to the parked-pair index (section 3): a conditional `SET` writes a row for a pair only when its `order_by` value is strictly newer than what is already stored (a tie is a no-op, not an overwrite), instead of blocking later rows of the same pair. Requires that property to be declared under `properties` — a validator rejects any other name |
 
 ```yaml
@@ -514,7 +515,7 @@ because a drained DLQ still holds its records until it is deleted. If the old
 topic must stay (kept for audit, or `<type>.dlq` belongs to another deployment
 on a shared cluster), pass `start --accept-former-dlq <topic>` (repeatable).
 
-**Release note.** `main` has no models that forbid unknown keys. Unknown keys are now refused (N2) in `loading` and its blocks, `dead_letter`, `mix_and_batch`, `retry`, `execution` and `topics` mapping entries (not in the `nodes[]`/`edges[]` entries or `properties` themselves). An older image reading a
+**Release note.** The original loader silently ignored unknown keys. Unknown keys are now refused in `loading` and its blocks, `dead_letter`, `mix_and_batch`, `retry`, `execution` and `topics` mapping entries (not in the `nodes[]`/`edges[]` entries or `properties` themselves). An older image reading a
 schema that uses `topics` fails at load only because the required `topic` is missing, and
 it silently ignores `topic_conflict`; upgrade every image before using them. No field has ever been removed, so existing
 schemas load unchanged.
@@ -573,8 +574,8 @@ dead_letter:
   enabled: true     # default true once the block is present; false keeps the file fallback
   topic: my-dlq      # optional; defaults to "<this entity's topic>.dlq" ("<type>.dlq" for a type with 2+ topics)
   route_missing_endpoints_in_bulk: true  # edges only; see "Row-level missing-endpoint DLQ" below
-  max_retry_attempts: 8   # edges only, P5-S4; permanently park after this many DLQ cycles
-  parked_topic: my-dlq.parked  # edges only, P5-S4; optional, defaults to "<resolved DLQ topic>.parked"
+  max_retry_attempts: 8   # edges only; permanently park after this many DLQ cycles
+  parked_topic: my-dlq.parked  # edges only; optional, defaults to "<resolved DLQ topic>.parked"
 ```
 
 `max_retry_attempts` and `parked_topic` require `dead_letter.enabled: true` (the
@@ -622,7 +623,7 @@ above (`failure_class` is `missing_endpoint` or `ambiguous_endpoint`, never
   `edge_planner.py` is touched by this mechanism.
 * **`native_disjoint` execution mode is not supported by row-level DLQ, and
   is also incompatible with bucket leases and planned mode at all** (a
-  pre-existing P5-S1 rule, not new here): bucket-lease mode — streaming's
+  existing lease rule, not new here): bucket-lease mode — streaming's
   default, or bulk `--edge-leases` — and planned mode require
   `execution.mode: python_apoc`. The CLI refuses any other value, including
   `native_disjoint`, at `start` before any container launches (`... requires
@@ -660,7 +661,7 @@ above (`failure_class` is `missing_endpoint` or `ambiguous_endpoint`, never
   replay's partition assignment may differ from the original message's,
   which is safe because the loader never parses a relationship message's
   key, only its value.
-* **Same-pair ordering, now spans every flush (P5-S4).** If an earlier row
+* **Same-pair ordering, now spans every flush.** If an earlier row
   (by Kafka offset) of a `(source_key, target_key)` pair doesn't resolve,
   every later row of that *same pair* is parked too — even in a
   **different, later** flush, and even if the later row would resolve on
@@ -691,7 +692,7 @@ above (`failure_class` is `missing_endpoint` or `ambiguous_endpoint`, never
   no offsets and replays from Kafka — rows `1..k-1` publish *again* on that
   replay. Both are expected, not a bug, and both are safe for the Neo4j
   side of a batch, which is always idempotent `MERGE`. They are **not**
-  ordering-safe on their own, which is why the retry consumer (P5-S4)
+  ordering-safe on their own, which is why the retry consumer
   never replays a DLQ'd row blindly in receipt order: it checks the same
   `ParkedPairIndex` the live path writes to, by the row's own identity
   (`original_topic`/`original_partition`/`original_offset`), and skips a
@@ -1016,7 +1017,7 @@ other improvements. See [section 9](#9-performance-guide).
 | `--retry-consumer-replicas N` | `1` | Stream mode: replicas of the DLQ retry consumer (section 5.3) |
 | `--replace-stale-plan-topic` | off | With `--edge-plan` (no file) and an explicit `--run-id`: delete the run's `graph-loader-edge-chunks-<run id>` topic left behind by a `kill -9`ed run, but only if no container of that run is alive; otherwise the start is refused. Without the flag a leftover topic makes the start fail with an actionable error (use a new `--run-id`, or this flag) |
 | `--stream-group-member-wait-seconds S` | `session_timeout_ms` + 5 s | Stream mode: how long to wait for the members of a stable consumer group to expire before refusing to start (about 50 s with the default 45 s session timeout when another fleet is live; section 10, "Consumer groups and restarts") |
-| `--stream-clock-rotation` | off | **Deprecated, removed one release after `plan/v5/slice-1`.** With `--mode stream`, use the Phase 4 global batch clock and rotating/isolated-phase scheduling instead of the default bucket-lease fleet (section 5.1) |
+| `--stream-clock-rotation` | off | **Deprecated; scheduled for removal in a future release.** With `--mode stream`, use the legacy global batch clock and rotating/isolated-phase scheduling instead of the default bucket-lease fleet (section 5.1) |
 
 `--lease-buckets`, `--lease-outer-batch-size` and `--lease-keyed-max-nodes` are
 accepted as deprecated aliases for the `--bucket-lease-*` flags above, for one
@@ -1078,7 +1079,7 @@ On shutdown the CLI stops the edge loaders, then the node loaders (which drain
 only what they already hold), then the lease server. Node metrics use the
 existing catalogue (`graph_loader_lease_wait_seconds{kind="node"}`).
 
-**Deprecated escape hatch.** The Phase 4 global batch clock
+**Deprecated escape hatch.** The legacy global batch clock
 (`loading.coordination`) with rotating bucket leases and an isolated
 self-reference phase — streaming's *only* mechanism before this slice — is
 still available for one release via `--stream-clock-rotation`, reproducing
@@ -1640,7 +1641,7 @@ identical either way.
   current run. Scrape `/metrics` on `GRAPH_LOADER_METRICS_PORT` (or the
   ephemeral fallback port logged at `stage=metrics-ready`) for live values
   instead of relying on the snapshot while a process is still up.
-* **Lease-server metrics across a supervised restart (P5-S1):** every
+* **Lease-server metrics across a supervised restart:** every
   `graph_loader_lease_*` series (`kind="lease-server"`:
   `graph_loader_lease_grants_total`, `_denials_total`, `_wait_timeouts_total`,
   `_held_resources`, `_waiters`; `kind="edge"`: `graph_loader_lease_wait_seconds`)
@@ -1662,7 +1663,7 @@ identical either way.
   don't treat a raw counter delta as an exact count" caveat already noted for
   the DLQ counters (P5-Q5, section 10), extended here to say a restart can
   also *decrease* a counter's raw value.
-* **DLQ/retry/parking-lot metrics are now live (P5-S4).** Three series
+* **DLQ/retry/parking-lot metrics are now live.** Three series
   registered by earlier slices at "registered now, held at zero" (per
   P5-Q4/P6-Q1's convention, since nothing populated them yet) now
   actually move once the retry consumer runs: `graph_loader_dlq_backlog`
@@ -1679,7 +1680,7 @@ identical either way.
   Neo4j write metrics (`records_consumed`, `neo4j_write_duration_seconds`,
   `deadlocks_recovered`, `retry_total`, `dlq_routed_total`) stay under
   `kind="edge"` instead, since they describe edge writes regardless of
-  which process performed them. P5-S4 also added
+  which process performed them. The retry consumer also exposes
   `graph_loader_retry_stalled_seconds{kind="edge",name=<type>}`, the seconds
   that type's retry writes have been failing with nothing written (0 when
   healthy; see section 3's batched-draining notes and `docs/MONITORING.md`).
@@ -1759,12 +1760,11 @@ host (load1 2–26), so read the walls as ±10–20%; B was faster in every inte
 Bipartite loads such as IMDb get exactly the same `B` as before. Details:
 `bench/p0/selfref_buckets/RESULTS.md` in the benchmark workspace.
 
-**Streaming's lease-default vs. the deprecated clock/rotation path.** See
-[`plan/v5/completion_slice-1.md`](../plan/v5/completion_slice-1.md) for the
-scratch-cluster throughput comparison between `--mode stream`'s new
-bucket-lease default and the deprecated `--stream-clock-rotation` path on
-the same fixture data, plus the zero-lock-wait measurement methodology
-below applied to streaming specifically.
+**Streaming's lease default vs. the deprecated clock/rotation path.**
+The lease coordinator is the default stream scheduler. No at-scale stream
+benchmark is documented here; bulk timings should not be treated as stream
+throughput guarantees. Use the zero-lock-wait methodology below when
+comparing modes on your own fixture.
 
 ### Where the time goes
 
@@ -2380,26 +2380,25 @@ already been evicted from its group for exceeding `max_poll_interval_ms`.
   reporting is a structurally different mechanism) — `native_disjoint`
   cannot reach the *lease* branch at all, since bucket-lease mode requires
   `python_apoc` and the CLI refuses any other `execution.mode` at `start`
-  (the loader's `ExecutionModeError` is the backstop; pre-existing, P5-S1). It is also never active for the
+  (the loader's `ExecutionModeError` is the backstop). It is also never active for the
   deprecated `--stream-clock-rotation` streaming path (the only way
   streaming still reaches the classic, non-lease writer branch) — both
   keep today's exact fail-closed behavior regardless of
   `dead_letter`/`route_missing_endpoints_in_bulk`. The same-pair ordering
   guarantee now spans the whole run for a live, streaming, non-`order_by`
-  edge type (P5-S4's `ParkedPairIndex`, section 3) — it is still scoped to
+  edge type (`ParkedPairIndex`, section 3) — it is still scoped to
   one flush only for bulk's own opt-in row-level DLQ, which has no live
   retry consumer or parked-pair index protecting it at all (Decisions §1).
 * `NodeLoader.process_message` (the non-buffered, one-message-at-a-time
   code path) is not used by `main()` — only `_buffer_message`'s batched
   path is — and does not route a malformed record to a DLQ or the file
-  sink; it logs and returns failure. This is pre-existing and unchanged by
-  Phase 5 Slice 2.
+  sink; it logs and returns failure. This helper is not the loader entry point.
 * **Streaming: any relationship-loader container's non-zero exit is fatal
   to the whole fleet.** Confirmed pre-existing (predates this slice; the
   deprecated `--stream-clock-rotation` path has the identical behavior):
   only the bucket-lease server itself gets supervised restart-and-continue
   (section 5.1); an edge loader exiting for any reason — including a
-  correct Story 4 abort-not-commit after a lease-server kill, or a
+  correct abort without commit after a lease-server kill, or a
   transient endpoint race described next — currently tears down every
   other edge type and the lease server too, rather than restarting just
   that one edge type. Because no relationship write commits its Kafka
@@ -2416,10 +2415,7 @@ already been evicted from its group for exceeding `max_poll_interval_ms`.
   `MERGE` has committed (node and edge consumers always start
   concurrently), the writer raises `MissingRelationshipEndpointError`,
   which by design commits nothing so the record replays safely on
-  restart — but still causes the exit above. Also confirmed pre-existing
-  and shared by the deprecated clock-rotation path; found during Phase 5
-  Slice 1 Story 10's real scratch validation, not caused by it. **Phase 5
-  Slice 3 changes this for any edge type with `dead_letter.enabled: true`
+  restart — but still causes the exit above. The deprecated clock-rotation path shares this behaviour. **For any edge type with `dead_letter.enabled: true`
   in streaming (unconditional) or bulk (with the opt-in, section 3):** the
   race no longer raises at all — the unresolved row routes to the DLQ and
   the rest of the batch, and the fleet, keep running. This limitation now
@@ -2432,7 +2428,7 @@ already been evicted from its group for exceeding `max_poll_interval_ms`.
   them. Stop them with `python -m src.cli stop` or the recovery recipe in
   "Stopping a run safely". A stream run *with* relationships stops and
   removes the node loaders it started on every exit path, including a clean
-  `SIGTERM`/`SIGINT` (P6-S5). A `SIGKILL` of the CLI itself still leaves
+  `SIGTERM`/`SIGINT`. A `SIGKILL` of the CLI itself still leaves
   every container running (same recipe).
 * **Streaming: the lease server's readiness probe assumes a Linux Docker
   bridge network's container IPs are routable from the CLI's own host
@@ -2473,7 +2469,7 @@ already been evicted from its group for exceeding `max_poll_interval_ms`.
   item).
 * **Several label pairs per type (v7-S7).** The pair always comes from the
   topic: one topic cannot carry several pairs, and a record's pair is never
-  inferred. There are no per-pair metric labels. The deprecated Phase 4 paths
+  inferred. There are no per-pair metric labels. The deprecated clock paths
   (`--stream-clock-rotation`, slot gating, rotation, the shared clock) refuse
   such types. In the lease modes `execution.worker_count` applies per pair, so a
   replica opens up to `pairs x worker_count` Neo4j sessions and lease
@@ -2586,98 +2582,36 @@ already been evicted from its group for exceeding `max_poll_interval_ms`.
   flush does not re-add a resolved record at all ("option A"). It is not
   built.
 
-## 13. Continuous integration
+## 13. Development and validation
 
-Every push and pull request runs `.github/workflows/ci.yml`: a `lint` job
-gates two independent jobs, `unit-tests` and `build-images` (a fail-fast:false
-matrix building the node, edge and clock images — checks named
-`build-images (node)`, `build-images (edge)`, `build-images (clock)` — and
-verifying each one's `ENTRYPOINT`). A lint failure skips both dependent
-jobs rather than failing them, so CI minutes aren't spent running a suite
-whose lint gate has already failed. `make lint` needs
-`pip install -r requirements-dev.txt` (not just `requirements.txt`).
-
-Separately, `.github/workflows/ci-integration.yml` runs the
-`testcontainers`-backed integration suite nightly (03:00 UTC) and on manual
-`workflow_dispatch` only — it is advisory and never blocks a pull request.
-It needs nothing beyond what a stock GitHub-hosted runner already provides:
-no scratch Kafka/Neo4j stack, no secrets, no `services:` block (the suite's
-own fixtures start and tear down their own containers). Locally, those
-fixtures skip cleanly if Docker is unreachable; in the nightly job that
-same skip is treated as a failure (a `docker info` step runs first, and a
-guard step fails the job if any test's result contains "Docker is
-required"), so a green nightly run means the containers actually ran, not
-that they were silently skipped. Results are uploaded as the
-`integration-results.xml` artifact (14-day retention) regardless of
-pass/fail.
-
-**Multi-topic relationship types in CI.** The nightly `integration` job includes
-`tests/integration/test_multi_topic_relationship.py` (about one minute with the default 20,000 distinct pairs;
-`GRAPH_LOADER_MULTI_TOPIC_PAIRS` scales it). Two topics feed `LIKES` with 30% overlapping pairs and a hub node;
-stream lease, bulk lease, bulk classic (one replica, correctness only) and planned are checked for the final
-`order_by` value per pair, the relationship count, no rejected record and no DLQ topic; stream lease, bulk lease and
-planned also assert zero lock-wait time from the Neo4j query log and no blocked `SHOW TRANSACTIONS` sample.
-`precedence` (bulk lease and classic through the real `cli._run_precedence_substages` with in-process loader
-fleets as the containers, planned) and `arrival` (counts, published-value check and zero lock waits only) have their
-own cases. A `dead_letter` case (stream lease, `arrival`, the S4 proof's dataset: topic b dead-lettered before
-topic a, then the nodes) checks the one `LIKES.dlq` for both topics (as wide as the widest topic) drained by the
-real retry consumer (a `python -m src.loader.retry_consumer` subprocess), the exact graph (each pair ends with its
-last-indexed record), an empty parking lot, no per-topic DLQ and zero lock waits. The zero-wait assertion counts only completed `LIKES` write entries of the right database in the Neo4j
-query log (never the `SHOW TRANSACTIONS` poller) and requires at least the number of write transactions the run
-must have issued. `tests/test_single_topic_compat.py` compares the three shipped single-topic schemas plus a
-`dead_letter`/`order_by` fixture (`tests/golden/fixtures/single_topic_dlq.yaml`) with a golden recorded on the tree
-before the multi-topic work: DLQ, parked and parked-pair-index topic names (non-null for the fixture), the node and
-edge container launch commands and group-id environment, the lag series the real monitor code creates, the plan
-JSON (without its timing `stats`) and byte-identical planned chunk messages. It does not pin the node loaders'
-inline default group id (`<prefix>-<Label>`) or the plan's `stats`.
-
-The container-level proofs (`plan/v7/slice-2/docker_proof/run.sh stream|lease|classic` and
-`plan/v7/slice-5/docker_proof/run.sh lease|classic`, with `PROOF_TOPICS=a,b` or `c,b,a`) need the compose
-Neo4j/Kafka stack and locally built images, which the testcontainers suite does not use. They run in their own workflow,
-`.github/workflows/ci-multi-topic-proofs.yml`, which is **manual only** (`workflow_dispatch`, so dispatching it
-does not also run the integration and 1M stress jobs) until it has been seen green on a hosted runner; it needs
-internet (image pulls, Neo4j plugin download) and a runner with about 16 GB of RAM, pins Neo4j to
-`5.26-enterprise`, and uploads `/tmp/v7s2-proof` and `/tmp/v7s5-proof` as an artifact. `actionlint` is clean.
-Locally, against your own stack (export every connection variable first, see
-section 5):
+Install the complete development environment first:
 
 ```bash
-IMAGE_TAG=v7s2 make build-images && IMAGE_TAG=v7s5 make build-images     # the harnesses use these tags
-for mode in stream lease classic; do bash plan/v7/slice-2/docker_proof/run.sh "$mode"; done
-for topics in a,b c,b,a; do PROOF_TOPICS=$topics bash plan/v7/slice-5/docker_proof/run.sh lease; done
-PROOF_TOPICS=a,b bash plan/v7/slice-5/docker_proof/run.sh classic
+python -m pip install -r requirements-dev.txt
 ```
 
-The per-type DLQ proofs (`plan/v7/slice-4/docker_proof/run.sh orderby|arrival|bulk`) bring their own private stack
-(`stack.sh up|down`: `p0rg-*` containers on ports 29892/28287; `V7S4_STATE`, `V7S4_*_CPUSET` and `V7S4_NEO4J_IMAGE`
-override the state directory, cpusets and Neo4j image) and run as a second job of the same workflow, which uploads
-the run outputs:
+The repository provides local validation commands. No GitHub Actions
+workflows are shipped on `main`.
 
-```bash
-IMAGE_TAG=v7s4 make build-images && bash plan/v7/slice-4/docker_proof/stack.sh up
-for kind in orderby arrival bulk; do bash plan/v7/slice-4/docker_proof/run.sh "$kind"; done
-bash plan/v7/slice-4/docker_proof/stack.sh down
-```
-
-Each script refuses to run unless `NEO4J_DATABASE` is its own proof database, scopes its cleanup to its own topics,
-groups and database, and prints `PASS`/`FAIL` lines (exit code 1 on any `FAIL`).
-
-Every job has a matching local command, so a red check tells you exactly
-what to run before pushing again:
-
-| CI job | Local command |
+| Check | Local command |
 | --- | --- |
-| `lint` | `make lint` |
-| `unit-tests` | `make test-unit` |
-| `build-images` | `make build-images` (tags `graph-loader-{node,edge,clock}:latest`, the CLI default, so `--skip-image-build` uses them; override with `IMAGE_TAG=x` plus the `GRAPH_LOADER_*_IMAGE` variables) |
-| `integration` (advisory) | `python3 -m pytest tests -m integration` (needs Docker) |
-| `ci-multi-topic-proofs.yml` (manual) | the `run.sh` loop above (needs the compose stack and `IMAGE_TAG` images) |
-| workflow YAML validity | `make validate-workflows` (also needs `requirements-dev.txt`) |
+| Lint | `make lint` |
+| Unit tests, including IMDb examples | `make test-unit` |
+| Loader images | `make build-images` |
+| Docker-backed integration tests | `python -m pytest tests -m integration` |
+| Local-stack smoke tests | `python -m pytest tests/test_dev_environment.py -m smoke` |
+| Star-topology stress tests | `make stress-100k` or `make stress-1m` |
 
-`tests/test_social_planned_integration.py` keeps skipping in the advisory
-job exactly as it does locally without a named `GRAPH_LOADER_IT_*` scratch
-stack — see `examples/social/README.md`'s "Run it" section and its "Comparing modes" section; the exact
-variables are read in `tests/test_social_planned_integration.py`.
+Image builds tag `graph-loader-{node,edge,clock}:latest`, matching the CLI's
+`--skip-image-build` defaults. Override with `IMAGE_TAG=x` and matching
+`GRAPH_LOADER_*_IMAGE` variables.
+
+Testcontainers-backed integration tests create and remove their own Kafka
+and Neo4j containers. They skip if Docker is unavailable; inspect skips
+before treating a run as integration validation. The multi-topic suite
+(`tests/integration/test_multi_topic_relationship.py`) checks graph results,
+ordering rules, DLQ handling and lock waits in the supported modes. Golden
+compatibility tests check single-topic and single-pair behaviour.
 
 **Opt-in end-to-end tests need a scratch database.** `test_rotation_e2e`, `test_streaming_lease_e2e`,
 `test_relationship_bulk_e2e`, `test_self_reference_isolation_e2e`, `test_social_planned_integration` and
@@ -2700,7 +2634,7 @@ message naming the missing variable. `tests/test_dev_environment.py`'s Neo4j smo
 `NEO4J_PASSWORD` is neither exported nor in `.env`. Example, against the local stack:
 
 ```bash
-. /mnt/graph-loader/bench/local_env.sh glit            # or export NEO4J_URI/KAFKA_BOOTSTRAP_SERVERS/... yourself
+# Export credentials and connection variables for your scratch stack first.
 GRAPH_LOADER_IT_DATABASE=glit RUN_RELATIONSHIP_BULK_E2E=1 python3 -m pytest tests/test_relationship_bulk_e2e.py
 ```
 

@@ -701,7 +701,7 @@ The runner publishes the nodes, plans every relationship (in the publisher with 
 
 ## 18. Notes / open questions
 
-* **`--bulk-edge-overlap` / `--max-concurrent-bulk-edges`.** Without `--edge-classic` they warn and are ignored in bulk (`cli.py` `_resolve_bulk_edge_mode`), are ignored silently in stream, and with `--edge-leases` the overlap is forced to `shared`. `plan/v7/completion_bulk_default.md` has been corrected to say so.
+* **`--bulk-edge-overlap` / `--max-concurrent-bulk-edges`.** Without `--edge-classic` they warn and are ignored in bulk (`cli.py` `_resolve_bulk_edge_mode`), are ignored silently in stream, and with `--edge-leases` the overlap is forced to `shared`.
 * **`loading.rejection_log_path`.** `docs/USAGE.md` lists it as the place node loaders record malformed records. For loaders the CLI launches, the container variable `REJECTION_LOG_PATH` (set by `docker_service.py`) wins, so the files are `var/rejections/<Label>-<replica>.jsonl`. The schema field matters only for loaders run directly.
 * **Node `dead_letter` fields.** The code rejects the relationship-only fields only when they are set **and** non-default (`schema.py`, `NodeConfig`); an explicit default loads. `docs/USAGE.md` has been corrected.
 * **`GRAPH_LOADER_LEASE_MERGE_ROWS`** (rows merged per lease transaction, default 200) is forwarded to stream edge loaders and the retry consumer only. Bulk containers never receive it, so it cannot be set through `start --mode bulk`.

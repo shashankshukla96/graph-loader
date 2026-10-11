@@ -120,7 +120,7 @@ BEGIN needs `T` minus 4 s above 1 s plus 1 s margin).
 | --- | --- | --- | --- | --- |
 | `--retry-consumer-replicas N` | `1` | 1-64, validated before any side effect | stream | Replicas of the fleet-wide DLQ retry consumer; launched only when at least one relationship type has DLQ routing enabled, and never under `--stream-clock-rotation`. |
 | `--stream-group-member-wait-seconds S` | `loading.session_timeout_ms` + 5 s | float > 0 | stream | How long to wait for a stable consumer group's members to expire before refusing to start (one live fleet per `consumer_group_id`). A member that died during a rebalance can stay up to `max_poll_interval_ms + session_timeout_ms`. With the default session timeout (45000 ms) a second `start` against a live fleet takes about 50 s to refuse, because the live members never expire; pass a smaller value to fail faster. |
-| `--stream-clock-rotation` | off | flag | stream | **Deprecated** (logs `stage=deprecation`): the Phase 4 global batch clock with rotating/isolated-phase scheduling instead of the default bucket-lease fleet. Refused for multi-pair types. No effect in bulk. |
+| `--stream-clock-rotation` | off | flag | stream | **Deprecated** (logs `stage=deprecation`): the legacy global batch clock with rotating/isolated-phase scheduling instead of the default bucket-lease fleet. Refused for multi-pair types. No effect in bulk. |
 
 ### Behaviour notes
 

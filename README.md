@@ -30,7 +30,7 @@ are required.
 | [Monitoring](docs/MONITORING.md) | Metrics, Prometheus and Grafana stack, alerts. |
 | [Changelog](CHANGELOG.md) | See what changed and what to do when upgrading (read the upgrade notes). |
 | [Examples](examples/README.md) | [IMDb](examples/imdb/README.md) (a real 23M-record benchmark), [social](examples/social/README.md) (synthetic, exact verification), [multi_topic](examples/multi_topic/README.md) (several topics or label pairs per type). |
-| [History](docs/HISTORY.md) | Original design decisions and project phases. |
+| [History](docs/HISTORY.md) | Project origins and design evolution. |
 
 ## Quick start (about 5 minutes)
 
@@ -238,8 +238,8 @@ topics, with `order_by` or `precedence` conflict rules).
 * Opt-in end-to-end tests run against your developer stack and need
   `GRAPH_LOADER_IT_DATABASE` (a scratch database name, never `neo4j`) plus the
   `GRAPH_LOADER_IT_*` connection variables and credentials; see
-  [USAGE section 13](docs/USAGE.md#13-continuous-integration).
+  [USAGE section 13](docs/USAGE.md#13-development-and-validation).
 * Lint: `make lint`. Images: `make build-images`. Monitoring stack:
   `make monitoring-up` (see [MONITORING](docs/MONITORING.md)).
 * Debug a single topic with `python -m src.loader.node_loader` /
-  `python -m src.loader.edge_loader` ([HISTORY](docs/HISTORY.md#direct-single-topic-runs-phase-2-and-phase-3-entry-points)).
+  `python -m src.loader.edge_loader` ([HISTORY](docs/HISTORY.md#direct-single-topic-runs)).

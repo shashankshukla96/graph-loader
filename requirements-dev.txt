@@ -5,4 +5,3 @@
 pytest>=8.0,<10
 testcontainers[neo4j,kafka]>=4.8,<5
 ruff==0.16.9
-actionlint-py==1.7.12.25

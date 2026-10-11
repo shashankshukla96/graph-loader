@@ -30,9 +30,8 @@ article and the
 
 ## Original design decisions and what became of them
 
-The first plan (Phases 1-6, kept under [`plan/`](../plan/)) made three
-decisions. They were later superseded for the default paths; the original
-techniques remain available as the classic bulk mode.
+The original implementation made three design decisions. They were later
+superseded for the default paths; the original techniques remain available as the classic bulk mode.
 
 ### 1. Dual-layer deadlock prevention
 
@@ -79,25 +78,7 @@ pause partitions while they retry or back off, instead of a dual-thread model), 
 [INCREMENTAL_LOAD](INCREMENTAL_LOAD.md) and USAGE's
 [Dead-lettering](USAGE.md#dead-lettering-malformed-records-and-missing-endpoints).
 
-## Project plan
-
-The work was divided into six phases, with per-slice stories and completion
-reports under [`plan/`](../plan/):
-
-1. **Phase 1:** Foundation and infrastructure (Docker, schema initializer).
-2. **Phase 2:** Node data ingestion.
-3. **Phase 3:** High-throughput edge loading (the classic deadlock engine).
-4. **Phase 4:** Multi-loader concurrency (the global batch clock).
-5. **Phase 5:** Real-time streaming and resilience (DLQ, leases, retry).
-6. **Phase 6:** Observability, metrics and hardening.
-
-Later work (planned mode, multi-topic and multi-pair relationship types, stable
-stream consumer groups) is described in the [CHANGELOG](../CHANGELOG.md) and
-`plan/v2` through `plan/v7`. The plan documents are design records written
-while the work was in progress: where they disagree with the code or with
-USAGE, the code and USAGE win.
-
-## Direct single-topic runs (Phase 2 and Phase 3 entry points)
+## Direct single-topic runs
 
 The CLI is the normal entry point. The per-component modules still run on the
 host for debugging against the local stack, with the connection variables
