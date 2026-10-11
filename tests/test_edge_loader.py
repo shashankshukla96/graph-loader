@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import pytest
 from confluent_kafka import TopicPartition
+from prometheus_client import CollectorRegistry
 from threading import Event
 
 from src.loader.edge_loader import (
@@ -30,10 +31,11 @@ from src.loader.edge_loader import (
 )
 from src.loader.edge_execution import LaneExecutionResult
 from src.loader.mix_and_batch import endpoint_buckets
-from src.loader.node_loader import ControlDeliveryError, RejectionSink
+from src.loader.node_loader import RejectionSink
 from src.loader.slot_admission import LeaseStateError, SlotAdmission, SlotAwareAdmissionBuffer
 from src.models.schema import CoordinationConfig, EdgeConfig, LoadingConfig
 from src.orchestrator.coordination import ClockLease, encode_clock_lease
+from src.utils.metrics import GraphLoaderMetrics
 from src.utils.schema_loader import load_schema
 
 
@@ -272,8 +274,11 @@ def _clock_lease_payload(epoch: int, owner: str, owners=None) -> bytes:
     ))
 
 
-def _gated_loader(consumer, writer, works_at, coordination_values):
+def _gated_loader(consumer, writer, works_at, coordination_values, metrics=None):
     values = iter(coordination_values)
+    kwargs = {}
+    if metrics is not None:
+        kwargs["metrics"] = metrics
     return EdgeLoader(
         consumer, writer, works_at, run_id="run-slot",
         loading_config=LoadingConfig(
@@ -284,6 +289,7 @@ def _gated_loader(consumer, writer, works_at, coordination_values):
         slot_buffer=SlotAwareAdmissionBuffer(max_records=2),
         coordination_poll=lambda _timeout: next(values, None),
         wall_clock_ms=lambda: 11,
+        **kwargs,
     )
 
 
@@ -826,24 +832,519 @@ def test_edge_loader_writes_before_committing_next_offset(works_at) -> None:
     assert call_order == ["write", "commit"]
 
 
+# ── Metrics instrumentation (P6-S2 Story 5) ──────────────────────────────────
+
+
+def test_classic_flush_batch_increments_records_consumed_and_write_duration_once(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(_payload(), offset=9)
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+    loader = EdgeLoader(consumer, writer, works_at, metrics=metrics)
+
+    assert loader.run(max_messages=1) == 0
+
+    assert metrics.registry.get_sample_value(
+        "graph_loader_records_consumed_total",
+        {"kind": "edge", "name": "WORKS_AT", "label_or_type": "WORKS_AT"},
+    ) == 1.0
+    assert metrics.registry.get_sample_value(
+        "graph_loader_neo4j_write_duration_seconds_count",
+        {"kind": "edge", "name": "WORKS_AT", "stage": "edge-write"},
+    ) == 1.0
+
+
+def test_classic_flush_write_failure_does_not_increment_records_consumed(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(_payload(), offset=9)
+    writer.write_batch.side_effect = RuntimeError("boom")
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+    loader = EdgeLoader(consumer, writer, works_at, metrics=metrics)
+
+    assert loader.run(max_messages=1) == 1
+
+    assert metrics.registry.get_sample_value(
+        "graph_loader_records_consumed_total",
+        {"kind": "edge", "name": "WORKS_AT", "label_or_type": "WORKS_AT"},
+    ) is None
+
+
+def test_classic_flush_metrics_failure_never_blocks_a_successful_write(works_at, monkeypatch) -> None:
+    """P6-S2 review finding S4-1's pattern, applied to the edge worker
+    loop: a metrics-library exception must never be mistaken for a write
+    failure this far after the write already succeeded."""
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(_payload(), offset=9)
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+
+    def boom(**_kwargs):
+        raise ValueError("simulated metrics failure")
+
+    monkeypatch.setattr(metrics.records_consumed, "labels", boom)
+    loader = EdgeLoader(consumer, writer, works_at, metrics=metrics)
+
+    assert loader.run(max_messages=1) == 0
+    committed = consumer.commit.call_args.kwargs["offsets"][0]
+    assert (committed.topic, committed.partition, committed.offset) == ("works-at-events", 0, 10)
+
+
+def test_worker_loop_batch_increments_records_consumed_and_write_duration_once(works_at) -> None:
+    """The slot-gated streaming path (stories.md's own '_worker_loop, line
+    464' reference) - distinct from the classic/bulk _flush_batch path
+    covered above. Both converge on the same instrumentation shape, but
+    each needs its own test since they are two different code paths
+    (P6-S2 review finding T1)."""
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(_payload(), offset=3)
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+    loader = _gated_loader(
+        consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None], metrics=metrics
+    )
+
+    assert loader.run(max_messages=1) == 0
+
+    assert metrics.registry.get_sample_value(
+        "graph_loader_records_consumed_total",
+        {"kind": "edge", "name": "WORKS_AT", "label_or_type": "WORKS_AT"},
+    ) == 1.0
+    assert metrics.registry.get_sample_value(
+        "graph_loader_neo4j_write_duration_seconds_count",
+        {"kind": "edge", "name": "WORKS_AT", "stage": "edge-write"},
+    ) == 1.0
+
+
+def test_worker_loop_write_failure_does_not_increment_records_consumed(works_at) -> None:
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(_payload(), offset=3)
+    writer.write_batch.side_effect = RuntimeError("database down")
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+    loader = _gated_loader(
+        consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None], metrics=metrics
+    )
+
+    assert loader.run(max_messages=1) == 1
+
+    assert metrics.registry.get_sample_value(
+        "graph_loader_records_consumed_total",
+        {"kind": "edge", "name": "WORKS_AT", "label_or_type": "WORKS_AT"},
+    ) is None
+
+
+def test_worker_loop_metrics_failure_never_blocks_a_successful_write(works_at, monkeypatch) -> None:
+    """P6-S2 review finding S4-1's pattern, applied to the slot-gated
+    _worker_loop path specifically (T1): a metrics-library exception must
+    never be mistaken for a write failure this far after the write already
+    succeeded."""
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(_payload(), offset=3)
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+
+    def boom(**_kwargs):
+        raise ValueError("simulated metrics failure")
+
+    monkeypatch.setattr(metrics.records_consumed, "labels", boom)
+    loader = _gated_loader(
+        consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None], metrics=metrics
+    )
+
+    assert loader.run(max_messages=1) == 0
+
+
 def test_edge_loader_rejects_malformed_before_resolving_offset(works_at) -> None:
     consumer, writer, sink = MagicMock(), MagicMock(), MagicMock()
     consumer.poll.return_value = _message(b"{bad", partition=2, offset=17)
     loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink)
 
     assert loader.run(max_messages=1) == 0
-    sink.append.assert_called_once()
-    assert sink.append.call_args.kwargs["edge_type"] == "WORKS_AT"
-    assert sink.append.call_args.kwargs["offset"] == 17
+    sink.route.assert_called_once()
+    assert sink.route.call_args.kwargs["edge_type"] == "WORKS_AT"
+    assert sink.route.call_args.kwargs["offset"] == 17
     committed = consumer.commit.call_args.kwargs["offsets"][0]
     assert (committed.partition, committed.offset) == (2, 18)
     writer.write_batch.assert_not_called()
 
 
+def test_legacy_file_sink_rejection_does_not_claim_dlq_routing(works_at, caplog) -> None:
+    consumer, writer, sink = MagicMock(), MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(b"{bad", partition=2, offset=17)
+    loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink)
+    with caplog.at_level("WARNING"):
+        loader.run(max_messages=1)
+    text = " ".join(record.getMessage() for record in caplog.records)
+    assert "phase5_action=reject_to_file" in text and "route_to_dlq" not in text
+
+
+# ── DLQ routing (Story 5) ─────────────────────────────────────────────────────
+
+
+def test_edge_dead_letter_sink_receives_exact_raw_bytes_and_commits_only_after_publish(works_at) -> None:
+    from src.loader.dead_letter import DeadLetterRecordSink
+
+    dlq_producer = MagicMock()
+    sink = DeadLetterRecordSink(
+        producer=dlq_producer, topic="works-at-events.dlq", run_id="run-1",
+        replica_id="0", kind="edge", clock=lambda: 1_700_000_000_000,
+    )
+    consumer, writer = MagicMock(), MagicMock()
+    message = _message(b"{bad", partition=2, offset=17)
+    message.key.return_value = b"p-17"
+    consumer.poll.return_value = message
+    loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink)
+
+    assert loader.run(max_messages=1) == 0
+
+    dlq_producer.publish.assert_called_once()
+    (published_topic, envelope), _ = dlq_producer.publish.call_args
+    assert published_topic == "works-at-events.dlq"
+    assert envelope.key_bytes == b"p-17"
+    assert envelope.value_bytes == b"{bad"
+    assert envelope.entity_kind == "edge"
+    assert envelope.entity_name == "WORKS_AT"
+    assert envelope.failure_class == "malformed"
+    committed = consumer.commit.call_args.kwargs["offsets"][0]
+    assert (committed.partition, committed.offset) == (2, 18)
+
+
+def test_edge_dlq_routed_record_increments_dlq_counter_not_records_consumed(works_at) -> None:
+    """P6-S2 Story 5's only DLQ deliverable: confirm the edge path also
+    increments dlq_routed_total{kind="edge",...} (Story 4 already wired
+    the on_dlq_routed listener itself; both loaders share
+    build_malformed_record_sink/DeadLetterProducer). Uses a real
+    DeadLetterProducer (matching tests/test_dead_letter.py's own
+    _delivering_producer pattern), not a mocked one, so on_dlq_routed
+    fires exactly the way it does in production - after a real ack."""
+    from src.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
+    from src.utils import metrics as metrics_module
+
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+    try:
+        metrics_module.install_dlq_routed_listener(metrics)
+
+        kafka_producer = MagicMock()
+        delivery_state = {"on_delivery": None}
+
+        def produce(topic, key, value, on_delivery):
+            delivery_state["on_delivery"] = on_delivery
+
+        def flush():
+            delivery_state["on_delivery"](None, MagicMock())
+            return 0
+
+        kafka_producer.produce.side_effect = produce
+        kafka_producer.flush.side_effect = flush
+        dlq_producer = DeadLetterProducer(kafka_producer)
+        sink = DeadLetterRecordSink(
+            producer=dlq_producer, topic="works-at-events.dlq", run_id="run-1",
+            replica_id="0", kind="edge", clock=lambda: 1_700_000_000_000,
+        )
+        consumer, writer = MagicMock(), MagicMock()
+        message = _message(b"{bad", partition=2, offset=17)
+        message.key.return_value = b"p-17"
+        consumer.poll.return_value = message
+        loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink, metrics=metrics)
+
+        assert loader.run(max_messages=1) == 0
+
+        assert metrics.registry.get_sample_value(
+            "graph_loader_dlq_routed_total",
+            {"kind": "edge", "name": "WORKS_AT", "failure_class": "malformed"},
+        ) == 1.0
+        assert metrics.registry.get_sample_value(
+            "graph_loader_records_consumed_total",
+            {"kind": "edge", "name": "WORKS_AT", "label_or_type": "WORKS_AT"},
+        ) is None
+    finally:
+        metrics_module._reset_dlq_routed_listener_for_tests()
+
+
+def test_edge_dead_letter_publish_failure_leaves_offset_uncommitted(works_at) -> None:
+    from src.loader.dead_letter import DeadLetterPublishError, DeadLetterRecordSink
+
+    dlq_producer = MagicMock()
+    dlq_producer.publish.side_effect = DeadLetterPublishError("broker unreachable")
+    sink = DeadLetterRecordSink(
+        producer=dlq_producer, topic="works-at-events.dlq", run_id="run-1",
+        replica_id="0", kind="edge", clock=lambda: 1,
+    )
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(b"{bad", offset=4)
+    loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink)
+
+    assert loader.run(max_messages=1) == 1
+
+    consumer.commit.assert_not_called()
+    assert loader._partition_ledgers[("works-at-events", 0)].resolved_offsets == set()
+
+
+def test_edge_mixed_batch_dlq_offset_resolves_independent_of_batch_flush_timing(works_at) -> None:
+    from src.loader.dead_letter import DeadLetterRecordSink
+
+    dlq_producer = MagicMock()
+    sink = DeadLetterRecordSink(
+        producer=dlq_producer, topic="works-at-events.dlq", run_id="run-1",
+        replica_id="0", kind="edge", clock=lambda: 1,
+    )
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.side_effect = [
+        _message(_payload(), offset=3),
+        _message(b"{bad", offset=4),
+        _message(_payload(), offset=5),
+    ]
+    loader = EdgeLoader(
+        consumer, writer, works_at, rejection_sink=sink,
+        loading_config=LoadingConfig(unwind_batch_size=2),
+    )
+
+    assert loader.run(max_messages=3) == 0
+
+    dlq_producer.publish.assert_called_once()
+    writer.write_batch.assert_called_once()
+    final_offset = consumer.commit.call_args_list[-1].kwargs["offsets"][0].offset
+    assert final_offset == 6
+
+
+def test_edge_dead_letter_disabled_is_byte_identical_to_file_fallback(works_at, tmp_path) -> None:
+    path = tmp_path / "edge-rejections.jsonl"
+    sink = RejectionSink(path)
+    consumer, writer = MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(b"{bad", partition=2, offset=17)
+    loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink)
+
+    assert loader.run(max_messages=1) == 0
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert lines[0] == (
+        '{"edge_type":"WORKS_AT","offset":17,"partition":2,'
+        '"reason":"Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",'
+        '"topic":"works-at-events"}'
+    )
+
+
+def test_edge_dead_letter_redelivery_produces_a_second_envelope_at_least_once(works_at) -> None:
+    from src.loader.dead_letter import DeadLetterRecordSink
+
+    dlq_producer = MagicMock()
+    clock_values = iter([1_700_000_000_000, 1_700_000_000_999])
+    sink = DeadLetterRecordSink(
+        producer=dlq_producer, topic="works-at-events.dlq", run_id="run-1",
+        replica_id="0", kind="edge", clock=lambda: next(clock_values),
+    )
+    consumer, writer = MagicMock(), MagicMock()
+    loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink)
+
+    for _ in range(2):
+        message = _message(b"{bad", offset=4)
+        assert loader._buffer_message(message) is True
+
+    assert dlq_producer.publish.call_count == 2
+    first_envelope = dlq_producer.publish.call_args_list[0][0][1]
+    second_envelope = dlq_producer.publish.call_args_list[1][0][1]
+    assert first_envelope.dlq_routed_at_ms != second_envelope.dlq_routed_at_ms
+
+
+def test_edge_malformed_record_under_slot_gating_never_touches_admission_buffer(works_at) -> None:
+    """A malformed record must be DLQ'd at buffer time, before slot admission.
+
+    It must never consume lease buffer capacity or block on a lease grant
+    it will never need.
+    """
+    sink = MagicMock()
+    consumer, writer = MagicMock(), MagicMock()
+    slot_buffer = SlotAwareAdmissionBuffer(max_records=2)
+    loader = EdgeLoader(
+        consumer, writer, works_at, run_id="run-slot", rejection_sink=sink,
+        slot_admission=SlotAdmission(edge_type="WORKS_AT", run_id="run-slot", bucket_count=64),
+        slot_buffer=slot_buffer,
+        coordination_poll=lambda _timeout: None,
+        wall_clock_ms=lambda: 0,
+    )
+
+    assert loader._buffer_message(_message(b"{bad", offset=3)) is True
+
+    sink.route.assert_called_once()
+    assert len(slot_buffer) == 0
+
+
+def test_edge_malformed_record_under_slot_gating_commits_only_after_route_succeeds(works_at) -> None:
+    sink = MagicMock()
+    consumer, writer = MagicMock(), MagicMock()
+    slot_buffer = SlotAwareAdmissionBuffer(max_records=2)
+    loader = EdgeLoader(
+        consumer, writer, works_at, run_id="run-slot", rejection_sink=sink,
+        slot_admission=SlotAdmission(edge_type="WORKS_AT", run_id="run-slot", bucket_count=64),
+        slot_buffer=slot_buffer,
+        coordination_poll=lambda _timeout: None,
+        wall_clock_ms=lambda: 0,
+    )
+
+    assert loader._buffer_message(_message(b"{bad", offset=3)) is True
+
+    sink.route.assert_called_once()
+    committed = consumer.commit.call_args.kwargs["offsets"][0]
+    assert (committed.partition, committed.offset) == (0, 4)
+    assert len(slot_buffer) == 0
+
+
+def test_edge_malformed_record_under_slot_gating_route_failure_leaves_offset_uncommitted(works_at) -> None:
+    sink = MagicMock()
+    sink.route.side_effect = OSError("disk full")
+    consumer, writer = MagicMock(), MagicMock()
+    slot_buffer = SlotAwareAdmissionBuffer(max_records=2)
+    loader = EdgeLoader(
+        consumer, writer, works_at, run_id="run-slot", rejection_sink=sink,
+        slot_admission=SlotAdmission(edge_type="WORKS_AT", run_id="run-slot", bucket_count=64),
+        slot_buffer=slot_buffer,
+        coordination_poll=lambda _timeout: None,
+        wall_clock_ms=lambda: 0,
+    )
+
+    assert loader._buffer_message(_message(b"{bad", offset=3)) is False
+
+    consumer.commit.assert_not_called()
+    assert len(slot_buffer) == 0
+
+
+def test_edge_slot_gating_value_error_from_admission_machinery_propagates_not_dlqd(works_at, monkeypatch) -> None:
+    """A ValueError from the admission/lease machinery (not the record) must
+
+    propagate and fail the loader -- never be silently misclassified as a
+    malformed record, DLQ'd, and committed as if the data itself were bad.
+    """
+    import src.loader.edge_loader as edge_loader_module
+
+    sink = MagicMock()
+    consumer, writer = MagicMock(), MagicMock()
+    slot_buffer = SlotAwareAdmissionBuffer(max_records=2)
+    loader = EdgeLoader(
+        consumer, writer, works_at, run_id="run-slot", rejection_sink=sink,
+        slot_admission=SlotAdmission(edge_type="WORKS_AT", run_id="run-slot", bucket_count=64),
+        slot_buffer=slot_buffer,
+        coordination_poll=lambda _timeout: None,
+        wall_clock_ms=lambda: 0,
+    )
+    monkeypatch.setattr(
+        edge_loader_module, "endpoint_buckets",
+        MagicMock(side_effect=ValueError("bucket_count must be an integer from 1 through 4096")),
+    )
+
+    with pytest.raises(ValueError):
+        loader._buffer_message(_message(_payload(), offset=3))
+
+    sink.route.assert_not_called()
+    assert len(slot_buffer) == 0
+    consumer.commit.assert_not_called()
+
+
+def test_edge_revoke_settles_buffered_valid_record_and_already_dlqd_malformed_record(works_at) -> None:
+    """Classic mode: a revoke settles a buffered valid record alongside an
+    already-DLQ'd malformed one, writing and committing through both.
+    """
+    from src.loader.dead_letter import DeadLetterRecordSink
+
+    dlq_producer = MagicMock()
+    sink = DeadLetterRecordSink(
+        producer=dlq_producer, topic="works-at-events.dlq", run_id="run-1",
+        replica_id="0", kind="edge", clock=lambda: 1,
+    )
+    consumer, writer = MagicMock(), MagicMock()
+    loader = EdgeLoader(
+        consumer, writer, works_at, rejection_sink=sink,
+        loading_config=LoadingConfig(unwind_batch_size=2),
+    )
+    loader._running = True  # as inside run()
+    p0 = TopicPartition("works-at-events", 0)
+    loader._on_assign(consumer, [p0])
+    assert loader._buffer_message(_message(_payload(), offset=3)) is True
+    assert loader._buffer_message(_message(b"{bad", offset=4)) is True
+    dlq_producer.publish.assert_called_once()
+
+    loader._on_revoke(consumer, [p0])
+
+    writer.write_batch.assert_called_once()
+    committed = consumer.commit.call_args.kwargs["offsets"][0]
+    assert (committed.partition, committed.offset) == (0, 5)
+    assert loader._rebalance_failure is False
+    consumer.unassign.assert_called_once()
+
+
+def test_edge_revoke_during_slot_gating_fails_closed_and_redelivers(works_at) -> None:
+    """Slot-gated mode: _settle_before_revoke always returns early (the
+    worker/lease buffer cannot be settled synchronously inside a Kafka
+    callback), so a revoke with an already-DLQ'd-but-uncommitted malformed
+    record and a slot-buffered valid record fails closed -- nothing
+    commits, and both records replay (the malformed one DLQs a second
+    time: documented at-least-once, matching P5-Q5's precedent).
+    """
+    from src.loader.dead_letter import DeadLetterRecordSink
+
+    dlq_producer = MagicMock()
+    sink = DeadLetterRecordSink(
+        producer=dlq_producer, topic="works-at-events.dlq", run_id="run-1",
+        replica_id="0", kind="edge", clock=lambda: 1,
+    )
+    consumer, writer = MagicMock(), MagicMock()
+    slot_buffer = SlotAwareAdmissionBuffer(max_records=2)
+    loader = EdgeLoader(
+        consumer, writer, works_at, run_id="run-slot", rejection_sink=sink,
+        slot_admission=SlotAdmission(edge_type="WORKS_AT", run_id="run-slot", bucket_count=64),
+        slot_buffer=slot_buffer,
+        coordination_poll=lambda _timeout: None,
+        wall_clock_ms=lambda: 0,
+    )
+    loader._running = True
+    p0 = TopicPartition("works-at-events", 0)
+    loader._on_assign(consumer, [p0])
+    assert loader._buffer_message(_message(_payload(), offset=3)) is True
+    assert loader._buffer_message(_message(b"{bad", offset=4)) is True
+    dlq_producer.publish.assert_called_once()
+
+    loader._on_revoke(consumer, [p0])
+
+    consumer.commit.assert_not_called()
+    assert loader._rebalance_failure is True
+
+
+def test_edge_bucket_lease_coordinator_mode_dlqs_malformed_and_commits_both(works_at) -> None:
+    """Bucket-lease execution (--edge-leases, coordinator.routes_records=True):
+
+    a malformed record is DLQ'd at buffer time (never reaching the
+    coordinator), the coordinator's execute_pending receives only the
+    valid record, and the final commit covers both offsets.
+    """
+    from src.loader.dead_letter import DeadLetterRecordSink
+
+    dlq_producer = MagicMock()
+    sink = DeadLetterRecordSink(
+        producer=dlq_producer, topic="works-at-events.dlq", run_id="run-1",
+        replica_id="0", kind="edge", clock=lambda: 1,
+    )
+    consumer, writer = MagicMock(), MagicMock()
+    coordinator = MagicMock()
+    coordinator.routes_records = True
+    coordinator.execute_pending.return_value = [SimpleNamespace(success=True, exception=None)]
+    loader = EdgeLoader(
+        consumer, writer, works_at, rejection_sink=sink, coordinator=coordinator,
+        loading_config=LoadingConfig(unwind_batch_size=1),
+    )
+    consumer.poll.side_effect = [
+        _message(b"{bad", offset=3),
+        _message(_payload(), offset=4),
+    ]
+
+    assert loader.run(max_messages=2) == 0
+
+    dlq_producer.publish.assert_called_once()
+    coordinator.execute_pending.assert_called_once()
+    (records_arg,), _ = coordinator.execute_pending.call_args
+    assert [pending.offset for pending in records_arg] == [4]
+    final_offset = consumer.commit.call_args_list[-1].kwargs["offsets"][0].offset
+    assert final_offset == 5
+
+
 def test_edge_rejection_sink_uses_edge_discriminator_and_fsync(tmp_path) -> None:
     path = tmp_path / "edge-rejections.jsonl"
     sink = RejectionSink(path)
-    with patch("src.loader.node_loader.os.fsync") as fsync:
+    with patch("src.loader.dead_letter.os.fsync") as fsync:
         sink.append(
             topic="works-at-events", partition=1, offset=3,
             edge_type="WORKS_AT", reason="invalid envelope",
@@ -1024,7 +1525,7 @@ def test_malformed_resolution_revoke_prevents_edge_offset_commit(works_at) -> No
 
     consumer.poll.side_effect = revoke_on_poll
     assert loader._buffer_message(_message(b"{bad", offset=3)) is False
-    sink.append.assert_called_once()
+    sink.route.assert_called_once()
     consumer.commit.assert_not_called()
 
 
@@ -1068,7 +1569,7 @@ def test_self_referencing_edge_uses_same_loader_path(knows) -> None:
 
 def test_edge_loader_fails_when_rejection_sink_is_not_durable(works_at) -> None:
     consumer, writer, sink = MagicMock(), MagicMock(), MagicMock()
-    sink.append.side_effect = OSError("disk full")
+    sink.route.side_effect = OSError("disk full")
     consumer.poll.return_value = _message(b"{bad", offset=4)
     loader = EdgeLoader(consumer, writer, works_at, rejection_sink=sink)
 
@@ -1091,6 +1592,233 @@ def test_edge_loader_main_uses_manual_commit_and_closes_resources(schema) -> Non
     assert loader_cls.call_args.kwargs["run_id"] == "default_run"
     consumer.close.assert_called_once()
     driver.close.assert_called_once()
+
+
+def test_edge_loader_sigterm_mid_run_leaves_snapshot_with_accumulated_counters(schema, tmp_path, monkeypatch) -> None:
+    """P6-S2 Story 9/10 (review finding S9-1): a SIGTERM arriving mid-run,
+    after at least one counted write, still leaves a metrics-*.prom
+    snapshot with that write's counters. Drives the real main()/EdgeLoader
+    (classic, non-slot-gated _flush_batch path) - not mocked out."""
+    import signal
+
+    monkeypatch.delenv("GRAPH_LOADER_METRICS_ENABLED", raising=False)
+    # P6-S2 review finding S10-2: pin to a free ephemeral port instead of
+    # binding the real 0.0.0.0:9464 during the unit suite.
+    import socket as _socket_module
+    with _socket_module.socket(_socket_module.AF_INET, _socket_module.SOCK_STREAM) as _s:
+        _s.bind(("127.0.0.1", 0))
+        monkeypatch.setenv("GRAPH_LOADER_METRICS_PORT", str(_s.getsockname()[1]))
+    snapshot_path = tmp_path / "metrics-edge-WORKS_AT-0.prom"
+    monkeypatch.setenv("GRAPH_LOADER_METRICS_SNAPSHOT_PATH", str(snapshot_path))
+
+    consumer, driver = MagicMock(), MagicMock()
+    session = driver.session.return_value.__enter__.return_value
+    transaction = session.begin_transaction.return_value.__enter__.return_value
+    result = MagicMock()
+    result.__iter__.return_value = iter([{"checked_rows": 1, "invalid_rows": 0, "merged_rows": 1}])
+    transaction.run.return_value = result
+    handlers: dict[str, object] = {}
+    real_signal = signal.signal
+
+    def capturing_signal(sig, handler):
+        previous = real_signal(sig, handler)
+        if sig == signal.SIGTERM:
+            handlers["current"] = handler
+        return previous
+
+    poll_state = {"n": 0}
+
+    def poll_side_effect(timeout):
+        poll_state["n"] += 1
+        if poll_state["n"] == 1:
+            return _message(_payload(), offset=3)
+        handlers["current"](signal.SIGTERM, None)
+        return None
+
+    consumer.poll.side_effect = poll_side_effect
+
+    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("src.loader.edge_loader.load_schema", return_value=schema), \
+         patch("src.loader.edge_loader.signal.signal", side_effect=capturing_signal):
+        assert edge_loader_main(["--edge-type", "WORKS_AT"]) == 0
+
+    assert snapshot_path.exists()
+    from prometheus_client.parser import text_string_to_metric_families
+
+    families = {family.name: family for family in text_string_to_metric_families(snapshot_path.read_text())}
+    samples = families["graph_loader_records_consumed"].samples
+    assert any(sample.value > 0 for sample in samples)
+
+
+def test_edge_loader_main_passes_mode_and_dlq_sink_as_missing_endpoint_sink(schema) -> None:
+    """P5-S3 Story 5: main() must actually pass mode=args.mode and reuse
+    the real DeadLetterRecordSink as build_edge_execution's
+    missing_endpoint_sink -- without this, streaming row-level DLQ stays
+    silently off no matter what Stories 3-4 built (reviewer's Story 4
+    nice-to-have #1)."""
+    from src.loader.dead_letter import DeadLetterRecordSink
+    from src.models.schema import DeadLetterConfig
+
+    dlq_schema = schema.model_copy(deep=True)
+    edge_index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
+    dlq_schema.edges[edge_index] = dlq_schema.edges[edge_index].model_copy(
+        update={"dead_letter": DeadLetterConfig(enabled=True, topic="dlq-works-at")}
+    )
+    real_sink = MagicMock(spec=DeadLetterRecordSink)
+
+    consumer, driver, loader, dlq_producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    loader.run.return_value = 0
+    fake_index = MagicMock()
+    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("src.loader.edge_loader.EdgeLoader", return_value=loader), \
+         patch("src.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
+         patch("src.loader.edge_loader.build_edge_execution") as build_exec, \
+         patch("src.loader.edge_loader.ParkedPairIndex", return_value=fake_index) as index_cls:
+        build_exec.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
+        assert edge_loader_main([
+            "--edge-type", "WORKS_AT", "--mode", "stream", "--max-messages", "1",
+        ]) == 0
+
+    assert build_exec.call_args.kwargs["mode"] == "stream"
+    assert build_exec.call_args.kwargs["missing_endpoint_sink"] is real_sink
+    # Review finding M16: a live stream-mode replica of a DLQ-enabled,
+    # non-order_by edge type must construct its own writable
+    # ParkedPairIndex, start() it before build_edge_execution is even
+    # called, pass that exact instance through, and stop() it on shutdown
+    # -- without this, IndexedMissingEndpointSink is never active and the
+    # retry consumer's own index sees nothing to retry or block on.
+    index_cls.assert_called_once()
+    assert index_cls.call_args.kwargs["topic"] == "dlq-works-at.parked-pairs"
+    assert index_cls.call_args.kwargs["writable"] is True
+    fake_index.start.assert_called_once()
+    assert build_exec.call_args.kwargs["parked_pair_index"] is fake_index
+    fake_index.stop.assert_called_once()
+
+
+def test_edge_loader_main_skips_parked_pair_index_for_order_by_edge_type(schema) -> None:
+    """M16 corollary: an order_by-configured edge type must never get a
+    ParkedPairIndex at all (Decisions §10 -- it uses a conditional SET
+    instead), even though it is otherwise DLQ-enabled and streaming."""
+    from src.loader.dead_letter import DeadLetterRecordSink
+    from src.models.schema import DeadLetterConfig
+
+    dlq_schema = schema.model_copy(deep=True)
+    edge_index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
+    dlq_schema.edges[edge_index] = dlq_schema.edges[edge_index].model_copy(
+        update={"dead_letter": DeadLetterConfig(enabled=True, topic="dlq-works-at"), "order_by": "since"}
+    )
+    real_sink = MagicMock(spec=DeadLetterRecordSink)
+
+    consumer, driver, loader, dlq_producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    loader.run.return_value = 0
+    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("src.loader.edge_loader.EdgeLoader", return_value=loader), \
+         patch("src.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
+         patch("src.loader.edge_loader.build_edge_execution") as build_exec, \
+         patch("src.loader.edge_loader.ParkedPairIndex") as index_cls:
+        build_exec.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
+        assert edge_loader_main([
+            "--edge-type", "WORKS_AT", "--mode", "stream", "--max-messages", "1",
+        ]) == 0
+
+    index_cls.assert_not_called()
+    assert build_exec.call_args.kwargs["parked_pair_index"] is None
+
+
+def test_edge_loader_main_skips_parked_pair_index_in_bulk_mode(schema) -> None:
+    """M16 corollary: bulk mode never constructs a ParkedPairIndex, even
+
+    for an otherwise DLQ-enabled, non-order_by edge type -- bulk has no
+    live retry consumer to protect against (Decisions §1)."""
+    from src.loader.dead_letter import DeadLetterRecordSink
+    from src.models.schema import DeadLetterConfig
+
+    dlq_schema = schema.model_copy(deep=True)
+    edge_index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
+    dlq_schema.edges[edge_index] = dlq_schema.edges[edge_index].model_copy(
+        update={"dead_letter": DeadLetterConfig(
+            enabled=True, topic="dlq-works-at", route_missing_endpoints_in_bulk=True,
+        )}
+    )
+    real_sink = MagicMock(spec=DeadLetterRecordSink)
+
+    consumer, driver, loader, dlq_producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    loader.run.return_value = 0
+    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("src.loader.edge_loader.EdgeLoader", return_value=loader), \
+         patch("src.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
+         patch("src.loader.edge_loader.build_edge_execution") as build_exec, \
+         patch("src.loader.edge_loader.ParkedPairIndex") as index_cls:
+        build_exec.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
+        assert edge_loader_main([
+            "--edge-type", "WORKS_AT", "--mode", "bulk", "--max-messages", "1",
+        ]) == 0
+
+    index_cls.assert_not_called()
+    assert build_exec.call_args.kwargs["parked_pair_index"] is None
+
+
+def test_edge_loader_main_rejection_sink_fallback_passes_no_missing_endpoint_sink(schema) -> None:
+    """dead_letter absent (RejectionSink fallback): missing_endpoint_sink
+    must stay None -- never the file-sink object, which doesn't satisfy
+    MissingEndpointSink at all."""
+    consumer, driver, loader = MagicMock(), MagicMock(), MagicMock()
+    loader.run.return_value = 0
+    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("src.loader.edge_loader.load_schema", return_value=schema), \
+         patch("src.loader.edge_loader.EdgeLoader", return_value=loader), \
+         patch("src.loader.edge_loader.build_edge_execution") as build_exec:
+        build_exec.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
+        assert edge_loader_main(["--edge-type", "WORKS_AT", "--max-messages", "1"]) == 0
+
+    assert build_exec.call_args.kwargs["mode"] == "stream"  # --mode default
+    assert build_exec.call_args.kwargs["missing_endpoint_sink"] is None
+
+
+def test_edge_loader_main_wires_dead_letter_sink_and_flushes_its_producer(schema) -> None:
+    """main() routes to build_malformed_record_sink and flushes its producer.
+
+    Uses a schema copy with WORKS_AT's dead_letter enabled, so the factory
+    picks the DeadLetterRecordSink branch instead of the RejectionSink
+    fallback -- proving edge_config.dead_letter, run_id, entity_kind, and
+    max_poll_interval_ms all actually reach main().
+    """
+    from src.models.schema import DeadLetterConfig
+
+    dlq_schema = schema.model_copy(deep=True)
+    edge_index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
+    dlq_schema.edges[edge_index] = dlq_schema.edges[edge_index].model_copy(
+        update={"dead_letter": DeadLetterConfig(enabled=True, topic="dlq-works-at")}
+    )
+
+    consumer, driver, loader, dlq_producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    loader.run.return_value = 0
+    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls, \
+         patch(
+             "src.loader.edge_loader.build_malformed_record_sink",
+             return_value=(MagicMock(), dlq_producer),
+         ) as build_sink:
+        assert edge_loader_main(["--edge-type", "WORKS_AT", "--max-messages", "1"]) == 0
+
+    build_sink_kwargs = build_sink.call_args.kwargs
+    assert build_sink_kwargs["dead_letter"] is dlq_schema.edges[edge_index].dead_letter
+    assert build_sink_kwargs["entity_topic"] == "works-at-events"
+    assert build_sink_kwargs["entity_kind"] == "edge"
+    assert build_sink_kwargs["run_id"] == "default_run"
+    assert build_sink_kwargs["max_poll_interval_ms"] == dlq_schema.loading.max_poll_interval_ms
+    assert loader_cls.call_args.kwargs["rejection_sink"] is build_sink.return_value[0]
+    dlq_producer.flush.assert_called_once()
 
 
 def test_edge_loader_main_slot_gating_uses_distinct_coordination_consumer(schema) -> None:
@@ -1222,6 +1950,35 @@ def test_edge_loader_main_close_failures_are_attributed_and_finish_cleanup(schem
     clock.close.assert_called_once()
     work.close.assert_called_once()
     driver.close.assert_called_once()
+
+
+def test_edge_loader_main_keeps_sigterm_handler_even_when_close_fails(schema) -> None:
+    """P6-S5 Story 4, Decision 10 (confirmation-only): node_loader.py and
+    planned_writer.py already have a getsignal-based test proving the
+    previous SIGTERM handler is restored on main() exit, including when a
+    close/flush step raises; edge_loader.py had none, even though the
+    production code (main()'s finally at the bottom of the function)
+    already does this correctly. Reuses the exact fixture shape of
+    test_edge_loader_main_close_failures_are_attributed_and_finish_cleanup
+    above - no production code change expected here."""
+    import signal
+
+    work, clock, driver, loader = MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    loader.run.return_value = 0
+    work.close.side_effect = RuntimeError("work close")
+
+    with patch("src.loader.edge_loader.Consumer", side_effect=[work, clock]), \
+         patch("src.loader.edge_loader.load_schema", return_value=schema), \
+         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
+        assert edge_loader_main([
+            "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1", "--replica-id", "7",
+        ]) == 1
+
+    work.close.assert_called_once()
+    # F2: SIGTERM is ignored as the last shutdown step (CPython resets Python handlers
+    # to SIG_DFL at interpreter exit; only SIG_IGN survives a repeated stop signal).
+    assert signal.getsignal(signal.SIGTERM) == signal.SIG_IGN
 
 
 def test_edge_loader_main_rejects_unknown_type_and_invalid_cap() -> None:
@@ -1456,3 +2213,404 @@ def test_gated_worker_failure_logs_chained_cause_without_record_payload(works_at
     assert error_call.kwargs["exc_info"] is True
     assert "stage=worker edge=WORKS_AT replica=0" in str(error_call.args[3])
     assert secret_key not in str(error_call)
+
+
+# ── P5-S3 Story 6: offset-ledger, fail-closed, and ordering correctness ────
+#
+# Test-only: no production code change is expected here. These prove
+# Decisions points 5-7's "falls out of the existing WorkerResult/
+# PartitionLedger contract for free" claim through the *real*
+# EdgeLoader/LaneExecutionCoordinator/ApocLockedEdgeWriter stack (a fake
+# Neo4j driver only), not just the writer-level unit tests Stories 3-5
+# already specify.
+
+
+def _works_at_payload(person_id: str, company_id: str = "c-1") -> bytes:
+    return (
+        b'{"source":{"personId":"' + person_id.encode() + b'"},'
+        b'"target":{"companyId":"' + company_id.encode() + b'"},'
+        b'"properties":{"since":"2020-01-02"}}'
+    )
+
+
+def _agg(checked_rows: int, invalid_rows: int, merged_rows: int):
+    result = MagicMock()
+    result.__iter__.return_value = iter(
+        [{"checked_rows": checked_rows, "invalid_rows": invalid_rows, "merged_rows": merged_rows}]
+    )
+    return result
+
+
+def _class_rows(triples):
+    result = MagicMock()
+    result.__iter__.return_value = iter(
+        [{"row_index": i, "source_matches": s, "target_matches": t} for i, s, t in triples]
+    )
+    return result
+
+
+def _ok(rows: int = 1):
+    result = MagicMock()
+    result.__iter__.return_value = iter([{"checked_rows": rows, "invalid_rows": 0, "merged_rows": rows}])
+    return result
+
+
+def _row_level_loader(works_at, tx_run_side_effect, *, sink=None):
+    """A real EdgeLoader wired through a real LaneExecutionCoordinator and a
+    real ApocLockedEdgeWriter with row-level DLQ enabled, against a fake
+    Neo4j driver whose transaction.run() replays tx_run_side_effect in order."""
+    from src.loader.edge_execution import ApocLockedEdgeWriter, LaneExecutionCoordinator
+    from src.loader.mix_and_batch import LaneBatcher, MixAndBatchPartitioner
+
+    driver = MagicMock()
+    session = driver.session.return_value.__enter__.return_value
+    tx = session.begin_transaction.return_value.__enter__.return_value
+    tx.run.side_effect = tx_run_side_effect
+    sink = sink if sink is not None else MagicMock()
+    writer = ApocLockedEdgeWriter(
+        driver, works_at, missing_endpoint_error_factory=MissingRelationshipEndpointError,
+        missing_endpoint_sink=sink,
+    )
+    coordinator = LaneExecutionCoordinator(writer, mode="python_apoc", worker_count=1)
+    consumer = MagicMock()
+    loader = EdgeLoader(
+        consumer, writer, works_at, rejection_sink=MagicMock(),
+        partitioner=MixAndBatchPartitioner(works_at),
+        lane_batcher=LaneBatcher(works_at, clock=lambda: 0.0),
+        coordinator=coordinator,
+        loading_config=LoadingConfig(unwind_batch_size=10),
+    )
+    return loader, tx, sink
+
+
+def test_story6_mixed_batch_commit_resolves_all_offsets_and_dlqs_the_unresolved_row(works_at) -> None:
+    """Mixed-batch commit through the real ledger: offsets 10,11,12, 11's
+    endpoint never resolves. All three offsets resolve (_resolve_worker_
+    result's contract has no concept of *why* a record resolved), the
+    committed offset advances past 12, and exactly one envelope was
+    published for offset 11."""
+    loader, tx, sink = _row_level_loader(works_at, [
+        _agg(3, 1, 0),
+        _class_rows([(0, 1, 1), (1, 0, 1), (2, 1, 1)]),
+        _agg(2, 0, 2),
+    ])
+    for offset, person in ((10, "p-10"), (11, "missing-src"), (12, "p-12")):
+        assert loader._buffer_message(_message(_works_at_payload(person), offset=offset)) is True
+    assert loader._flush_batch() is True
+    ledger = loader._partition_ledgers[("works-at-events", 0)]
+    assert ledger.next_offset == 13
+    assert ledger.resolved_offsets == set()
+    sink.route_unresolved_endpoint.assert_called_once()
+    assert sink.route_unresolved_endpoint.call_args.kwargs["offset"] == 11
+    assert sink.route_unresolved_endpoint.call_args.kwargs["reason_code"] == "missing_source"
+
+
+def test_story6_dlq_produce_failure_resolves_no_offsets_then_succeeds_on_replay(works_at) -> None:
+    """DLQ produce failure fails the whole batch closed: zero offsets
+    resolve, including the rows Neo4j already durably committed inside
+    the same write_provenanced_batch call moments earlier. A second,
+    identical attempt (simulating Kafka replay) with a non-failing
+    producer succeeds and resolves all three -- idempotent MERGE makes
+    replaying the already-written rows safe."""
+    from src.loader.dead_letter import DeadLetterPublishError
+
+    failing_sink = MagicMock()
+    failing_sink.route_unresolved_endpoint.side_effect = DeadLetterPublishError("broker unreachable")
+    loader, _tx, _sink = _row_level_loader(works_at, [
+        _agg(3, 1, 0), _class_rows([(0, 1, 1), (1, 0, 1), (2, 1, 1)]), _agg(2, 0, 2),
+    ], sink=failing_sink)
+    for offset, person in ((10, "p-10"), (11, "missing-src"), (12, "p-12")):
+        assert loader._buffer_message(_message(_works_at_payload(person), offset=offset)) is True
+    assert loader._flush_batch() is False
+    ledger = loader._partition_ledgers[("works-at-events", 0)]
+    assert ledger.resolved_offsets == set() and ledger.next_offset == 10
+
+    replay_loader, _tx2, _sink2 = _row_level_loader(works_at, [
+        _agg(3, 1, 0), _class_rows([(0, 1, 1), (1, 0, 1), (2, 1, 1)]), _agg(2, 0, 2),
+    ])
+    for offset, person in ((10, "p-10"), (11, "missing-src"), (12, "p-12")):
+        assert replay_loader._buffer_message(_message(_works_at_payload(person), offset=offset)) is True
+    assert replay_loader._flush_batch() is True
+    assert replay_loader._partition_ledgers[("works-at-events", 0)].next_offset == 13
+
+
+def test_story6_rebalance_mid_batch_settles_row_level_dlq_batch_before_revoke(works_at) -> None:
+    """Rebalance mid-batch: the existing 'settle a buffered batch before
+    revoke' contract (P5-S1 Story 7's confirmation that _on_revoke's
+    settlement logic is coordinator-agnostic) is unaffected by a batch
+    that happens to contain a row-level DLQ split internally."""
+    loader, _tx, sink = _row_level_loader(works_at, [
+        _agg(2, 1, 0), _class_rows([(0, 1, 1), (1, 0, 1)]), _agg(1, 0, 1),
+    ])
+    loader._running = True
+    p0 = TopicPartition("works-at-events", 0)
+    loader._on_assign(loader._consumer, [p0])
+    assert loader._buffer_message(_message(_works_at_payload("p-10"), offset=10)) is True
+    assert loader._buffer_message(_message(_works_at_payload("missing-src"), offset=11)) is True
+
+    loader._on_revoke(loader._consumer, [p0])
+
+    committed = loader._consumer.commit.call_args.kwargs["offsets"][0]
+    assert (committed.partition, committed.offset) == (0, 12)
+    assert loader._rebalance_failure is False
+    sink.route_unresolved_endpoint.assert_called_once()
+
+
+class _FixedGrantLeaseClient:
+    """Minimal BucketLeaseClient double: one cell, one immediate grant,
+    never denies, never merges. ``ping_result`` controls the pre-commit
+    liveness check (P5-S3 Story 6 must-fix: proving a lease-loss abort
+    through the *real* BucketLeaseExecutionCoordinator, not a mocked
+    coordinator that already carries the exception)."""
+
+    broken = False
+
+    def __init__(self, ping_result: bool = True) -> None:
+        self._ping_result = ping_result
+        self._next_lease_id = 0
+
+    def connect(self) -> None:
+        pass
+
+    def acquire_any(self, resource_sets, *, wait_ms):
+        self._next_lease_id += 1
+        return (f"lease-{self._next_lease_id}", 0)
+
+    def extend(self, lease_id, weighted_sets, *, budget):
+        return []
+
+    def release(self, lease_id) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+    def ping(self) -> bool:
+        return self._ping_result
+
+
+def _lease_backed_loader(works_at, tx_run_side_effect, *, sink=None, ping_result: bool = True,
+                         client_factory=None, bucket_count=1, **loader_kwargs):
+    """A real EdgeLoader wired through a real BucketLeaseExecutionCoordinator
+    (streaming's default path, routes_records=True -- bypasses partitioner/
+    lane_batcher entirely) and a real row-level ApocLockedEdgeWriter, against
+    a fake Neo4j driver and a fake (always-granting) lease client."""
+    from src.loader.edge_execution import ApocLockedEdgeWriter, BucketLeaseExecutionCoordinator
+    from src.loader.lease_client import BucketCellRouter
+
+    driver = MagicMock()
+    session = driver.session.return_value.__enter__.return_value
+    tx = session.begin_transaction.return_value.__enter__.return_value
+    tx.run.side_effect = tx_run_side_effect
+    sink = sink if sink is not None else MagicMock()
+    writer = ApocLockedEdgeWriter(
+        driver, works_at, missing_endpoint_error_factory=MissingRelationshipEndpointError,
+        missing_endpoint_sink=sink,
+    )
+    coordinator = BucketLeaseExecutionCoordinator(
+        writer, router=BucketCellRouter(works_at.nodes.source, works_at.nodes.target, bucket_count),
+        worker_count=1, batch_size=10,
+        client_factory=client_factory or (lambda: _FixedGrantLeaseClient(ping_result=ping_result)),
+        **loader_kwargs.pop("coordinator_kwargs", {}),
+    )
+    consumer = MagicMock()
+    loader = EdgeLoader(
+        consumer, writer, works_at, rejection_sink=MagicMock(), coordinator=coordinator,
+        loading_config=LoadingConfig(unwind_batch_size=10), **loader_kwargs,
+    )
+    return loader, tx, sink
+
+
+@pytest.mark.parametrize("scenario", ["attempt_1", "fallback"])
+def test_story6_lease_loss_mid_transaction_resolves_no_offsets_and_never_touches_dlq(works_at, scenario) -> None:
+    """Decisions point 7, through the full EdgeLoader stack and the REAL
+    BucketLeaseExecutionCoordinator (not a mocked coordinator that already
+    carries the exception -- that only re-proves the pre-existing 'a
+    failed lane result resolves no offsets' behavior). A dead lease
+    (ping() -> False) aborts before commit, in either Attempt 1 (an
+    all-resolved batch) or the fallback (a mixed batch) -- zero offsets
+    resolve, nothing commits, the sink is never invoked, and (since
+    on_dlq_routed only ever fires from inside DeadLetterProducer.publish)
+    the underlying Kafka producer's produce() is never called either."""
+    from src.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
+
+    kafka_producer = MagicMock()
+    sink = DeadLetterRecordSink(
+        producer=DeadLetterProducer(kafka_producer), topic="works-at-events.dlq",
+        run_id="run-1", replica_id="0", kind="edge",
+    )
+    if scenario == "attempt_1":
+        tx_run_side_effect = [_ok(1)]  # all-resolved: dies at Attempt 1's pre-commit check
+        offsets_and_persons = [(10, "p-10")]
+    else:
+        tx_run_side_effect = [_agg(2, 1, 0), _class_rows([(0, 1, 1), (1, 0, 1)]), _agg(1, 0, 1)]
+        offsets_and_persons = [(10, "p-10"), (11, "missing-src")]
+    loader, tx, _sink = _lease_backed_loader(works_at, tx_run_side_effect, sink=sink, ping_result=False)
+    for offset, person in offsets_and_persons:
+        assert loader._buffer_message(_message(_works_at_payload(person), offset=offset)) is True
+
+    assert loader._flush_batch() is False
+
+    # Pins the cause without catching the exception type: every statement
+    # ran (the side_effect list was exhausted, not a MagicMock mismatch or
+    # an unrelated routing error) and the aggregate/matched-write checks
+    # passed, yet commit was never called and nothing was produced -- the
+    # only path left is the liveness check returning False and raising
+    # LeaseCoordinatorError.
+    assert tx.run.call_count == len(tx_run_side_effect)
+    loader._consumer.commit.assert_not_called()
+    tx.commit.assert_not_called()
+    ledger = loader._partition_ledgers[("works-at-events", 0)]
+    assert ledger.resolved_offsets == set()
+    sink_calls = kafka_producer.produce.call_args_list  # via the real DeadLetterRecordSink/DeadLetterProducer
+    assert sink_calls == []
+
+
+def test_story6_lease_backed_mixed_batch_commits_and_dlqs_through_the_default_streaming_path(works_at) -> None:
+    """SHOULD-FIX (reviewer): the spec's mixed-batch scenario named
+    BucketLeaseExecutionCoordinator, streaming's default path -- exercised
+    at the coordinator level in Story 4, but never before through the full
+    EdgeLoader into the offset ledger. Same shape as the classic-path
+    mixed-batch test above, through the lease-backed loader instead."""
+    loader, _tx, sink = _lease_backed_loader(works_at, [
+        _agg(3, 1, 0), _class_rows([(0, 1, 1), (1, 0, 1), (2, 1, 1)]), _agg(2, 0, 2),
+    ])
+    for offset, person in ((10, "p-10"), (11, "missing-src"), (12, "p-12")):
+        assert loader._buffer_message(_message(_works_at_payload(person), offset=offset)) is True
+    assert loader._flush_batch() is True
+    ledger = loader._partition_ledgers[("works-at-events", 0)]
+    assert ledger.next_offset == 13
+    sink.route_unresolved_endpoint.assert_called_once()
+    assert sink.route_unresolved_endpoint.call_args.kwargs["offset"] == 11
+
+
+def test_story6_same_pair_ordering_end_to_end_through_edge_loader(works_at) -> None:
+    """Same-pair ordering, end to end: two records for the same pair in
+    one poll batch, the earlier missing, the later individually
+    resolvable. The final state has no relationship for that pair (no
+    matched-subset write call at all), and both envelopes exist with the
+    expected reason_codes."""
+    loader, tx, sink = _row_level_loader(works_at, [
+        _agg(2, 1, 0),
+        _class_rows([(0, 0, 1), (1, 1, 1)]),
+    ])
+    for offset, person in ((20, "missing-src"), (21, "missing-src")):
+        assert loader._buffer_message(_message(_works_at_payload(person, "c-1"), offset=offset)) is True
+    assert loader._flush_batch() is True
+    assert tx.run.call_count == 2  # never a 3rd call: matched_rows was empty
+    ledger = loader._partition_ledgers[("works-at-events", 0)]
+    assert ledger.next_offset == 22
+    assert sink.route_unresolved_endpoint.call_count == 2
+    by_offset = {c.kwargs["offset"]: c.kwargs["reason_code"] for c in sink.route_unresolved_endpoint.call_args_list}
+    assert by_offset[20] == "missing_source"
+    assert by_offset[21] == "blocked_by_earlier_unresolved_row"
+
+
+class _DeniedLeaseClient(_FixedGrantLeaseClient):
+    """Every lease is held by a dead writer still inside its fence."""
+
+    def acquire_any(self, resource_sets, *, wait_ms):
+        time.sleep(0.01)
+        return None
+
+
+def test_f1_stopping_loader_with_unobtainable_lease_abandons_batch_exits_zero_commits_nothing(works_at, caplog) -> None:
+    import logging
+
+    stop = Event()
+    loader, tx, _sink = _lease_backed_loader(
+        works_at, [], client_factory=_DeniedLeaseClient, shutdown_requested=stop,
+        coordinator_kwargs={"stop_event": stop, "drain_budget_seconds": 0.2},
+    )
+    assert loader._buffer_message(_message(_works_at_payload("p-10"), offset=10)) is True
+    stop.set()
+    started = time.monotonic()
+    with caplog.at_level(logging.WARNING):
+        assert loader.run() == 0
+    assert time.monotonic() - started < 3.0
+    loader._consumer.commit.assert_not_called()
+    tx.run.assert_not_called()  # never wrote without a lease
+    tx.commit.assert_not_called()
+    assert loader._partition_ledgers[("works-at-events", 0)].resolved_offsets == set()
+    assert any(
+        "stage=edge-drain-abandoned" in record.getMessage() and record.levelno == logging.WARNING
+        for record in caplog.records
+    )
+
+
+def test_f1_gated_worker_path_abandons_drain_exits_zero_commits_nothing(works_at) -> None:
+    """Slot-gated _worker_loop -> DRAIN_ABANDONED -> _resolve_worker_result -> exit 0."""
+    from src.loader.edge_execution import LeaseDrainAbandoned
+
+    consumer, writer, coordinator, partitioner, batcher = MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    consumer.poll.return_value = _message(_payload(), offset=3)
+    routed = MagicMock(); routed.record = _record(); routed.topic = "works-at-events"; routed.partition = 0; routed.offset = 3
+    partitioner.route.return_value = routed; batcher.drain_all.return_value = [(routed,)]
+    coordinator.execute.return_value = (LaneExecutionResult(1, (routed,), False, LeaseDrainAbandoned("budget spent")),)
+    loader = _gated_loader(consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None])
+    event_logger = MagicMock(); loader._logger = event_logger
+    loader._coordinator, loader._partitioner, loader._lane_batcher = coordinator, partitioner, batcher
+    assert loader.run(max_messages=1) == 0
+    consumer.commit.assert_not_called()
+    assert "stage=edge-drain-abandoned" in str(event_logger.warning.call_args.args[0])
+    event_logger.error.assert_not_called()
+
+
+def test_f1_worker_loop_reports_drain_abandoned_outcome(works_at) -> None:
+    from src.loader.edge_execution import LeaseDrainAbandoned
+
+    consumer, writer, coordinator, partitioner, batcher = MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    pending = PendingEdgeRecord(_record(), "works-at-events", 0, 3)
+    routed = MagicMock(); routed.record = pending.record; routed.topic = pending.topic; routed.partition = pending.partition; routed.offset = pending.offset
+    partitioner.route.return_value = routed; batcher.drain_all.return_value = [(routed,)]
+    cause = LeaseDrainAbandoned("budget spent")
+    coordinator.execute.return_value = (LaneExecutionResult(1, (routed,), False, cause),)
+    loader = EdgeLoader(consumer, writer, works_at, partitioner=partitioner, lane_batcher=batcher, coordinator=coordinator)
+    batch = WorkerBatch(1, (pending,), (), None, None, None)
+    loader._outstanding_batches[batch.batch_id] = batch
+    loader._permit_states[batch.batch_id] = "QUEUED"
+    loader._worker_queue.put(batch)
+    loader._worker_loop()
+    result = loader._worker_results.get_nowait()
+    assert result.outcome == "DRAIN_ABANDONED" and result.error is cause
+    consumer.commit.assert_not_called()
+
+
+def test_f1_partial_flush_with_one_abandoned_cell_commits_no_offsets(works_at, caplog) -> None:
+    """Some cells written, one cell's lease unobtainable: the whole batch stays
+    uncommitted (replayed later), the loader still exits 0."""
+    import logging
+    from src.loader.lease_client import BucketCellRouter
+
+    router = BucketCellRouter(works_at.nodes.source, works_at.nodes.target, 8)
+    cells = {}
+    for index in range(200):
+        cells.setdefault(router.cell(f"p-{index}", "c-1"), f"p-{index}")
+        if len(cells) == 2:
+            break
+    (cell_ok, person_ok), (cell_blocked, person_blocked) = list(cells.items())
+    blocked = set(router.resources(cell_blocked)) - set(router.resources(cell_ok))
+
+    class _PartiallyBlockedClient(_FixedGrantLeaseClient):
+        def acquire_any(self, resource_sets, *, wait_ms):
+            for index, resources in enumerate(resource_sets):
+                if not blocked & set(resources):
+                    self._next_lease_id += 1
+                    return (f"lease-{self._next_lease_id}", index)
+            time.sleep(0.01)
+            return None
+
+    stop = Event()
+    loader, tx, _sink = _lease_backed_loader(
+        works_at, [_ok(1)], client_factory=_PartiallyBlockedClient, bucket_count=8, shutdown_requested=stop,
+        coordinator_kwargs={"stop_event": stop, "drain_budget_seconds": 0.2},
+    )
+    assert loader._buffer_message(_message(_works_at_payload(person_ok), offset=10)) is True
+    assert loader._buffer_message(_message(_works_at_payload(person_blocked), offset=11)) is True
+    stop.set()
+    with caplog.at_level(logging.WARNING):
+        assert loader.run() == 0
+    assert tx.run.called  # the unblocked cell really was written
+    loader._consumer.commit.assert_not_called()
+    assert loader._partition_ledgers[("works-at-events", 0)].resolved_offsets == set()
+    assert any("stage=edge-drain-abandoned" in r.getMessage() for r in caplog.records)

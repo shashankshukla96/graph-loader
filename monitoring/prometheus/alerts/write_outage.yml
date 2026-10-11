@@ -1,0 +1,34 @@
+# STARTING POINT, NOT AN SLO. Thresholds below are conservative defaults
+# chosen without production traffic data (P6-Q4, plan/v5-v6-orchestration.md).
+# Tune every threshold to your own environment before treating a firing
+# alert as an incident. `for:` durations are chosen to avoid a scrape-
+# interval blip firing an alert, not to model any real SLO.
+groups:
+  - name: graph-loader-write-outage
+    rules:
+      - alert: GraphLoaderWriteOutage
+        # Stream outage resilience (src/loader/write_outage.py): a live stream
+        # node or edge loader whose Neo4j writes fail with a connectivity-class
+        # error (Neo4j unavailable, an expired session, a pool timeout, a
+        # read-only database, a transient error, the lease server unavailable)
+        # no longer exits. It holds its batch uncommitted, holds no lease,
+        # pauses its partitions and retries the same batch in order.
+        # graph_loader_write_outage_seconds{kind,name} counts the seconds of
+        # one such outage (0 while writing). The loader logs a
+        # reason=neo4j_outage ERROR after 30 s. Example threshold only
+        # (2 minutes, then 1m `for:`): long enough to ride out a restart or a
+        # failover without paging.
+        expr: max by (kind, name, run_id) (graph_loader_write_outage_seconds) > 120
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} Neo4j writes have failed for {{ $value | humanizeDuration }}; the stream loader is holding its batch and retrying."
+          description: >
+            A live stream loader cannot write to Neo4j. Nothing is lost: the
+            batch stays uncommitted in Kafka and is retried in order, and the
+            fleet stays up. Ingestion of this entity is stopped until Neo4j
+            accepts writes again (consumer lag grows). Check Neo4j's health
+            and the loader's reason=neo4j_outage ERROR lines for the error.
+            Authentication and missing-database errors that persist for 10
+            minutes stop the fleet (reason=neo4j_fatal).

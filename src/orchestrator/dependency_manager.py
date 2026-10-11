@@ -90,7 +90,12 @@ class ConflictFamily:
 
 
 def _endpoint_labels(edge: EdgeConfig) -> frozenset[str]:
-    """Return the node-label resources used by one declared edge type."""
+    """Return the node-label resources used by one declared edge type.
+
+    v7-S7: the union over every label pair of a multi-pair type, so it conflicts with any type
+    touching one of them."""
+    if getattr(edge, "is_multi_pair", False) is True:
+        return frozenset(edge.endpoint_labels)
     return frozenset((edge.nodes.source, edge.nodes.target))
 
 
@@ -156,6 +161,8 @@ def build_conflict_families(edges: Sequence[EdgeConfig]) -> tuple[ConflictFamily
     plan = build_relationship_conflict_plan(edges)
     edges_by_type = {edge.type: edge for edge in edges}
     for edge_type, edge in edges_by_type.items():
+        if getattr(edge, "is_multi_pair", False) is True:
+            edge.single_pair  # v7-S7: shared-clock rotation knows one pair per type; raises MultiPairEdgeError
         if edge.nodes.source == edge.nodes.target:
             raise ValueError(f"conflict family edge={edge_type} is self-referencing")
 

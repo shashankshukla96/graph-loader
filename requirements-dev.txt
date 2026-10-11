@@ -1,0 +1,9 @@
+# Development and CI tooling. Not installed into any loader image
+# (Dockerfile.node_loader / Dockerfile.edge_loader / Dockerfile.clock
+# install only requirements.txt).
+ruff==0.16.9
+actionlint-py==1.7.12.25
+# make validate-workflows' yaml.safe_load pass needs PyYAML. requirements.txt
+# already pins pyyaml>=6.0 for the loader images, but a dev-tooling target
+# should not silently depend on the production requirements file too.
+pyyaml>=6.0

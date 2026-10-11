@@ -27,7 +27,7 @@ def _message(payload):
     return message
 
 
-def _monitor():
+def _monitor(*, metrics=None, clock=None, retry_consumers=()):
     schema = load_schema(ROOT / "config" / "graph_schema.yaml")
     edge = next(edge for edge in schema.edges if edge.type == "WORKS_AT")
     admin, watermark, control = MagicMock(), MagicMock(), MagicMock()
@@ -39,11 +39,18 @@ def _monitor():
     admin.list_consumer_group_offsets.return_value = {"graph-loader-WORKS_AT-run-1": future}
     control.poll.return_value = None
     container = MagicMock(); container.attrs = {"State": {"Status": "running"}}
+    kwargs = {}
+    if metrics is not None:
+        kwargs["metrics"] = metrics
+    if clock is not None:
+        kwargs["clock"] = clock
+    if retry_consumers:
+        kwargs["tracked_retry_consumers"] = retry_consumers
     monitor = RelationshipBulkMonitor(
         [edge], "run-1", {("WORKS_AT", "0")}, {("WORKS_AT", "0"): container},
         bootstrap_servers="kafka:9092", consumer_group_prefix="graph-loader",
         admin_client=admin, watermark_consumer=watermark, control_consumer=control,
-        poll_interval_seconds=0.01,
+        poll_interval_seconds=0.01, **kwargs,
     )
     return monitor, admin, watermark, control, container
 
@@ -179,11 +186,11 @@ def test_empty_partition_without_a_kafka_commit_reaches_and_verifies_zero_bounda
 
 def _rotation_monitor():
     works = SimpleNamespace(
-        type="WORKS_AT", topic="works-at-events", replicas=1,
+        type="WORKS_AT", topic="works-at-events", topics=["works-at-events"], dead_letter_entity="works-at-events", is_multi_topic=False, replicas=1,
         nodes=SimpleNamespace(source="Person", target="Company", is_self_referencing=False),
     )
     bought = SimpleNamespace(
-        type="BOUGHT", topic="bought-events", replicas=1,
+        type="BOUGHT", topic="bought-events", topics=["bought-events"], dead_letter_entity="bought-events", is_multi_topic=False, replicas=1,
         nodes=SimpleNamespace(source="Person", target="Product", is_self_referencing=False),
     )
     plan = build_rotation_plan(build_conflict_families((works, bought)), bucket_count=1)
@@ -365,6 +372,169 @@ def test_rotation_monitor_rejects_stale_and_future_drain_acknowledgements():
     assert monitor._drains == {}
 
 
+# ── Metrics instrumentation (P6-S2 Story 8) ──────────────────────────────────
+
+
+class _FakeClock:
+    """A monotonic-like clock the test can advance explicitly, so the lag
+    refresh's own 10s throttle (P6-S2 review S8-1) doesn't have to wait on
+    wall-clock time."""
+
+    def __init__(self, start: float = 0.0) -> None:
+        self.value = start
+
+    def __call__(self) -> float:
+        return self.value
+
+    def advance(self, seconds: float) -> None:
+        self.value += seconds
+
+
+def test_supervise_stream_refreshes_consumer_lag_and_drains_to_zero():
+    from prometheus_client import CollectorRegistry
+    from src.utils.metrics import GraphLoaderMetrics
+
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+    clock = _FakeClock()
+    monitor, admin, watermark, control, _ = _monitor(metrics=metrics, clock=clock)
+    watermark.get_watermark_offsets.return_value = (0, 10)  # low=0, high=10, nothing committed yet.
+    admin.list_consumer_group_offsets.return_value = {
+        "graph-loader-WORKS_AT-run-1": MagicMock(result=MagicMock(return_value=SimpleNamespace(topic_partitions=[])))
+    }
+
+    class Shutdown:
+        requested = False
+
+        def is_set(self):
+            return self.requested
+
+    shutdown = Shutdown()
+    monitor._sleep = lambda _seconds: setattr(shutdown, "requested", True)
+    monitor.supervise_stream(shutdown)
+
+    assert metrics.registry.get_sample_value(
+        "graph_loader_consumer_lag_records",
+        {"kind": "cli", "name": "WORKS_AT", "topic": "works-at-events"},
+    ) == 10.0  # nothing committed -> falls back to low=0, full backlog counts as lag.
+
+    # Immediately re-supervising must NOT re-refresh (throttled) even
+    # though the underlying data changed - proves the throttle, not just
+    # the metric.
+    future = MagicMock()
+    future.result.return_value = SimpleNamespace(topic_partitions=[TopicPartition("works-at-events", 0, 10)])
+    admin.list_consumer_group_offsets.return_value = {"graph-loader-WORKS_AT-run-1": future}
+    shutdown.requested = False
+    monitor.supervise_stream(shutdown)
+    assert metrics.registry.get_sample_value(
+        "graph_loader_consumer_lag_records",
+        {"kind": "cli", "name": "WORKS_AT", "topic": "works-at-events"},
+    ) == 10.0  # still the stale value: throttle window hasn't elapsed.
+
+    # Now the partition is fully drained (committed caught up to high) AND
+    # the throttle window has elapsed.
+    clock.advance(monitor._LAG_REFRESH_INTERVAL_SECONDS + 1)
+    shutdown.requested = False
+    monitor.supervise_stream(shutdown)
+    assert metrics.registry.get_sample_value(
+        "graph_loader_consumer_lag_records",
+        {"kind": "cli", "name": "WORKS_AT", "topic": "works-at-events"},
+    ) == 0.0
+
+
+def test_consumer_lag_uses_low_watermark_not_zero_when_nothing_committed():
+    """P6-S2 review finding S8-2: an absolute committed=0 fallback would
+    wildly overstate lag on a topic aged past retention. Falling back to
+    the *low* watermark (Kafka's own convention) instead reports the true
+    backlog: 10 records, not 1,000,010."""
+    from prometheus_client import CollectorRegistry
+    from src.utils.metrics import GraphLoaderMetrics
+
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+    monitor, admin, watermark, control, _ = _monitor(metrics=metrics)
+    watermark.get_watermark_offsets.return_value = (1_000_000, 1_000_010)
+    admin.list_consumer_group_offsets.return_value = {
+        "graph-loader-WORKS_AT-run-1": MagicMock(result=MagicMock(return_value=SimpleNamespace(topic_partitions=[])))
+    }
+
+    class Shutdown:
+        requested = False
+
+        def is_set(self):
+            return self.requested
+
+    shutdown = Shutdown()
+    monitor._sleep = lambda _seconds: setattr(shutdown, "requested", True)
+    monitor.supervise_stream(shutdown)
+
+    assert metrics.registry.get_sample_value(
+        "graph_loader_consumer_lag_records",
+        {"kind": "cli", "name": "WORKS_AT", "topic": "works-at-events"},
+    ) == 10.0
+
+
+def test_lag_refresh_rate_is_independent_of_the_supervision_tick_rate():
+    """P6-S2 review finding S8-1: with poll_interval_seconds=0.01 (100x
+    faster than production) and a fake clock advancing 1s per tick, N
+    ticks must produce ceil(elapsed / _LAG_REFRESH_INTERVAL_SECONDS)
+    refreshes, never N."""
+    from prometheus_client import CollectorRegistry
+    from src.utils.metrics import GraphLoaderMetrics
+
+    metrics = GraphLoaderMetrics(registry=CollectorRegistry())
+    clock = _FakeClock()
+    monitor, admin, watermark, control, _ = _monitor(metrics=metrics, clock=clock)
+    refresh_calls = {"n": 0}
+
+    def counting_get_watermark_offsets(*args, **kwargs):
+        refresh_calls["n"] += 1
+        return (0, 10)
+
+    watermark.get_watermark_offsets.side_effect = counting_get_watermark_offsets
+
+    ticks = {"n": 0}
+
+    def sleep_and_advance(_seconds):
+        ticks["n"] += 1
+        clock.advance(1.0)  # 1 simulated second per tick.
+        if ticks["n"] >= 25:
+            shutdown.requested = True
+
+    class Shutdown:
+        requested = False
+
+        def is_set(self):
+            return self.requested
+
+    shutdown = Shutdown()
+    monitor._sleep = sleep_and_advance
+    monitor.supervise_stream(shutdown)
+
+    assert ticks["n"] == 25
+    # 25 ticks at 1s each = 25s elapsed; refreshes happen at t=0, t=10,
+    # t=20 -> 3 refreshes, not 25.
+    assert refresh_calls["n"] == 3
+
+
+def test_supervise_stream_lag_refresh_failure_never_breaks_supervision():
+    metrics_module_import = __import__("src.utils.metrics", fromlist=["GraphLoaderMetrics"])
+    from prometheus_client import CollectorRegistry
+
+    metrics = metrics_module_import.GraphLoaderMetrics(registry=CollectorRegistry())
+    monitor, admin, _, _, _ = _monitor(metrics=metrics)
+    admin.list_consumer_group_offsets.side_effect = RuntimeError("admin API unreachable")
+
+    class Shutdown:
+        requested = False
+
+        def is_set(self):
+            return self.requested
+
+    shutdown = Shutdown()
+    monitor._sleep = lambda _seconds: setattr(shutdown, "requested", True)
+    # Must not raise despite the admin API failure inside the lag refresh.
+    monitor.supervise_stream(shutdown)
+
+
 def test_stream_supervisor_stays_live_until_injected_shutdown_without_lag_checks():
     monitor, _, _, _, _ = _rotation_monitor()
     monitor.wait_for_clock_lease = MagicMock()
@@ -450,3 +620,341 @@ def test_nonrotation_stream_supervisor_stays_live_without_clock_or_lag_completio
 
     assert monitor._coordination is None
     assert monitor._rotation_plan is None
+
+
+# -- P5-S1 Story 5: supervised, restartable streaming lease server ---------
+
+def _lease_config(**overrides):
+    from src.models.schema import BucketLeaseStreamConfig
+    return BucketLeaseStreamConfig(**overrides)
+
+
+def test_check_lease_server_health_restarts_a_dead_container_with_backoff():
+    monitor, _, _, _, _ = _monitor()
+    dead = MagicMock()
+    dead.reload.side_effect = None
+    dead.attrs = {"State": {"Status": "exited", "ExitCode": 1}}
+    dead.logs.return_value = b""
+    monitor._tracked_lease_server = dead
+    monitor._bucket_lease_config = _lease_config(restart_backoff_base_ms=1, restart_backoff_max_ms=1)
+    fresh = MagicMock()
+    docker_service = MagicMock()
+    docker_service.run_bucket_lease_server.return_value = fresh
+    monitor._docker_service = docker_service
+    monitor._lease_bucket_count = 16
+
+    class Shutdown:
+        def is_set(self):
+            return False
+
+    monitor._check_lease_server_health(Shutdown())
+
+    dead.remove.assert_called_once_with(force=True)
+    docker_service.run_bucket_lease_server.assert_called_once()
+    kwargs = docker_service.run_bucket_lease_server.call_args.kwargs
+    assert kwargs["run_id"] == monitor._run_id
+    assert kwargs["restart_attempt"] == 1
+    assert monitor._tracked_lease_server is fresh
+
+
+def test_check_lease_server_health_raises_after_exceeding_max_restarts():
+    monitor, _, _, _, _ = _monitor()
+    dead = MagicMock()
+    dead.attrs = {"State": {"Status": "exited"}}
+    dead.logs.return_value = b""
+    monitor._tracked_lease_server = dead
+    monitor._bucket_lease_config = _lease_config(
+        max_consecutive_restarts=1, restart_backoff_base_ms=1, restart_backoff_max_ms=1,
+    )
+    monitor._docker_service = MagicMock()
+    monitor._lease_restart_count = 1  # already at the limit
+
+    class Shutdown:
+        def is_set(self):
+            return False
+
+    with pytest.raises(Exception, match="exceeded"):
+        monitor._check_lease_server_health(Shutdown())
+
+
+def test_check_lease_server_health_honors_shutdown_mid_backoff_without_restarting():
+    monitor, _, _, _, _ = _monitor()
+    dead = MagicMock()
+    dead.attrs = {"State": {"Status": "exited"}}
+    monitor._tracked_lease_server = dead
+    monitor._bucket_lease_config = _lease_config(restart_backoff_base_ms=60_000, restart_backoff_max_ms=60_000)
+    docker_service = MagicMock()
+    monitor._docker_service = docker_service
+
+    class ShutdownAfterFirstCheck:
+        def __init__(self):
+            self.calls = 0
+
+        def is_set(self):
+            self.calls += 1
+            return self.calls > 1  # live during the loop's first check, then requested
+
+    monitor._sleep = lambda _s: None
+    monitor._check_lease_server_health(ShutdownAfterFirstCheck())
+    docker_service.run_bucket_lease_server.assert_not_called()
+    dead.remove.assert_not_called()
+    assert monitor._tracked_lease_server is dead  # unchanged: restart abandoned
+
+
+class _NeverShutdown:
+    def is_set(self):
+        return False
+
+
+def _restart_harness(**config):
+    """A monitor whose lease server dies on demand, on a fake clock."""
+    monitor, _, _, _, _ = _monitor()
+    now = [1_000.0]
+    monitor._clock = lambda: now[0]
+    monitor._sleep = lambda seconds: now.__setitem__(0, now[0] + seconds)
+    monitor._bucket_lease_config = _lease_config(
+        restart_backoff_base_ms=1_000, restart_backoff_max_ms=8_000, **config,
+    )
+    servers = []
+
+    def launch(**kwargs):
+        server = MagicMock()
+        server.attrs = {"State": {"Status": "running"}}
+        servers.append((server, kwargs))
+        return server
+
+    monitor._docker_service = MagicMock()
+    monitor._docker_service.run_bucket_lease_server.side_effect = launch
+    first = MagicMock()
+    first.attrs = {"State": {"Status": "running"}}
+    monitor._tracked_lease_server = first
+
+    def kill():
+        monitor._tracked_lease_server.attrs = {"State": {"Status": "exited", "ExitCode": 137}}
+
+    def check():
+        monitor._check_lease_server_health(_NeverShutdown())
+
+    return monitor, now, servers, kill, check
+
+
+def test_lease_restart_count_resets_after_a_healthy_interval():
+    """Deaths far apart never reach the cap of a long-lived stream fleet."""
+    monitor, now, servers, kill, check = _restart_harness(max_consecutive_restarts=2)
+    config = monitor._bucket_lease_config
+    healthy_s = (config.restart_quiet_period_ms + config.restart_count_reset_ms) / 1000
+    backoffs = []
+    for death in range(10):  # ten deaths, each after a healthy stretch: never fatal
+        kill()
+        before = now[0]
+        check()
+        backoffs.append(now[0] - before)  # the fake time the restart backoff slept
+        assert monitor._lease_restart_count == 1
+        now[0] += healthy_s
+        check()  # running and healthy long enough: the counter resets
+        assert monitor._lease_restart_count == 0
+    assert len(servers) == 10
+    # Every generation keeps its own metrics snapshot name (restart_attempt).
+    assert [kwargs["restart_attempt"] for _server, kwargs in servers] == list(range(1, 11))
+    # The backoff restarts from its base after each reset: every restart slept only the base delay
+    # (without the reset it would have grown 1, 2, 4, 8 s ... up to the 8 s cap).
+    assert backoffs == pytest.approx([config.restart_backoff_base_ms / 1000] * 10)
+
+
+def test_lease_restart_count_is_not_reset_before_the_healthy_interval():
+    """Within the interval the cap and the exponential backoff behave exactly as before."""
+    monitor, now, servers, kill, check = _restart_harness(max_consecutive_restarts=3)
+    config = monitor._bucket_lease_config
+    almost_s = (config.restart_quiet_period_ms + config.restart_count_reset_ms) / 1000 - 1
+    started = now[0]
+    for expected in (1, 2, 3):
+        kill()
+        check()
+        assert monitor._lease_restart_count == expected
+        now[0] += almost_s
+        check()  # healthy, but not for long enough
+        assert monitor._lease_restart_count == expected
+    # The backoffs were 1 s, 2 s, 4 s: unchanged exponential growth.
+    assert now[0] - started == pytest.approx(3 * almost_s + 1 + 2 + 4)
+    kill()
+    with pytest.raises(Exception, match="exceeded 3 restarts"):
+        check()
+    assert len(servers) == 3
+
+
+def test_lease_restart_count_reset_needs_a_running_server():
+    """A server that is only ``created``/``restarting`` does not count as healthy."""
+    monitor, now, _servers, kill, check = _restart_harness()
+    kill()
+    check()
+    monitor._tracked_lease_server.attrs = {"State": {"Status": "restarting"}}
+    now[0] += 10_000
+    check()
+    assert monitor._lease_restart_count == 1
+    monitor._tracked_lease_server.attrs = {"State": {"Status": "running"}}
+    check()
+    assert monitor._lease_restart_count == 0
+
+
+def test_lease_restart_count_reset_setting_is_validated():
+    from pydantic import ValidationError
+
+    assert _lease_config().restart_count_reset_ms == 600_000
+    for bad in (999, 86_400_001, True):
+        with pytest.raises(ValidationError):
+            _lease_config(restart_count_reset_ms=bad)
+
+
+def test_bulk_lease_path_has_no_restart_supervision():
+    """Bulk ``--edge-leases`` monitors never get a tracked lease server, so the reset cannot affect them."""
+    import inspect
+
+    from src import cli
+
+    source = inspect.getsource(cli._run_bulk_relationship_edge) + inspect.getsource(cli._run_relationship_bulk_stages)
+    assert "tracked_lease_server" not in source
+    monitor, _, _, _, _ = _monitor()
+    assert monitor._tracked_lease_server is None
+
+
+def test_wait_for_lease_server_ready_uses_a_fresh_client_per_attempt():
+    """B5-1: a reused client whose first connect attempt fails is marked
+    permanently broken, so every later attempt would fail immediately
+    without really retrying. A fresh client per attempt must eventually
+    succeed once the server comes up."""
+    monitor, _, _, _, _ = _monitor()
+    monitor._docker_service = MagicMock()
+    monitor._docker_service.bucket_lease_address.return_value = "lease-x:7700"
+    monitor._tracked_lease_server = MagicMock()
+    monitor._sleep = lambda _s: None
+
+    attempts = {"count": 0}
+
+    class _FlakyThenOkClient:
+        def __init__(self, *_a, **_k):
+            attempts["count"] += 1
+            self._ok = attempts["count"] > 3
+
+        def ping(self):
+            return self._ok
+
+        def close(self):
+            pass
+
+    monitor.wait_for_lease_server_ready(5.0, client_factory=_FlakyThenOkClient)
+    assert attempts["count"] == 4
+
+
+def test_wait_for_lease_server_ready_honors_shutdown():
+    monitor, _, _, _, _ = _monitor()
+    monitor._docker_service = MagicMock()
+    monitor._docker_service.bucket_lease_address.return_value = "lease-x:7700"
+    monitor._tracked_lease_server = MagicMock()
+    monitor._sleep = lambda _s: None
+
+    class _NeverOkClient:
+        def __init__(self, *_a, **_k):
+            pass
+
+        def ping(self):
+            return False
+
+        def close(self):
+            pass
+
+    class ShutdownNow:
+        def is_set(self):
+            return True
+
+    # Must return (not raise BulkTimeoutError) once shutdown is requested.
+    monitor.wait_for_lease_server_ready(
+        5.0, shutdown_requested=ShutdownNow(), client_factory=_NeverOkClient,
+    )
+
+
+# -- P6-S5 Story 2: an operator stop aborts a wait promptly --------------------
+
+
+def test_wait_aborts_on_shutdown_request_before_the_stage_deadline():
+    from src.orchestrator.bulk_monitor import BulkShutdownRequested
+
+    now = [0.0]
+    monitor, *_ = _monitor(clock=lambda: now[0])
+    monitor._sleep = lambda seconds: now.__setitem__(0, now[0] + seconds)
+    polls = []
+
+    def abort_requested() -> bool:
+        polls.append(now[0])
+        return len(polls) > 3
+
+    monitor._abort_requested = abort_requested
+    with pytest.raises(BulkShutdownRequested, match="shutdown requested"):
+        monitor.wait_for_assignment_coverage(300)  # no assignment ever arrives
+    assert now[0] < 1
+
+
+def test_wait_without_abort_hook_still_times_out_normally():
+    from src.orchestrator.bulk_monitor import BulkShutdownRequested
+
+    now = [0.0]
+    monitor, *_ = _monitor(clock=lambda: now[0])
+    monitor._sleep = lambda seconds: now.__setitem__(0, now[0] + seconds)
+    with pytest.raises(BulkTimeoutError) as excinfo:
+        monitor.wait_for_assignment_coverage(1)
+    assert not isinstance(excinfo.value, BulkShutdownRequested)
+
+
+# ── P5-S4 owner decision D2: retry consumers are supervised like edge loaders ─
+
+
+class _NeverShutdown:
+    def is_set(self):
+        return False
+
+
+@pytest.mark.parametrize("status, exit_code", [("exited", 1), ("exited", 0), ("dead", 137)])
+def test_stream_supervisor_stops_the_fleet_when_a_retry_consumer_exits(status, exit_code, caplog):
+    """A crash or a fatal exit (RetryConsumerFatalError -> rc 1) of any
+    retry-consumer replica fails stream supervision with a clear
+    stage=retry-consumer error naming the replica, exactly like an edge crash;
+    the CLI then stops the fleet and returns 1."""
+    from src.orchestrator.bulk_monitor import LoaderCrashError
+
+    healthy, crashed = MagicMock(), MagicMock()
+    healthy.attrs = {"State": {"Status": "running"}}
+    crashed.attrs = {"State": {"Status": status, "ExitCode": exit_code}}
+    crashed.logs.return_value = b"stage=retry-consumer reason=run_loop_failed error=writes failing for 600s"
+    monitor, *_ = _monitor(retry_consumers=[healthy, crashed])
+    with pytest.raises(LoaderCrashError, match=(
+        rf"stage=retry-consumer run_id=run-1 replica=1 retry consumer exited during stream supervision "
+        rf"status={status} exit_code={exit_code} log_tail=.*writes failing for 600s"
+    )):
+        monitor.supervise_stream(_NeverShutdown())
+    assert "stage=retry-consumer run_id=run-1 replica=1" in caplog.text
+
+
+def test_stream_supervisor_treats_a_removed_retry_consumer_as_a_crash():
+    from src.orchestrator.bulk_monitor import LoaderCrashError
+
+    gone = MagicMock()
+    gone.reload.side_effect = NotFound("gone")
+    monitor, *_ = _monitor(retry_consumers=[gone])
+    with pytest.raises(LoaderCrashError, match="stage=retry-consumer run_id=run-1 replica=0 .*status=removed"):
+        monitor.supervise_stream(_NeverShutdown())
+
+
+def test_stream_supervisor_keeps_running_while_retry_consumers_run():
+    running = MagicMock()
+    running.attrs = {"State": {"Status": "running"}}
+    monitor, *_ = _monitor(retry_consumers=[running])
+
+    class Shutdown:
+        requested = False
+
+        def is_set(self):
+            return self.requested
+
+    shutdown = Shutdown()
+    monitor._sleep = lambda _seconds: setattr(shutdown, "requested", True)
+    monitor.supervise_stream(shutdown)
+    running.reload.assert_called()

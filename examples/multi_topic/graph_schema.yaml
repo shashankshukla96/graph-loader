@@ -1,0 +1,64 @@
+# Two relationship types, each fed by TWO topics (v7 multi-topic relationship types).
+#
+# A type with 2+ topics must declare how a (source, target) pair that appears in
+# several topics is resolved. This schema shows both bulk-capable rules:
+#
+#   RATED       order_by: rated_at      newest value wins, whichever topic carried it.
+#                                       Deterministic in EVERY mode, including stream.
+#   WISHLISTED  topic_conflict: precedence
+#                                       later-listed topic wins, property by property
+#                                       (SET r += props). Bulk only (planned, --edge-leases,
+#                                       --edge-classic); refused in stream mode.
+#
+# `topic_conflict: arrival` (whichever record arrives last wins, nondeterministic, logs a
+# warning) is also available in every mode; it is not used here on purpose.
+#
+# loading.mode is bulk because of the precedence type. To run this in stream mode, delete
+# WISHLISTED (or give it `order_by`) and set `mode: stream`.
+loading:
+  mode: bulk
+  consumer_group_id: multi-topic-example
+  unwind_batch_size: 500
+  edge_unwind_batch_size: 2000
+  rejection_log_path: var/rejections/multi-topic-node-loader.jsonl
+
+nodes:
+  - label: Customer
+    topic: mt-customer
+    key_property: customer_id
+    properties:
+      customer_id: {type: integer, required: true, constraint: {type: uniqueness}}
+      name: {type: string, required: true}
+  - label: Product
+    topic: mt-product
+    key_property: sku
+    properties:
+      sku: {type: string, required: true, constraint: {type: uniqueness}}
+      title: {type: string, required: true}
+
+edges:
+  # Ratings arrive from the app and from a nightly import; the import may carry an
+  # older or a newer rating of the same pair. The newest rated_at wins.
+  - type: RATED
+    topics: [mt-rated-app, mt-rated-import]
+    order_by: rated_at
+    nodes: {source: Customer, target: Product}
+    source_key_property: customer_id
+    target_key_property: sku
+    properties:
+      stars: {type: integer, required: true}
+      rated_at: {type: datetime, required: true}
+      channel: {type: string, required: true}
+
+  # A base wishlist export, then a corrections topic that is always applied after it.
+  # Topic order is the rule: mt-wishlist-corrections wins every property it carries;
+  # a property it omits (note) keeps the base value.
+  - type: WISHLISTED
+    topics: [mt-wishlist-base, mt-wishlist-corrections]
+    topic_conflict: precedence
+    nodes: {source: Customer, target: Product}
+    source_key_property: customer_id
+    target_key_property: sku
+    properties:
+      priority: {type: integer, required: true}
+      note: {type: string}

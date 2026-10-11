@@ -1,0 +1,50 @@
+# STARTING POINT, NOT AN SLO. Thresholds below are conservative defaults
+# chosen without production traffic data (P6-Q4, plan/v5-v6-orchestration.md).
+# Tune every threshold to your own environment before treating a firing
+# alert as an incident. `for:` durations are chosen to avoid a scrape-
+# interval blip firing an alert, not to model any real SLO.
+groups:
+  - name: graph-loader-concurrency
+    rules:
+      - alert: GraphLoaderPlannedModeDeadlockObserved
+        # Review finding (Story 2 nit): a bulk planned-writer container's
+        # lifetime is ~60s; once it exits, its series goes stale and a
+        # plain instant comparison resolves this critical alert within
+        # ~5m even though the deadlock genuinely happened and still
+        # deserves investigation. max_over_time keeps it visible for an
+        # hour after the fact.
+        expr: max_over_time(graph_loader_deadlocks_recovered_total{kind="planned-writer"}[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Planned-mode writer recovered a deadlock — this must stay 0 by construction (docs/USAGE.md §6/§9); investigate the resource-disjointness invariant immediately."
+      - alert: GraphLoaderLeaseWaitersStuck
+        expr: graph_loader_lease_waiters > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value }} waiter(s) parked on the bucket-lease server for over 2m — sustained contention; a writer may be starved (real starvation is more reliably signaled by GraphLoaderLeaseWaitTimeoutsDetected)."
+      - alert: GraphLoaderLeaseWaitTimeoutsDetected
+        expr: increase(graph_loader_lease_wait_timeouts_total[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value }} lease wait timeout(s) in 10m — a writer aborted its transaction per P5-Q1's disconnect-safety contract; check for lease-server restart or contention."
+      - alert: GraphLoaderPlanResourceWaitHigh
+        # Review finding (Story 2, should-fix 4): sum by (le) alone merges
+        # every concurrent run's planned-dispatcher into one p95 — one
+        # run's contention can hide behind, or pollute, another's. kind
+        # adds nothing here (only planned-dispatcher emits this metric);
+        # run_id (a target label, always set for planned-dispatcher) is
+        # the dimension that actually distinguishes concurrent runs. An
+        # idle dispatcher has rate 0 across the window, so the quantile
+        # is NaN and `NaN > 5` is false — no false positive from idleness.
+        expr: histogram_quantile(0.95, sum by (le, run_id) (rate(graph_loader_plan_resource_wait_seconds_bucket[5m]))) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Planned-dispatcher run_id={{ $labels.run_id }} p95 resource wait exceeded 5s over 5m."

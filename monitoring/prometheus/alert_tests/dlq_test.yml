@@ -1,0 +1,149 @@
+# promtool unit tests for dlq.yml: GraphLoaderDlqBacklogHigh (last case in
+# this file) and, below, GraphLoaderDlqRoutingDetected — added
+# at completion-review time (reviewer finding: this rule's added
+# `or (... unless ... offset 15m)` clause, which exists specifically to
+# catch a failure_class series' first-ever (already nonzero) sample, was
+# previously proven only by the reviewer's own scratch promtool runs,
+# never committed). Run with:
+#   docker run --rm --entrypoint promtool \
+#     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+#     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/dlq_test.yml
+rule_files:
+  - ../alerts/dlq.yml
+
+evaluation_interval: 1m
+
+tests:
+  # A failure_class series that appears for the very first time already
+  # nonzero (no earlier sample to diff against) and stays flat: plain
+  # increase() reads 0 over this window and would miss it entirely; the
+  # `unless ... offset 15m` clause must catch it because no sample exists
+  # 15m in the past.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_dlq_routed_total{kind="edge",name="WORKS_AT",failure_class="missing_endpoint"}'
+        values: "5x3"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: GraphLoaderDlqRoutingDetected
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: WORKS_AT
+              failure_class: missing_endpoint
+              severity: info
+            exp_annotations:
+              summary: "edge/WORKS_AT routed record(s) to its DLQ in the last 15m (failure_class=missing_endpoint)."
+              description: "Informational by default: a single malformed record reaching the DLQ is not necessarily an incident. Raise to warning/ critical once you know your own baseline rate. This rule signals routing *activity*; for queue *depth* see GraphLoaderDlqBacklogHigh (graph_loader_dlq_backlog).\n"
+
+  # The same series, now old enough that a sample exists 15m in the past
+  # at the same flat value: neither increase() nor the new "newly
+  # appeared" clause should fire, since nothing has actually changed.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_dlq_routed_total{kind="edge",name="WORKS_AT",failure_class="missing_endpoint"}'
+        values: "5x17"
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: GraphLoaderDlqRoutingDetected
+        exp_alerts: []
+
+  # GraphLoaderDlqBacklogHigh: queue="dlq" above 100 for the full 15m `for:`
+  # fires (replicas collapsed by max); a spike that drains before 15m does
+  # not; exactly 100 does not; a huge queue="parked" with an empty
+  # queue="dlq" (terminal parked records) does NOT fire.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",instance="a"}'
+        values: "150x20"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",instance="b"}'
+        values: "150x20"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="KNOWS",queue="dlq"}'
+        values: "150x5 0x15"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="LIKES",queue="dlq"}'
+        values: "100x20"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="PARKED_ONLY",queue="dlq"}'
+        values: "0x20"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="PARKED_ONLY",queue="parked"}'
+        values: "5000x20"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: GraphLoaderDlqBacklogHigh
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: WORKS_AT
+              severity: warning
+            exp_annotations:
+              summary: "edge/WORKS_AT DLQ retry backlog is 150 record(s) (retry consumer not draining)."
+              description: "DLQ high watermark minus the retry consumer's committed offset. A sustained high value means the retry consumer is not draining (missing endpoints not arriving, consumer down or lagging). Parked records are not counted here (queue=\"parked\"). The gauge is refreshed periodically, so it can lag reality by one backlog_check_interval_ms.\n"
+      - eval_time: 10m
+        alertname: GraphLoaderDlqBacklogHigh
+        exp_alerts: []
+
+  # GraphLoaderDlqBacklogAbsent (owner decision D2): the gauge was present
+  # for WORKS_AT and goes stale at 11m while WORKS_AT's edge loader stays up
+  # -> pending, then firing after the 5m `for:`. KNOWS never had a retry
+  # consumer (a bulk run): never fires. LIKES's gauge goes away together
+  # with its edge loaders (a clean stop): never fires. BOUGHT's gauge stays:
+  # never fires.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",run_id="r1"}'
+        values: "5x10 stale"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="parked",run_id="r1"}'
+        values: "0x10 stale"
+      - series: 'graph_loader_process_up{kind="edge",name="WORKS_AT",run_id="r1",instance="e0"}'
+        values: "1x30"
+      - series: 'graph_loader_process_up{kind="edge",name="KNOWS",run_id="r1",instance="e1"}'
+        values: "1x30"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="LIKES",queue="dlq",run_id="r1"}'
+        values: "3x10 stale"
+      - series: 'graph_loader_process_up{kind="edge",name="LIKES",run_id="r1",instance="e2"}'
+        values: "1x10 stale"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="BOUGHT",queue="dlq",run_id="r1"}'
+        values: "0x30"
+      - series: 'graph_loader_process_up{kind="edge",name="BOUGHT",run_id="r1",instance="e3"}'
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: GraphLoaderDlqBacklogAbsent
+        exp_alerts: []
+      - eval_time: 14m
+        alertname: GraphLoaderDlqBacklogAbsent
+        exp_alerts: []
+      - eval_time: 17m
+        alertname: GraphLoaderDlqBacklogAbsent
+        exp_alerts:
+          - exp_labels:
+              name: WORKS_AT
+              run_id: r1
+              severity: critical
+            exp_annotations:
+              summary: "edge/WORKS_AT DLQ backlog gauge is absent while its edge loaders run (retry consumer down?)."
+              description: "graph_loader_dlq_backlog was reported for this edge type earlier and is gone now, while the type's edge loaders are still up: the retry consumer is not running or not being scraped, so DLQ'd rows are not being retried. In --mode stream the CLI stops the fleet when a retry-consumer container exits; this alert covers the gauge disappearing for any other reason.\n"
+
+  # GraphLoaderRetryStalled (owner decision D1): WORKS_AT stalls for 15m
+  # (the gauge counts seconds) and fires once past 600s plus the 1m `for:`;
+  # KNOWS stalls for 5m and recovers (back to 0): never fires.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_retry_stalled_seconds{kind="edge",name="WORKS_AT",run_id="r1",instance="r"}'
+        values: "0+60x15"
+      - series: 'graph_loader_retry_stalled_seconds{kind="edge",name="KNOWS",run_id="r1",instance="r"}'
+        values: "0+60x5 0x10"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: GraphLoaderRetryStalled
+        exp_alerts: []
+      - eval_time: 13m
+        alertname: GraphLoaderRetryStalled
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: WORKS_AT
+              run_id: r1
+              severity: warning
+            exp_annotations:
+              summary: "edge/WORKS_AT retry writes have failed with nothing written for 13m 0s."
+              description: "The retry consumer's writes of this edge type keep failing and no row of the type has been written (a read-only or unavailable database, an unrecognised server-side error, or a lone row whose error is not known to be row-specific). Rows are not counted or parked for it; they wait. Check the retry consumer's reason=retry_stalled ERROR lines for the error class.\n"

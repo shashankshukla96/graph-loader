@@ -36,6 +36,8 @@ def select_shared_fleet_edges(edges: Sequence[EdgeConfig], fleet_types: tuple[st
     selected = tuple(by_type[edge_type] for edge_type in fleet_types)
     if len(selected) != len(fleet_types):
         raise ValueError("fleet edge types are incomplete")
+    if any(getattr(edge, "is_multi_pair", False) is True for edge in selected):
+        raise ValueError("an edge binding several label pairs cannot join the shared clock fleet")
     if any(edge.nodes.is_self_referencing for edge in selected):
         raise ValueError("self-referencing edge cannot join shared fleet")
     return selected

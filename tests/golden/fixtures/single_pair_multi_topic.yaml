@@ -1,0 +1,42 @@
+# Multi-topic, single-pair fixture for tests/test_single_pair_multi_topic_compat.py (v7-S7 review S3).
+# Every type reads two topics bound to ONE label pair, so S7 must not change any of its bytes.
+nodes:
+  - label: Person
+    topic: mtc-person
+    key_property: person_id
+    properties:
+      person_id: {type: integer, required: true, constraint: {type: uniqueness}}
+  - label: Company
+    topic: mtc-company
+    key_property: company_id
+    properties:
+      company_id: {type: string, required: true, constraint: {type: uniqueness}}
+edges:
+  - type: WORKS_AT                          # order_by, DLQ with default per-type names
+    topics: [mtc-works-at-a, mtc-works-at-b]
+    nodes: {source: Person, target: Company}
+    source_key_property: person_id
+    target_key_property: company_id
+    order_by: since
+    properties:
+      since: {type: date, required: true}
+      role: {type: string}
+    dead_letter: {enabled: true, max_retry_attempts: 4}
+  - type: EMPLOYED_BY                       # precedence, explicit DLQ name
+    topics: [mtc-employed-by-base, mtc-employed-by-fix]
+    nodes: {source: Person, target: Company}
+    source_key_property: person_id
+    target_key_property: company_id
+    topic_conflict: precedence
+    properties:
+      title: {type: string}
+    dead_letter: {enabled: true, topic: mtc-employed-by-failures}
+  - type: KNOWS                             # arrival, self-reference, sequenced parked-pair index
+    topics: [mtc-knows-a, mtc-knows-b]
+    nodes: {source: Person, target: Person}
+    source_key_property: person_id
+    target_key_property: person_id
+    topic_conflict: arrival
+    properties:
+      weight: {type: float}
+    dead_letter: {enabled: true}

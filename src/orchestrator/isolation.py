@@ -1,4 +1,10 @@
-"""Pure deterministic planning for absolutely isolated self-reference edges."""
+"""Pure deterministic planning for absolutely isolated self-reference edges.
+
+P5-S1 Story 6: still used by bulk mode's isolated-phase scheduling
+(``_run_relationship_orchestration``'s bulk branch); its use in
+streaming's *default* path is retired, reachable only via
+``--stream-clock-rotation``.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -78,6 +84,15 @@ def build_relationship_isolation_plan(edges: Sequence[EdgeConfig]) -> Relationsh
     isolated: list[tuple[str, str]] = []
     for edge_type in sorted(by_type):
         edge = by_type[edge_type]
+        if getattr(edge, "is_multi_pair", False) is True:
+            # v7-S7: a type with any self-referencing pair runs as an isolated phase (classic);
+            # the phase label is that first self-referencing pair's label.
+            self_pairs = [pair for pair in edge.endpoint_pairs if pair.is_self_referencing]
+            if self_pairs:
+                isolated.append((edge_type, self_pairs[0].source_label))
+            else:
+                shared.append(edge_type)
+            continue
         nodes = edge.nodes
         is_self_referencing = getattr(nodes, "is_self_referencing", None)
         if not isinstance(is_self_referencing, bool):

@@ -8,13 +8,14 @@ Run the integration checks with:
 
 import os
 import re
+import sys
 import time
 import uuid
 from pathlib import Path
 from typing import Mapping
 
 import pytest
-from confluent_kafka import Consumer, KafkaException
+from confluent_kafka import KafkaException
 from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j import GraphDatabase
 
@@ -79,9 +80,21 @@ def _setting(name: str, dotenv_values: Mapping[str, str], default: str) -> str:
 DOTENV_VALUES = _parse_dotenv(DOTENV_PATH)
 NEO4J_URI = _setting("NEO4J_URI", DOTENV_VALUES, "bolt://localhost:7687")
 NEO4J_USERNAME = _setting("NEO4J_USERNAME", DOTENV_VALUES, "neo4j")
-NEO4J_PASSWORD = _setting("NEO4J_PASSWORD", DOTENV_VALUES, "changeme")
+# No default password: guessing the compose default ("changeme") against a shared Neo4j fails its
+# login, and repeated failed logins trip AuthenticationRateLimit for every client of that user.
+NEO4J_PASSWORD = _setting("NEO4J_PASSWORD", DOTENV_VALUES, "")
 NEO4J_DATABASE = _setting("NEO4J_DATABASE", DOTENV_VALUES, "neo4j")
 KAFKA_BOOTSTRAP = _setting("KAFKA_BOOTSTRAP_SERVERS", DOTENV_VALUES, "localhost:9092")
+
+
+def _require_neo4j_password() -> None:
+    """Skip, without connecting, unless a Neo4j password was explicitly provided."""
+    if not NEO4J_PASSWORD:
+        pytest.skip(
+            f"NEO4J_PASSWORD is not set (exported or in .env): not connecting to {NEO4J_URI} with the default "
+            "'changeme' password, because failed logins trip Neo4j's AuthenticationRateLimit and lock out "
+            "other clients. Export NEO4J_PASSWORD for the stack you mean to check."
+        )
 
 
 def _delete_topic_and_wait(admin: AdminClient, topic_name: str) -> None:
@@ -115,6 +128,7 @@ def test_process_environment_overrides_dotenv(monkeypatch: pytest.MonkeyPatch, t
 @pytest.mark.smoke
 def test_neo4j_is_reachable() -> None:
     """Verify that Neo4j accepts Bolt connections and Cypher queries."""
+    _require_neo4j_password()
     try:
         with GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD)) as driver:
             with driver.session(database=NEO4J_DATABASE) as session:
@@ -126,6 +140,7 @@ def test_neo4j_is_reachable() -> None:
 @pytest.mark.smoke
 def test_apoc_is_installed() -> None:
     """Verify APOC is available for the planned apoc.lock.nodes() strategy."""
+    _require_neo4j_password()
     try:
         with GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD)) as driver:
             with driver.session(database=NEO4J_DATABASE) as session:
@@ -167,3 +182,21 @@ def test_kafka_can_create_and_delete_topic() -> None:
             _delete_topic_and_wait(admin, topic_name)
         except (AssertionError, KafkaException) as error:
             pytest.fail(f"Kafka smoke-test topic cleanup failed for {topic_name!r}: {error}")
+
+
+
+def test_neo4j_checks_skip_without_an_explicit_password(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No password provided -> a clear skip, and no driver is ever created (no login attempt)."""
+    # The checks read this module's global, so patch it on this very module object.
+    monkeypatch.setattr(sys.modules[__name__], "NEO4J_PASSWORD", "")
+    created = []
+
+    def refuse(*args, **kwargs):
+        created.append(args)
+        raise AssertionError("a Neo4j driver was created without explicit credentials")
+
+    monkeypatch.setattr(GraphDatabase, "driver", refuse)
+    for check in (test_neo4j_is_reachable, test_apoc_is_installed):
+        with pytest.raises(pytest.skip.Exception, match="NEO4J_PASSWORD is not set.*changeme.*AuthenticationRateLimit"):
+            check()
+    assert created == []

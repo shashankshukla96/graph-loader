@@ -22,11 +22,25 @@ def generate_node_ddl(schema: GraphSchema) -> list[str]:
     -------
     list[str]
         A list of idempotent Cypher CREATE statements.
+
+    Every node key must be indexed: loaders MERGE nodes and MATCH
+    relationship endpoints by ``key_property``.  A key declared without a
+    uniqueness constraint or range index gets a uniqueness constraint
+    ``<label>_<key>_key_unique`` (which is backed by an index).
     """
     statements = []
 
     for node in schema.nodes:
         label = node.label
+        key_config = node.properties.get(node.key_property)
+        if key_config is not None and not (
+            (key_config.constraint is not None and key_config.constraint.type == "uniqueness")
+            or (key_config.index is not None and key_config.index.type == "range")
+        ):
+            statements.append(
+                f"CREATE CONSTRAINT {label.lower()}_{node.key_property.lower()}_key_unique IF NOT EXISTS "
+                f"FOR (n:{label}) REQUIRE n.{node.key_property} IS UNIQUE"
+            )
         for prop_name, prop_config in node.properties.items():
             
             # Process constraints

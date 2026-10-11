@@ -21,6 +21,7 @@ from confluent_kafka import Consumer, ConsumerGroupTopicPartitions, Producer, To
 from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j import GraphDatabase
 
+from it_scratch_db import ensure_database, explicit_neo4j_auth
 from src.cli import _run_rotating_relationship_fleet
 from src.loader.mix_and_batch import endpoint_bucket
 from src.orchestrator.coordination import decode_clock_lease
@@ -37,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
     os.environ.get("RUN_ROTATING_RELATIONSHIP_E2E") != "1",
     reason="set RUN_ROTATING_RELATIONSHIP_E2E=1 for the real rotating relationship Docker E2E",
 )
-def test_shared_person_rotation_bulk_e2e() -> None:
+def test_shared_person_rotation_bulk_e2e(it_database: str) -> None:
     """Provision finite isolated inputs and prove rotation, graph, offsets, cleanup."""
     suffix = uuid.uuid4().hex[:12]
     run_id = f"rotation-e2e-{suffix}"
@@ -45,9 +46,7 @@ def test_shared_person_rotation_bulk_e2e() -> None:
     prefix = f"rotation-e2e-{suffix}"
     topics = {name: f"{prefix}-{name}" for name in ("person", "company", "product", "works", "bought", "clock")}
     bootstrap = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-    user = os.environ.get("NEO4J_USERNAME", os.environ.get("NEO4J_USER", "neo4j"))
-    password = os.environ.get("NEO4J_PASSWORD", "changeme")
+    uri, user, password = explicit_neo4j_auth(opted_in_by="RUN_ROTATING_RELATIONSHIP_E2E")
     docker_client = docker.from_env()
     admin = AdminClient({"bootstrap.servers": bootstrap})
     driver = GraphDatabase.driver(uri, auth=(user, password))
@@ -99,6 +98,7 @@ def test_shared_person_rotation_bulk_e2e() -> None:
             docker_client.networks.get("graph-loader-net")
             admin.list_topics(timeout=10)
             driver.verify_connectivity()
+            ensure_database(driver, it_database)
         except Exception as exc:
             pytest.fail(f"RUN_ROTATING_RELATIONSHIP_E2E=1 requires Docker graph-loader-net, Kafka, and Neo4j: {exc}")
 
@@ -115,7 +115,7 @@ def test_shared_person_rotation_bulk_e2e() -> None:
                 docker_client.images.get(image)
             except Exception as exc:
                 pytest.fail(f"RUN_ROTATING_RELATIONSHIP_E2E=1 requires exact image {image}: {exc}")
-        with driver.session() as session:
+        with driver.session(database=it_database) as session:
             for person_id in person_ids:
                 session.run("CREATE (:Person {id: $id, name: $id, e2e_run: $run})", id=person_id, run=run_id).consume()
             session.run("CREATE (:Company {id: $id, name: $id, e2e_run: $run})", id=company_id, run=run_id).consume()
@@ -138,7 +138,7 @@ def test_shared_person_rotation_bulk_e2e() -> None:
         )
         assert _run_rotating_relationship_fleet(schema, DockerService(client=docker_client), fleet_args) == 0
 
-        with driver.session() as session:
+        with driver.session(database=it_database) as session:
             assert session.run("MATCH (:Person {e2e_run: $run})-[r:WORKS_AT]->(:Company {e2e_run: $run}) RETURN count(r) AS n", run=run_id).single()["n"] == 2
             assert session.run("MATCH (:Person {e2e_run: $run})-[r:BOUGHT]->(:Product {e2e_run: $run}) RETURN count(r) AS n", run=run_id).single()["n"] == 2
 
@@ -192,7 +192,7 @@ def test_shared_person_rotation_bulk_e2e() -> None:
                 except Exception:
                     pass
         try:
-            with driver.session() as session:
+            with driver.session(database=it_database) as session:
                 session.run("MATCH (n {e2e_run: $run}) DETACH DELETE n", run=run_id).consume()
         finally:
             driver.close()

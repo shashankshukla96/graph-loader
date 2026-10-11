@@ -21,7 +21,8 @@ from confluent_kafka import Consumer, ConsumerGroupTopicPartitions, Producer, To
 from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j import GraphDatabase
 
-from src.cli import _derive_relationship_phase_run_id, handle_start
+from it_scratch_db import ensure_database, explicit_neo4j_auth
+from src.cli import _derive_relationship_phase_run_id, build_parser, handle_start
 from src.utils.schema_loader import load_schema
 
 
@@ -60,21 +61,22 @@ def test_self_reference_e2e_fixture_schema_is_valid(tmp_path: Path) -> None:
     os.environ.get("RUN_SELF_REFERENCE_ISOLATION_E2E") != "1",
     reason="set RUN_SELF_REFERENCE_ISOLATION_E2E=1 for the real self-reference isolation Docker E2E",
 )
-def test_public_bulk_cli_isolates_person_knows_after_shared_works_at() -> None:
+def test_public_bulk_cli_isolates_person_knows_after_shared_works_at(it_database: str) -> None:
     suffix = uuid.uuid4().hex[:12]
     parent_run_id = f"self-reference-e2e-{suffix}"
     prefix = f"self-reference-e2e-{suffix}"
+    # Classic bulk (--edge-classic) runs the non-self-referencing types in the completion-driven
+    # scheduler: one "bulk" phase id per edge type, no clock.  Self-referencing KNOWS then gets its own
+    # isolated phase.  (The "shared"/"shared" id with a clock container belongs to stream mode.)
     shared_run_id = _derive_relationship_phase_run_id(
-        parent_run_id, phase_kind="shared", phase_index=0, edge_type="shared",
+        parent_run_id, phase_kind="bulk", phase_index=0, edge_type="WORKS_AT",
     )
     isolated_run_id = _derive_relationship_phase_run_id(
         parent_run_id, phase_kind="isolated", phase_index=0, edge_type="KNOWS",
     )
     topics = {name: f"{prefix}-{name}" for name in ("person", "company", "works", "knows", "clock")}
     bootstrap = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-    user = os.environ.get("NEO4J_USERNAME", os.environ.get("NEO4J_USER", "neo4j"))
-    password = os.environ.get("NEO4J_PASSWORD", "changeme")
+    uri, user, password = explicit_neo4j_auth(opted_in_by="RUN_SELF_REFERENCE_ISOLATION_E2E")
     docker_client = docker.from_env()
     admin = AdminClient({"bootstrap.servers": bootstrap})
     driver = GraphDatabase.driver(uri, auth=(user, password))
@@ -85,7 +87,6 @@ def test_public_bulk_cli_isolates_person_knows_after_shared_works_at() -> None:
         "person": f"graph-loader-node-Person-0-{parent_run_id.encode().hex()}",
         "company": f"graph-loader-node-Company-0-{parent_run_id.encode().hex()}",
         "works": _exact_edge_name("WORKS_AT", shared_run_id),
-        "clock": f"graph-loader-clock-{shared_run_id.encode().hex()}",
         "knows": _exact_edge_name("KNOWS", isolated_run_id),
     }
     observations: list[tuple[float, str, bool]] = []
@@ -109,6 +110,7 @@ def test_public_bulk_cli_isolates_person_knows_after_shared_works_at() -> None:
             docker_client.networks.get("graph-loader-net")
             admin.list_topics(timeout=10)
             driver.verify_connectivity()
+            ensure_database(driver, it_database)
             for image in ("graph-loader-node:latest", "graph-loader-edge:latest", "graph-loader-clock:latest"):
                 docker_client.images.get(image)
         except Exception as exc:
@@ -131,11 +133,17 @@ def test_public_bulk_cli_isolates_person_knows_after_shared_works_at() -> None:
         assert producer.flush(20) == 0
         observer = Thread(target=observe_exact_names, daemon=True)
         observer.start()
-        args = type("Args", (), {"mode": "bulk", "config": str(config_path), "network": "graph-loader-net", "run_id": parent_run_id, "bulk_timeout_seconds": 90, "skip_image_build": True})()
+        # Parse the public CLI flags so every field the CLI reads carries its real default.  The
+        # shared/isolated phases are the classic relationship loaders: bulk defaults to planned mode
+        # (no per-type consumer groups, no phases) unless --edge-classic is given.
+        args = build_parser().parse_args([
+            "start", "--mode", "bulk", "--config", str(config_path), "--network", "graph-loader-net",
+            "--run-id", parent_run_id, "--bulk-timeout-seconds", "90", "--skip-image-build", "--edge-classic",
+        ])
         assert handle_start(args) == 0
         stop_observer.set(); observer.join(5)
 
-        with driver.session() as session:
+        with driver.session(database=it_database) as session:
             assert session.run("MATCH (:Person {id: $a})-[r:WORKS_AT]->(:Company {id: $c}) RETURN count(r) AS n", a=person_a, c=company).single()["n"] == 1
             assert session.run("MATCH (:Person {id: $a})-[r:KNOWS]->(:Person) RETURN count(r) AS n", a=person_a).single()["n"] == 1
             assert session.run("MATCH (:Person {id: $b})-[r:KNOWS]->(:Person) RETURN count(r) AS n", b=person_b).single()["n"] == 1
@@ -160,7 +168,6 @@ def test_public_bulk_cli_isolates_person_knows_after_shared_works_at() -> None:
             return False
 
         assert removed_after_observed_live(exact_names["works"]), "shared WORKS_AT removal was not observed before KNOWS launch"
-        assert removed_after_observed_live(exact_names["clock"]), "shared clock removal was not observed before KNOWS launch"
         for name in exact_names.values():
             with pytest.raises(NotFound):
                 docker_client.containers.get(name)
@@ -177,7 +184,7 @@ def test_public_bulk_cli_isolates_person_knows_after_shared_works_at() -> None:
             try: admin.delete_topics([topic])[topic].result(20)
             except Exception: pass
         try:
-            with driver.session() as session:
+            with driver.session(database=it_database) as session:
                 session.run("MATCH (n) WHERE n.id STARTS WITH $prefix DETACH DELETE n", prefix=prefix).consume()
         except Exception:
             # Preserve the explicit prerequisite failure when Neo4j was never

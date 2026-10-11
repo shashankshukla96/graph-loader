@@ -1,0 +1,2540 @@
+{
+  "config/graph_schema.yaml": {
+    "edges": {
+      "KNOWS": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "KNOWS",
+            "--mode",
+            "bulk",
+            "--topic",
+            "knows-events",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-KNOWS-run-A",
+          "rejection_file": "KNOWS-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "KNOWS",
+              "topic": "knows-events"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Person"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "KNOWS",
+            "--mode",
+            "stream",
+            "--topic",
+            "knows-events",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-KNOWS-run-A",
+          "rejection_file": "KNOWS-0-72756e2d41.jsonl"
+        },
+        "topic": "knows-events"
+      },
+      "WORKS_AT": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "WORKS_AT",
+            "--mode",
+            "bulk",
+            "--topic",
+            "works-at-events",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-WORKS_AT-run-A",
+          "rejection_file": "WORKS_AT-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "WORKS_AT",
+              "topic": "works-at-events"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Company"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "WORKS_AT",
+            "--mode",
+            "stream",
+            "--topic",
+            "works-at-events",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-WORKS_AT-run-A",
+          "rejection_file": "WORKS_AT-0-72756e2d41.jsonl"
+        },
+        "topic": "works-at-events"
+      }
+    },
+    "nodes": {
+      "Company": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Company",
+            "--mode",
+            "bulk",
+            "--topic",
+            "company-events",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Company-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Company",
+            "--mode",
+            "stream",
+            "--topic",
+            "company-events",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Company-0.jsonl"
+        },
+        "topic": "company-events"
+      },
+      "Person": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Person",
+            "--mode",
+            "bulk",
+            "--topic",
+            "person-events",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Person-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Person",
+            "--mode",
+            "stream",
+            "--topic",
+            "person-events",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Person-0.jsonl"
+        },
+        "topic": "person-events"
+      }
+    },
+    "plan": {
+      "chunk_messages_sha256": "327f14c1310fb9603ef01ccb080c7b5400b6fdad3ca2b947590b265764d74b18",
+      "chunks": 20,
+      "plan_json_without_stats_sha256": "ef1a45ec66630485c1a3f3786717e00d004dcce76b02074e89dac26ca0b9fca4"
+    },
+    "plan_hub": {
+      "chunk_messages_sha256": "6491dabefed6cd5caab4bec6935b6f3bb3bb565afc6a4cea8759a2bf928ab5e6",
+      "chunks": 76,
+      "hubs": 14,
+      "plan_json_without_stats_sha256": "c1fca42853f5c2cc8be0c81ab1dbee9c4e174aeeb541c811c9c12c877fecf58f"
+    },
+    "prefix": "graph-loader"
+  },
+  "examples/imdb/graph_schema.yaml": {
+    "edges": {
+      "ACTED_IN": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "ACTED_IN",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-acted-in",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-ACTED_IN-run-A",
+          "rejection_file": "ACTED_IN-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "ACTED_IN",
+              "topic": "imdb-acted-in"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Title"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "ACTED_IN",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-acted-in",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-ACTED_IN-run-A",
+          "rejection_file": "ACTED_IN-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-acted-in"
+      },
+      "AVAILABLE_IN_REGION": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "AVAILABLE_IN_REGION",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-available-in-region",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-AVAILABLE_IN_REGION-run-A",
+          "rejection_file": "AVAILABLE_IN_REGION-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "AVAILABLE_IN_REGION",
+              "topic": "imdb-available-in-region"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "AlternativeTitle",
+          "Region"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "AVAILABLE_IN_REGION",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-available-in-region",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-AVAILABLE_IN_REGION-run-A",
+          "rejection_file": "AVAILABLE_IN_REGION-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-available-in-region"
+      },
+      "CREDITED_ON": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "CREDITED_ON",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-credited-on",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-CREDITED_ON-run-A",
+          "rejection_file": "CREDITED_ON-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "CREDITED_ON",
+              "topic": "imdb-credited-on"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Title"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "CREDITED_ON",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-credited-on",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-CREDITED_ON-run-A",
+          "rejection_file": "CREDITED_ON-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-credited-on"
+      },
+      "DIRECTED": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "DIRECTED",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-directed",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-DIRECTED-run-A",
+          "rejection_file": "DIRECTED-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "DIRECTED",
+              "topic": "imdb-directed"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Title"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "DIRECTED",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-directed",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-DIRECTED-run-A",
+          "rejection_file": "DIRECTED-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-directed"
+      },
+      "EPISODE_OF": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "EPISODE_OF",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-episode-of",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-EPISODE_OF-run-A",
+          "rejection_file": "EPISODE_OF-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "EPISODE_OF",
+              "topic": "imdb-episode-of"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Title",
+          "Title"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "EPISODE_OF",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-episode-of",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-EPISODE_OF-run-A",
+          "rejection_file": "EPISODE_OF-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-episode-of"
+      },
+      "HAS_ALTERNATIVE_TITLE": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_ALTERNATIVE_TITLE",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-has-alternative-title",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-HAS_ALTERNATIVE_TITLE-run-A",
+          "rejection_file": "HAS_ALTERNATIVE_TITLE-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "HAS_ALTERNATIVE_TITLE",
+              "topic": "imdb-has-alternative-title"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Title",
+          "AlternativeTitle"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_ALTERNATIVE_TITLE",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-has-alternative-title",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-HAS_ALTERNATIVE_TITLE-run-A",
+          "rejection_file": "HAS_ALTERNATIVE_TITLE-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-has-alternative-title"
+      },
+      "HAS_GENRE": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_GENRE",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-has-genre",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-HAS_GENRE-run-A",
+          "rejection_file": "HAS_GENRE-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "HAS_GENRE",
+              "topic": "imdb-has-genre"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Title",
+          "Genre"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_GENRE",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-has-genre",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-HAS_GENRE-run-A",
+          "rejection_file": "HAS_GENRE-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-has-genre"
+      },
+      "HAS_PROFESSION": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_PROFESSION",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-has-profession",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-HAS_PROFESSION-run-A",
+          "rejection_file": "HAS_PROFESSION-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "HAS_PROFESSION",
+              "topic": "imdb-has-profession"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Profession"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_PROFESSION",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-has-profession",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-HAS_PROFESSION-run-A",
+          "rejection_file": "HAS_PROFESSION-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-has-profession"
+      },
+      "HAS_RATING": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_RATING",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-has-rating",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-HAS_RATING-run-A",
+          "rejection_file": "HAS_RATING-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "HAS_RATING",
+              "topic": "imdb-has-rating"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Title",
+          "Rating"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_RATING",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-has-rating",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-HAS_RATING-run-A",
+          "rejection_file": "HAS_RATING-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-has-rating"
+      },
+      "HAS_TITLE_TYPE": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_TITLE_TYPE",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-has-title-type",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-HAS_TITLE_TYPE-run-A",
+          "rejection_file": "HAS_TITLE_TYPE-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "HAS_TITLE_TYPE",
+              "topic": "imdb-has-title-type"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Title",
+          "TitleType"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "HAS_TITLE_TYPE",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-has-title-type",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-HAS_TITLE_TYPE-run-A",
+          "rejection_file": "HAS_TITLE_TYPE-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-has-title-type"
+      },
+      "IN_LANGUAGE": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "IN_LANGUAGE",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-in-language",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-IN_LANGUAGE-run-A",
+          "rejection_file": "IN_LANGUAGE-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "IN_LANGUAGE",
+              "topic": "imdb-in-language"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "AlternativeTitle",
+          "Language"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "IN_LANGUAGE",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-in-language",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-IN_LANGUAGE-run-A",
+          "rejection_file": "IN_LANGUAGE-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-in-language"
+      },
+      "KNOWN_FOR": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "KNOWN_FOR",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-known-for",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-KNOWN_FOR-run-A",
+          "rejection_file": "KNOWN_FOR-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "KNOWN_FOR",
+              "topic": "imdb-known-for"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Title"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "KNOWN_FOR",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-known-for",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-KNOWN_FOR-run-A",
+          "rejection_file": "KNOWN_FOR-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-known-for"
+      },
+      "PLAYED": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "PLAYED",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-played",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-PLAYED-run-A",
+          "rejection_file": "PLAYED-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "PLAYED",
+              "topic": "imdb-played"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Character"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "PLAYED",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-played",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-PLAYED-run-A",
+          "rejection_file": "PLAYED-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-played"
+      },
+      "WROTE": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "WROTE",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-wrote",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-WROTE-run-A",
+          "rejection_file": "WROTE-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "WROTE",
+              "topic": "imdb-wrote"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Title"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "WROTE",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-wrote",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-WROTE-run-A",
+          "rejection_file": "WROTE-0-72756e2d41.jsonl"
+        },
+        "topic": "imdb-wrote"
+      }
+    },
+    "nodes": {
+      "AlternativeTitle": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "AlternativeTitle",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-alternative-title",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "AlternativeTitle-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "AlternativeTitle",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-alternative-title",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "AlternativeTitle-0.jsonl"
+        },
+        "topic": "imdb-alternative-title"
+      },
+      "Character": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Character",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-character",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Character-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Character",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-character",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Character-0.jsonl"
+        },
+        "topic": "imdb-character"
+      },
+      "Genre": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Genre",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-genre",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Genre-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Genre",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-genre",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Genre-0.jsonl"
+        },
+        "topic": "imdb-genre"
+      },
+      "Language": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Language",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-language",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Language-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Language",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-language",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Language-0.jsonl"
+        },
+        "topic": "imdb-language"
+      },
+      "Person": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Person",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-person",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Person-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Person",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-person",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Person-0.jsonl"
+        },
+        "topic": "imdb-person"
+      },
+      "Profession": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Profession",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-profession",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Profession-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Profession",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-profession",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Profession-0.jsonl"
+        },
+        "topic": "imdb-profession"
+      },
+      "Rating": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Rating",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-rating",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Rating-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Rating",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-rating",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Rating-0.jsonl"
+        },
+        "topic": "imdb-rating"
+      },
+      "Region": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Region",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-region",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Region-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Region",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-region",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Region-0.jsonl"
+        },
+        "topic": "imdb-region"
+      },
+      "Title": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Title",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-title",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Title-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Title",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-title",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Title-0.jsonl"
+        },
+        "topic": "imdb-title"
+      },
+      "TitleType": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "TitleType",
+            "--mode",
+            "bulk",
+            "--topic",
+            "imdb-title-type",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "TitleType-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "TitleType",
+            "--mode",
+            "stream",
+            "--topic",
+            "imdb-title-type",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "TitleType-0.jsonl"
+        },
+        "topic": "imdb-title-type"
+      }
+    },
+    "plan": {
+      "chunk_messages_sha256": "0f56d9a7006026f3b75b00199becbba3e36ee11021ac990cf932a57b4cba7cf8",
+      "chunks": 140,
+      "plan_json_without_stats_sha256": "db35693294237714500d23646eb73a4f2cb4694f8e5fedd92b2ad84c5306d670"
+    },
+    "plan_hub": {
+      "chunk_messages_sha256": "099d064ca790d7104faefea577b4025122663d0e972cbebaa442c0891e70ab9f",
+      "chunks": 544,
+      "hubs": 74,
+      "plan_json_without_stats_sha256": "1edef1c6fd31c6605fd5338f88d8b5130181e9ff1bee1421f7f3684668f632d5"
+    },
+    "prefix": "imdb-example"
+  },
+  "examples/social/graph_schema.yaml": {
+    "edges": {
+      "ACTIVE_ON": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "ACTIVE_ON",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-active-on",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-ACTIVE_ON-run-A",
+          "rejection_file": "ACTIVE_ON-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "ACTIVE_ON",
+              "topic": "social-active-on"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Day"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "ACTIVE_ON",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-active-on",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-ACTIVE_ON-run-A",
+          "rejection_file": "ACTIVE_ON-0-72756e2d41.jsonl"
+        },
+        "topic": "social-active-on"
+      },
+      "BOUGHT": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "BOUGHT",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-bought",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-BOUGHT-run-A",
+          "rejection_file": "BOUGHT-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "BOUGHT",
+              "topic": "social-bought"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Product"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "BOUGHT",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-bought",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-BOUGHT-run-A",
+          "rejection_file": "BOUGHT-0-72756e2d41.jsonl"
+        },
+        "topic": "social-bought"
+      },
+      "FRIEND_OF": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "FRIEND_OF",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-friend-of",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-FRIEND_OF-run-A",
+          "rejection_file": "FRIEND_OF-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "FRIEND_OF",
+              "topic": "social-friend-of"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Person"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "FRIEND_OF",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-friend-of",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-FRIEND_OF-run-A",
+          "rejection_file": "FRIEND_OF-0-72756e2d41.jsonl"
+        },
+        "topic": "social-friend-of"
+      },
+      "LIVES_IN": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "LIVES_IN",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-lives-in",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-LIVES_IN-run-A",
+          "rejection_file": "LIVES_IN-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "LIVES_IN",
+              "topic": "social-lives-in"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "City"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "LIVES_IN",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-lives-in",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-LIVES_IN-run-A",
+          "rejection_file": "LIVES_IN-0-72756e2d41.jsonl"
+        },
+        "topic": "social-lives-in"
+      },
+      "VISITED": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "VISITED",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-visited",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-VISITED-run-A",
+          "rejection_file": "VISITED-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "VISITED",
+              "topic": "social-visited"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "City"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "VISITED",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-visited",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-VISITED-run-A",
+          "rejection_file": "VISITED-0-72756e2d41.jsonl"
+        },
+        "topic": "social-visited"
+      },
+      "WORKS_AT": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "WORKS_AT",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-works-at",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-WORKS_AT-run-A",
+          "rejection_file": "WORKS_AT-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "WORKS_AT",
+              "topic": "social-works-at"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Company"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "WORKS_AT",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-works-at",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-WORKS_AT-run-A",
+          "rejection_file": "WORKS_AT-0-72756e2d41.jsonl"
+        },
+        "topic": "social-works-at"
+      }
+    },
+    "nodes": {
+      "City": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "City",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-city",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "City-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "City",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-city",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "City-0.jsonl"
+        },
+        "topic": "social-city"
+      },
+      "Company": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Company",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-company",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Company-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Company",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-company",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Company-0.jsonl"
+        },
+        "topic": "social-company"
+      },
+      "Country": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Country",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-country",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Country-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Country",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-country",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Country-0.jsonl"
+        },
+        "topic": "social-country"
+      },
+      "Day": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Day",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-day",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Day-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Day",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-day",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Day-0.jsonl"
+        },
+        "topic": "social-day"
+      },
+      "Person": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Person",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-person",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Person-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Person",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-person",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Person-0.jsonl"
+        },
+        "topic": "social-person"
+      },
+      "Product": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Product",
+            "--mode",
+            "bulk",
+            "--topic",
+            "social-product",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Product-0.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Product",
+            "--mode",
+            "stream",
+            "--topic",
+            "social-product",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Product-0.jsonl"
+        },
+        "topic": "social-product"
+      }
+    },
+    "plan": {
+      "chunk_messages_sha256": "07fa78ac76d0d704c606572b4793509e111e48cce5fa8e88d950a6174960de31",
+      "chunks": 59,
+      "plan_json_without_stats_sha256": "9d0a2c110fdc662f01604ef6d67cf40294f60fe9173b6895048fd3d2aa28a519"
+    },
+    "plan_hub": {
+      "chunk_messages_sha256": "3e1b2e04a09f07a9245dee2ba3afc356c215ad2b7d33e1fc20d625c2e0afda96",
+      "chunks": 232,
+      "hubs": 39,
+      "plan_json_without_stats_sha256": "9930c5281587a4d6c5f5300f11bd72c624276336b43353bbfbc1abc34732e4cb"
+    },
+    "prefix": "social-example"
+  },
+  "tests/golden/fixtures/single_topic_dlq.yaml": {
+    "edges": {
+      "EMPLOYED_BY": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "EMPLOYED_BY",
+            "--mode",
+            "bulk",
+            "--topic",
+            "compat-employed-by",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-EMPLOYED_BY-run-A",
+          "rejection_file": "EMPLOYED_BY-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          "compat-employed-by-failures",
+          "compat-employed-by-parked",
+          "compat-employed-by-failures.parked-pairs"
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "EMPLOYED_BY",
+              "topic": "compat-employed-by"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Company"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "EMPLOYED_BY",
+            "--mode",
+            "stream",
+            "--topic",
+            "compat-employed-by",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-EMPLOYED_BY-run-A",
+          "rejection_file": "EMPLOYED_BY-0-72756e2d41.jsonl"
+        },
+        "topic": "compat-employed-by"
+      },
+      "FOLLOWS": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "FOLLOWS",
+            "--mode",
+            "bulk",
+            "--topic",
+            "compat-follows",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-FOLLOWS-run-A",
+          "rejection_file": "FOLLOWS-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          "compat-follows.dlq",
+          "compat-follows.dlq.parked",
+          "compat-follows.dlq.parked-pairs"
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "FOLLOWS",
+              "topic": "compat-follows"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Person"
+        ],
+        "order_by": "updated_at",
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "FOLLOWS",
+            "--mode",
+            "stream",
+            "--topic",
+            "compat-follows",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-FOLLOWS-run-A",
+          "rejection_file": "FOLLOWS-0-72756e2d41.jsonl"
+        },
+        "topic": "compat-follows"
+      },
+      "KNOWS": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "KNOWS",
+            "--mode",
+            "bulk",
+            "--topic",
+            "compat-knows",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-KNOWS-run-A",
+          "rejection_file": "KNOWS-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          null,
+          null,
+          null
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "KNOWS",
+              "topic": "compat-knows"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Person"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "KNOWS",
+            "--mode",
+            "stream",
+            "--topic",
+            "compat-knows",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-KNOWS-run-A",
+          "rejection_file": "KNOWS-0-72756e2d41.jsonl"
+        },
+        "topic": "compat-knows"
+      },
+      "WORKS_AT": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "WORKS_AT",
+            "--mode",
+            "bulk",
+            "--topic",
+            "compat-works-at",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A",
+            "--replica-count",
+            "1"
+          ],
+          "group": "prefix-WORKS_AT-run-A",
+          "rejection_file": "WORKS_AT-0-72756e2d41.jsonl"
+        },
+        "dlq": [
+          "compat-works-at.dlq",
+          "compat-works-at.dlq.parked",
+          "compat-works-at.dlq.parked-pairs"
+        ],
+        "lag_series": [
+          [
+            {
+              "kind": "cli",
+              "name": "WORKS_AT",
+              "topic": "compat-works-at"
+            },
+            6.0
+          ]
+        ],
+        "nodes": [
+          "Person",
+          "Company"
+        ],
+        "order_by": null,
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--edge-type",
+            "WORKS_AT",
+            "--mode",
+            "stream",
+            "--topic",
+            "compat-works-at",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group": "prefix-WORKS_AT-run-A",
+          "rejection_file": "WORKS_AT-0-72756e2d41.jsonl"
+        },
+        "topic": "compat-works-at"
+      }
+    },
+    "nodes": {
+      "Company": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Company",
+            "--mode",
+            "bulk",
+            "--topic",
+            "compat-company",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Company-0.jsonl"
+        },
+        "dlq": [
+          "compat-company-rejects",
+          "compat-company-rejects.parked",
+          "compat-company-rejects.parked-pairs"
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Company",
+            "--mode",
+            "stream",
+            "--topic",
+            "compat-company",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Company-0.jsonl"
+        },
+        "topic": "compat-company"
+      },
+      "Person": {
+        "bulk": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Person",
+            "--mode",
+            "bulk",
+            "--topic",
+            "compat-person",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Person-0.jsonl"
+        },
+        "dlq": [
+          "compat-person.dlq",
+          "compat-person.dlq.parked",
+          "compat-person.dlq.parked-pairs"
+        ],
+        "stream": {
+          "command": [
+            "--config",
+            "/app/runtime_schema.yaml",
+            "--node-label",
+            "Person",
+            "--mode",
+            "stream",
+            "--topic",
+            "compat-person",
+            "--replica-id",
+            "0",
+            "--run-id",
+            "run-A"
+          ],
+          "group_env": null,
+          "rejection_file": "Person-0.jsonl"
+        },
+        "topic": "compat-person"
+      }
+    },
+    "plan": {
+      "chunk_messages_sha256": "58f890a00134496659788781fd7ca883f72df49d39a8217c3891ed590874b8ba",
+      "chunks": 38,
+      "plan_json_without_stats_sha256": "1317afaebbab3ecff4edd3778cea214a88f77f7924a53e345048f5bf487463f7"
+    },
+    "plan_hub": {
+      "chunk_messages_sha256": "bf96290ca7e58ef672b0da90b08913619eec1f1a86bcda803b3fd582f9e742ac",
+      "chunks": 160,
+      "hubs": 22,
+      "plan_json_without_stats_sha256": "5d099edea894fa3c71362220c57b1f1f03d30493982020558d32064b9689a3b1"
+    },
+    "prefix": "compat-dlq"
+  }
+}

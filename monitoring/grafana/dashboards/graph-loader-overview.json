@@ -1,0 +1,321 @@
+{
+  "title": "graph-loader overview",
+  "uid": "graph-loader-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "5s",
+  "tags": ["graph-loader"],
+  "templating": {
+    "list": [
+      {
+        "name": "kind",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(graph_loader_process_up, kind)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": { "text": "All", "value": "$__all" },
+        "sort": 1
+      },
+      {
+        "name": "name",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(graph_loader_process_up, name)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": { "text": "All", "value": "$__all" },
+        "sort": 1
+      },
+      {
+        "name": "run_id",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(graph_loader_process_up, run_id)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": { "text": "All", "value": "$__all" },
+        "sort": 1
+      },
+      {
+        "name": "edge_type",
+        "type": "query",
+        "label": "relationship type",
+        "hide": 2,
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(graph_loader_consumer_lag_records{kind=\"cli\"}, name)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": { "text": "All", "value": "$__all" },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    { "id": 1, "type": "row", "title": "Throughput", "collapsed": false, "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 2, "type": "timeseries", "title": "Records/s by kind+name",
+      "gridPos": { "x": 0, "y": 1, "w": 24, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (kind,name) (rate(graph_loader_records_consumed_total{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}[1m]))",
+          "legendFormat": "{{kind}}/{{name}}"
+        }
+      ]
+    },
+
+    { "id": 10, "type": "row", "title": "Write latency", "collapsed": false, "gridPos": { "x": 0, "y": 9, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 11, "type": "timeseries", "title": "Neo4j write duration p50/p95/p99",
+      "gridPos": { "x": 0, "y": 10, "w": 24, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum by (le,kind,name) (rate(graph_loader_neo4j_write_duration_seconds_bucket{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}[5m])))", "legendFormat": "p50 {{kind}}/{{name}}" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le,kind,name) (rate(graph_loader_neo4j_write_duration_seconds_bucket{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}[5m])))", "legendFormat": "p95 {{kind}}/{{name}}" },
+        { "refId": "C", "expr": "histogram_quantile(0.99, sum by (le,kind,name) (rate(graph_loader_neo4j_write_duration_seconds_bucket{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}[5m])))", "legendFormat": "p99 {{kind}}/{{name}}" }
+      ]
+    },
+
+    { "id": 20, "type": "row", "title": "Consumer lag", "collapsed": false, "gridPos": { "x": 0, "y": 18, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 21, "type": "timeseries", "title": "Lag by topic",
+      "description": "Only ever populates if graph_loader_consumer_lag_records{kind=\"cli\"} is reachable from this Prometheus. As of feat/p6-s2-metrics, that series is emitted only by the host-side CLI process (127.0.0.1-bound), which this compose profile's Docker-SD-based Prometheus does not scrape by default — see docs/MONITORING.md Known Limitations. \"No data\" here does not mean zero lag. Lag comes from the CLI process, whose series carry no run_id label (a run_id metric label would break the cardinality rule), so this panel is not filtered by the run_id variable and shows every run.",
+      "gridPos": { "x": 0, "y": 19, "w": 24, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "graph_loader_consumer_lag_records{kind=~\"$kind\",name=~\"$name\"}", "legendFormat": "{{kind}}/{{name}}/{{topic}}" }
+      ]
+    },
+
+    { "id": 22, "type": "row", "title": "Consumer lag: multi-topic types", "collapsed": false, "gridPos": { "x": 0, "y": 27, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 23, "type": "stat", "title": "Slowest topic of a type (max lag)",
+      "description": "max by (name) over the type's topics. One stuck topic keeps the whole type above zero lag by design: a type is caught up only when every one of its topics is. Same caveat as the panel above (kind=cli only; the retry consumer's DLQ-topic lag is not shown here): the lag series is emitted only by the host-side CLI process, so 'No data' does not mean zero lag. A relationship type fed by several topics has one series per topic; zero lag is over ALL its topics.",
+      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value_and_name" },
+      "targets": [
+        { "refId": "A", "expr": "max by (name) (graph_loader_consumer_lag_records{kind=\"cli\",name=~\"$name\"})", "legendFormat": "{{name}}" }
+      ]
+    },
+    {
+      "id": 24, "type": "bargauge", "title": "Topics per type (lag series count)",
+      "description": "count by (name): one lag series per topic of a type, so total lag series never exceed the number of schema topics. No per-record or per-sub-stage label exists. Same caveat as the panel above (kind=cli only; the retry consumer's DLQ-topic lag is not shown here): the lag series is emitted only by the host-side CLI process, so 'No data' does not mean zero lag. A relationship type fed by several topics has one series per topic; zero lag is over ALL its topics.",
+      "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "horizontal", "displayMode": "basic" },
+      "targets": [
+        { "refId": "A", "expr": "count by (name) (graph_loader_consumer_lag_records{kind=\"cli\",name=~\"$name\"})", "legendFormat": "{{name}}" }
+      ]
+    },
+    { "id": 26, "type": "row", "title": "Lag by topic, one panel per relationship type", "collapsed": false, "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 25, "type": "timeseries", "title": "Lag by topic: $edge_type",
+      "description": "One panel per relationship type (repeated over the hidden edge_type variable); one line per topic of that type. Same caveat as the panel above (kind=cli only; the retry consumer's DLQ-topic lag is not shown here): the lag series is emitted only by the host-side CLI process, so 'No data' does not mean zero lag. A relationship type fed by several topics has one series per topic; zero lag is over ALL its topics.",
+      "repeat": "edge_type", "repeatDirection": "h", "maxPerRow": 2,
+      "gridPos": { "x": 0, "y": 37, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "graph_loader_consumer_lag_records{kind=\"cli\",name=~\"$edge_type\"}", "legendFormat": "{{topic}}" }
+      ]
+    },
+
+    { "id": 30, "type": "row", "title": "Plan progress", "collapsed": false, "gridPos": { "x": 0, "y": 45, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 31, "type": "timeseries", "title": "Chunks committed / planned",
+      "gridPos": { "x": 0, "y": 46, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "graph_loader_plan_chunks_committed{kind=~\"$kind\",run_id=~\"$run_id\"}", "legendFormat": "committed {{kind}} ({{run_id}})" },
+        { "refId": "B", "expr": "graph_loader_plan_chunks_planned{kind=~\"$kind\",run_id=~\"$run_id\"}", "legendFormat": "planned {{kind}} ({{run_id}})" }
+      ]
+    },
+    {
+      "id": 32, "type": "timeseries", "title": "Active writers",
+      "gridPos": { "x": 12, "y": 46, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "graph_loader_plan_active_writers{kind=~\"$kind\",run_id=~\"$run_id\"}", "legendFormat": "{{kind}} ({{run_id}})" }
+      ]
+    },
+
+    { "id": 40, "type": "row", "title": "Lease server", "collapsed": false, "gridPos": { "x": 0, "y": 54, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 41, "type": "timeseries", "title": "Grants/denials rate",
+      "gridPos": { "x": 0, "y": 55, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "rate(graph_loader_lease_grants_total{kind=~\"$kind\",run_id=~\"$run_id\"}[1m])", "legendFormat": "grants {{kind}} ({{run_id}})" },
+        { "refId": "B", "expr": "rate(graph_loader_lease_denials_total{kind=~\"$kind\",run_id=~\"$run_id\"}[1m])", "legendFormat": "denials {{kind}} ({{run_id}})" }
+      ]
+    },
+    {
+      "id": 42, "type": "timeseries", "title": "Waiters / held resources",
+      "gridPos": { "x": 12, "y": 55, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "graph_loader_lease_waiters{kind=~\"$kind\",run_id=~\"$run_id\"}", "legendFormat": "waiters {{kind}} ({{run_id}})" },
+        { "refId": "B", "expr": "graph_loader_lease_held_resources{kind=~\"$kind\",run_id=~\"$run_id\"}", "legendFormat": "held {{kind}} ({{run_id}})" }
+      ]
+    },
+
+    { "id": 50, "type": "row", "title": "Lease wait / lock waits", "collapsed": false, "gridPos": { "x": 0, "y": 63, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 51, "type": "timeseries", "title": "p95 accumulated lease wait per flush",
+      "description": "graph_loader_lease_wait_seconds observes one outer flush's client-side accumulated wait, summed across that flush's concurrent workers (metrics.py's own docstring: with N workers each waiting ~T seconds, this reads ~N*T). Read this as a contention signal, not a per-write latency figure.",
+      "gridPos": { "x": 0, "y": 64, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le,kind,name) (rate(graph_loader_lease_wait_seconds_bucket{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}[5m])))", "legendFormat": "{{kind}}/{{name}}" }
+      ]
+    },
+    {
+      "id": 52, "type": "timeseries", "title": "p95 plan resource wait by run",
+      "gridPos": { "x": 12, "y": 64, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le,run_id) (rate(graph_loader_plan_resource_wait_seconds_bucket{kind=~\"$kind\",run_id=~\"$run_id\"}[5m])))", "legendFormat": "run_id={{run_id}}" }
+      ]
+    },
+
+    { "id": 60, "type": "row", "title": "Deadlocks", "collapsed": false, "gridPos": { "x": 0, "y": 72, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 61, "type": "timeseries", "title": "Recovered deadlocks by kind (planned-writer must read 0)",
+      "description": "Plots the raw cumulative counter, not increase()/rate(): planned-writer's per-edge-type deadlock series is not pre-created at 0 (metrics.py), so a series' first-ever sample can already be nonzero and increase() would read 0 against a missing earlier sample, hiding exactly the event this panel exists to surface.",
+      "gridPos": { "x": 0, "y": 73, "w": 24, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "sum by (kind,name) (graph_loader_deadlocks_recovered_total{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"})", "legendFormat": "{{kind}}/{{name}}" }
+      ]
+    },
+
+    { "id": 70, "type": "row", "title": "DLQ", "collapsed": false, "gridPos": { "x": 0, "y": 81, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 71, "type": "timeseries", "title": "Routed by failure_class (rate + raw total)",
+      "description": "Includes the raw cumulative total alongside the 5m rate: a failure_class series' first-ever sample can already be nonzero (not pre-created at 0 except malformed), so rate()/increase() alone can miss it — same gap as Story 2's DLQ alert rules.",
+      "gridPos": { "x": 0, "y": 82, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "sum by (failure_class) (rate(graph_loader_dlq_routed_total{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}[5m]))", "legendFormat": "rate {{failure_class}}" },
+        { "refId": "B", "expr": "sum by (failure_class) (graph_loader_dlq_routed_total{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"})", "legendFormat": "total {{failure_class}}" }
+      ]
+    },
+    {
+      "id": 72, "type": "timeseries", "title": "Parked total",
+      "gridPos": { "x": 12, "y": 82, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "graph_loader_parked_total{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}", "legendFormat": "{{kind}}/{{name}}" }
+      ]
+    },
+    {
+      "id": 73, "type": "timeseries", "title": "DLQ backlog by queue (dlq = retry work, parked = terminal)",
+      "description": "graph_loader_dlq_backlog by queue: dlq = DLQ high watermark minus the retry consumer's committed offset (should drain); parked = parking-lot size (terminal, cumulative, needs a human). Emitted by the retry-consumer process (edge types only), refreshed every backlog_check_interval_ms.",
+      "gridPos": { "x": 0, "y": 90, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "max by (kind, name, queue) (graph_loader_dlq_backlog{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"})", "legendFormat": "{{kind}}/{{name}} {{queue}}" }
+      ]
+    },
+    {
+      "id": 74, "type": "timeseries", "title": "Retry writes stalled (seconds, 0 = healthy)",
+      "description": "graph_loader_retry_stalled_seconds: how long the retry consumer's writes of the edge type have failed with nothing written (owner decision D1: such rows are never counted or parked, they wait). GraphLoaderRetryStalled fires above 600 s.",
+      "gridPos": { "x": 12, "y": 90, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "max by (kind, name) (graph_loader_retry_stalled_seconds{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"})", "legendFormat": "{{kind}}/{{name}}" }
+      ]
+    },
+
+    {
+      "id": 75, "type": "timeseries", "title": "DLQ envelopes per consumed record (v7-S4 sizing)",
+      "description": "rate(graph_loader_dlq_routed_total) / rate(graph_loader_records_consumed_total) per relationship type: DLQ envelopes written (the live writer's first copies plus the retry consumer's re-DLQs) per input record. DLQ topics have unlimited retention; a type holds at most records x (max_retry_attempts + 1) envelopes plus a few blocked copies (docs/USAGE.md section 12, DLQ sizing). A ratio that stays high while the backlog grows means endpoints are not arriving.",
+      "gridPos": { "x": 0, "y": 98, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "sum by (name) (rate(graph_loader_dlq_routed_total{kind=\"edge\",name=~\"$name\",run_id=~\"$run_id\"}[5m])) / clamp_min(sum by (name) (rate(graph_loader_records_consumed_total{kind=\"edge\",name=~\"$name\",run_id=~\"$run_id\"}[5m])), 1e-9)", "legendFormat": "{{name}}" }
+      ]
+    },
+    {
+      "id": 76, "type": "timeseries", "title": "Parked-pair index admission wait (seconds, 0 = admitted)",
+      "description": "graph_loader_parked_pair_index_wait_seconds: how long a stream edge loader has held its newly assigned partitions because its copy of the parked-pair index has not caught up with the index as of the assignment (v7-S4). Normally 0 or a fraction of a second after a rebalance; a value that keeps growing means the index topic cannot be read (log: reason=parked_pair_index_lagging).",
+      "gridPos": { "x": 12, "y": 98, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "max by (kind, name) (graph_loader_parked_pair_index_wait_seconds{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"})", "legendFormat": "{{kind}}/{{name}}" }
+      ]
+    },
+
+    { "id": 80, "type": "row", "title": "Errors", "collapsed": false, "gridPos": { "x": 0, "y": 106, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 81, "type": "timeseries", "title": "Retry rate by reason",
+      "gridPos": { "x": 0, "y": 107, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "sum by (reason) (rate(graph_loader_retry_total{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}[5m]))", "legendFormat": "{{reason}}" }
+      ]
+    },
+    {
+      "id": 82, "type": "timeseries", "title": "Stream write outage (seconds, 0 = writing)",
+      "description": "graph_loader_write_outage_seconds: how long a live stream node or edge loader's Neo4j writes have been failing with connectivity-class errors. The loader holds its batch uncommitted (no lease held, partitions paused) and retries it in order; it logs reason=neo4j_outage after 30 s. GraphLoaderWriteOutage fires above 120 s.",
+      "gridPos": { "x": 12, "y": 107, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "No data" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "expr": "max by (kind, name) (graph_loader_write_outage_seconds{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"})", "legendFormat": "{{kind}}/{{name}}" }
+      ]
+    },
+
+    { "id": 90, "type": "row", "title": "Process health", "collapsed": false, "gridPos": { "x": 0, "y": 115, "w": 24, "h": 1 }, "panels": [] },
+    {
+      "id": 91, "type": "table", "title": "Scrape health (up/down)",
+      "description": "Uses Prometheus's own synthetic `up` series, not graph_loader_process_up: process_up is only ever set to 1 by a running process and goes stale (not 0) when a process crashes or its scrape fails, so it can never show \"down\". `up` reads 0 on a failed scrape of a still-listed target.",
+      "gridPos": { "x": 0, "y": 116, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "noValue": "No data" }, "overrides": [] },
+      "options": { "showHeader": true },
+      "targets": [
+        { "refId": "A", "expr": "up{job=\"graph-loader\",kind=~\"$kind\",run_id=~\"$run_id\"}", "format": "table", "instant": true }
+      ]
+    },
+    {
+      "id": 92, "type": "table", "title": "Version info",
+      "gridPos": { "x": 12, "y": 116, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "noValue": "No data" }, "overrides": [] },
+      "options": { "showHeader": true },
+      "targets": [
+        { "refId": "A", "expr": "graph_loader_process_info{kind=~\"$kind\",name=~\"$name\",run_id=~\"$run_id\"}", "format": "table", "instant": true }
+      ]
+    }
+  ]
+}

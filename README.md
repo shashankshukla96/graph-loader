@@ -1,202 +1,243 @@
 # Neo4j Distributed Graph Loader
 
-## Background & Initial Ask
-This project was born out of the need to build a distributed, highly-concurrent pipeline to load data from Kafka topics into a Neo4j graph database. 
+graph-loader loads data from Kafka topics into a Neo4j graph. You describe the
+graph model in a YAML schema (node labels, relationship types, property types,
+keys, one topic per label and per type) and publish JSON records to those
+topics; the loader does the rest. No model-specific code and no tuning flags
+are required.
 
-**The Challenge:** Loading nodes in parallel is straightforward, but loading relationships (edges) concurrently is notoriously prone to database deadlocks. If a data model resembles a star schema (highly connected central nodes), concurrent threads will inevitably try to acquire write locks on the same nodes in different sequences, crashing the transactions.
+* **Bulk mode** loads a finite, quiescent set of records and proves the result
+  (zero lag at a fixed boundary, a complete write ledger). The default
+  relationship mode is **planned**: the loader plans the whole relationship
+  load into node-disjoint chunks, so concurrent transactions never wait on each
+  other's Neo4j locks.
+* **Stream mode** keeps loading as records arrive, with leased node-disjoint
+  writes, a dead-letter queue and retry consumer for edge-before-node arrivals,
+  stable consumer groups and graceful stop/restart.
+* Relationship types may be fed by several topics and may span several label
+  pairs; self-references, several types between the same labels and labels
+  without relationships are supported.
 
-**The Goal:** Build a deadlock-free loading mechanism where:
-- A central Docker container triggers different loading jobs.
-- Node types load directly without contention.
-- Edge types safely map dependencies.
-- The system handles both Bulk and Continuous Streaming data.
-- The entire data model is generic and defined via a YAML schema.
+## Documentation
 
-## Reference Materials
-During the design phase, the following resources were shared and analyzed:
-1. **Mix-and-Batch Technique**: [https://neo4j.com/blog/developer/mix-and-batch-relationship-load/](https://neo4j.com/blog/developer/mix-and-batch-relationship-load/)
-2. **Neo4j Cypher Manual**: [https://neo4j.com/docs/cypher-manual/current/introduction/](https://neo4j.com/docs/cypher-manual/current/introduction/)
+| Document | Read it to |
+| --- | --- |
+| [Bulk load guide](docs/BULK_LOAD.md) | Run an initial load: prerequisites, producer contract, every `start --mode bulk` flag, the edge modes, tuning, verification, recovery, a worked example. |
+| [Incremental load guide](docs/INCREMENTAL_LOAD.md) | Load repeatedly: repeated bulk batches versus continuous streaming, ordering, DLQ, restart. |
+| [CLI reference](docs/CLI.md) | Look up a command, flag, default, range, exit code, `stage=` log line or environment variable. |
+| [Architecture](docs/ARCHITECTURE.md) | Understand how the components fit together and how zero lock waits is achieved in each mode. |
+| [Usage guide](docs/USAGE.md) | The detailed reference: schema fields, input contract, planned-mode internals, dead-lettering, performance, operations, troubleshooting, limitations. |
+| [Monitoring](docs/MONITORING.md) | Metrics, Prometheus and Grafana stack, alerts. |
+| [Changelog](CHANGELOG.md) | See what changed and what to do when upgrading (read the upgrade notes). |
+| [Examples](examples/README.md) | [IMDb](examples/imdb/README.md) (a real 23M-record benchmark), [social](examples/social/README.md) (synthetic, exact verification), [multi_topic](examples/multi_topic/README.md) (several topics or label pairs per type). |
+| [History](docs/HISTORY.md) | Original design decisions and project phases. |
 
-## Architectural Discussions & Key Decisions
+## Quick start (about 5 minutes)
 
-The planned architecture addresses the following distributed-system edge cases. These capabilities are scheduled in later phases; Slice 1 delivers only the local development environment.
+Prerequisites: Docker with Compose v2 and Python 3.12. The bundled Compose
+file pins Neo4j to CPUs `0-7` (8 GB heap, 12 GB page cache) and Kafka to CPUs
+`8-11`, and keeps the data under `GRAPH_LOADER_DATA_DIR` (default
+`/mnt/graph-loader/data`). On a smaller machine set `NEO4J_CPUSET`,
+`KAFKA_CPUSET`, `NEO4J_HEAP_SIZE`, `NEO4J_PAGECACHE_SIZE` and
+`GRAPH_LOADER_DATA_DIR` in `.env` first
+([USAGE section 2](docs/USAGE.md#2-requirements-and-environment) lists them).
 
-### 1. Planned Deadlock Prevention Strategy
-The loader will use a **Dual-Layer Deadlock Prevention Engine**:
-- **Layer 1 (Thread Isolation):** Edges will be partitioned in Python using directional Mix-and-Batch. Forward edges (`src_id < tgt_id`) and backward edges will be split into distinct slots, preventing circular dependencies such as `A->B` and `B->A` in a batch.
-- **Layer 2 (Global Atomic Locking):** Before writing a batch of 1,000 edges, Cypher will aggregate distinct nodes, sort them by internal ID, and lock them with `apoc.lock.nodes()` to eliminate intra-batch circular waits.
-
-### 2. Planned Multi-Loader Synchronization (Global Batch Clock)
-When multiple edge types (e.g., `WORKS_AT` and `BOUGHT`) share a common node type (`Person`), running them blindly in parallel causes inter-loader deadlocks.
-- **Decision:** A Kafka-based "Global Batch Clock" will let a central orchestrator assign node hash buckets to loaders in rotating time slots.
-- **Self-Referencing Edges:** The schema parser will flag relationships such as `Person-KNOWS-Person` to run in isolation.
-
-### 3. Planned Real-Time Streaming & Resilience
-- **Edge-Before-Node:** An edge that arrives before its nodes will be detected with `OPTIONAL MATCH` and routed to a **Dead Letter Queue (DLQ)** for exponential-backoff retry.
-- **Kafka Eviction Flaw:** To avoid exceeding Kafka's `max.poll.interval.ms` during Neo4j bulk writes, the loader will use a **Dual-Thread Model**: one thread will poll Kafka for heartbeats while a background thread executes Neo4j queries.
-- **Rebalance Safety:** An `on_revoke` listener will wait for in-flight Neo4j transactions and explicitly commit offsets before partition hand-off.
-
-## Project Plan
-The execution plan has been divided into 6 detailed Agile EPICs, which can be found in the `/plan/` directory:
-1. **Phase 1:** Foundation & Infrastructure (Docker, Schema Initializer)
-2. **Phase 2:** Node Data Ingestion
-3. **Phase 3:** High-Throughput Edge Loading (Core Deadlock Engine)
-4. **Phase 4:** Multi-Loader Concurrency (Global Batch Clock)
-5. **Phase 5:** Real-Time Streaming & Resilience (DLQ)
-6. **Phase 6:** Observability, Metrics & Hardening
-
-## Local Development Environment
-
-Prerequisite: Docker Desktop (or Docker Engine) with Docker Compose v2. Use the platform's standard shell: Bash on Linux/macOS/WSL/Git Bash, or PowerShell on Windows.
-
-On Linux, macOS, WSL, or Git Bash:
+**1. Install and start the local stack** (Neo4j Enterprise 5 and Kafka):
 
 ```bash
-cp .env.example .env
-bash scripts/start_dev.sh
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+export PATH="$PWD/.venv/bin:$PATH"
+cp .env.example .env        # set NEO4J_PASSWORD; set GRAPH_LOADER_DATA_DIR to a writable directory
+bash scripts/start_dev.sh   # waits until Neo4j and Kafka are healthy
 ```
 
-On Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-.\scripts\start_dev.ps1
-```
-
-The startup command waits for both services to become healthy, then exposes Neo4j Browser at `http://localhost:7474`, Neo4j Bolt at `bolt://localhost:7687`, Kafka at `localhost:9092`, and Kafka UI at `http://localhost:8080`.
-
-To run the environment smoke tests on Bash-based systems:
+**2. Set the connection environment explicitly.** The CLI does not read
+`.env`; export what it needs. Host-side values are for the CLI and your
+scripts, `LOADER_*` values are for the loader containers on the Docker network:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m pytest tests/test_dev_environment.py -v -m smoke
+export KAFKA_BOOTSTRAP_SERVERS=localhost:9092 NEO4J_URI=bolt://localhost:7687
+export NEO4J_USERNAME=neo4j NEO4J_PASSWORD='<the password from .env>'
+export LOADER_KAFKA_BOOTSTRAP_SERVERS=kafka:29092 LOADER_NEO4J_URI=bolt://neo4j:7687
+export NEO4J_DATABASE=mygraph    # the database the load writes to (created below)
+docker exec graph-loader-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
+  "CREATE DATABASE mygraph IF NOT EXISTS WAIT"
 ```
 
-On Windows PowerShell:
+Database names allow only ASCII letters, digits, dots and dashes (no
+underscores). Without `NEO4J_DATABASE` the load targets the server default,
+`neo4j`.
 
-```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m pytest tests/test_dev_environment.py -v -m smoke
+**3. Describe the graph.** Save as `my_graph.yaml`:
+
+```yaml
+loading:
+  mode: bulk
+  consumer_group_id: my-graph        # node loaders resume this group on later runs
+nodes:
+  - label: Person                    # Cypher identifier
+    topic: person-events             # one topic per label
+    key_property: person_id          # MERGE key; must be declared and required
+    properties:
+      person_id: {type: integer, required: true, constraint: {type: uniqueness}}
+      name:      {type: string, required: true}
+      joined:    {type: date}
+    # replicas: 4                    # optional; derived from the topic size when omitted
+  - label: City
+    topic: city-events
+    key_property: name
+    properties:
+      name: {type: string, required: true}
+edges:
+  - type: LIVES_IN
+    topic: lives-in-events           # one topic per relationship type
+    nodes: {source: Person, target: City}
+    source_key_property: person_id   # must equal the source label's key_property
+    target_key_property: name        # must equal the target label's key_property
+    properties:
+      since: {type: date}
 ```
 
-Use `docker compose down -v` to stop the stack and remove its local volumes.
-
-## Node Loader Operations (Phase 2)
-
-With the local stack running, a single configured node topic can be loaded directly:
+**4. Publish records** (the [input contract](#the-input-contract) below). This
+creates the topics and publishes a few records, keying relationship records by
+their source key:
 
 ```bash
-python -m src.loader.node_loader --config config/graph_schema.yaml --node-label Person --max-messages 10
+python - <<'EOF'
+import json
+from confluent_kafka import Producer
+from confluent_kafka.admin import AdminClient, NewTopic
+
+bootstrap = "localhost:9092"
+admin = AdminClient({"bootstrap.servers": bootstrap})
+for name, future in admin.create_topics(
+    [NewTopic(t, num_partitions=2, replication_factor=1) for t in ("person-events", "city-events", "lives-in-events")]
+).items():
+    try:
+        future.result()
+    except Exception as exc:  # already exists is fine
+        print(name, exc)
+
+producer = Producer({"bootstrap.servers": bootstrap})
+people = [(1, "Ada", "2024-01-31"), (2, "Grace", "2023-05-02"), (3, "Linus", "2022-11-30")]
+for pid, name, joined in people:
+    producer.produce("person-events", key=str(pid), value=json.dumps({"person_id": pid, "name": name, "joined": joined}))
+for city in ("Paris", "London"):
+    producer.produce("city-events", key=city, value=json.dumps({"name": city}))
+for pid, city in ((1, "Paris"), (2, "London"), (3, "Paris")):
+    producer.produce("lives-in-events", key=str(pid), value=json.dumps(
+        {"source": {"person_id": pid}, "target": {"name": city}, "properties": {"since": "2020-05-01"}}))
+producer.flush()
+EOF
 ```
 
-Set `NEO4J_URI`, `NEO4J_USERNAME`, and `NEO4J_PASSWORD` for Neo4j, plus
-`KAFKA_BOOTSTRAP_SERVERS` for Kafka. `NEO4J_USER` remains a legacy fallback.
-The command consumes only the selected label's configured topic. `--max-messages`
-is useful for bounded bulk runs and tests; omit it for a continuous stream.
-
-Node writes use the `loading` section in `config/graph_schema.yaml`:
-
-- `unwind_batch_size` caps records per Neo4j `UNWIND` transaction.
-- `flush_interval_ms` finalizes an idle partial batch.
-- `retry_max_attempts`, `retry_base_delay_ms`, and `retry_max_delay_ms` apply
-  bounded exponential retry only to Neo4j errors marked retryable by the driver.
-
-The loader commits explicit Kafka *next offsets* only after the whole relevant
-Neo4j batch is durable. Each topic-partition has a contiguous-resolution barrier,
-so an uncommitted or malformed record cannot let a later offset skip ahead. During
-retry it pauses assigned partitions, polls for group heartbeats, and fails closed
-if a rebalance revokes unresolved work.
-
-Malformed JSON or schema-invalid records are written with `flush()` and `fsync()`
-to the configured `rejection_log_path`, then—and only then—are eligible for their
-contiguous offset commit. This is an intentional interim Phase 2 log-and-skip sink,
-not a Kafka DLQ. **Phase 5 will replace it with DLQ routing.** The rejection entry
-contains topic, partition, offset, node label, and reason; it deliberately omits
-the raw payload.
-
-For container fleets, start the pipeline with:
+**5. Run the bulk load.** The CLI applies the schema DDL, builds the images
+(on every `start`, retagging `:latest`, unless you pass `--skip-image-build`),
+launches the node loaders, plans and writes the relationships, and
+exits `0` only when the result is proven:
 
 ```bash
-python -m src.cli start --mode stream --config config/graph_schema.yaml
+python -m src.cli start --mode bulk --config my_graph.yaml
 ```
 
-Each node-loader replica receives an isolated JSONL path under `/app/rejections`.
-Docker bind-mounts the host `var/rejections/` directory there, so logs survive
-container removal. Inspect the host directory when investigating rejected records.
+Watch for `stage=launch edge_mode=planned reason=default`, one
+`stage=node-label-ready` per label and `stage=planned-edges-complete`.
 
-## Relationship Loader Operations (Phase 3 / Slice 1)
-
-Load one configured relationship topic directly with the same durable-offset
-guarantees as node ingestion:
+**6. Verify.**
 
 ```bash
-KAFKA_BOOTSTRAP_SERVERS=localhost:9092 \
-python -m src.loader.edge_loader --config config/graph_schema.yaml \
-  --edge-type WORKS_AT --max-messages 10
+docker exec graph-loader-neo4j cypher-shell -u "$NEO4J_USERNAME" -p "$NEO4J_PASSWORD" -d "$NEO4J_DATABASE" \
+  "MATCH (p:Person)-[r:LIVES_IN]->(c:City) RETURN p.name, c.name, r.since ORDER BY p.person_id"
 ```
 
-Relationship events use an explicit endpoint envelope; endpoint key names are
-declared by the edge configuration:
+Expect three rows. Re-running the same load is safe (`MERGE`), but node loaders
+resume the `consumer_group_id` and would read nothing new: change the id (or
+publish new records) to reload the same topics. To scale up, use
+[examples/social](examples/social/README.md), which publishes and exactly
+verifies a synthetic graph of any size.
 
-```json
-{
-  "source": {"personId": "p-001"},
-  "target": {"companyId": "c-001"},
-  "properties": {"since": "2020-01-02", "role": "Engineer"}
-}
-```
+Stop the local stack with `docker compose down`. Its data lives in
+`GRAPH_LOADER_DATA_DIR` (bind mounts), so `down -v` does not delete it; remove
+that directory to start from an empty database and empty topics.
 
-The loader merges only the schema-declared labels and relationship type. It
-preflights both endpoint nodes inside the same Neo4j transaction, so a missing
-endpoint or database failure leaves the Kafka offset uncommitted. Malformed
-events are instead written and fsync'd to the rejection log with `edge_type`
-before their offsets can advance; Phase 5 will route those events to a DLQ.
-Relationship fleet scheduling, control acknowledgements, and parallel edge
-lanes are intentionally not part of this direct Slice 1 command.
+## The input contract
 
-Bulk CLI runs additionally schedule declared relationship types after the node
-fleet has reached its durable drain. Types with disjoint endpoint labels share
-a stage; types sharing any label are drained and zero-lag verified in separate
-stages. Keep every relationship topic quiescent for the complete run: an input
-arrival after a stage captures its boundary fails that stage rather than
-claiming a successful load.
+* **Node** topic: one JSON object per record, the node's properties by name,
+  e.g. `{"person_id": 7, "name": "Ada", "joined": "2024-01-31"}`. Later records
+  for the same key update it (`SET n += props`). Key node records by their node
+  key.
+* **Relationship** topic: the endpoint envelope
+  `{"source": {"person_id": 7}, "target": {"name": "Paris"}, "properties": {"since": "2020-05-01"}}`.
+  All three sections are mandatory; use `"properties": {}` when there are none.
+  Repeated records for one `(source, target)` pair MERGE one relationship and
+  apply `SET r += props` in topic order (a later record overwrites the
+  properties it carries and keeps the others).
+* Property types: `string`, `integer`, `float`, `date`, `datetime`; any of them
+  may be a node key. `required: true` properties must be present and non-null in
+  every record. Wire formats: dates `YYYY-MM-DD`, datetimes ISO-8601 with `T` and
+  an offset (`2024-01-31T12:00:00+01:00` or `...Z`), finite JSON numbers only.
+* **Key relationship records by their source key**: Kafka orders records only
+  within a partition, and that order is what "last write wins" follows.
+* In bulk mode, publish everything before starting the load: records produced
+  after the run captured its boundary fail the run instead of being half-loaded.
+* The schema is validated before anything starts, with errors naming the field
+  (unknown endpoint labels, endpoint key properties that differ from the
+  label's `key_property`, undeclared property types, non-Cypher identifiers,
+  duplicate labels or types, a topic used twice). Every node key is indexed: a
+  key declared without a uniqueness constraint or range index gets the
+  constraint `<label>_<key>_key_unique`, with the label and key lowercased
+  (e.g. `person_person_id_key_unique`).
 
-### Finite bulk runs
+The full field reference is [USAGE section 3](docs/USAGE.md#3-the-yaml-schema)
+and the contract is [USAGE section 4](docs/USAGE.md#4-the-input-contract-publishing-records).
 
-Use bulk mode for a finite, quiescent input set:
+## Using the loader for your own graph model
+
+Copy [`examples/social/graph_schema.yaml`](examples/social/graph_schema.yaml),
+rename the labels, types, keys and topics, and point your producer at those
+topics. Nothing else changes: `examples/imdb`, `examples/social` and
+`examples/multi_topic` are three users of the same contract.
+
+## Choosing a mode
+
+| You want | Run | Details |
+| --- | --- | --- |
+| An initial load of a finite data set | `python -m src.cli start --mode bulk --config my_graph.yaml` | [BULK_LOAD](docs/BULK_LOAD.md). Planned mode is the default; a schema that enables relationship `dead_letter` gets the lease mode (also lock-free); `--edge-classic` selects the per-type APOC-locked loaders, the one mode that can wait on locks. |
+| Continuous loading as records arrive | `python -m src.cli start --mode stream --config my_graph.yaml` | [INCREMENTAL_LOAD](docs/INCREMENTAL_LOAD.md). Runs until SIGINT/SIGTERM; restart resumes the stable consumer groups. |
+| Repeated finite batches | `start --mode bulk` per batch | [INCREMENTAL_LOAD](docs/INCREMENTAL_LOAD.md). |
+
+Everything in planned mode (writers, buckets, chunk size, planner processes and
+memory) is derived automatically from the schema, the data volume and the Neo4j
+server; flags override each value (see [CLI](docs/CLI.md#planned-mode-tuning---edge-plan-also-the-bulk-default)
+and [USAGE section 6](docs/USAGE.md#6-planned-mode-in-depth)). Loader images
+default to `graph-loader-node:latest` / `graph-loader-edge:latest`; set
+`GRAPH_LOADER_NODE_IMAGE` / `GRAPH_LOADER_EDGE_IMAGE` to use other tags. `start`
+rebuilds the images and retags `:latest` every time unless `--skip-image-build`
+is given (use it with images from `make build-images`).
+
+## Worked examples
 
 ```bash
-KAFKA_BOOTSTRAP_SERVERS=localhost:9092 \
-python -m src.cli start --mode bulk --config config/graph_schema.yaml \
-  --bulk-timeout-seconds 300
+python examples/social/social_graph.py publish --persons 20000       # per the contract above
+python -m src.cli start --mode bulk --config examples/social/graph_schema.yaml
+python examples/social/social_graph.py verify --persons 20000        # exact graph comparison
 ```
 
-The CLI creates a run-scoped fleet and waits until every replica proves its Kafka
-assignment (surplus replicas explicitly report that they are idle). It captures a
-fixed end-offset boundary, rejects records that arrive after that boundary, waits
-for committed offsets to reach it, and then sends `SIGTERM` only to the exact
-containers it created. Each loader flushes and acknowledges its drain before the
-CLI performs a final zero-lag check. A nonzero result leaves no claim of a
-successful bulk load; inspect the run's logs and rejection files before retrying.
+`verify` recomputes the expected graph from the generator (without library
+code) and compares every node, relationship and property. See
+[examples/README.md](examples/README.md) for the shared setup, the IMDb
+benchmark and the multi-topic example (relationship types fed by several
+topics, with `order_by` or `precedence` conflict rules).
 
-For relationships, the bulk order is deterministic. All non-self-referencing
-types first run in the shared, clock-governed fleet; after its exact loaders and
-clock have drained and been removed, each self-reference such as
-`Person-KNOWS-Person` runs alone in lexical type order. Every phase has a
-run-scoped derived ID, and a failure prevents later phases from launching.
-Self-reference phases keep the Phase 3 directional lanes and APOC locking but
-do not create a clock lease or join the shared fleet.
+## Development
 
-Stream mode is intentionally open-ended: it starts the configured fleet and does
-not stop it merely because current Kafka lag is zero. A stream schema may have
-either shared relationship types or exactly one self-referencing relationship
-type. Mixed shared/self-reference streams, and streams with multiple isolated
-self-reference types, are rejected before relationship loaders launch because
-an open-ended stream cannot safely yield into a later absolute phase.
-
-The CLI runs on the host and therefore uses `localhost` endpoints from `.env`.
-Node-loader containers use the Docker-network defaults `bolt://neo4j:7687` and
-`kafka:29092`; set `LOADER_NEO4J_URI` or
-`LOADER_KAFKA_BOOTSTRAP_SERVERS` only when the container network differs.
+* Unit tests: `make test-unit` (runs `tests` and `examples/imdb/tests`, excluding integration and smoke).
+  Docker-backed smoke tests for the local stack: `python -m pytest tests/test_dev_environment.py -v -m smoke`.
+* Opt-in end-to-end tests run against your developer stack and need
+  `GRAPH_LOADER_IT_DATABASE` (a scratch database name, never `neo4j`) plus the
+  `GRAPH_LOADER_IT_*` connection variables and credentials; see
+  [USAGE section 13](docs/USAGE.md#13-continuous-integration).
+* Lint: `make lint`. Images: `make build-images`. Monitoring stack:
+  `make monitoring-up` (see [MONITORING](docs/MONITORING.md)).
+* Debug a single topic with `python -m src.loader.node_loader` /
+  `python -m src.loader.edge_loader` ([HISTORY](docs/HISTORY.md#direct-single-topic-runs-phase-2-and-phase-3-entry-points)).

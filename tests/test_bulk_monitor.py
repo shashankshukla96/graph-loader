@@ -319,7 +319,7 @@ def test_empty_partition_needs_no_offset_but_nonempty_partition_still_does(schem
         ("person-events", 1): 2,
         ("company-events", 0): 0,
     }
-    monitor._watermarks = lambda: dict(monitor._boundary)
+    monitor._watermarks = lambda *_a: (dict(monitor._boundary), {})
 
     assert monitor._at_boundary() is True
     monitor.verify_zero_lag()
@@ -430,3 +430,448 @@ def test_constructor_closes_owned_consumers_when_topology_discovery_fails(schema
 
     watermark.close.assert_called_once()
     control.close.assert_called_once()
+
+
+# --- Concurrent per-label readiness -------------------------------------------------
+
+
+def _drain_ack(label: str, replica_id: str, epoch: int = 1) -> MagicMock:
+    return _control({
+        "run_id": "run-1", "node_label": label, "replica_id": replica_id,
+        "type": "DRAIN_COMPLETE", "assignment_epoch": epoch,
+    })
+
+
+def _readiness_monitor(schema, offsets=None):
+    """Return a covered, bounded monitor whose control poll reads a thread-safe queue."""
+    import queue
+    import time as real_time
+
+    monitor, admin, watermark, control, clock, containers = _monitor(schema, offsets=offsets)
+    _cover_all_partitions(monitor)
+    monitor.capture_boundary()
+    inbox: "queue.Queue[MagicMock]" = queue.Queue()
+
+    def poll(_timeout):
+        try:
+            return inbox.get_nowait()
+        except queue.Empty:
+            return None
+
+    control.poll.side_effect = poll
+
+    def sleep(seconds: float) -> None:
+        clock.sleep(seconds)
+        real_time.sleep(0.001)  # let Docker-stop worker threads make progress
+
+    monitor._sleep = sleep
+    return monitor, admin, inbox, clock, containers
+
+
+def _exit(containers, label: str) -> None:
+    for (node_label, _), container in containers.items():
+        if node_label == label:
+            container.attrs["State"]["Status"] = "exited"
+
+
+def _ack_all(inbox, containers, label: str) -> None:
+    for node_label, replica_id in containers:
+        if node_label == label:
+            inbox.put(_drain_ack(label, replica_id))
+
+
+def test_drive_label_readiness_stops_every_label_concurrently(schema):
+    """P6-S5 Story 5 (Decision 3): `drive_label_readiness`'s own docstring
+    promises "one worker per label by default, so no label's SIGTERM
+    queues behind another's Docker stop" (`workers = len(labels) if
+    max_concurrent_stops is None else max_concurrent_stops`). Git history
+    shows a real queuing bug this comment used to describe was already
+    fixed before this audit; this guards the fix with a synchronization
+    primitive, not a sleep/timing race.
+
+    A two-party `threading.Barrier` inside `stop_label` only releases once
+    BOTH labels' stops have actually started executing. If a future
+    regression ever sized the executor to fewer workers than labels (e.g.
+    a stray default of 1), the second label's stop could never begin
+    until the first returned, so the first call's `barrier.wait()` would
+    deterministically time out and raise - not merely run slower.
+    """
+    import threading
+
+    monitor, _, inbox, _, containers = _readiness_monitor(schema)
+    barrier = threading.Barrier(2, timeout=5)
+
+    def stop_label(label: str) -> None:
+        barrier.wait()
+        _exit(containers, label)
+        _ack_all(inbox, containers, label)
+
+    ready: list[str] = []
+    monitor.drive_label_readiness(
+        {"Person", "Company"}, 30, stop_label=stop_label, on_ready=ready.append,
+    )
+    assert set(ready) == {"Person", "Company"}
+
+
+def test_label_ready_while_earlier_stopped_label_is_still_draining(schema):
+    offsets = {
+        "graph-loader-Person": {("person-events", 0): 3, ("person-events", 1): 2},
+        "graph-loader-Company": {("company-events", 0): 1},
+    }
+    monitor, _, inbox, _, containers = _readiness_monitor(schema, offsets)
+    events: list[str] = []
+
+    def stop_label(label: str) -> None:
+        events.append(f"stop:{label}")
+        _exit(containers, label)
+        if label == "Person":
+            # Person stops first but its drain acknowledgement is slow; only
+            # now does Company reach its boundary.
+            offsets["graph-loader-Company"][("company-events", 0)] = 4
+        else:
+            _ack_all(inbox, containers, "Company")
+
+    def on_ready(label: str) -> None:
+        events.append(f"ready:{label}")
+        if label == "Company":
+            _ack_all(inbox, containers, "Person")
+
+    monitor.drive_label_readiness({"Person", "Company"}, 30, stop_label=stop_label, on_ready=on_ready)
+    assert events == ["stop:Person", "stop:Company", "ready:Company", "ready:Person"]
+
+
+def test_label_is_not_ready_unless_offsets_read_after_drain_equal_boundary(schema):
+    monitor, admin, inbox, _, containers = _readiness_monitor(schema)
+    ready: list[str] = []
+
+    def stop_label(label: str) -> None:
+        _exit(containers, label)
+        _ack_all(inbox, containers, label)
+
+    original = admin.list_consumer_group_offsets.side_effect
+    drained: set[str] = set()
+
+    def drifting(requests, require_stable):
+        group_id = requests[0].group_id
+        if group_id == "graph-loader-Company" and "Company" in drained:
+            future = MagicMock()
+            future.result.return_value = SimpleNamespace(
+                topic_partitions=[TopicPartition("company-events", 0, 5)]
+            )
+            return {group_id: future}
+        return original(requests, require_stable)
+
+    def stop_then_drift(label: str) -> None:
+        stop_label(label)
+        drained.add(label)
+
+    admin.list_consumer_group_offsets.side_effect = drifting
+    with pytest.raises(OffsetResolutionError, match="nonzero lag label=Company"):
+        monitor.drive_label_readiness(
+            {"Person", "Company"}, 30, stop_label=stop_then_drift, on_ready=ready.append,
+        )
+    assert "Company" not in ready
+
+
+def test_drain_failure_of_one_label_fails_without_waiting_for_others(schema):
+    offsets = {
+        "graph-loader-Person": {("person-events", 0): 3, ("person-events", 1): 2},
+        "graph-loader-Company": {("company-events", 0): 0},
+    }
+    monitor, _, _, clock, containers = _readiness_monitor(schema, offsets)
+    stopped: list[str] = []
+    ready: list[str] = []
+
+    def stop_label(label: str) -> None:
+        stopped.append(label)
+        for (node_label, _), container in containers.items():
+            if node_label == label:
+                container.reload.side_effect = NotFound("removed")
+
+    with pytest.raises(LoaderCrashError, match="label=Person replica=0"):
+        monitor.drive_label_readiness(
+            {"Person", "Company"}, 5, stop_label=stop_label, on_ready=ready.append,
+        )
+    assert stopped == ["Person"] and ready == []
+    assert clock.now < 12  # bounded by the per-label drain timeout
+
+
+def test_live_label_crash_during_another_labels_drain_fails_immediately(schema):
+    offsets = {
+        "graph-loader-Person": {("person-events", 0): 3, ("person-events", 1): 2},
+        "graph-loader-Company": {("company-events", 0): 0},
+    }
+    monitor, _, _, clock, containers = _readiness_monitor(schema, offsets)
+
+    def stop_label(label: str) -> None:
+        _exit(containers, label)
+        containers[("Company", "0")].attrs["State"] = {"Status": "exited", "ExitCode": 1}
+
+    with pytest.raises(LoaderCrashError, match="label=Company replica=0 status=exited exit_code=1"):
+        monitor.drive_label_readiness(
+            {"Person", "Company"}, 30, stop_label=stop_label, on_ready=lambda _label: None,
+        )
+    assert clock.now < 30
+
+
+def test_stop_failure_and_abort_propagate(schema):
+    monitor, *_ = _readiness_monitor(schema)
+
+    def failing_stop(label: str) -> None:
+        raise RuntimeError(f"unable to stop node label={label}")
+
+    with pytest.raises(RuntimeError, match="unable to stop node label="):
+        monitor.drive_label_readiness(
+            {"Person", "Company"}, 30, stop_label=failing_stop, on_ready=lambda _label: None,
+        )
+
+    monitor, *_ = _readiness_monitor(schema)
+    with pytest.raises(BulkMonitorError, match="aborted"):
+        monitor.drive_label_readiness(
+            {"Person", "Company"}, 30, stop_label=lambda _label: None,
+            on_ready=lambda _label: None, should_abort=lambda: True,
+        )
+
+
+def test_completion_timeout_is_preserved(schema):
+    offsets = {
+        "graph-loader-Person": {("person-events", 0): 0, ("person-events", 1): 0},
+        "graph-loader-Company": {("company-events", 0): 0},
+    }
+    monitor, _, _, clock, _ = _readiness_monitor(schema, offsets)
+    with pytest.raises(bulk_monitor_module.BulkTimeoutError, match="node label completion"):
+        monitor.drive_label_readiness(
+            {"Person", "Company"}, 2, stop_label=lambda _label: None, on_ready=lambda _label: None,
+        )
+    assert 2 <= clock.now < 3
+
+
+def test_label_stops_run_concurrently(schema):
+    from threading import Barrier
+
+    monitor, _, inbox, _, containers = _readiness_monitor(schema)
+    barrier = Barrier(2, timeout=3)
+
+    def stop_label(label: str) -> None:
+        barrier.wait()  # both labels' stops must be in flight together
+        _exit(containers, label)
+        _ack_all(inbox, containers, label)
+
+    ready: list[str] = []
+    monitor.drive_label_readiness({"Person", "Company"}, 30, stop_label=stop_label, on_ready=ready.append)
+    assert sorted(ready) == ["Company", "Person"]
+
+
+# --- Per-label coverage / boundary and non-blocking stops ---------------------------
+
+
+def _uncovered_readiness_monitor(schema, offsets=None, watermarks=None):
+    """A readiness monitor with no assignment acks and no captured boundary."""
+    import queue
+    import time as real_time
+
+    monitor, admin, watermark, control, clock, containers = _monitor(
+        schema, offsets=offsets, watermarks=watermarks,
+    )
+    inbox: "queue.Queue[MagicMock]" = queue.Queue()
+
+    def poll(_timeout):
+        try:
+            return inbox.get_nowait()
+        except queue.Empty:
+            return None
+
+    control.poll.side_effect = poll
+
+    def sleep(seconds: float) -> None:
+        clock.sleep(seconds)
+        real_time.sleep(0.001)
+
+    monitor._sleep = sleep
+    return monitor, admin, watermark, inbox, clock, containers
+
+
+def _person_assignments(inbox) -> None:
+    inbox.put(_control(_assignment("Person", "0", 1, [{"topic": "person-events", "partition": 0}])))
+    inbox.put(_control(_assignment("Person", "1", 1, [{"topic": "person-events", "partition": 1}])))
+
+
+def test_label_boundary_requires_that_labels_exact_coverage(schema):
+    monitor, *_ = _monitor(schema)
+    monitor._decode_control(_control(_assignment("Company", "0", 1, [{"topic": "company-events", "partition": 0}])))
+    monitor._decode_control(_control(_assignment("Person", "0", 1, [{"topic": "person-events", "partition": 0}])))
+
+    with pytest.raises(AssignmentCoverageError, match="label=Person"):
+        monitor.capture_label_boundary("Person")
+    assert monitor.capture_label_boundary("Company") == {("company-events", 0): 4}
+    # The global boundary is untouched: whole-fleet stages still require it.
+    assert monitor.boundary is None
+
+
+def test_small_label_is_ready_before_another_label_proves_coverage(schema):
+    monitor, _, watermark, inbox, _, containers = _uncovered_readiness_monitor(schema)
+    inbox.put(_control(_assignment("Company", "0", 1, [{"topic": "company-events", "partition": 0}])))
+    events: list[str] = []
+
+    def stop_label(label: str) -> None:
+        events.append(f"stop:{label}")
+        _exit(containers, label)
+        _ack_all(inbox, containers, label)
+
+    def on_ready(label: str) -> None:
+        events.append(f"ready:{label}")
+        if label == "Company":
+            # Person's group only settles after Company was already published.
+            assert monitor._label_boundary("Person") is None
+            _person_assignments(inbox)
+
+    monitor.drive_label_readiness({"Person", "Company"}, 30, stop_label=stop_label, on_ready=on_ready)
+
+    assert events == ["stop:Company", "ready:Company", "stop:Person", "ready:Person"]
+    assert monitor._label_boundaries == {
+        "Company": {("company-events", 0): 4},
+        "Person": {("person-events", 0): 3, ("person-events", 1): 2},
+    }
+
+
+def test_label_is_not_stopped_until_its_own_coverage_and_boundary(schema):
+    monitor, _, _, inbox, _, containers = _uncovered_readiness_monitor(schema)
+    # Only one of Person's two replicas has acknowledged; offsets are already
+    # at the watermarks, but without exact coverage Person must not stop.
+    inbox.put(_control(_assignment("Person", "0", 1, [{"topic": "person-events", "partition": 0}])))
+    inbox.put(_control(_assignment("Company", "0", 1, [{"topic": "company-events", "partition": 0}])))
+    stopped: list[str] = []
+
+    def stop_label(label: str) -> None:
+        stopped.append(label)
+        _exit(containers, label)
+        _ack_all(inbox, containers, label)
+
+    with pytest.raises(bulk_monitor_module.BulkTimeoutError, match="node label completion"):
+        monitor.drive_label_readiness(
+            {"Person", "Company"}, 2, stop_label=stop_label, on_ready=lambda _label: None,
+        )
+    assert stopped == ["Company"]
+
+
+def test_label_boundary_input_change_is_a_quiescence_violation(schema):
+    watermarks = {
+        ("person-events", 0): (0, 3),
+        ("person-events", 1): (0, 2),
+        ("company-events", 0): (0, 4),
+    }
+    offsets = {
+        "graph-loader-Person": {("person-events", 0): 0, ("person-events", 1): 0},
+        "graph-loader-Company": {("company-events", 0): 0},
+    }
+    monitor, _, _, inbox, _, _ = _uncovered_readiness_monitor(schema, offsets=offsets, watermarks=watermarks)
+    inbox.put(_control(_assignment("Company", "0", 1, [{"topic": "company-events", "partition": 0}])))
+    original = monitor.capture_label_boundary
+
+    def capture_then_publish(label: str):
+        boundary = original(label)
+        watermarks[("company-events", 0)] = (0, 5)
+        return boundary
+
+    monitor.capture_label_boundary = capture_then_publish
+    with pytest.raises(QuiescentViolationError, match="company-events"):
+        monitor.drive_label_readiness(
+            {"Person", "Company"}, 30, stop_label=lambda _label: None, on_ready=lambda _label: None,
+        )
+
+
+def test_readiness_does_not_wait_for_docker_teardown_but_waits_before_returning(schema):
+    from threading import Event
+
+    monitor, _, inbox, _, containers = _readiness_monitor(schema)
+    release = Event()
+    ready: list[str] = []
+    returned: list[str] = []
+
+    def stop_label(label: str) -> None:
+        # SIGTERM delivered: the replica drains and acknowledges, but Docker's
+        # network/container teardown is still in progress.
+        _ack_all(inbox, containers, label)
+        assert release.wait(5)
+        returned.append(label)
+
+    def on_ready(label: str) -> None:
+        ready.append(label)
+        assert label not in returned
+        if len(ready) == 2:
+            release.set()
+
+    monitor.drive_label_readiness({"Person", "Company"}, 30, stop_label=stop_label, on_ready=on_ready)
+    assert sorted(ready) == ["Company", "Person"]
+    assert sorted(returned) == ["Company", "Person"]
+
+
+def test_stop_failure_after_readiness_still_fails(schema):
+    import time as real_time
+
+    monitor, _, inbox, _, containers = _readiness_monitor(schema)
+    ready: list[str] = []
+
+    def stop_label(label: str) -> None:
+        _ack_all(inbox, containers, label)
+        if label == "Company":
+            deadline = real_time.monotonic() + 5
+            while "Company" not in ready and real_time.monotonic() < deadline:
+                real_time.sleep(0.001)
+            raise RuntimeError("unable to stop node label=Company")
+
+    with pytest.raises(RuntimeError, match="unable to stop node label=Company"):
+        monitor.drive_label_readiness({"Person", "Company"}, 30, stop_label=stop_label, on_ready=ready.append)
+    assert "Company" in ready
+
+
+def test_hung_docker_stop_is_bounded(schema):
+    from threading import Event
+
+    monitor, _, inbox, _, containers = _readiness_monitor(schema)
+    never = Event()
+
+    def stop_label(label: str) -> None:
+        _ack_all(inbox, containers, label)
+        never.wait(5)
+
+    try:
+        with pytest.raises(bulk_monitor_module.BulkTimeoutError, match="container stop"):
+            monitor.drive_label_readiness(
+                {"Person", "Company"}, 1, stop_label=stop_label, on_ready=lambda _label: None,
+            )
+    finally:
+        never.set()
+
+
+
+# -- P6-S5 Story 2: an operator stop aborts a wait promptly --------------------
+
+_BEHIND = {
+    "graph-loader-Person": {("person-events", 0): 0, ("person-events", 1): 0},
+    "graph-loader-Company": {("company-events", 0): 0},
+}
+
+
+def test_wait_aborts_on_shutdown_request_long_before_the_deadline(schema):
+    monitor, _, _, clock, _ = _readiness_monitor(schema, _BEHIND)
+    polls = []
+
+    def abort_requested() -> bool:
+        polls.append(clock.now)
+        return len(polls) > 3  # the operator's signal lands on the 4th poll
+
+    monitor._abort_requested = abort_requested
+    with pytest.raises(bulk_monitor_module.BulkShutdownRequested, match="shutdown requested"):
+        monitor.wait_for_completion(300)  # nothing ever completes
+    assert clock.now < 1  # a handful of poll intervals, not the 300s stage deadline
+    # A BulkTimeoutError subclass: existing fail-closed call sites keep working.
+    assert issubclass(bulk_monitor_module.BulkShutdownRequested, bulk_monitor_module.BulkTimeoutError)
+
+
+def test_wait_never_aborts_when_shutdown_is_not_requested(schema):
+    monitor, *_ = _readiness_monitor(schema, _BEHIND)
+    monitor._abort_requested = lambda: False
+    with pytest.raises(bulk_monitor_module.BulkTimeoutError) as excinfo:
+        monitor.wait_for_completion(1)
+    assert not isinstance(excinfo.value, bulk_monitor_module.BulkShutdownRequested)

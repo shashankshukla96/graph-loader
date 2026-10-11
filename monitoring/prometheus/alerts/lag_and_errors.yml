@@ -1,0 +1,66 @@
+# STARTING POINT, NOT AN SLO. Thresholds below are conservative defaults
+# chosen without production traffic data (P6-Q4, plan/v5-v6-orchestration.md).
+# Tune every threshold to your own environment before treating a firing
+# alert as an incident. `for:` durations are chosen to avoid a scrape-
+# interval blip firing an alert, not to model any real SLO.
+groups:
+  - name: graph-loader-lag-and-errors
+    rules:
+      # Review finding (Story 2, should-fix 3): as of feat/p6-s2-metrics,
+      # graph_loader_consumer_lag_records is only emitted by the host-side
+      # CLI process (kind="cli", relationship_bulk_monitor.py) whose
+      # metrics server binds 127.0.0.1 on the *host*, not a container on
+      # graph-loader-net — Docker service discovery never finds it, and a
+      # bridge-networked Prometheus container cannot reach host loopback.
+      # The three rules below are therefore dead as shipped in this
+      # slice's default stack; kept registered (per this catalogue's
+      # "registered now" convention) for an operator who scrapes the CLI
+      # process some other way (e.g. host-network Prometheus, or a
+      # node-exporter-style sidecar). See docs/MONITORING.md's Known
+      # Limitations and the note raised with the P6-S2/orchestrator team.
+      # v7-S6: a relationship type fed by several topics (edges[].topics) has
+      # ONE lag series per topic ({kind, name=<type>, topic}). These rules fire
+      # per series, so the alert names the stuck topic. By design a single
+      # stuck topic keeps the whole type above zero lag: zero lag (and bulk
+      # completion) is over ALL topics of the type. No per-topic stall rule is
+      # added; the cardinality bound is one series per schema topic.
+      - alert: GraphLoaderConsumerLagHigh
+        expr: graph_loader_consumer_lag_records > 100000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} lag on {{ $labels.topic }} is {{ $value }} records."
+          description: >
+            Only ever fires if graph_loader_consumer_lag_records{kind="cli"}
+            is reachable from this Prometheus — not true by default on
+            this slice's compose profile (see the group-level note above).
+      - alert: GraphLoaderConsumerLagCritical
+        expr: graph_loader_consumer_lag_records > 1000000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} lag on {{ $labels.topic }} is {{ $value }} records (critical)."
+          description: >
+            Only ever fires if graph_loader_consumer_lag_records{kind="cli"}
+            is reachable from this Prometheus — not true by default on
+            this slice's compose profile (see the group-level note above).
+      - alert: GraphLoaderConsumerLagNotDraining
+        expr: deriv(graph_loader_consumer_lag_records[10m]) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} lag on {{ $labels.topic }} is growing, not draining."
+          description: >
+            Only ever fires if graph_loader_consumer_lag_records{kind="cli"}
+            is reachable from this Prometheus — not true by default on
+            this slice's compose profile (see the group-level note above).
+      - alert: GraphLoaderRetryRateHigh
+        expr: sum by (kind, name, run_id) (rate(graph_loader_retry_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} (run_id={{ $labels.run_id }}) is retrying more than 1/s over 5m (reason breakdown in graph_loader_retry_total)."

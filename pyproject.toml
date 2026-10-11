@@ -1,6 +1,68 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# There is no tests/__init__.py, no root conftest.py, and no installed/
+# editable package, so `from src...` imports inside test modules only
+# resolve when the repo root is on sys.path. `python -m pytest` gets that
+# for free; a bare `pytest` invocation does not (pytest's default prepend
+# import mode only puts each test file's own containing directory, here
+# `tests/`, on sys.path). Set it explicitly so bare `pytest`, IDE test
+# runners, and `python -m pytest` all behave the same way, and a future
+# bare-`pytest` invocation (in a Makefile target, CI step, or a
+# contributor's shell) can't silently reintroduce
+# "ModuleNotFoundError: No module named 'src'" (found while validating
+# P6-S1's CI workflows in a fresh venv).
+pythonpath = ["."]
 markers = [
     "smoke: environment smoke tests (require docker compose up)",
-    "integration: integration tests against a live database"
+    "integration: integration tests against a live database",
+    "stress: heavyweight star-topology/hub-node scale tests under tests/stress/ (opt-in via -m stress, or run as part of -m integration in the advisory CI job at the 100k tier; the 1M tier additionally requires GRAPH_LOADER_STRESS_SCALE=1000000)",
+    "real_stream_groups: keep the real src.cli._prepare_stream_consumer_groups (tests/conftest.py stubs it for unit tests)",
+]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+# Pyflakes (F) plus only the pycodestyle "E" codes that are actually
+# clean on this tree, selected explicitly rather than relying on ruff's
+# real default (effectively every rule category it ships, ~416 rules) or
+# on the commonly assumed "E4,E7,E9,F" shorthand. Once the ignore list
+# below removes the E7xx sub-codes that fire on this codebase's existing,
+# intentional style, the set of codes actually enforced is narrower than
+# that shorthand — this repo's lint baseline must pass without a reformat
+# (plan/v5-v6-orchestration.md, "Lint baseline").
+select = [
+    "E4",   # import syntax (E401 multiple-imports-on-line: 0 hits; E402 excluded below)
+    "E7",   # statement/comparison style (most sub-codes excluded below; E711/E712/E713/E714/E721/E722/E703: 0 hits)
+    "E9",   # runtime syntax errors (0 hits — nothing to except)
+    "F",    # pyflakes: unused imports/names, undefined names, f-strings
+]
+ignore = [
+    # 29 hits (10 src/cli.py, 6 examples/imdb/publish_and_load_nodes.py,
+    # 4 examples/imdb/tests/test_publish_and_load_nodes.py, 3
+    # src/orchestrator/schema_initializer.py, 2 tests/test_cypher_generator.py,
+    # 2 tests/test_schema_initializer.py, 1 src/orchestrator/docker_service.py,
+    # 1 tests/test_node_loader.py). Most are imports placed after
+    # helper-function definitions further up the same module. A few
+    # (examples/imdb/publish_and_load_nodes.py, examples/imdb/tests/
+    # test_publish_and_load_nodes.py) are a sys.path shim followed by an
+    # import that depends on that shim having already run — a real
+    # ordering dependency, not a style choice. Either way, moving these
+    # is a real code-shape change (risk of exposing a latent circular
+    # import, or breaking the shim's ordering) — out of scope for a
+    # lint-only slice. Revisit in a dedicated cleanup story.
+    "E402",
+    # E701 (colon) / E702 (semicolon): 22 + 96 hits, heaviest in
+    # src/loader/edge_execution.py (e.g. line 243:
+    # "self._driver = driver; self._error_factory = ...") — an
+    # intentional compact-assignment style used throughout the hot
+    # write path, not a defect.
+    "E701",
+    "E702",
+    # E731 (lambda assignment): 5 hits, all test-only fixture helpers
+    # (tests/test_edge_execution_writer.py x4, tests/test_relationship_bulk_e2e.py x1).
+    "E731",
+    # E741 (ambiguous variable name `l`): 2 hits, both test-only lambda
+    # comprehension variables (tests/test_auto_settings.py:227, tests/test_planned_edges_cli.py:487).
+    "E741",
 ]

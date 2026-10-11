@@ -1,0 +1,3725 @@
+{
+  "config/graph_schema.yaml": {
+    "KNOWS": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "fe6ece3cee417a4f4c9a1caecabe978b19af90b09d314e6000e1bc24d3c1f2bc",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"since\":\"2020-01-04\",\"strength\":3.5},\"source\":{\"personId\":\"s3\"},\"target\":{\"personId\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"knows-events\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"knows-events\",2,17]"
+      },
+      "keys": [
+        "personId",
+        "personId"
+      ],
+      "nodes": [
+        "Person",
+        "Person"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'since': datetime.date(2020, 1, 1), 'strength': 0.5})",
+          "('s1', 's2', {'since': datetime.date(2020, 1, 2), 'strength': 1.5})",
+          "('s2', 's3', {'since': datetime.date(2020, 1, 3), 'strength': 2.5})",
+          "('s3', 's4', {'since': datetime.date(2020, 1, 4), 'strength': 3.5})",
+          "('s4', 's5', {'since': datetime.date(2020, 1, 5), 'strength': 4.5})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'since': datetime.date(2020, 1, 1), 'strength': 0.5})",
+          "('s1', 's2', {'since': datetime.date(2020, 1, 2), 'strength': 1.5})",
+          "('s2', 's3', {'since': datetime.date(2020, 1, 3), 'strength': 2.5})",
+          "('s3', 's4', {'since': datetime.date(2020, 1, 4), 'strength': 3.5})",
+          "('s4', 's5', {'since': datetime.date(2020, 1, 5), 'strength': 4.5})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "a7376be87826c8af461cf1cc55336d7dd4c60e8c96b3315a7a85dbd1fdde5bd2",
+        "apoc_locked_False_True": "e5436381797092c007b35f96eb7394c7fbc7ae6feaaadaf23bbc45cfc08b8516",
+        "apoc_locked_True_True": "1c9623c06632728090e81c32a4ad84bb722c9c81745fa19c21113a1e34071adc",
+        "classification": "caaae70b95455cc4c15d2d27e876065bad7c9dec043b69242f6d5d925e0270c8",
+        "legacy_preflight": "caaae70b95455cc4c15d2d27e876065bad7c9dec043b69242f6d5d925e0270c8",
+        "legacy_upsert": "e2c20a44bba2d33c405fb28b25856998b9e17281915c2a0e0712107b50d11a1f",
+        "native_disjoint": "ea5173acd26994bce83e9a0eafae28ca98f0dd416aa5e388d7c4d87426179f02",
+        "preflight": "13d1ce47c5c0ef5c5fb2d162b43c3ce3eb27502bea5b5067efe52a27f6ae7324"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person#71a2465c932b4b3a80bdcb5126073bb2",
+              "Person#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person#10fa048eb04b746f2919f084b0456d5e",
+              "Person#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person#028c29a2965f45474d41c7049302751d",
+              "Person#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Person#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person#39c4b1a234834785a1d69e2fe48193c7",
+              "Person#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Person#10fa048eb04b746f2919f084b0456d5e",
+              "Person#71a2465c932b4b3a80bdcb5126073bb2"
+            ],
+            [
+              "Person#028c29a2965f45474d41c7049302751d",
+              "Person#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person#028c29a2965f45474d41c7049302751d",
+              "Person#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person#39c4b1a234834785a1d69e2fe48193c7",
+              "Person#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person#115b4d8f6678b07b1fdb5f87918064f0",
+              "Person#39c4b1a234834785a1d69e2fe48193c7"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Person:30"
+            ],
+            [
+              "Person:30",
+              "Person:29"
+            ],
+            [
+              "Person:29",
+              "Person:59"
+            ],
+            [
+              "Person:59",
+              "Person:7"
+            ],
+            [
+              "Person:7",
+              "Person:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:30",
+              "Person:50"
+            ],
+            [
+              "Person:29",
+              "Person:30"
+            ],
+            [
+              "Person:29",
+              "Person:59"
+            ],
+            [
+              "Person:59",
+              "Person:7"
+            ],
+            [
+              "Person:48",
+              "Person:7"
+            ]
+          ]
+        }
+      },
+      "topic": "knows-events"
+    },
+    "WORKS_AT": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "e517e76fc0796c6309be98c1d8561671dd8c534252a4dee8340a437ab6b56cb1",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"role\":\"s3\",\"since\":\"2020-01-04\"},\"source\":{\"personId\":\"s3\"},\"target\":{\"companyId\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"works-at-events\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"works-at-events\",2,17]"
+      },
+      "keys": [
+        "personId",
+        "companyId"
+      ],
+      "nodes": [
+        "Person",
+        "Company"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'since': datetime.date(2020, 1, 1), 'role': 's0'})",
+          "('s1', 's2', {'since': datetime.date(2020, 1, 2), 'role': 's1'})",
+          "('s2', 's3', {'since': datetime.date(2020, 1, 3), 'role': 's2'})",
+          "('s3', 's4', {'since': datetime.date(2020, 1, 4), 'role': 's3'})",
+          "('s4', 's5', {'since': datetime.date(2020, 1, 5), 'role': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'since': datetime.date(2020, 1, 1), 'role': 's0'})",
+          "('s1', 's2', {'since': datetime.date(2020, 1, 2), 'role': 's1'})",
+          "('s2', 's3', {'since': datetime.date(2020, 1, 3), 'role': 's2'})",
+          "('s3', 's4', {'since': datetime.date(2020, 1, 4), 'role': 's3'})",
+          "('s4', 's5', {'since': datetime.date(2020, 1, 5), 'role': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "1a8910177450949156d4f4d4338ae88be9396359cd3720fdbd0cc7d6cef6ef41",
+        "apoc_locked_False_True": "7ce1c2afc09488b22bbaf17edbdcc0a2ad3242fd9b8e58b60d3e51c38dd12d54",
+        "apoc_locked_True_True": "d3d82117ca06b9534b276d5c1e7f680ae1583d440d99582b6ca4e2b39b110b81",
+        "classification": "1e1045bb4f150fb0ce742c7af080ecb7b64874b825de28cb564ac447398ee20b",
+        "legacy_preflight": "1e1045bb4f150fb0ce742c7af080ecb7b64874b825de28cb564ac447398ee20b",
+        "legacy_upsert": "fa5a6786db0fa1d671f78fc08e495b1008ffa93f6687acffde924634e6776f88",
+        "native_disjoint": "2a1dd15385bd7bdce59404db75ea006d9441a5dfbca9e6a8f5059bcb71bfb0c1",
+        "preflight": "b5d2f6c0cffcd254ca59ff5961bb4d7d817a25e2c0b1af916d1aa1bf6223e696"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:50",
+              "Company#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Company#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Company#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Company#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Company#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Company#10fa048eb04b746f2919f084b0456d5e",
+              "Person:50"
+            ],
+            [
+              "Company#028c29a2965f45474d41c7049302751d",
+              "Person:30"
+            ],
+            [
+              "Company#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Person:29"
+            ],
+            [
+              "Company#39c4b1a234834785a1d69e2fe48193c7",
+              "Person:59"
+            ],
+            [
+              "Company#115b4d8f6678b07b1fdb5f87918064f0",
+              "Person:7"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Company:30"
+            ],
+            [
+              "Person:30",
+              "Company:29"
+            ],
+            [
+              "Person:29",
+              "Company:59"
+            ],
+            [
+              "Person:59",
+              "Company:7"
+            ],
+            [
+              "Person:7",
+              "Company:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Company:30",
+              "Person:50"
+            ],
+            [
+              "Company:29",
+              "Person:30"
+            ],
+            [
+              "Company:59",
+              "Person:29"
+            ],
+            [
+              "Company:7",
+              "Person:59"
+            ],
+            [
+              "Company:48",
+              "Person:7"
+            ]
+          ]
+        }
+      },
+      "topic": "works-at-events"
+    }
+  },
+  "examples/imdb/graph_schema.yaml": {
+    "ACTED_IN": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "e2f17e5fd81cd2ba6cf517362d16dc12ddac19fc66520c521b9ef2375f4ad71e",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"category\":\"s3\"},\"source\":{\"nconst\":\"s3\"},\"target\":{\"tconst\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-acted-in\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-acted-in\",2,17]"
+      },
+      "keys": [
+        "nconst",
+        "tconst"
+      ],
+      "nodes": [
+        "Person",
+        "Title"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'category': 's0'})",
+          "('s1', 's2', {'category': 's1'})",
+          "('s2', 's3', {'category': 's2'})",
+          "('s3', 's4', {'category': 's3'})",
+          "('s4', 's5', {'category': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'category': 's0'})",
+          "('s1', 's2', {'category': 's1'})",
+          "('s2', 's3', {'category': 's2'})",
+          "('s3', 's4', {'category': 's3'})",
+          "('s4', 's5', {'category': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "b01b63a96eaa4d00fe2b85ee178eac026f93015f5069dbdf4d698bf4feef9ace",
+        "apoc_locked_False_True": "751edfa8bc8b242f8aff5b4acc208a68c01708edb36c9136f9c1c32492db9fe1",
+        "apoc_locked_True_True": "b4378e0c404fc2d47d36ca8f4c93e5d2d71ec5d26d17566c678171d1e3932295",
+        "classification": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_preflight": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_upsert": "7d80ab256d3f7f47643b17227e9826fa22f571722223523acc104c64d9a34538",
+        "native_disjoint": "3f1f98a4c8cd345acf2ce356a66f037624498cf4b454686aad4722da9ebfd5df",
+        "preflight": "4829f650039b31a2706085eca1d4bcc3ffb725f1b5124e840aa111ed3f6c16c4"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-acted-in"
+    },
+    "AVAILABLE_IN_REGION": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "d63d4fb0b78f24638220a26133cdd564853b05988b94ccaeef1a1b7752315417",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"aka_id\":\"s3\"},\"source\":{\"aka_id\":\"s3\"},\"target\":{\"code\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-available-in-region\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-available-in-region\",2,17]"
+      },
+      "keys": [
+        "aka_id",
+        "code"
+      ],
+      "nodes": [
+        "AlternativeTitle",
+        "Region"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'aka_id': 's0'})",
+          "('s1', 's2', {'aka_id': 's1'})",
+          "('s2', 's3', {'aka_id': 's2'})",
+          "('s3', 's4', {'aka_id': 's3'})",
+          "('s4', 's5', {'aka_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'aka_id': 's0'})",
+          "('s1', 's2', {'aka_id': 's1'})",
+          "('s2', 's3', {'aka_id': 's2'})",
+          "('s3', 's4', {'aka_id': 's3'})",
+          "('s4', 's5', {'aka_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "2ab29a9605ec0cf2e06fa098f6131ad596f9dc973afc88c1e18a66f9af1d72be",
+        "apoc_locked_False_True": "25fa85105b5b74799df57f3e6730e976e3f4e2d2c7eaf8d7428b0ac6a137f1b2",
+        "apoc_locked_True_True": "2fc6a13300d7cf65da6bd8d38dde1412511ca9e275e77d4034de5768474b5a7d",
+        "classification": "64683b798e47d55cd1185d31591c34ec3f1921c0247556b3b66cd7216cb45b66",
+        "legacy_preflight": "64683b798e47d55cd1185d31591c34ec3f1921c0247556b3b66cd7216cb45b66",
+        "legacy_upsert": "64350614e56e9fb52f9485972139ba0987e6599503cd95b09d4ccca3c7425f31",
+        "native_disjoint": "00b4e3406ad1cd8cf398c9b996238e3067e529e53a264758cd24a5017198bfea",
+        "preflight": "c27054317b97794822871b06a26547e4809dbb88cf40436143739509b237f106"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "AlternativeTitle:50",
+              "Region#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "AlternativeTitle:30",
+              "Region#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Region#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Region#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Region#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "AlternativeTitle:50",
+              "Region#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "AlternativeTitle:30",
+              "Region#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Region#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Region#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Region#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "AlternativeTitle:50",
+              "Region:30"
+            ],
+            [
+              "AlternativeTitle:30",
+              "Region:29"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Region:59"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Region:7"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Region:48"
+            ]
+          ],
+          "resources": [
+            [
+              "AlternativeTitle:50",
+              "Region:30"
+            ],
+            [
+              "AlternativeTitle:30",
+              "Region:29"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Region:59"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Region:7"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Region:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-available-in-region"
+    },
+    "CREDITED_ON": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "45d51aab29d0cb482d6784c24736243426cab2b081dd47d78f409acf6f2b0d85",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"category\":\"s3\"},\"source\":{\"nconst\":\"s3\"},\"target\":{\"tconst\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-credited-on\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-credited-on\",2,17]"
+      },
+      "keys": [
+        "nconst",
+        "tconst"
+      ],
+      "nodes": [
+        "Person",
+        "Title"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'category': 's0'})",
+          "('s1', 's2', {'category': 's1'})",
+          "('s2', 's3', {'category': 's2'})",
+          "('s3', 's4', {'category': 's3'})",
+          "('s4', 's5', {'category': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'category': 's0'})",
+          "('s1', 's2', {'category': 's1'})",
+          "('s2', 's3', {'category': 's2'})",
+          "('s3', 's4', {'category': 's3'})",
+          "('s4', 's5', {'category': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "ed254b0ff30c91f8561b30d8ba5daa91f7cf77a81e094fa707394c7f8cb7b2fd",
+        "apoc_locked_False_True": "e86cfea90eb6cfc7fa52b5f98315e629c8b409dda86d9df3a5741f6a9d8892db",
+        "apoc_locked_True_True": "f40fde7601129f67de0e6711cf1791f776ffcdbd5fb5fd1f814eb26b88ed2d77",
+        "classification": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_preflight": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_upsert": "6016861824e85df311cddc813535cd5ecfc2c8e061cca19bf0107c240035bb67",
+        "native_disjoint": "c9cc46882ca30b4c6b8b20cc743f9cc9f0b93d23818279d98bba67993abeba23",
+        "preflight": "4829f650039b31a2706085eca1d4bcc3ffb725f1b5124e840aa111ed3f6c16c4"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-credited-on"
+    },
+    "DIRECTED": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "fa285f597f13823be72b36e658f6fd5bac082344c6c56559080273ec0dabf178",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"person_id\":\"s3\"},\"source\":{\"nconst\":\"s3\"},\"target\":{\"tconst\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-directed\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-directed\",2,17]"
+      },
+      "keys": [
+        "nconst",
+        "tconst"
+      ],
+      "nodes": [
+        "Person",
+        "Title"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'person_id': 's0'})",
+          "('s1', 's2', {'person_id': 's1'})",
+          "('s2', 's3', {'person_id': 's2'})",
+          "('s3', 's4', {'person_id': 's3'})",
+          "('s4', 's5', {'person_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'person_id': 's0'})",
+          "('s1', 's2', {'person_id': 's1'})",
+          "('s2', 's3', {'person_id': 's2'})",
+          "('s3', 's4', {'person_id': 's3'})",
+          "('s4', 's5', {'person_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "134e23aa63b16be12014fd46c8a341ba4c1a498e8ca8b31b54907e04c26f13e7",
+        "apoc_locked_False_True": "5ae0e5e33b189fcf0c01aa347d527aa0553d83f7be3c8bc810ddf7f834fb66e6",
+        "apoc_locked_True_True": "cb4d447f849398703676c227a25e0e10d706bc0b17dd36a62967a62c01c2cf37",
+        "classification": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_preflight": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_upsert": "6787efcbca7f26881e4f1fba65aefd77a59f8cf706952e31e97adcc37d130add",
+        "native_disjoint": "bfcf099b4144cd8758f8f5131d4abd0bdbf54d3133bc8e83b58acbab7923c994",
+        "preflight": "4829f650039b31a2706085eca1d4bcc3ffb725f1b5124e840aa111ed3f6c16c4"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-directed"
+    },
+    "EPISODE_OF": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "6215c8011c0046237dd2abdd4e052b0873e7ad84a8b9dee91107a55b28dadbff",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"episode_id\":\"s3\"},\"source\":{\"tconst\":\"s3\"},\"target\":{\"tconst\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-episode-of\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-episode-of\",2,17]"
+      },
+      "keys": [
+        "tconst",
+        "tconst"
+      ],
+      "nodes": [
+        "Title",
+        "Title"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'episode_id': 's0'})",
+          "('s1', 's2', {'episode_id': 's1'})",
+          "('s2', 's3', {'episode_id': 's2'})",
+          "('s3', 's4', {'episode_id': 's3'})",
+          "('s4', 's5', {'episode_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'episode_id': 's0'})",
+          "('s1', 's2', {'episode_id': 's1'})",
+          "('s2', 's3', {'episode_id': 's2'})",
+          "('s3', 's4', {'episode_id': 's3'})",
+          "('s4', 's5', {'episode_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "425c755606dc5cfa276069f1330c056f362cc5a7092a5c933257668746869f1f",
+        "apoc_locked_False_True": "9cc2e9ea43c6580119fdd087a21a047ff460ec999b232ae4528fdc78250a4ec3",
+        "apoc_locked_True_True": "b15bb9707807b4b6f10fe973fc9a48869c0ba07406e52180aa0ddd4e7d7fb863",
+        "classification": "0a347c2e02f43c9fce3f52be084949239018bdfb6951b5e0ce63643f7a0f6b40",
+        "legacy_preflight": "0a347c2e02f43c9fce3f52be084949239018bdfb6951b5e0ce63643f7a0f6b40",
+        "legacy_upsert": "510f55097fae3f26be74771a554c57efdab84b138851d1d81c336493a9b688fe",
+        "native_disjoint": "3aa0d48d2644d0f2e3733db8bda8cea547c7a26e7f803502951b5a59a15fdc7f",
+        "preflight": "623e4fc534281459edeb603327f4b115212714efd7793574013c2a52685bb7af"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Title#71a2465c932b4b3a80bdcb5126073bb2",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Title#10fa048eb04b746f2919f084b0456d5e",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Title#028c29a2965f45474d41c7049302751d",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Title#39c4b1a234834785a1d69e2fe48193c7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Title#10fa048eb04b746f2919f084b0456d5e",
+              "Title#71a2465c932b4b3a80bdcb5126073bb2"
+            ],
+            [
+              "Title#028c29a2965f45474d41c7049302751d",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Title#028c29a2965f45474d41c7049302751d",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Title#39c4b1a234834785a1d69e2fe48193c7",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Title#115b4d8f6678b07b1fdb5f87918064f0",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Title:50",
+              "Title:30"
+            ],
+            [
+              "Title:30",
+              "Title:29"
+            ],
+            [
+              "Title:29",
+              "Title:59"
+            ],
+            [
+              "Title:59",
+              "Title:7"
+            ],
+            [
+              "Title:7",
+              "Title:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Title:30",
+              "Title:50"
+            ],
+            [
+              "Title:29",
+              "Title:30"
+            ],
+            [
+              "Title:29",
+              "Title:59"
+            ],
+            [
+              "Title:59",
+              "Title:7"
+            ],
+            [
+              "Title:48",
+              "Title:7"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-episode-of"
+    },
+    "HAS_ALTERNATIVE_TITLE": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "49da0e027e1d943eebd99dc69958ee2a3e44a0e50624a85a77fee38a2302bc9b",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"aka_id\":\"s3\"},\"source\":{\"tconst\":\"s3\"},\"target\":{\"aka_id\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-has-alternative-title\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-has-alternative-title\",2,17]"
+      },
+      "keys": [
+        "tconst",
+        "aka_id"
+      ],
+      "nodes": [
+        "Title",
+        "AlternativeTitle"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'aka_id': 's0'})",
+          "('s1', 's2', {'aka_id': 's1'})",
+          "('s2', 's3', {'aka_id': 's2'})",
+          "('s3', 's4', {'aka_id': 's3'})",
+          "('s4', 's5', {'aka_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'aka_id': 's0'})",
+          "('s1', 's2', {'aka_id': 's1'})",
+          "('s2', 's3', {'aka_id': 's2'})",
+          "('s3', 's4', {'aka_id': 's3'})",
+          "('s4', 's5', {'aka_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "2f091708feca76e84c1c81da7d292b6b2756f8208c9d820f36bb0c89908d5e6b",
+        "apoc_locked_False_True": "dbca99026041ab265fa0348c9c6023e27c040ba8fa6ff3c52f7a01287cf737bd",
+        "apoc_locked_True_True": "115c2f312936f97a00ccbd918944180f8ac599eae17f3059f808f5be0272c029",
+        "classification": "8c490a44e81ec7a528a543cd8e1d7b4ddc18c7f2eb5669b80eecff885dfc9eb4",
+        "legacy_preflight": "8c490a44e81ec7a528a543cd8e1d7b4ddc18c7f2eb5669b80eecff885dfc9eb4",
+        "legacy_upsert": "624610371567fc722c872ff334c5f222b68d5330e3e1ca7eac32fce4993c00e2",
+        "native_disjoint": "8633da56de19ae31ebb350d81cc168c80733dabfac44975908186ef9a303905f",
+        "preflight": "6be3f9b112237b3769593ec34fb9cd4cdab79a3df66c55259e9b2b105396e50a"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Title:50",
+              "AlternativeTitle#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Title:30",
+              "AlternativeTitle#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Title:29",
+              "AlternativeTitle#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Title:59",
+              "AlternativeTitle#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Title:7",
+              "AlternativeTitle#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "AlternativeTitle#10fa048eb04b746f2919f084b0456d5e",
+              "Title:50"
+            ],
+            [
+              "AlternativeTitle#028c29a2965f45474d41c7049302751d",
+              "Title:30"
+            ],
+            [
+              "AlternativeTitle#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Title:29"
+            ],
+            [
+              "AlternativeTitle#39c4b1a234834785a1d69e2fe48193c7",
+              "Title:59"
+            ],
+            [
+              "AlternativeTitle#115b4d8f6678b07b1fdb5f87918064f0",
+              "Title:7"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Title:50",
+              "AlternativeTitle:30"
+            ],
+            [
+              "Title:30",
+              "AlternativeTitle:29"
+            ],
+            [
+              "Title:29",
+              "AlternativeTitle:59"
+            ],
+            [
+              "Title:59",
+              "AlternativeTitle:7"
+            ],
+            [
+              "Title:7",
+              "AlternativeTitle:48"
+            ]
+          ],
+          "resources": [
+            [
+              "AlternativeTitle:30",
+              "Title:50"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Title:30"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Title:29"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Title:59"
+            ],
+            [
+              "AlternativeTitle:48",
+              "Title:7"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-has-alternative-title"
+    },
+    "HAS_GENRE": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "d37e4cc9df13eb0e9b74a530d70baa96425854cd50ec2edcff6cf95fc1e2cd66",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"title_id\":\"s3\"},\"source\":{\"tconst\":\"s3\"},\"target\":{\"name\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-has-genre\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-has-genre\",2,17]"
+      },
+      "keys": [
+        "tconst",
+        "name"
+      ],
+      "nodes": [
+        "Title",
+        "Genre"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'title_id': 's0'})",
+          "('s1', 's2', {'title_id': 's1'})",
+          "('s2', 's3', {'title_id': 's2'})",
+          "('s3', 's4', {'title_id': 's3'})",
+          "('s4', 's5', {'title_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'title_id': 's0'})",
+          "('s1', 's2', {'title_id': 's1'})",
+          "('s2', 's3', {'title_id': 's2'})",
+          "('s3', 's4', {'title_id': 's3'})",
+          "('s4', 's5', {'title_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "c50b768336428d74abe653b10e7cec7b4a430f278210940a8691d5f5eef8f1d1",
+        "apoc_locked_False_True": "85e5b012a3ea0b24e5d979ae5da47548e3f61c2fbbf3113038fbeeff2e8ec696",
+        "apoc_locked_True_True": "4c6be010c6dfb652bf632e508df3bff514ec5050062b274ed9879dfe6647c925",
+        "classification": "fcff66d70eb58fcc371d999ea3254b75022f02641b9cdbf972b03cdf81b04b8f",
+        "legacy_preflight": "fcff66d70eb58fcc371d999ea3254b75022f02641b9cdbf972b03cdf81b04b8f",
+        "legacy_upsert": "8e0cca08c074eda93bc77cb4d91112fb37dc44126cc8041a91a23de70f8c2e02",
+        "native_disjoint": "c5a0daf7d432d3137a16c4627ec0130f3fd714a839548a4daf88016e7bf09e3d",
+        "preflight": "d8059d860cdb2cdca9efac8930e4fb9741db68a6b88798f0c26d5836b0c9943f"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Title:50",
+              "Genre#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Title:30",
+              "Genre#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Title:29",
+              "Genre#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Title:59",
+              "Genre#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Title:7",
+              "Genre#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Genre#10fa048eb04b746f2919f084b0456d5e",
+              "Title:50"
+            ],
+            [
+              "Genre#028c29a2965f45474d41c7049302751d",
+              "Title:30"
+            ],
+            [
+              "Genre#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Title:29"
+            ],
+            [
+              "Genre#39c4b1a234834785a1d69e2fe48193c7",
+              "Title:59"
+            ],
+            [
+              "Genre#115b4d8f6678b07b1fdb5f87918064f0",
+              "Title:7"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Title:50",
+              "Genre:30"
+            ],
+            [
+              "Title:30",
+              "Genre:29"
+            ],
+            [
+              "Title:29",
+              "Genre:59"
+            ],
+            [
+              "Title:59",
+              "Genre:7"
+            ],
+            [
+              "Title:7",
+              "Genre:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Genre:30",
+              "Title:50"
+            ],
+            [
+              "Genre:29",
+              "Title:30"
+            ],
+            [
+              "Genre:59",
+              "Title:29"
+            ],
+            [
+              "Genre:7",
+              "Title:59"
+            ],
+            [
+              "Genre:48",
+              "Title:7"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-has-genre"
+    },
+    "HAS_PROFESSION": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "9327e93dcc63ddc30561d6b8f2245b1137b0e9e8916db646bd2ad39dbe8fb3f4",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"person_id\":\"s3\"},\"source\":{\"nconst\":\"s3\"},\"target\":{\"name\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-has-profession\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-has-profession\",2,17]"
+      },
+      "keys": [
+        "nconst",
+        "name"
+      ],
+      "nodes": [
+        "Person",
+        "Profession"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'person_id': 's0'})",
+          "('s1', 's2', {'person_id': 's1'})",
+          "('s2', 's3', {'person_id': 's2'})",
+          "('s3', 's4', {'person_id': 's3'})",
+          "('s4', 's5', {'person_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'person_id': 's0'})",
+          "('s1', 's2', {'person_id': 's1'})",
+          "('s2', 's3', {'person_id': 's2'})",
+          "('s3', 's4', {'person_id': 's3'})",
+          "('s4', 's5', {'person_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "8b2c3befa6762770c021fb8a212cd304bf41245cd70f26205965d5137cf148f3",
+        "apoc_locked_False_True": "a3f7a94e37a767b80523ae50a126cc1e0794bcc3b6af56a0f75fdeb8107a05e2",
+        "apoc_locked_True_True": "0ae9644406d7a0bb76cc65eb4f4690ac14947a0c22266663cc8be7c9987c636c",
+        "classification": "910d59e89998e232bbfb4ed7cbe27ddfcc03690fd8b7ec38d94b2aa323a8d7d9",
+        "legacy_preflight": "910d59e89998e232bbfb4ed7cbe27ddfcc03690fd8b7ec38d94b2aa323a8d7d9",
+        "legacy_upsert": "4e4d143e0e135e87df8010a8bb98ddfa53bc2ec7ddd39fe46d116c8a70785c61",
+        "native_disjoint": "8dcf9c16e1bcb703536614892b39cc71f14a449e5e7ff27ecc776d14c2167f76",
+        "preflight": "d939afa4c9c40a9f2a0573463c5dd72a99c75663d48b2a3538e8554135a97cf9"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:50",
+              "Profession#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Profession#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Profession#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Profession#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Profession#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Profession#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Profession#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Profession#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Profession#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Profession#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Profession:30"
+            ],
+            [
+              "Person:30",
+              "Profession:29"
+            ],
+            [
+              "Person:29",
+              "Profession:59"
+            ],
+            [
+              "Person:59",
+              "Profession:7"
+            ],
+            [
+              "Person:7",
+              "Profession:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Profession:30"
+            ],
+            [
+              "Person:30",
+              "Profession:29"
+            ],
+            [
+              "Person:29",
+              "Profession:59"
+            ],
+            [
+              "Person:59",
+              "Profession:7"
+            ],
+            [
+              "Person:7",
+              "Profession:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-has-profession"
+    },
+    "HAS_RATING": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "b15f5b0d1149a07d0ac249cd29d6196e5dc0baa8f283f83a697c54a55d7ee096",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"rating_id\":\"s3\"},\"source\":{\"tconst\":\"s3\"},\"target\":{\"rating_id\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-has-rating\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-has-rating\",2,17]"
+      },
+      "keys": [
+        "tconst",
+        "rating_id"
+      ],
+      "nodes": [
+        "Title",
+        "Rating"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'rating_id': 's0'})",
+          "('s1', 's2', {'rating_id': 's1'})",
+          "('s2', 's3', {'rating_id': 's2'})",
+          "('s3', 's4', {'rating_id': 's3'})",
+          "('s4', 's5', {'rating_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'rating_id': 's0'})",
+          "('s1', 's2', {'rating_id': 's1'})",
+          "('s2', 's3', {'rating_id': 's2'})",
+          "('s3', 's4', {'rating_id': 's3'})",
+          "('s4', 's5', {'rating_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "8a30e064e032b4ea12a1df3f4b55ae90ba54c0872a6427bda65150bf8c74440e",
+        "apoc_locked_False_True": "bc0416280149ff0252f0ea3a951f815b6b7c5ffca6ac6a7d8d791594e2b39cce",
+        "apoc_locked_True_True": "a82dd82ee2956662b4ec47e262eaffd81d74c1d074fe427de34aef62442f7c50",
+        "classification": "11cd1d003fcda4a697316a5455e838bb5fae43972125cfea47f66835c6b2b6da",
+        "legacy_preflight": "11cd1d003fcda4a697316a5455e838bb5fae43972125cfea47f66835c6b2b6da",
+        "legacy_upsert": "1abbd22f11b81e1af8f158ac35e115932393e7d6c22129c768f4cb6f79f304a0",
+        "native_disjoint": "e9770b4a4daa5e1c70bd29480343bb8c97e5b90274a50840c7fd55244ee99798",
+        "preflight": "1257b39fc59b8d200c8304e015dd87e487c9b79746b3a7a8085f3020dabed25b"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Title:50",
+              "Rating#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Title:30",
+              "Rating#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Title:29",
+              "Rating#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Title:59",
+              "Rating#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Title:7",
+              "Rating#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Rating#10fa048eb04b746f2919f084b0456d5e",
+              "Title:50"
+            ],
+            [
+              "Rating#028c29a2965f45474d41c7049302751d",
+              "Title:30"
+            ],
+            [
+              "Rating#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Title:29"
+            ],
+            [
+              "Rating#39c4b1a234834785a1d69e2fe48193c7",
+              "Title:59"
+            ],
+            [
+              "Rating#115b4d8f6678b07b1fdb5f87918064f0",
+              "Title:7"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Title:50",
+              "Rating:30"
+            ],
+            [
+              "Title:30",
+              "Rating:29"
+            ],
+            [
+              "Title:29",
+              "Rating:59"
+            ],
+            [
+              "Title:59",
+              "Rating:7"
+            ],
+            [
+              "Title:7",
+              "Rating:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Rating:30",
+              "Title:50"
+            ],
+            [
+              "Rating:29",
+              "Title:30"
+            ],
+            [
+              "Rating:59",
+              "Title:29"
+            ],
+            [
+              "Rating:7",
+              "Title:59"
+            ],
+            [
+              "Rating:48",
+              "Title:7"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-has-rating"
+    },
+    "HAS_TITLE_TYPE": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "d543e131ef4f9b09f66c6d0bf40224807878291b45e7bd240c8958b0f1d8dee4",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"title_id\":\"s3\"},\"source\":{\"tconst\":\"s3\"},\"target\":{\"name\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-has-title-type\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-has-title-type\",2,17]"
+      },
+      "keys": [
+        "tconst",
+        "name"
+      ],
+      "nodes": [
+        "Title",
+        "TitleType"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'title_id': 's0'})",
+          "('s1', 's2', {'title_id': 's1'})",
+          "('s2', 's3', {'title_id': 's2'})",
+          "('s3', 's4', {'title_id': 's3'})",
+          "('s4', 's5', {'title_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'title_id': 's0'})",
+          "('s1', 's2', {'title_id': 's1'})",
+          "('s2', 's3', {'title_id': 's2'})",
+          "('s3', 's4', {'title_id': 's3'})",
+          "('s4', 's5', {'title_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "517b1a57f4276b6faac7037aa63a509d0821ed5e5508562bd88fa29cf129450d",
+        "apoc_locked_False_True": "d1117e7285a92dd3d18b784f80a74c0dcef5eefc6ed3d1907ca678c10ea6a531",
+        "apoc_locked_True_True": "37ca55fd9c5554b73df26d4e8961c4bf8e69e9ff530b319323c7c759c8c1a810",
+        "classification": "c656b47ac960bbaef4206f21846922f7c1d9a087f2887bcd72c3e1c1c541918d",
+        "legacy_preflight": "c656b47ac960bbaef4206f21846922f7c1d9a087f2887bcd72c3e1c1c541918d",
+        "legacy_upsert": "06a94795ffa275f8726c6e4c4e5864656fde43d1f9e92c5ffd12c9e851152abb",
+        "native_disjoint": "ee085c2884763cf66a9b0dbdd0963c3b568449e8e0048b37f0811ab63b6902d5",
+        "preflight": "124a78fb85a0d9869546ae3fd332691210698af1e63ab97aabc918a3609794f0"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Title:50",
+              "TitleType#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Title:30",
+              "TitleType#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Title:29",
+              "TitleType#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Title:59",
+              "TitleType#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Title:7",
+              "TitleType#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Title:50",
+              "TitleType#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Title:30",
+              "TitleType#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Title:29",
+              "TitleType#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Title:59",
+              "TitleType#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Title:7",
+              "TitleType#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Title:50",
+              "TitleType:30"
+            ],
+            [
+              "Title:30",
+              "TitleType:29"
+            ],
+            [
+              "Title:29",
+              "TitleType:59"
+            ],
+            [
+              "Title:59",
+              "TitleType:7"
+            ],
+            [
+              "Title:7",
+              "TitleType:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Title:50",
+              "TitleType:30"
+            ],
+            [
+              "Title:30",
+              "TitleType:29"
+            ],
+            [
+              "Title:29",
+              "TitleType:59"
+            ],
+            [
+              "Title:59",
+              "TitleType:7"
+            ],
+            [
+              "Title:7",
+              "TitleType:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-has-title-type"
+    },
+    "IN_LANGUAGE": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "e1534f1b2e12be659b4dba0832ba7f804ef51e3f30515e070d41726563df9d7b",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"aka_id\":\"s3\"},\"source\":{\"aka_id\":\"s3\"},\"target\":{\"code\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-in-language\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-in-language\",2,17]"
+      },
+      "keys": [
+        "aka_id",
+        "code"
+      ],
+      "nodes": [
+        "AlternativeTitle",
+        "Language"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'aka_id': 's0'})",
+          "('s1', 's2', {'aka_id': 's1'})",
+          "('s2', 's3', {'aka_id': 's2'})",
+          "('s3', 's4', {'aka_id': 's3'})",
+          "('s4', 's5', {'aka_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'aka_id': 's0'})",
+          "('s1', 's2', {'aka_id': 's1'})",
+          "('s2', 's3', {'aka_id': 's2'})",
+          "('s3', 's4', {'aka_id': 's3'})",
+          "('s4', 's5', {'aka_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "af9076a75735331a63a6ce3c5031c1aaa0204c45d18fac07cea70dbd050515fe",
+        "apoc_locked_False_True": "04954f0a39fb602e89aa9c3a120c1e775f2b1e24a461ae27764c72b7e64851c0",
+        "apoc_locked_True_True": "21fc05a6c7b7020c79199b71f2a94c04cce4a04cd16a459932c0ddd01b18f174",
+        "classification": "ef9d4fface768c425106806261ca9211680d5bd2672ee63e7fc87df99c63681e",
+        "legacy_preflight": "ef9d4fface768c425106806261ca9211680d5bd2672ee63e7fc87df99c63681e",
+        "legacy_upsert": "5fc85948a2a544ea14182d7f2569b7de015eca1f985a015d654e44b217362e41",
+        "native_disjoint": "c7c7464b683b0090086ff98975ce3dbe288b21e01de2fea81800363711b91219",
+        "preflight": "1518f6ecbf1d7f436af4a0a5ee36f39e51fe1cd7c3e2fea42d6edb5ccdd6caa5"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "AlternativeTitle:50",
+              "Language#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "AlternativeTitle:30",
+              "Language#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Language#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Language#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Language#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "AlternativeTitle:50",
+              "Language#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "AlternativeTitle:30",
+              "Language#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Language#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Language#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Language#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "AlternativeTitle:50",
+              "Language:30"
+            ],
+            [
+              "AlternativeTitle:30",
+              "Language:29"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Language:59"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Language:7"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Language:48"
+            ]
+          ],
+          "resources": [
+            [
+              "AlternativeTitle:50",
+              "Language:30"
+            ],
+            [
+              "AlternativeTitle:30",
+              "Language:29"
+            ],
+            [
+              "AlternativeTitle:29",
+              "Language:59"
+            ],
+            [
+              "AlternativeTitle:59",
+              "Language:7"
+            ],
+            [
+              "AlternativeTitle:7",
+              "Language:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-in-language"
+    },
+    "KNOWN_FOR": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "6e8017cab8163c5ef4ebb418eda5ee225bbdb02ad6d6470653d661174910c00e",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"person_id\":\"s3\"},\"source\":{\"nconst\":\"s3\"},\"target\":{\"tconst\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-known-for\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-known-for\",2,17]"
+      },
+      "keys": [
+        "nconst",
+        "tconst"
+      ],
+      "nodes": [
+        "Person",
+        "Title"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'person_id': 's0'})",
+          "('s1', 's2', {'person_id': 's1'})",
+          "('s2', 's3', {'person_id': 's2'})",
+          "('s3', 's4', {'person_id': 's3'})",
+          "('s4', 's5', {'person_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'person_id': 's0'})",
+          "('s1', 's2', {'person_id': 's1'})",
+          "('s2', 's3', {'person_id': 's2'})",
+          "('s3', 's4', {'person_id': 's3'})",
+          "('s4', 's5', {'person_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "10c0a8b226b889c17a713e5435682ddd87b46dd8dd4cdc4a47537076441ea851",
+        "apoc_locked_False_True": "7bf4c78d3fd5083abfa5cf9d7bf007cce09634cf7ebb511f0a81565c957b7bcb",
+        "apoc_locked_True_True": "317e962007968d36ea4193713cac0675d9452a76005b33de77064c614a902659",
+        "classification": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_preflight": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_upsert": "6f22ead7572a8f09b405bbebac322750e0235757b6d5055cf111a83deab2e897",
+        "native_disjoint": "9bcce1c664dd800333fbe4bb1b262b702590b2f58f97e72afc45b9b541a28a2c",
+        "preflight": "4829f650039b31a2706085eca1d4bcc3ffb725f1b5124e840aa111ed3f6c16c4"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-known-for"
+    },
+    "PLAYED": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "7e0512c28c3584eb27aa891905e70830ea6cada2aed6125bc8736af471a9295a",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"title_id\":\"s3\"},\"source\":{\"nconst\":\"s3\"},\"target\":{\"name\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-played\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-played\",2,17]"
+      },
+      "keys": [
+        "nconst",
+        "name"
+      ],
+      "nodes": [
+        "Person",
+        "Character"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'title_id': 's0'})",
+          "('s1', 's2', {'title_id': 's1'})",
+          "('s2', 's3', {'title_id': 's2'})",
+          "('s3', 's4', {'title_id': 's3'})",
+          "('s4', 's5', {'title_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'title_id': 's0'})",
+          "('s1', 's2', {'title_id': 's1'})",
+          "('s2', 's3', {'title_id': 's2'})",
+          "('s3', 's4', {'title_id': 's3'})",
+          "('s4', 's5', {'title_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "3e0c177e36b6bdecf1e4b73d190056df0327d752cc67d1b24176fbb563618e4a",
+        "apoc_locked_False_True": "9f9d2fddfde8aa3c1996f39501ad3711715016c483f5f63afe31c34ee0f71453",
+        "apoc_locked_True_True": "e8a9d44681f7e79b0bbfef70972bc7dba448ec80dd952ad864fe3f6c604cc660",
+        "classification": "d7ddec531a1ad77cfba1b0733c3626f7f3c04b53ce88d8de5dbc84135e90f38f",
+        "legacy_preflight": "d7ddec531a1ad77cfba1b0733c3626f7f3c04b53ce88d8de5dbc84135e90f38f",
+        "legacy_upsert": "f0b741684c1115df4e8d82ad6b2eed250affe95710bf91510680fb0b50f9a23d",
+        "native_disjoint": "0602a9d6ffe035066da6fc85c7c4da35fabcfd14afbd2e69d113b976cf8c99ef",
+        "preflight": "3e257e125f832e390d2c021cd7a87857f6efac871da6434de1c2f18295594c6d"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:50",
+              "Character#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Character#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Character#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Character#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Character#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Character#10fa048eb04b746f2919f084b0456d5e",
+              "Person:50"
+            ],
+            [
+              "Character#028c29a2965f45474d41c7049302751d",
+              "Person:30"
+            ],
+            [
+              "Character#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Person:29"
+            ],
+            [
+              "Character#39c4b1a234834785a1d69e2fe48193c7",
+              "Person:59"
+            ],
+            [
+              "Character#115b4d8f6678b07b1fdb5f87918064f0",
+              "Person:7"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Character:30"
+            ],
+            [
+              "Person:30",
+              "Character:29"
+            ],
+            [
+              "Person:29",
+              "Character:59"
+            ],
+            [
+              "Person:59",
+              "Character:7"
+            ],
+            [
+              "Person:7",
+              "Character:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Character:30",
+              "Person:50"
+            ],
+            [
+              "Character:29",
+              "Person:30"
+            ],
+            [
+              "Character:59",
+              "Person:29"
+            ],
+            [
+              "Character:7",
+              "Person:59"
+            ],
+            [
+              "Character:48",
+              "Person:7"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-played"
+    },
+    "WROTE": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "4cb86c50c10142a2389296b2716e8a1bdb81c3583240b1837bd53074ad1af93f",
+        "key_bytes": "[\"s3\",\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"person_id\":\"s3\"},\"source\":{\"nconst\":\"s3\"},\"target\":{\"tconst\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[\"s3\",\"s4\",\"imdb-wrote\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[\"s3\",\"s4\",\"imdb-wrote\",2,17]"
+      },
+      "keys": [
+        "nconst",
+        "tconst"
+      ],
+      "nodes": [
+        "Person",
+        "Title"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "('s0', 's1', {'person_id': 's0'})",
+          "('s1', 's2', {'person_id': 's1'})",
+          "('s2', 's3', {'person_id': 's2'})",
+          "('s3', 's4', {'person_id': 's3'})",
+          "('s4', 's5', {'person_id': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "('s0', 's1', {'person_id': 's0'})",
+          "('s1', 's2', {'person_id': 's1'})",
+          "('s2', 's3', {'person_id': 's2'})",
+          "('s3', 's4', {'person_id': 's3'})",
+          "('s4', 's5', {'person_id': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "f9bf1567525a5ce2a76ae3e8ef483218230e5137c737d1b8edbe54bdeb3ba24a",
+        "apoc_locked_False_True": "bfcacfb8895e909febb54119e48c0717b812ad61c62c502f70c18a15cd36e1f1",
+        "apoc_locked_True_True": "61359783661b69aab4a537b34c8e200f65ecadd0cd6ba91ce2e3895e4a072a7d",
+        "classification": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_preflight": "cb69885eebbef1e34da35e4073cf743ca18301c1c0a60d59896b49f4d34b091b",
+        "legacy_upsert": "d5643215facc21c1c9f403734b68ed6434cf119adfb896a9e0b11c87c97c74be",
+        "native_disjoint": "def589f2698f2b5a2c661e38eaa21cb955f1006c4438c36cd2e7e568eaa08846",
+        "preflight": "4829f650039b31a2706085eca1d4bcc3ffb725f1b5124e840aa111ed3f6c16c4"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:30",
+              "Title#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:29",
+              "Title#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:59",
+              "Title#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:7",
+              "Title#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:50",
+              "Title:30"
+            ],
+            [
+              "Person:30",
+              "Title:29"
+            ],
+            [
+              "Person:29",
+              "Title:59"
+            ],
+            [
+              "Person:59",
+              "Title:7"
+            ],
+            [
+              "Person:7",
+              "Title:48"
+            ]
+          ]
+        }
+      },
+      "topic": "imdb-wrote"
+    }
+  },
+  "examples/social/graph_schema.yaml": {
+    "ACTIVE_ON": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "be2e68fd206c3911b7f8c57a3aa4a89c49518fde04f994666ad4b57fd048e9dd",
+        "key_bytes": "[3,\"2020-01-05\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"sessions\":3},\"source\":{\"person_id\":3},\"target\":{\"day\":\"2020-01-05\"}}"
+      },
+      "index": {
+        "add_key": "[3,\"2020-01-05\",\"social-active-on\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,\"2020-01-05\",\"social-active-on\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "day"
+      ],
+      "nodes": [
+        "Person",
+        "Day"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, datetime.date(2020, 1, 2), {'sessions': 0})",
+          "(1, datetime.date(2020, 1, 3), {'sessions': 1})",
+          "(2, datetime.date(2020, 1, 4), {'sessions': 2})",
+          "(3, datetime.date(2020, 1, 5), {'sessions': 3})",
+          "(4, datetime.date(2020, 1, 6), {'sessions': 4})"
+        ],
+        "normalize_edge_record": [
+          "(0, datetime.date(2020, 1, 2), {'sessions': 0})",
+          "(1, datetime.date(2020, 1, 3), {'sessions': 1})",
+          "(2, datetime.date(2020, 1, 4), {'sessions': 2})",
+          "(3, datetime.date(2020, 1, 5), {'sessions': 3})",
+          "(4, datetime.date(2020, 1, 6), {'sessions': 4})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "be35d20054cef8b55c36ef5ee7a09226a20bcb04ca8929104053f242595e8933",
+        "apoc_locked_False_True": "65d3368e3257aaa8ed6788135c2776560d296885326331d7e93e1e57bb13c112",
+        "apoc_locked_True_True": "6daa27bac3f97b341d697bbf57598228fa04567d2d1e327093659df74c78120c",
+        "classification": "eaaa35c967050ea9d49bd1cf57d6bbdf7eb466ec0d653ec8807469985737d4d5",
+        "legacy_preflight": "eaaa35c967050ea9d49bd1cf57d6bbdf7eb466ec0d653ec8807469985737d4d5",
+        "legacy_upsert": "3e8b36121c8fbf3601e47f79aaf7ba88c526894d0632eb2a04c3aa3fed6278f2",
+        "native_disjoint": "de805737889f9cbf0f431754d7277f7bcc9c5e6ad72475e6e4b3328fbabbc90d",
+        "preflight": "38c4a119ac3aacfba65237292c9eaa00c513be39195fdaf9c65437de6ad588c0"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:15",
+              "Day#d76b699322a55b1b89ee6e31186894e8"
+            ],
+            [
+              "Person:12",
+              "Day#033e5ddca4d412c54fa468460a358184"
+            ],
+            [
+              "Person:17",
+              "Day#2931f6609976488df1e6896137bf59fd"
+            ],
+            [
+              "Person:52",
+              "Day#a6559032f644bd8a414634816bd64223"
+            ],
+            [
+              "Person:61",
+              "Day#c21ae01a47bfe599f483ddc496bec97a"
+            ]
+          ],
+          "resources": [
+            [
+              "Day#d76b699322a55b1b89ee6e31186894e8",
+              "Person:15"
+            ],
+            [
+              "Day#033e5ddca4d412c54fa468460a358184",
+              "Person:12"
+            ],
+            [
+              "Day#2931f6609976488df1e6896137bf59fd",
+              "Person:17"
+            ],
+            [
+              "Day#a6559032f644bd8a414634816bd64223",
+              "Person:52"
+            ],
+            [
+              "Day#c21ae01a47bfe599f483ddc496bec97a",
+              "Person:61"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "Day:40"
+            ],
+            [
+              "Person:12",
+              "Day:4"
+            ],
+            [
+              "Person:17",
+              "Day:61"
+            ],
+            [
+              "Person:52",
+              "Day:35"
+            ],
+            [
+              "Person:61",
+              "Day:58"
+            ]
+          ],
+          "resources": [
+            [
+              "Day:40",
+              "Person:15"
+            ],
+            [
+              "Day:4",
+              "Person:12"
+            ],
+            [
+              "Day:61",
+              "Person:17"
+            ],
+            [
+              "Day:35",
+              "Person:52"
+            ],
+            [
+              "Day:58",
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "social-active-on"
+    },
+    "BOUGHT": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "8a44b6eaceff84d36fad37dff1dd0d4a5fccd7d3a96b4f1f59120277bc1922dc",
+        "key_bytes": "[3,\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"amount\":3.5,\"at\":\"2020-01-01T00:00:03+00:00\",\"quantity\":3},\"source\":{\"person_id\":3},\"target\":{\"sku\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[3,\"s4\",\"social-bought\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,\"s4\",\"social-bought\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "sku"
+      ],
+      "nodes": [
+        "Person",
+        "Product"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 's1', {'quantity': 0, 'amount': 0.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)})",
+          "(1, 's2', {'quantity': 1, 'amount': 1.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, 1, tzinfo=datetime.timezone.utc)})",
+          "(2, 's3', {'quantity': 2, 'amount': 2.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, 2, tzinfo=datetime.timezone.utc)})",
+          "(3, 's4', {'quantity': 3, 'amount': 3.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, 3, tzinfo=datetime.timezone.utc)})",
+          "(4, 's5', {'quantity': 4, 'amount': 4.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, 4, tzinfo=datetime.timezone.utc)})"
+        ],
+        "normalize_edge_record": [
+          "(0, 's1', {'quantity': 0, 'amount': 0.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)})",
+          "(1, 's2', {'quantity': 1, 'amount': 1.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, 1, tzinfo=datetime.timezone.utc)})",
+          "(2, 's3', {'quantity': 2, 'amount': 2.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, 2, tzinfo=datetime.timezone.utc)})",
+          "(3, 's4', {'quantity': 3, 'amount': 3.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, 3, tzinfo=datetime.timezone.utc)})",
+          "(4, 's5', {'quantity': 4, 'amount': 4.5, 'at': datetime.datetime(2020, 1, 1, 0, 0, 4, tzinfo=datetime.timezone.utc)})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "bb4d1dd264704a32d35b688a406c9fcba41e667f4292c2f5c8ef0be1d427b772",
+        "apoc_locked_False_True": "ddc6c7b722b5ddeb4aa49a99f1139c6968788b2215824be524390362b35805ac",
+        "apoc_locked_True_True": "e914dd4d201ed0b576912e80660b429586dc730731ad1e05ccf2802a5de4fd91",
+        "classification": "4eebe1b3e547462b737941f3a18feec5fe766d8151e4bf79b902a4109ed90f25",
+        "legacy_preflight": "4eebe1b3e547462b737941f3a18feec5fe766d8151e4bf79b902a4109ed90f25",
+        "legacy_upsert": "94feb51059c067c072e6bd442b648d584c67bdd57bf50a9053b2b9d4ad4fb58c",
+        "native_disjoint": "325402c65941a1ef3dec1f8d91df1183158dfa53eee56c4d852c7060ce4a317e",
+        "preflight": "2e4978e2988269b5aa0c2074e23fce10b2675713d457130823fc7bc6f91d7f0b"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:15",
+              "Product#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:12",
+              "Product#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:17",
+              "Product#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:52",
+              "Product#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:61",
+              "Product#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:15",
+              "Product#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:12",
+              "Product#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:17",
+              "Product#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:52",
+              "Product#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:61",
+              "Product#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "Product:30"
+            ],
+            [
+              "Person:12",
+              "Product:29"
+            ],
+            [
+              "Person:17",
+              "Product:59"
+            ],
+            [
+              "Person:52",
+              "Product:7"
+            ],
+            [
+              "Person:61",
+              "Product:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:15",
+              "Product:30"
+            ],
+            [
+              "Person:12",
+              "Product:29"
+            ],
+            [
+              "Person:17",
+              "Product:59"
+            ],
+            [
+              "Person:52",
+              "Product:7"
+            ],
+            [
+              "Person:61",
+              "Product:48"
+            ]
+          ]
+        }
+      },
+      "topic": "social-bought"
+    },
+    "FRIEND_OF": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "f07e3a11dce4ffe475a08689e979405ee92c5bb911b61b7ef7fc5f67101a67f4",
+        "key_bytes": "[3,4]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"since\":3,\"weight\":3.5},\"source\":{\"person_id\":3},\"target\":{\"person_id\":4}}"
+      },
+      "index": {
+        "add_key": "[3,4,\"social-friend-of\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,4,\"social-friend-of\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "person_id"
+      ],
+      "nodes": [
+        "Person",
+        "Person"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 1, {'since': 0, 'weight': 0.5})",
+          "(1, 2, {'since': 1, 'weight': 1.5})",
+          "(2, 3, {'since': 2, 'weight': 2.5})",
+          "(3, 4, {'since': 3, 'weight': 3.5})",
+          "(4, 5, {'since': 4, 'weight': 4.5})"
+        ],
+        "normalize_edge_record": [
+          "(0, 1, {'since': 0, 'weight': 0.5})",
+          "(1, 2, {'since': 1, 'weight': 1.5})",
+          "(2, 3, {'since': 2, 'weight': 2.5})",
+          "(3, 4, {'since': 3, 'weight': 3.5})",
+          "(4, 5, {'since': 4, 'weight': 4.5})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "bd3a57742df67a2d1716f4484bd5c3717855911ba1b86a899506f527c1d85c32",
+        "apoc_locked_False_True": "e604fe1c621b4d48d7ed4d5b87daf9d387383a88feb6168a10f8fa2d0689e39e",
+        "apoc_locked_True_True": "ee06fb333027e478b5562c87c3446ec6c51a835f1257fdba87ffa5c5ec4bc617",
+        "classification": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+        "legacy_preflight": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+        "legacy_upsert": "5d60c901aa93fcb533797c82fb3f15a6c08334651760f58dfcd4c615fb245e9b",
+        "native_disjoint": "201360df8bc0af820abb10447124c4a15e616541c2c70558ea75284df27153e4",
+        "preflight": "3d94e29c115cd448dd9dfaa1bcdf750873d344fc1fa39806b9d2e62461e0a9c4"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person#f27ee56c15b3fedad852aa11af4ad28f",
+              "Person#9ad39f6a5af23563343680c43cd1ed0c"
+            ],
+            [
+              "Person#9ad39f6a5af23563343680c43cd1ed0c",
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1"
+            ],
+            [
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1",
+              "Person#10f23648784827d658e60bbc0cc86874"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#7db007e3266b9368167e45ea9f092a3d"
+            ],
+            [
+              "Person#7db007e3266b9368167e45ea9f092a3d",
+              "Person#d0098d7044b60ba5328e7d0d95418f3d"
+            ]
+          ],
+          "resources": [
+            [
+              "Person#9ad39f6a5af23563343680c43cd1ed0c",
+              "Person#f27ee56c15b3fedad852aa11af4ad28f"
+            ],
+            [
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1",
+              "Person#9ad39f6a5af23563343680c43cd1ed0c"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#7db007e3266b9368167e45ea9f092a3d"
+            ],
+            [
+              "Person#7db007e3266b9368167e45ea9f092a3d",
+              "Person#d0098d7044b60ba5328e7d0d95418f3d"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "Person:12"
+            ],
+            [
+              "Person:12",
+              "Person:17"
+            ],
+            [
+              "Person:17",
+              "Person:52"
+            ],
+            [
+              "Person:52",
+              "Person:61"
+            ],
+            [
+              "Person:61",
+              "Person:61"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:12",
+              "Person:15"
+            ],
+            [
+              "Person:12",
+              "Person:17"
+            ],
+            [
+              "Person:17",
+              "Person:52"
+            ],
+            [
+              "Person:52",
+              "Person:61"
+            ],
+            [
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "social-friend-of"
+    },
+    "LIVES_IN": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "953aee3c8867934199ee72b11dc94d5bbe473e3a4250d94f180fd044e4144f93",
+        "key_bytes": "[3,\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"since\":\"2020-01-04\"},\"source\":{\"person_id\":3},\"target\":{\"name\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[3,\"s4\",\"social-lives-in\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,\"s4\",\"social-lives-in\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "name"
+      ],
+      "nodes": [
+        "Person",
+        "City"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 's1', {'since': datetime.date(2020, 1, 1)})",
+          "(1, 's2', {'since': datetime.date(2020, 1, 2)})",
+          "(2, 's3', {'since': datetime.date(2020, 1, 3)})",
+          "(3, 's4', {'since': datetime.date(2020, 1, 4)})",
+          "(4, 's5', {'since': datetime.date(2020, 1, 5)})"
+        ],
+        "normalize_edge_record": [
+          "(0, 's1', {'since': datetime.date(2020, 1, 1)})",
+          "(1, 's2', {'since': datetime.date(2020, 1, 2)})",
+          "(2, 's3', {'since': datetime.date(2020, 1, 3)})",
+          "(3, 's4', {'since': datetime.date(2020, 1, 4)})",
+          "(4, 's5', {'since': datetime.date(2020, 1, 5)})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "01a5e9e0e2850214f1cedd28cde0a16e8021a15d1dfb158f7fe4589e8203a0e0",
+        "apoc_locked_False_True": "394e87cdee1ebd3c5aa20fd214fc1c4289fce27fe68b8daa519f74024570879f",
+        "apoc_locked_True_True": "2f8acf2a938b24c2e5e7ce2bdfa247fe0db5670656a6b20d62bb8f4620eb401f",
+        "classification": "0a58bcf52b02c2d547bb19918ccadda58fc9f3b4e683f871f97f5b0272302e80",
+        "legacy_preflight": "0a58bcf52b02c2d547bb19918ccadda58fc9f3b4e683f871f97f5b0272302e80",
+        "legacy_upsert": "c24e4afafa4fac0fdb2004f854d2253650f79aa3ef146f9d0b3c05ab9a89eed1",
+        "native_disjoint": "60ff659358c0fe566956f7cf2149940f8c37b53cfd1ac9590b41192b2ab091bd",
+        "preflight": "b5910e3ad607b3b52c3ec595b61a772af3e4553641bfca67cd64aa5a4805f712"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:15",
+              "City#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:12",
+              "City#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:17",
+              "City#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:52",
+              "City#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:61",
+              "City#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "City#10fa048eb04b746f2919f084b0456d5e",
+              "Person:15"
+            ],
+            [
+              "City#028c29a2965f45474d41c7049302751d",
+              "Person:12"
+            ],
+            [
+              "City#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Person:17"
+            ],
+            [
+              "City#39c4b1a234834785a1d69e2fe48193c7",
+              "Person:52"
+            ],
+            [
+              "City#115b4d8f6678b07b1fdb5f87918064f0",
+              "Person:61"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "City:30"
+            ],
+            [
+              "Person:12",
+              "City:29"
+            ],
+            [
+              "Person:17",
+              "City:59"
+            ],
+            [
+              "Person:52",
+              "City:7"
+            ],
+            [
+              "Person:61",
+              "City:48"
+            ]
+          ],
+          "resources": [
+            [
+              "City:30",
+              "Person:15"
+            ],
+            [
+              "City:29",
+              "Person:12"
+            ],
+            [
+              "City:59",
+              "Person:17"
+            ],
+            [
+              "City:7",
+              "Person:52"
+            ],
+            [
+              "City:48",
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "social-lives-in"
+    },
+    "VISITED": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "37832f91f83b4fe706c204ee3856d1333e49e444e336cef0749ef0f4da7893e0",
+        "key_bytes": "[3,\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"times\":3},\"source\":{\"person_id\":3},\"target\":{\"name\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[3,\"s4\",\"social-visited\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,\"s4\",\"social-visited\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "name"
+      ],
+      "nodes": [
+        "Person",
+        "City"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 's1', {'times': 0})",
+          "(1, 's2', {'times': 1})",
+          "(2, 's3', {'times': 2})",
+          "(3, 's4', {'times': 3})",
+          "(4, 's5', {'times': 4})"
+        ],
+        "normalize_edge_record": [
+          "(0, 's1', {'times': 0})",
+          "(1, 's2', {'times': 1})",
+          "(2, 's3', {'times': 2})",
+          "(3, 's4', {'times': 3})",
+          "(4, 's5', {'times': 4})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "a422fce61e1114e31e16e0f1022e310fa02bf268663f7a4a166a966dea8ab171",
+        "apoc_locked_False_True": "972b76c8314fd4f54bb8e8f54fac7b091b6dc6a86f21e6d7da6d67b58725e169",
+        "apoc_locked_True_True": "c67d9ac9f2236ce109774d07f9e510cee9c364d862ffc222e9520753439a6dd4",
+        "classification": "0a58bcf52b02c2d547bb19918ccadda58fc9f3b4e683f871f97f5b0272302e80",
+        "legacy_preflight": "0a58bcf52b02c2d547bb19918ccadda58fc9f3b4e683f871f97f5b0272302e80",
+        "legacy_upsert": "21e508799d3be5cf2287ac120bad22077b8cedebb64c40f567c8a6aa7c076327",
+        "native_disjoint": "85a1ee06b149dfe70db6d02a4143e47872ca3c03f70f88148c093ea5e5af7ad1",
+        "preflight": "b5910e3ad607b3b52c3ec595b61a772af3e4553641bfca67cd64aa5a4805f712"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:15",
+              "City#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:12",
+              "City#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:17",
+              "City#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:52",
+              "City#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:61",
+              "City#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "City#10fa048eb04b746f2919f084b0456d5e",
+              "Person:15"
+            ],
+            [
+              "City#028c29a2965f45474d41c7049302751d",
+              "Person:12"
+            ],
+            [
+              "City#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Person:17"
+            ],
+            [
+              "City#39c4b1a234834785a1d69e2fe48193c7",
+              "Person:52"
+            ],
+            [
+              "City#115b4d8f6678b07b1fdb5f87918064f0",
+              "Person:61"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "City:30"
+            ],
+            [
+              "Person:12",
+              "City:29"
+            ],
+            [
+              "Person:17",
+              "City:59"
+            ],
+            [
+              "Person:52",
+              "City:7"
+            ],
+            [
+              "Person:61",
+              "City:48"
+            ]
+          ],
+          "resources": [
+            [
+              "City:30",
+              "Person:15"
+            ],
+            [
+              "City:29",
+              "Person:12"
+            ],
+            [
+              "City:59",
+              "Person:17"
+            ],
+            [
+              "City:7",
+              "Person:52"
+            ],
+            [
+              "City:48",
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "social-visited"
+    },
+    "WORKS_AT": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "55b128f1985bd74de849df3cfa96ab62078b4bdab4f260e67d4c4c9fb3e101ca",
+        "key_bytes": "[3,\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"role\":\"s3\",\"since\":\"2020-01-04\"},\"source\":{\"person_id\":3},\"target\":{\"company_id\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[3,\"s4\",\"social-works-at\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,\"s4\",\"social-works-at\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "company_id"
+      ],
+      "nodes": [
+        "Person",
+        "Company"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 's1', {'since': datetime.date(2020, 1, 1), 'role': 's0'})",
+          "(1, 's2', {'since': datetime.date(2020, 1, 2), 'role': 's1'})",
+          "(2, 's3', {'since': datetime.date(2020, 1, 3), 'role': 's2'})",
+          "(3, 's4', {'since': datetime.date(2020, 1, 4), 'role': 's3'})",
+          "(4, 's5', {'since': datetime.date(2020, 1, 5), 'role': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "(0, 's1', {'since': datetime.date(2020, 1, 1), 'role': 's0'})",
+          "(1, 's2', {'since': datetime.date(2020, 1, 2), 'role': 's1'})",
+          "(2, 's3', {'since': datetime.date(2020, 1, 3), 'role': 's2'})",
+          "(3, 's4', {'since': datetime.date(2020, 1, 4), 'role': 's3'})",
+          "(4, 's5', {'since': datetime.date(2020, 1, 5), 'role': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "c3362d6a1a0f52cfdd713a5d2350dc4b596d2d5c96af8baf62be0eabde8ff229",
+        "apoc_locked_False_True": "a4dbc6666824503a920cdc954e5badf1b56c69e6f95cafa7475919944a7ee254",
+        "apoc_locked_True_True": "9c6f9fbc3a4dc0fc19f0133ec6f3a26224c9b039c28ba90e45d3a354b2feda70",
+        "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+        "legacy_preflight": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+        "legacy_upsert": "8d1d954dcc7a52951b7109f06feb98ec62d0d1bf1552cc88722fc3a58ac035e5",
+        "native_disjoint": "b9dc3328736c0ca54f329d26046d8b7b16344fe210facd51b0192302928f696f",
+        "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:15",
+              "Company#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:12",
+              "Company#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:17",
+              "Company#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:52",
+              "Company#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:61",
+              "Company#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Company#10fa048eb04b746f2919f084b0456d5e",
+              "Person:15"
+            ],
+            [
+              "Company#028c29a2965f45474d41c7049302751d",
+              "Person:12"
+            ],
+            [
+              "Company#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Person:17"
+            ],
+            [
+              "Company#39c4b1a234834785a1d69e2fe48193c7",
+              "Person:52"
+            ],
+            [
+              "Company#115b4d8f6678b07b1fdb5f87918064f0",
+              "Person:61"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "Company:30"
+            ],
+            [
+              "Person:12",
+              "Company:29"
+            ],
+            [
+              "Person:17",
+              "Company:59"
+            ],
+            [
+              "Person:52",
+              "Company:7"
+            ],
+            [
+              "Person:61",
+              "Company:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Company:30",
+              "Person:15"
+            ],
+            [
+              "Company:29",
+              "Person:12"
+            ],
+            [
+              "Company:59",
+              "Person:17"
+            ],
+            [
+              "Company:7",
+              "Person:52"
+            ],
+            [
+              "Company:48",
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "social-works-at"
+    }
+  },
+  "tests/golden/fixtures/single_topic_dlq.yaml": {
+    "EMPLOYED_BY": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "f939f17e40d2148d64965b78a1d3eac644056632ffb5f29d514615ba6f441990",
+        "key_bytes": "[3,\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"role\":\"s3\"},\"source\":{\"person_id\":3},\"target\":{\"company_id\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[3,\"s4\",\"compat-employed-by\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,\"s4\",\"compat-employed-by\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "company_id"
+      ],
+      "nodes": [
+        "Person",
+        "Company"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 's1', {'role': 's0'})",
+          "(1, 's2', {'role': 's1'})",
+          "(2, 's3', {'role': 's2'})",
+          "(3, 's4', {'role': 's3'})",
+          "(4, 's5', {'role': 's4'})"
+        ],
+        "normalize_edge_record": [
+          "(0, 's1', {'role': 's0'})",
+          "(1, 's2', {'role': 's1'})",
+          "(2, 's3', {'role': 's2'})",
+          "(3, 's4', {'role': 's3'})",
+          "(4, 's5', {'role': 's4'})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "0512d3cb84e0e128e4d3fd8788e11e883992d5e49a0cef160f133e55d6314e14",
+        "apoc_locked_False_True": "c89a7af6ed7b13955ca3b16f85f8e03ed2eafffb185d9b10e53969b906835f2a",
+        "apoc_locked_True_True": "0a02cdb5401d1e44dee4a8a9f5f2063e8f611d5b978894056eefe3c6f506ad1a",
+        "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+        "legacy_preflight": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+        "legacy_upsert": "7b5456f7b6559ee36d50cb73cfeade18fbd605aea43370ea4bf60811c29a33b4",
+        "native_disjoint": "0b0c1c36cc11caccc3a6031a4895168f69103b1e344e27a2fd5cb3790c20acd6",
+        "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:15",
+              "Company#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:12",
+              "Company#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:17",
+              "Company#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:52",
+              "Company#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:61",
+              "Company#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Company#10fa048eb04b746f2919f084b0456d5e",
+              "Person:15"
+            ],
+            [
+              "Company#028c29a2965f45474d41c7049302751d",
+              "Person:12"
+            ],
+            [
+              "Company#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Person:17"
+            ],
+            [
+              "Company#39c4b1a234834785a1d69e2fe48193c7",
+              "Person:52"
+            ],
+            [
+              "Company#115b4d8f6678b07b1fdb5f87918064f0",
+              "Person:61"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "Company:30"
+            ],
+            [
+              "Person:12",
+              "Company:29"
+            ],
+            [
+              "Person:17",
+              "Company:59"
+            ],
+            [
+              "Person:52",
+              "Company:7"
+            ],
+            [
+              "Person:61",
+              "Company:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Company:30",
+              "Person:15"
+            ],
+            [
+              "Company:29",
+              "Person:12"
+            ],
+            [
+              "Company:59",
+              "Person:17"
+            ],
+            [
+              "Company:7",
+              "Person:52"
+            ],
+            [
+              "Company:48",
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "compat-employed-by"
+    },
+    "FOLLOWS": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "ff1e0d6fc4e54c9772891cdee351f9637ff415c2f9f0fc862cf72a710fdcb69d",
+        "key_bytes": "[3,4]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"updated_at\":\"2020-01-01T00:00:03+00:00\"},\"source\":{\"person_id\":3},\"target\":{\"person_id\":4}}"
+      },
+      "index": {
+        "add_key": "[3,4,\"compat-follows\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,4,\"compat-follows\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "person_id"
+      ],
+      "nodes": [
+        "Person",
+        "Person"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 1, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)})",
+          "(1, 2, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, 1, tzinfo=datetime.timezone.utc)})",
+          "(2, 3, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, 2, tzinfo=datetime.timezone.utc)})",
+          "(3, 4, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, 3, tzinfo=datetime.timezone.utc)})",
+          "(4, 5, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, 4, tzinfo=datetime.timezone.utc)})"
+        ],
+        "normalize_edge_record": [
+          "(0, 1, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)})",
+          "(1, 2, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, 1, tzinfo=datetime.timezone.utc)})",
+          "(2, 3, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, 2, tzinfo=datetime.timezone.utc)})",
+          "(3, 4, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, 3, tzinfo=datetime.timezone.utc)})",
+          "(4, 5, {'updated_at': datetime.datetime(2020, 1, 1, 0, 0, 4, tzinfo=datetime.timezone.utc)})"
+        ]
+      },
+      "order_by": "updated_at",
+      "queries": {
+        "apoc_locked_False_False": "b051ccc3def7cfa5b245e9fe366a03d3919d7a48f8fa8b472d15b114bbe981c8",
+        "apoc_locked_False_True": "31ea3ce233184eccd40c287530bf47550ca7b3715e6b285a1b80d11cfc4816be",
+        "apoc_locked_True_True": "61c80e290a4a1e216c62bff4995d91bccaef98e7646c124cc5eaa21d5a0a6b94",
+        "classification": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+        "legacy_preflight": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+        "legacy_upsert": "afe9a27ec7808b27db1ba621d391703aa4a62e7f3ad48ce53e35c71056057f53",
+        "native_disjoint": "1392a103fd043ed5c3452a5c332bc48a6b2e03e517ea7dcc17fc8fcfd1efded3",
+        "preflight": "3d94e29c115cd448dd9dfaa1bcdf750873d344fc1fa39806b9d2e62461e0a9c4"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person#f27ee56c15b3fedad852aa11af4ad28f",
+              "Person#9ad39f6a5af23563343680c43cd1ed0c"
+            ],
+            [
+              "Person#9ad39f6a5af23563343680c43cd1ed0c",
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1"
+            ],
+            [
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1",
+              "Person#10f23648784827d658e60bbc0cc86874"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#7db007e3266b9368167e45ea9f092a3d"
+            ],
+            [
+              "Person#7db007e3266b9368167e45ea9f092a3d",
+              "Person#d0098d7044b60ba5328e7d0d95418f3d"
+            ]
+          ],
+          "resources": [
+            [
+              "Person#9ad39f6a5af23563343680c43cd1ed0c",
+              "Person#f27ee56c15b3fedad852aa11af4ad28f"
+            ],
+            [
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1",
+              "Person#9ad39f6a5af23563343680c43cd1ed0c"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#7db007e3266b9368167e45ea9f092a3d"
+            ],
+            [
+              "Person#7db007e3266b9368167e45ea9f092a3d",
+              "Person#d0098d7044b60ba5328e7d0d95418f3d"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "Person:12"
+            ],
+            [
+              "Person:12",
+              "Person:17"
+            ],
+            [
+              "Person:17",
+              "Person:52"
+            ],
+            [
+              "Person:52",
+              "Person:61"
+            ],
+            [
+              "Person:61",
+              "Person:61"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:12",
+              "Person:15"
+            ],
+            [
+              "Person:12",
+              "Person:17"
+            ],
+            [
+              "Person:17",
+              "Person:52"
+            ],
+            [
+              "Person:52",
+              "Person:61"
+            ],
+            [
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "compat-follows"
+    },
+    "KNOWS": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "03a5528ec911b427c979897ee0ea25701112fd2b29f43aa5b44bd1028612e6cb",
+        "key_bytes": "[3,4]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"weight\":3.5},\"source\":{\"person_id\":3},\"target\":{\"person_id\":4}}"
+      },
+      "index": {
+        "add_key": "[3,4,\"compat-knows\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,4,\"compat-knows\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "person_id"
+      ],
+      "nodes": [
+        "Person",
+        "Person"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 1, {'weight': 0.5})",
+          "(1, 2, {'weight': 1.5})",
+          "(2, 3, {'weight': 2.5})",
+          "(3, 4, {'weight': 3.5})",
+          "(4, 5, {'weight': 4.5})"
+        ],
+        "normalize_edge_record": [
+          "(0, 1, {'weight': 0.5})",
+          "(1, 2, {'weight': 1.5})",
+          "(2, 3, {'weight': 2.5})",
+          "(3, 4, {'weight': 3.5})",
+          "(4, 5, {'weight': 4.5})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "5a62522a68a487cc368ec91d48312867e6bb1cfef2326dad60705399b6d9f451",
+        "apoc_locked_False_True": "84c31838330d3358308a1c0fd1db695afd9b161fc64ed5f0d75b31904229e6d5",
+        "apoc_locked_True_True": "3919d0c91aca992d6f5361255d0f774dec7f8fc371ec59108f049d6bf6b2eb04",
+        "classification": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+        "legacy_preflight": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+        "legacy_upsert": "6ce6fa1f978c809f4301da2dc8268222e6f7ca7b36cfdb15f3784764565b7a5c",
+        "native_disjoint": "677a131bf82b4a584dabef0f4ffed302a6451aea7a759c84df670b15aaca3cca",
+        "preflight": "3d94e29c115cd448dd9dfaa1bcdf750873d344fc1fa39806b9d2e62461e0a9c4"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person#f27ee56c15b3fedad852aa11af4ad28f",
+              "Person#9ad39f6a5af23563343680c43cd1ed0c"
+            ],
+            [
+              "Person#9ad39f6a5af23563343680c43cd1ed0c",
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1"
+            ],
+            [
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1",
+              "Person#10f23648784827d658e60bbc0cc86874"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#7db007e3266b9368167e45ea9f092a3d"
+            ],
+            [
+              "Person#7db007e3266b9368167e45ea9f092a3d",
+              "Person#d0098d7044b60ba5328e7d0d95418f3d"
+            ]
+          ],
+          "resources": [
+            [
+              "Person#9ad39f6a5af23563343680c43cd1ed0c",
+              "Person#f27ee56c15b3fedad852aa11af4ad28f"
+            ],
+            [
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1",
+              "Person#9ad39f6a5af23563343680c43cd1ed0c"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#3684e2a80dc54206edcfdc8e167b4dd1"
+            ],
+            [
+              "Person#10f23648784827d658e60bbc0cc86874",
+              "Person#7db007e3266b9368167e45ea9f092a3d"
+            ],
+            [
+              "Person#7db007e3266b9368167e45ea9f092a3d",
+              "Person#d0098d7044b60ba5328e7d0d95418f3d"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "Person:12"
+            ],
+            [
+              "Person:12",
+              "Person:17"
+            ],
+            [
+              "Person:17",
+              "Person:52"
+            ],
+            [
+              "Person:52",
+              "Person:61"
+            ],
+            [
+              "Person:61",
+              "Person:61"
+            ]
+          ],
+          "resources": [
+            [
+              "Person:12",
+              "Person:15"
+            ],
+            [
+              "Person:12",
+              "Person:17"
+            ],
+            [
+              "Person:17",
+              "Person:52"
+            ],
+            [
+              "Person:52",
+              "Person:61"
+            ],
+            [
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "compat-knows"
+    },
+    "WORKS_AT": {
+      "dead_letter": {
+        "encoded_envelope_sha256": "650d34c9e8324cbf54ca55427e274540c15e9904cb88b8dc67d11bd6961ab090",
+        "key_bytes": "[3,\"s4\"]",
+        "topic": "compat.dlq",
+        "value_bytes": "{\"properties\":{\"since\":\"2020-01-04\"},\"source\":{\"person_id\":3},\"target\":{\"company_id\":\"s4\"}}"
+      },
+      "index": {
+        "add_key": "[3,\"s4\",\"compat-works-at\",2,17]",
+        "add_value": "{\"first_failure_at_ms\":1700000000000}",
+        "wire_key": "[3,\"s4\",\"compat-works-at\",2,17]"
+      },
+      "keys": [
+        "person_id",
+        "company_id"
+      ],
+      "nodes": [
+        "Person",
+        "Company"
+      ],
+      "normalized": {
+        "compile_record_normalizer": [
+          "(0, 's1', {'since': datetime.date(2020, 1, 1)})",
+          "(1, 's2', {'since': datetime.date(2020, 1, 2)})",
+          "(2, 's3', {'since': datetime.date(2020, 1, 3)})",
+          "(3, 's4', {'since': datetime.date(2020, 1, 4)})",
+          "(4, 's5', {'since': datetime.date(2020, 1, 5)})"
+        ],
+        "normalize_edge_record": [
+          "(0, 's1', {'since': datetime.date(2020, 1, 1)})",
+          "(1, 's2', {'since': datetime.date(2020, 1, 2)})",
+          "(2, 's3', {'since': datetime.date(2020, 1, 3)})",
+          "(3, 's4', {'since': datetime.date(2020, 1, 4)})",
+          "(4, 's5', {'since': datetime.date(2020, 1, 5)})"
+        ]
+      },
+      "order_by": null,
+      "queries": {
+        "apoc_locked_False_False": "c3362d6a1a0f52cfdd713a5d2350dc4b596d2d5c96af8baf62be0eabde8ff229",
+        "apoc_locked_False_True": "a4dbc6666824503a920cdc954e5badf1b56c69e6f95cafa7475919944a7ee254",
+        "apoc_locked_True_True": "9c6f9fbc3a4dc0fc19f0133ec6f3a26224c9b039c28ba90e45d3a354b2feda70",
+        "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+        "legacy_preflight": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+        "legacy_upsert": "8d1d954dcc7a52951b7109f06feb98ec62d0d1bf1552cc88722fc3a58ac035e5",
+        "native_disjoint": "b9dc3328736c0ca54f329d26046d8b7b16344fe210facd51b0192302928f696f",
+        "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+      },
+      "router": {
+        "keyed_target": {
+          "cells": [
+            [
+              "Person:15",
+              "Company#10fa048eb04b746f2919f084b0456d5e"
+            ],
+            [
+              "Person:12",
+              "Company#028c29a2965f45474d41c7049302751d"
+            ],
+            [
+              "Person:17",
+              "Company#5f97d6255fa3dacb0e2be4c18e34a9bb"
+            ],
+            [
+              "Person:52",
+              "Company#39c4b1a234834785a1d69e2fe48193c7"
+            ],
+            [
+              "Person:61",
+              "Company#115b4d8f6678b07b1fdb5f87918064f0"
+            ]
+          ],
+          "resources": [
+            [
+              "Company#10fa048eb04b746f2919f084b0456d5e",
+              "Person:15"
+            ],
+            [
+              "Company#028c29a2965f45474d41c7049302751d",
+              "Person:12"
+            ],
+            [
+              "Company#5f97d6255fa3dacb0e2be4c18e34a9bb",
+              "Person:17"
+            ],
+            [
+              "Company#39c4b1a234834785a1d69e2fe48193c7",
+              "Person:52"
+            ],
+            [
+              "Company#115b4d8f6678b07b1fdb5f87918064f0",
+              "Person:61"
+            ]
+          ]
+        },
+        "unkeyed": {
+          "cells": [
+            [
+              "Person:15",
+              "Company:30"
+            ],
+            [
+              "Person:12",
+              "Company:29"
+            ],
+            [
+              "Person:17",
+              "Company:59"
+            ],
+            [
+              "Person:52",
+              "Company:7"
+            ],
+            [
+              "Person:61",
+              "Company:48"
+            ]
+          ],
+          "resources": [
+            [
+              "Company:30",
+              "Person:15"
+            ],
+            [
+              "Company:29",
+              "Person:12"
+            ],
+            [
+              "Company:59",
+              "Person:17"
+            ],
+            [
+              "Company:7",
+              "Person:52"
+            ],
+            [
+              "Company:48",
+              "Person:61"
+            ]
+          ]
+        }
+      },
+      "topic": "compat-works-at"
+    }
+  }
+}

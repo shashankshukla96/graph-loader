@@ -1,0 +1,132 @@
+# STARTING POINT, NOT AN SLO. Thresholds below are conservative defaults
+# chosen without production traffic data (P6-Q4, plan/v5-v6-orchestration.md).
+# Tune every threshold to your own environment before treating a firing
+# alert as an incident. `for:` durations are chosen to avoid a scrape-
+# interval blip firing an alert, not to model any real SLO.
+groups:
+  - name: graph-loader-dlq
+    rules:
+      # True backlog depth: graph_loader_dlq_backlog{kind,name,queue}
+      # (P5-S4 Story 7), emitted only by the retry-consumer process every
+      # backlog_check_interval_ms (default 10s), edge types only
+      # (kind="edge"). queue="dlq" = DLQ high watermark minus the retry
+      # consumer's committed offset: retry work that should drain.
+      # queue="parked" = parking-lot topic size: terminal and cumulative
+      # (infinite retention, replay never trims it), so it must NOT drive a
+      # depth alert -- parked records are covered by GraphLoaderParkedLotGrowing.
+      # The routing and parking rules are kept as activity signals (they
+      # fire even with no retry consumer running); the backlog rule is the
+      # depth signal.
+      - alert: GraphLoaderDlqBacklogHigh
+        # Example threshold only (100 records for 15m) -- tune per
+        # environment. max by (kind, name) collapses retry-consumer
+        # replicas, which each report the same group-wide value. Clears
+        # once the retries drain.
+        expr: max by (kind, name) (graph_loader_dlq_backlog{queue="dlq"}) > 100
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} DLQ retry backlog is {{ $value }} record(s) (retry consumer not draining)."
+          description: >
+            DLQ high watermark minus the retry consumer's committed offset.
+            A sustained high value means the retry consumer is not draining
+            (missing endpoints not arriving, consumer down or lagging).
+            Parked records are not counted here (queue="parked"). The gauge
+            is refreshed periodically, so it can lag reality by one
+            backlog_check_interval_ms.
+      - alert: GraphLoaderDlqRoutingDetected
+        # Review finding (Story 2, should-fix 2): plain increase() misses
+        # a failure_class series' very first sample. metrics.py's
+        # initialize_zero_series only pre-creates failure_class="malformed"
+        # at 0; missing_endpoint/ambiguous_endpoint series are created by
+        # Phase 5 lazily, on first use, already at their first nonzero
+        # value — increase() has no earlier sample to diff against and
+        # reads 0 (not "no data"), so the alert stays silent on exactly
+        # the case ("routing just started") it exists to catch. The
+        # `or` clause below also fires when a series is currently
+        # nonzero but had no sample 15m ago (a newly-appeared series).
+        expr: >
+          (increase(graph_loader_dlq_routed_total[15m]) > 0)
+          or (graph_loader_dlq_routed_total > 0 unless graph_loader_dlq_routed_total offset 15m)
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} routed record(s) to its DLQ in the last 15m (failure_class={{ $labels.failure_class }})."
+          description: >
+            Informational by default: a single malformed record reaching
+            the DLQ is not necessarily an incident. Raise to warning/
+            critical once you know your own baseline rate. This rule
+            signals routing *activity*; for queue *depth* see
+            GraphLoaderDlqBacklogHigh (graph_loader_dlq_backlog).
+      - alert: GraphLoaderDlqRoutingSpike
+        # Same first-sample gap as GraphLoaderDlqRoutingDetected above,
+        # applied at this rule's own threshold.
+        expr: >
+          (increase(graph_loader_dlq_routed_total[15m]) > 50)
+          or (graph_loader_dlq_routed_total > 50 unless graph_loader_dlq_routed_total offset 15m)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} routed more than 50 records to its DLQ in 15m."
+      - alert: GraphLoaderParkedLotGrowing
+        expr: increase(graph_loader_parked_total[30m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} parked {{ $value }} record(s) after exhausting retries (P5-S4)."
+          description: >
+            A parked record is terminal until manually replayed; treat
+            any nonzero value as needing operator attention, not routine.
+            The parked-lot size is exposed as graph_loader_dlq_backlog{queue="parked"}.
+      - alert: GraphLoaderDlqBacklogAbsent
+        # Owner decision D2 (P5-S4): the retry consumer is supervised like an
+        # edge loader, and this rule catches what supervision cannot see --
+        # the backlog gauge going absent (the retry consumer gone, unscraped
+        # or its CLI supervisor gone) while the edge loaders of that type
+        # still run. "Was present in the last 6h, is absent now, and edge
+        # loaders of that type are up" keeps it silent for bulk runs (no
+        # retry consumer, no gauge ever) and after a clean stop (the edge
+        # loaders' process_up goes away with them). Example threshold only.
+        expr: >
+          (
+            max by (name, run_id) (max_over_time(graph_loader_dlq_backlog{kind="edge",queue="dlq"}[6h]))
+            unless on (name, run_id)
+            max by (name, run_id) (graph_loader_dlq_backlog{kind="edge",queue="dlq"})
+          )
+          and on (name, run_id)
+          max by (name, run_id) (graph_loader_process_up{kind="edge"} == 1)
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "edge/{{ $labels.name }} DLQ backlog gauge is absent while its edge loaders run (retry consumer down?)."
+          description: >
+            graph_loader_dlq_backlog was reported for this edge type earlier
+            and is gone now, while the type's edge loaders are still up: the
+            retry consumer is not running or not being scraped, so DLQ'd rows
+            are not being retried. In --mode stream the CLI stops the fleet
+            when a retry-consumer container exits; this alert covers the
+            gauge disappearing for any other reason.
+      - alert: GraphLoaderRetryStalled
+        # Owner decision D1 (P5-S4): the retry consumer never counts or parks
+        # a row for a failure it has no evidence is the row's own; such rows
+        # wait, and graph_loader_retry_stalled_seconds (seconds the type's
+        # writes have failed with nothing written) is the signal. Example
+        # threshold only (10 minutes).
+        expr: max by (kind, name, run_id) (graph_loader_retry_stalled_seconds) > 600
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} retry writes have failed with nothing written for {{ $value | humanizeDuration }}."
+          description: >
+            The retry consumer's writes of this edge type keep failing and no
+            row of the type has been written (a read-only or unavailable
+            database, an unrecognised server-side error, or a lone row whose
+            error is not known to be row-specific). Rows are not counted or
+            parked for it; they wait. Check the retry consumer's
+            reason=retry_stalled ERROR lines for the error class.

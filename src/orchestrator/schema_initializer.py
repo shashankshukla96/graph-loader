@@ -8,6 +8,7 @@ import time
 import logging
 from neo4j import GraphDatabase, Driver
 from neo4j.exceptions import ServiceUnavailable, AuthError
+from src.utils.neo4j_session import open_session
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ def apply_schema(driver: Driver, schema: GraphSchema, timeout_seconds: float = 1
     statements = generate_all_ddl(schema)
     
     try:
-        with driver.session() as session:
+        with open_session(driver) as session:
             for stmt in statements:
                 session.run(stmt)
     except Neo4jError as e:
@@ -128,7 +129,7 @@ def apply_schema(driver: Driver, schema: GraphSchema, timeout_seconds: float = 1
 
     start_time = time.monotonic()
     while True:
-        with driver.session() as session:
+        with open_session(driver) as session:
             result = session.run("SHOW INDEXES YIELD name, state RETURN name, state")
             records = list(result)
             

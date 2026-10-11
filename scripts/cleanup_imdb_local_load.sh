@@ -23,6 +23,7 @@ from confluent_kafka.admin import AdminClient
 from dotenv import load_dotenv
 
 from examples.imdb.publish_and_load_nodes import EDGE_SOURCES, NODE_SOURCES, SCHEMA_PATH
+from examples.imdb.planned_edges import DEFAULT_PLAN_TOPIC
 from src.utils.schema_loader import load_schema
 
 parser = argparse.ArgumentParser(description="Clear only IMDb Kafka inputs and node consumer groups")
@@ -34,6 +35,7 @@ admin = AdminClient({"bootstrap.servers": bootstrap})
 topics = sorted(
     {topic for topic, _ in NODE_SOURCES.values()}
     | {topic for topic, *_ in EDGE_SOURCES.values()}
+    | {DEFAULT_PLAN_TOPIC}
 )
 schema = load_schema(SCHEMA_PATH)
 groups = [f"{schema.loading.consumer_group_id}-{node.label}" for node in schema.nodes]

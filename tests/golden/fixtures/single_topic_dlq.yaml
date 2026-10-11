@@ -1,0 +1,60 @@
+# Single-topic fixture for tests/test_single_topic_compat.py: every DLQ naming path that must not change.
+# Nodes and edges use only `topic:`. Not a shipped example; the golden pins its names, groups and plan.
+loading:
+  mode: bulk
+  consumer_group_id: compat-dlq
+  unwind_batch_size: 100
+  edge_unwind_batch_size: 500
+nodes:
+  - label: Person
+    topic: compat-person
+    key_property: person_id
+    dead_letter: {enabled: true}                 # default names: compat-person.dlq
+    properties:
+      person_id: {type: integer, required: true, constraint: {type: uniqueness}}
+      name: {type: string, required: true}
+  - label: Company
+    topic: compat-company
+    key_property: company_id
+    dead_letter: {enabled: true, topic: compat-company-rejects}   # explicit node DLQ topic
+    properties:
+      company_id: {type: string, required: true, constraint: {type: uniqueness}}
+      name: {type: string, required: true}
+edges:
+  - type: WORKS_AT                                # default names: compat-works-at.dlq / .parked / .parked-pairs
+    topic: compat-works-at
+    nodes: {source: Person, target: Company}
+    source_key_property: person_id
+    target_key_property: company_id
+    properties:
+      since: {type: date}
+    dead_letter: {enabled: true, max_retry_attempts: 5}
+  - type: EMPLOYED_BY                             # explicit overrides for DLQ and parking lot
+    topic: compat-employed-by
+    nodes: {source: Person, target: Company}
+    source_key_property: person_id
+    target_key_property: company_id
+    properties:
+      role: {type: string}
+    dead_letter:
+      enabled: true
+      topic: compat-employed-by-failures
+      parked_topic: compat-employed-by-parked
+      max_retry_attempts: 3
+  - type: FOLLOWS                                 # order_by edge with a DLQ
+    topic: compat-follows
+    nodes: {source: Person, target: Person}
+    source_key_property: person_id
+    target_key_property: person_id
+    order_by: updated_at
+    properties:
+      updated_at: {type: datetime, required: true}
+    dead_letter: {enabled: true}
+  - type: KNOWS                                   # block present but disabled: file sink, no names
+    topic: compat-knows
+    nodes: {source: Person, target: Person}
+    source_key_property: person_id
+    target_key_property: person_id
+    properties:
+      weight: {type: float}
+    dead_letter: {enabled: false}

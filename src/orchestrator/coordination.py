@@ -1,4 +1,11 @@
-"""Validated, run-scoped wire protocol for Phase 4 clock leases."""
+"""Validated, run-scoped wire protocol for Phase 4 clock leases.
+
+P5-S1 Story 6: retired from ``--mode stream``'s *default* dispatch path.
+Reachable only via the deprecated ``--stream-clock-rotation`` flag,
+scheduled for removal one release after ``plan/v5/slice-1``. Not used by
+bulk mode. The bucket-lease coordinator (``src/orchestrator/lease_server.py``)
+is streaming's default zero-wait mechanism now.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -177,6 +184,9 @@ class GlobalBatchClock:
                  rotation_plan: RotationPlan | None = None) -> None:
         if not isinstance(run_id, str) or not run_id.strip() or not edges:
             raise ClockPublishError("stage=clock reason=requires a run id and eligible edges")
+        if any(getattr(edge, "is_multi_pair", False) is True for edge in edges):
+            raise ClockPublishError(
+                f"stage=clock run_id={run_id} reason=edges binding several label pairs cannot join the shared clock")
         if any(edge.nodes.is_self_referencing for edge in edges):
             raise ClockPublishError(f"stage=clock run_id={run_id} reason=self-referencing edges cannot join shared clock")
         types = tuple(sorted(edge.type for edge in edges))

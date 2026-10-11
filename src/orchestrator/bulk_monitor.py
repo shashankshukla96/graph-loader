@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 import json
 import logging
@@ -32,6 +33,15 @@ class AssignmentCoverageError(BulkMonitorError):
 
 class BulkTimeoutError(BulkMonitorError):
     """Raised when a required bulk lifecycle stage times out."""
+
+
+class BulkShutdownRequested(BulkTimeoutError):
+    """Raised when the operator asked to stop (SIGTERM/SIGINT) during a wait.
+
+    A ``BulkTimeoutError`` subclass so existing ``except BulkTimeoutError``
+    fail-closed call sites keep working; distinct so a caller can tell an
+    operator stop apart from a deadline.
+    """
 
 
 class QuiescentViolationError(BulkMonitorError):
@@ -75,9 +85,10 @@ class BulkMonitor:
         admin_client: AdminClient | None = None,
         watermark_consumer: Consumer | None = None,
         control_consumer: Consumer | None = None,
-        poll_interval_seconds: float = 0.25,
+        poll_interval_seconds: float = 0.1,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
+        abort_requested: Callable[[], bool] | None = None,
     ) -> None:
         if not run_id:
             raise BulkMonitorError("run_id must not be empty")
@@ -93,6 +104,9 @@ class BulkMonitor:
         self._poll_interval_seconds = poll_interval_seconds
         self._clock = clock
         self._sleep = sleep
+        # P6-S5 Story 2: polled on every wait iteration so an operator stop
+        # is prompt, not bounded by the (default 300s) stage deadline.
+        self._abort_requested = abort_requested
         self._admin = admin_client or AdminClient({"bootstrap.servers": bootstrap_servers})
         self._watermark_consumer = watermark_consumer or Consumer(
             {
@@ -136,6 +150,12 @@ class BulkMonitor:
         self._acks: dict[Replica, ControlAck] = {}
         self._drain_epochs: dict[Replica, int] = {}
         self._boundary: dict[Partition, int] | None = None
+        self._boundary_lows: dict[Partition, int] = {}
+        # Per-label boundaries captured by drive_label_readiness as soon as a
+        # label alone proves exact coverage (the global boundary, when
+        # captured, takes precedence).
+        self._label_boundaries: dict[str, dict[Partition, int]] = {}
+        self._health_executor: ThreadPoolExecutor | None = None
         self._drain_phase = False
         self._pending_drain_exits: dict[Replica, str] = {}
 
@@ -167,12 +187,32 @@ class BulkMonitor:
                 owners[key] = self._group_by_label[node.label]
         return expected, owners
 
-    def _check_container_health(self, *, allow_drained_exit: bool = False) -> None:
-        """Fail with a replica attribution when a tracked container has exited."""
+    def _check_container_health(
+        self, *, allow_drained_exit: bool = False, drained_labels: set[str] | None = None,
+    ) -> None:
+        """Fail with a replica attribution when a tracked container has exited.
+
+        ``drained_labels`` narrows ``allow_drained_exit`` to the labels whose
+        stop was requested; any other label's exit is an immediate crash.
+        """
+        to_inspect: list[tuple[Replica, object, bool]] = []
         for replica, container in self._tracked_containers.items():
             label, replica_id = replica
+            allow_exit = allow_drained_exit if drained_labels is None else label in drained_labels
+            if allow_exit and self._is_drain_acknowledged(replica):
+                # Any status is acceptable once drain is acknowledged; skip
+                # the Docker inspect round trip for finished replicas.
+                continue
+            to_inspect.append((replica, container, allow_exit))
+        # Docker inspects are independent round trips (~5-20 ms each); issue
+        # them concurrently so a 40-container fleet costs one round trip per
+        # lifecycle iteration.  Results are evaluated below in fleet order.
+        reload_errors = self._reload_containers([container for _, container, _ in to_inspect])
+        for (replica, container, allow_exit), reload_error in zip(to_inspect, reload_errors):
+            label, replica_id = replica
             try:
-                container.reload()
+                if reload_error is not None:
+                    raise reload_error
                 state = getattr(container, "attrs", {}).get("State", {})
                 status = state.get("Status", getattr(container, "status", "running"))
                 exit_code = state.get("ExitCode")
@@ -180,7 +220,7 @@ class BulkMonitor:
                 # Docker ``remove=True`` can erase a container immediately after
                 # its loader flushed a durable DRAIN_COMPLETE record. During the
                 # drain phase, let the bounded control loop observe that record.
-                if allow_drained_exit:
+                if allow_exit:
                     if not self._is_drain_acknowledged(replica):
                         self._pending_drain_exits[replica] = (
                             f"loader disappeared label={label} replica={replica_id} "
@@ -197,7 +237,7 @@ class BulkMonitor:
 
             if status in {"running", "created", "restarting"}:
                 continue
-            if allow_drained_exit:
+            if allow_exit:
                 if not self._is_drain_acknowledged(replica):
                     self._pending_drain_exits[replica] = (
                         f"loader exited label={label} replica={replica_id} "
@@ -207,6 +247,24 @@ class BulkMonitor:
             raise LoaderCrashError(
                 f"loader exited label={label} replica={replica_id} status={status} exit_code={exit_code}"
             )
+
+    def _reload_containers(self, containers: list[object]) -> list[Exception | None]:
+        """Reload every container, returning each one's exception (or None)."""
+
+        def reload(container: object) -> Exception | None:
+            try:
+                container.reload()
+            except Exception as exc:
+                return exc
+            return None
+
+        if len(containers) <= 1:
+            return [reload(container) for container in containers]
+        if self._health_executor is None:
+            self._health_executor = ThreadPoolExecutor(
+                max_workers=16, thread_name_prefix="bulk-monitor-inspect",
+            )
+        return list(self._health_executor.map(reload, containers))
 
     def _decode_control(self, message: object) -> None:
         """Apply one valid, current-run lifecycle event to monitor state."""
@@ -344,6 +402,8 @@ class BulkMonitor:
         self._operation_deadline = deadline
         try:
             while True:
+                if self._abort_requested is not None and self._abort_requested():
+                    raise BulkShutdownRequested(f"shutdown requested while waiting for {stage}")
                 if self._clock() >= deadline:
                     if allow_drained_exit:
                         self._raise_pending_drain_failure()
@@ -368,10 +428,13 @@ class BulkMonitor:
         """Wait for every expected replica to prove exact partition coverage."""
         self._wait_until(timeout_seconds, "assignment coverage", self._has_assignment_coverage)
 
-    def _watermarks(self) -> dict[Partition, int]:
-        """Resolve high watermarks for every configured topic partition."""
+    def _watermarks(
+        self, partitions: set[Partition] | None = None,
+    ) -> tuple[dict[Partition, int], dict[Partition, int]]:
+        """Resolve ``(highs, lows)`` for ``partitions`` (default: every configured one)."""
         watermarks: dict[Partition, int] = {}
-        for topic, partition in sorted(self._expected_partitions):
+        lows: dict[Partition, int] = {}
+        for topic, partition in sorted(self._expected_partitions if partitions is None else partitions):
             try:
                 low, high = self._watermark_consumer.get_watermark_offsets(
                     TopicPartition(topic, partition), timeout=self._request_timeout()
@@ -392,22 +455,78 @@ class BulkMonitor:
                     f"invalid watermark topic={topic} partition={partition}: low={low} high={high}"
                 )
             watermarks[(topic, partition)] = high
-        return watermarks
+            lows[(topic, partition)] = low
+        return watermarks, lows
+
+    def _empty_at_snapshot(self, partition: Partition, boundary: int) -> bool:
+        """``low == high`` when the boundary was captured (the snapshot's low, not the live one).
+
+        An empty partition (never written, or emptied by retention) never gets a group offset, so
+        Kafka's absent commit is the normal finished state; a later record is caught by
+        ``_assert_quiescent`` (the high watermark moves).
+        """
+        return boundary == self._boundary_lows.get(partition, 0)
+
+    def _partition_ok(self, partition: Partition, boundary: int, offset: int | None, *, exact: bool) -> bool:
+        """Committed through the boundary (exactly, if ``exact``) or empty at the snapshot with nothing ahead."""
+        if offset is not None and (offset == boundary or (not exact and offset > boundary)):
+            return True
+        return self._empty_at_snapshot(partition, boundary) and (offset is None or offset < boundary)
 
     def capture_boundary(self) -> dict[Partition, int]:
         """Capture the fixed high-watermark boundary after exact coverage exists."""
         if not self._has_assignment_coverage():
             raise AssignmentCoverageError("cannot capture boundary before assignment coverage")
         self._check_container_health()
-        self._boundary = self._watermarks()
+        self._boundary, lows = self._watermarks()
+        self._boundary_lows.update(lows)
         return dict(self._boundary)
+
+    def _label_partitions(self, label: str) -> set[Partition]:
+        topic = self._topic_by_label[label]
+        return {partition for partition in self._expected_partitions if partition[0] == topic}
+
+    def capture_label_boundary(self, label: str) -> dict[Partition, int]:
+        """Capture one label's fixed high-watermark boundary after its own exact coverage.
+
+        Equivalent to :meth:`capture_boundary` restricted to one label's
+        topic, so an early label need not wait for every other label's
+        consumer group to settle.  Input is still asserted quiescent against
+        every captured boundary on each later lifecycle check.
+        """
+        if label not in self._topic_by_label:
+            raise BulkMonitorError(f"unknown node label={label}")
+        if not self._has_label_assignment_coverage(label):
+            raise AssignmentCoverageError(
+                f"cannot capture node label={label} boundary before its assignment coverage"
+            )
+        boundary, lows = self._watermarks(self._label_partitions(label))
+        self._label_boundaries[label] = boundary
+        self._boundary_lows.update(lows)
+        return dict(boundary)
+
+    def _label_boundary(self, label: str) -> dict[Partition, int] | None:
+        """Return the fixed boundary that governs ``label``, if captured."""
+        if self._boundary is not None:
+            topic = self._topic_by_label[label]
+            return {partition: offset for partition, offset in self._boundary.items() if partition[0] == topic}
+        return self._label_boundaries.get(label)
+
+    def _captured_boundary(self) -> dict[Partition, int]:
+        captured: dict[Partition, int] = {}
+        for boundary in self._label_boundaries.values():
+            captured.update(boundary)
+        if self._boundary is not None:
+            captured.update(self._boundary)
+        return captured
 
     def _assert_quiescent(self) -> None:
         """Reject any topic whose high watermark moved after boundary capture."""
-        if self._boundary is None:
+        if self._boundary is None and not self._label_boundaries:
             raise BulkMonitorError("boundary has not been captured")
-        current = self._watermarks()
-        for partition, boundary_offset in self._boundary.items():
+        captured = self._captured_boundary()
+        current, _lows = self._watermarks() if not self._label_boundaries else self._watermarks(set(captured))
+        for partition, boundary_offset in captured.items():
             current_offset = current[partition]
             if current_offset != boundary_offset:
                 raise QuiescentViolationError(
@@ -415,21 +534,39 @@ class BulkMonitor:
                     f"boundary={boundary_offset} current={current_offset}"
                 )
 
-    def _committed_offsets(self) -> dict[Partition, int | None]:
-        """Read stable committed offsets with the installed confluent-kafka API."""
+    def _committed_offsets(self, labels: set[str] | None = None) -> dict[Partition, int | None]:
+        """Read stable committed offsets with the installed confluent-kafka API.
+
+        ``labels`` restricts the admin requests to those labels' groups;
+        partitions of other labels are then reported as ``None``.
+        """
+        groups = None if labels is None else {self._group_by_label[label] for label in labels}
         partitions_by_group: dict[str, list[Partition]] = defaultdict(list)
         for partition, group_id in self._owner_by_partition.items():
-            partitions_by_group[group_id].append(partition)
+            if groups is None or group_id in groups:
+                partitions_by_group[group_id].append(partition)
 
         resolved: dict[Partition, int | None] = {partition: None for partition in self._expected_partitions}
+        # The admin API takes one group per request; issue every request
+        # before awaiting any so the groups resolve in one round trip.
+        pending: dict[str, object] = {}
         for group_id, partitions in partitions_by_group.items():
             request = ConsumerGroupTopicPartitions(
                 group_id,
                 [TopicPartition(topic, partition) for topic, partition in sorted(partitions)],
             )
             try:
-                futures = self._admin.list_consumer_group_offsets([request], require_stable=True)
-                result = futures[group_id].result(timeout=self._request_timeout())
+                pending[group_id] = self._admin.list_consumer_group_offsets(
+                    [request], require_stable=True,
+                )[group_id]
+            except Exception as exc:
+                # Raised in group order below, exactly as a sequential read would.
+                pending[group_id] = exc
+        for group_id, future in pending.items():
+            try:
+                if isinstance(future, Exception):
+                    raise future
+                result = future.result(timeout=self._request_timeout())
                 returned = result.topic_partitions
             except Exception as exc:
                 raise OffsetResolutionError(
@@ -446,12 +583,10 @@ class BulkMonitor:
         if self._boundary is None:
             raise BulkMonitorError("boundary has not been captured")
         offsets = self._committed_offsets()
+        # Kafka has no group offset for an assigned partition that held no record at the
+        # snapshot (low == high); any other partition still requires a commit.
         return all(
-            # Kafka has no group offset for an assigned partition that never
-            # contained a record.  A fixed zero watermark is therefore already
-            # durably complete; any nonzero boundary still requires a commit.
-            (boundary_offset == 0 and offsets[partition] is None)
-            or (offsets[partition] is not None and offsets[partition] >= boundary_offset)
+            self._partition_ok(partition, boundary_offset, offsets[partition], exact=False)
             for partition, boundary_offset in self._boundary.items()
         )
 
@@ -483,8 +618,7 @@ class BulkMonitor:
                     continue
                 topic = self._topic_by_label[label]
                 if all(
-                    (boundary == 0 and offsets[(name, partition)] is None)
-                    or (offsets[(name, partition)] is not None and offsets[(name, partition)] >= boundary)
+                    self._partition_ok((name, partition), boundary, offsets[(name, partition)], exact=False)
                     for (name, partition), boundary in self._boundary.items()
                     if name == topic
                 ):
@@ -541,17 +675,181 @@ class BulkMonitor:
             if partition[0] != topic:
                 continue
             offset = offsets[partition]
-            if boundary == 0 and offset is None:
+            if self._partition_ok(partition, boundary, offset, exact=True):
                 continue
-            if offset != boundary:
-                raise OffsetResolutionError(
-                    f"nonzero lag label={label} topic={partition[0]} "
-                    f"partition={partition[1]} committed={offset} boundary={boundary}"
-                )
+            detail = ""
+            if offset is not None and offset > boundary and self._empty_at_snapshot(partition, boundary):
+                detail = " (committed offset above the high watermark of an empty partition: topic recreated under a reused run id?)"
+            raise OffsetResolutionError(
+                f"nonzero lag label={label} topic={partition[0]} "
+                f"partition={partition[1]} committed={offset} boundary={boundary}{detail}"
+            )
 
-    def _raise_pending_drain_failure(self) -> None:
+    def _label_at_boundary(
+        self, label: str, offsets: Mapping[Partition, int | None], *, exact: bool,
+    ) -> bool:
+        """Return whether one label's partitions are committed through the boundary."""
+        label_boundary = self._label_boundary(label)
+        assert label_boundary is not None
+        for partition, boundary in label_boundary.items():
+            offset = offsets.get(partition)
+            if not self._partition_ok(partition, boundary, offset, exact=exact):
+                return False
+        return True
+
+    def drive_label_readiness(
+        self,
+        labels: set[str],
+        timeout_seconds: float,
+        *,
+        stop_label: Callable[[str], None],
+        on_ready: Callable[[str], None],
+        should_abort: Callable[[], bool] | None = None,
+        max_concurrent_stops: int | None = None,
+    ) -> None:
+        """Independently cover, bound, stop, drain-prove, and zero-lag-prove every label.
+
+        Each label advances ``joining -> running -> draining -> ready`` on its
+        own.  A label's fixed boundary is captured as soon as that label alone
+        proves exact assignment coverage (unless a global boundary was already
+        captured), so a small label is not held behind every other label's
+        consumer-group rebalances.  A label that reaches its boundary is
+        stopped at once and published without waiting behind any other label.
+
+        Only this calling thread touches the (non thread-safe) Kafka clients.
+        ``stop_label`` runs on a worker pool (one worker per label by
+        default, so no label's SIGTERM queues behind another's Docker stop),
+        must never use Kafka, and must raise when the label's exact containers
+        cannot be stopped.  ``on_ready`` runs on this thread only after every
+        replica of the label acknowledged DRAIN_COMPLETE and the label's
+        committed offsets, read after those acknowledgements, exactly equal
+        the unchanged boundary.  Readiness does not wait for Docker to finish
+        tearing a stopped container down: DRAIN_COMPLETE is only published
+        after the replica's final offset commit, so the acknowledgements and
+        offsets are the proof.  Every stop must still return (or its failure
+        is raised) before this method returns.
+
+        Deadlines: while any label is still running, some label must capture
+        its boundary, reach its boundary, finish its stop, or become ready
+        within ``timeout_seconds`` of the previous such progress; each stopped
+        label must prove its drain, and its Docker stop must return, within
+        ``timeout_seconds`` of the stop being requested.  Any failure raises;
+        the caller owns fail-closed cleanup of every exact container.
+        """
+        if not labels or not labels.issubset(self._topic_by_label):
+            raise BulkMonitorError("requested completion labels must be configured")
+        if timeout_seconds <= 0:
+            raise BulkTimeoutError("node label readiness timeout must be positive")
+
+        replicas_by_label: dict[str, set[Replica]] = defaultdict(set)
+        for replica in self._expected_replicas:
+            replicas_by_label[replica[0]].add(replica)
+        running = set(labels)
+        stop_requested: set[str] = set()
+        stopping: dict[str, tuple[Future, float]] = {}
+        draining: dict[str, float] = {}
+        progress_deadline = self._clock() + timeout_seconds
+        previous_deadline = self._operation_deadline
+        workers = len(labels) if max_concurrent_stops is None else max_concurrent_stops
+        executor = ThreadPoolExecutor(
+            max_workers=max(1, min(len(labels), workers)),
+            thread_name_prefix="node-label-stop",
+        )
+        succeeded = False
+        try:
+            while running or stopping or draining:
+                if should_abort is not None and should_abort():
+                    raise BulkMonitorError("node label readiness aborted (dependent stage failure or shutdown request)")
+                now = self._clock()
+                for label, deadline in sorted(draining.items()):
+                    if now >= deadline:
+                        self._raise_pending_drain_failure(label)
+                        raise BulkTimeoutError(f"timed out waiting for node label={label} drain completion")
+                for label, (_, deadline) in sorted(stopping.items()):
+                    if now >= deadline:
+                        raise BulkTimeoutError(f"timed out waiting for node label={label} container stop")
+                if running and now >= progress_deadline:
+                    raise BulkTimeoutError("timed out waiting for node label completion")
+                deadlines = (
+                    ([progress_deadline] if running else [])
+                    + list(draining.values())
+                    + [deadline for _, deadline in stopping.values()]
+                )
+                self._operation_deadline = min(deadlines) if deadlines else None
+
+                # As in _wait_until: once a stop may have removed an exact
+                # container, read acknowledgements before inspecting Docker.
+                if stop_requested:
+                    self._poll_control()
+                    self._check_container_health(drained_labels=stop_requested)
+                else:
+                    self._check_container_health()
+                    self._poll_control()
+
+                progressed = False
+                for label in sorted(label for label, (future, _) in stopping.items() if future.done()):
+                    stopping.pop(label)[0].result()
+                    progress_deadline = self._clock() + timeout_seconds
+                    progressed = True
+
+                for label in sorted(running):
+                    if self._label_boundary(label) is None and self._has_label_assignment_coverage(label):
+                        self.capture_label_boundary(label)
+                        progress_deadline = self._clock() + timeout_seconds
+                        progressed = True
+                bounded = {label for label in running if self._label_boundary(label) is not None}
+
+                acknowledged = sorted(
+                    label for label in draining
+                    if all(self._is_drain_acknowledged(replica) for replica in replicas_by_label[label])
+                )
+                if bounded or acknowledged:
+                    # Offsets are read strictly after the acknowledgements above.
+                    self._assert_quiescent()
+                    offsets = self._committed_offsets(bounded | set(acknowledged))
+                    for label in acknowledged:
+                        if not self._label_at_boundary(label, offsets, exact=True):
+                            topic = self._topic_by_label[label]
+                            detail = " ".join(
+                                f"partition={partition} committed={offsets.get((name, partition))} "
+                                f"boundary={boundary}"
+                                for (name, partition), boundary in sorted(self._label_boundary(label).items())
+                            )
+                            raise OffsetResolutionError(f"nonzero lag label={label} topic={topic} {detail}")
+                        del draining[label]
+                        progress_deadline = self._clock() + timeout_seconds
+                        progressed = True
+                        on_ready(label)
+                    for label in sorted(bounded):
+                        if not self._has_label_assignment_coverage(label):
+                            continue
+                        if not self._label_at_boundary(label, offsets, exact=False):
+                            continue
+                        running.remove(label)
+                        stop_requested.add(label)
+                        self._drain_phase = True
+                        requested_at = self._clock()
+                        stopping[label] = (
+                            executor.submit(stop_label, label), requested_at + timeout_seconds,
+                        )
+                        draining[label] = requested_at + timeout_seconds
+                        progress_deadline = requested_at + timeout_seconds
+                        progressed = True
+                if not progressed and (running or stopping or draining):
+                    remaining = [deadline - self._clock() for deadline in deadlines]
+                    self._sleep(max(0.0, min([self._poll_interval_seconds, *remaining])))
+            succeeded = True
+        finally:
+            self._operation_deadline = previous_deadline
+            # On failure do not block on in-flight Docker stops: the caller
+            # immediately stops every exact container anyway.
+            executor.shutdown(wait=succeeded, cancel_futures=True)
+
+    def _raise_pending_drain_failure(self, label: str | None = None) -> None:
         """Attribute an exited exact replica that never acknowledged its drain."""
         for replica in sorted(self._pending_drain_exits):
+            if label is not None and replica[0] != label:
+                continue
             if not self._is_drain_acknowledged(replica):
                 raise LoaderCrashError(self._pending_drain_exits[replica])
 
@@ -564,16 +862,21 @@ class BulkMonitor:
         offsets = self._committed_offsets()
         for partition, boundary_offset in self._boundary.items():
             offset = offsets[partition]
-            if boundary_offset == 0 and offset is None:
+            if self._partition_ok(partition, boundary_offset, offset, exact=True):
                 continue
-            if offset is None or offset != boundary_offset:
-                raise OffsetResolutionError(
-                    f"nonzero lag topic={partition[0]} partition={partition[1]} "
-                    f"committed={offset} boundary={boundary_offset}"
-                )
+            detail = ""
+            if offset is not None and offset > boundary_offset and self._empty_at_snapshot(partition, boundary_offset):
+                detail = " (committed offset above the high watermark of an empty partition: topic recreated under a reused run id?)"
+            raise OffsetResolutionError(
+                f"nonzero lag topic={partition[0]} partition={partition[1]} "
+                f"committed={offset} boundary={boundary_offset}{detail}"
+            )
 
     def close(self) -> None:
         """Close only monitor-owned Kafka consumers."""
+        if self._health_executor is not None:
+            self._health_executor.shutdown(wait=False, cancel_futures=True)
+            self._health_executor = None
         self._close_owned_consumers()
 
     def _close_owned_consumers(self) -> None:

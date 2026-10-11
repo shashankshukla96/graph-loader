@@ -1,7 +1,7 @@
-import os
 import pytest
 from pathlib import Path
 
+from it_scratch_db import ensure_database, explicit_neo4j_auth
 from src.utils.schema_loader import load_schema
 from src.utils.cypher_generator import generate_all_ddl
 from src.orchestrator.schema_initializer import get_neo4j_driver, apply_schema
@@ -10,9 +10,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture(scope="module")
 def live_driver():
-    uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-    user = os.environ.get("NEO4J_USER", "neo4j")
-    password = os.environ.get("NEO4J_PASSWORD", "changeme")
+    uri, user, password = explicit_neo4j_auth()
     
     try:
         driver = get_neo4j_driver(uri, user, password, max_retries=1, base_delay=0.1)
@@ -24,12 +22,14 @@ def live_driver():
     driver.close()
 
 @pytest.mark.integration
-def test_schema_initializer_against_live_neo4j(live_driver):
+def test_schema_initializer_against_live_neo4j(live_driver, it_database):
+    # it_database exports NEO4J_DATABASE, which apply_schema's open_session honours.
+    ensure_database(live_driver, it_database)
     schema = load_schema(_PROJECT_ROOT / "config" / "graph_schema.yaml")
     ddl_statements = generate_all_ddl(schema)
     
     # 1. Clean up existing constraints/indexes
-    with live_driver.session() as session:
+    with live_driver.session(database=it_database) as session:
         for stmt in ddl_statements:
             parts = stmt.split()
             if "CONSTRAINT" in parts:
@@ -43,7 +43,7 @@ def test_schema_initializer_against_live_neo4j(live_driver):
     apply_schema(live_driver, schema, timeout_seconds=30.0)
     
     # 3. Verify they were created
-    with live_driver.session() as session:
+    with live_driver.session(database=it_database) as session:
         res_c = session.run("SHOW CONSTRAINTS YIELD name RETURN name")
         constraints = [r["name"] for r in res_c]
         

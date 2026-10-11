@@ -1,0 +1,152 @@
+# Optional observability profile for graph-loader: Prometheus + Grafana.
+#
+# Off by default, by construction: this file is never referenced by
+# docker-compose.yaml and Compose only auto-loads a file named exactly
+# docker-compose.override.yml, which this deliberately is not. Running
+# `docker compose up` alone never starts these two services.
+#
+# Usage (see docs/MONITORING.md, or `make monitoring-up`/`monitoring-down`):
+#   docker compose -f docker-compose.yaml -f docker-compose.monitoring.yml \
+#     up -d prometheus grafana
+#
+# IMPORTANT: never run bare `docker compose -f docker-compose.yaml -f
+# docker-compose.monitoring.yml down` — reviewer finding S3-SF3: combining
+# both files makes Compose treat this as one project containing neo4j,
+# kafka and kafka-ui too, so an unscoped `down` would stop/remove those as
+# well (and, worse, try to remove graph-loader-net, which this file itself
+# declares external and does not own). `make monitoring-down` (Story 6)
+# is scoped to `stop`+`rm` on exactly the prometheus/grafana services for
+# this reason; always start/stop by explicit service name with this file,
+# never bare `up`/`down`.
+#
+# Why a separate override file, not a `profiles:` block inside
+# docker-compose.yaml: that file is being actively iterated on in parallel
+# by P6-S1 (CI) and P6-S2 (core metrics instrumentation) worktrees. A
+# same-file edit here would race those two slices for no benefit a second
+# file doesn't already give — `docker compose -f -f` is the standard
+# Compose "override file" pattern and needs no `profiles:` mechanism.
+#
+# Prometheus down must not affect loads: true by construction, not just by
+# outcome. Every loader process's own metrics HTTP server (P6-S2) never
+# blocks or crashes the loader if nobody scrapes it. Prometheus is a
+# pull-based, passive observer here — it calls out to loader containers;
+# no loader container calls in to Prometheus, waits on a shared volume it
+# writes, or blocks on its liveness in any way. Stopping
+# graph-loader-prometheus mid-run has zero effect on a loader's own reads
+# from Kafka or writes to Neo4j.
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: graph-loader-prometheus
+    # Disjoint from Neo4j's (0-7) and Kafka's (8-11) cpuset in
+    # docker-compose.yaml. Deliberately overlaps the top of the
+    # LOADER_CPUSET=12-31 documented example (docs/USAGE.md §2) — see
+    # docs/MONITORING.md's resource-and-data-placement section for the
+    # named tradeoff and the one-line fix (narrow LOADER_CPUSET to 12-27,
+    # or move MONITORING_CPUSET elsewhere). NOTE: the 28-31 default
+    # assumes a >=32-core host, matching docs/USAGE.md's own LOADER_CPUSET
+    # example host; override MONITORING_CPUSET on a smaller host.
+    cpuset: "${MONITORING_CPUSET:-28-31}"
+    # Reviewer finding B1 (blocker, reproduced): the image runs as
+    # `USER nobody` (uid 65534), which cannot read a Docker socket owned
+    # by the host's docker group without also joining that group inside
+    # the container. `make monitoring-up` (Story 6) always computes and
+    # exports `DOCKER_GID=$(stat -c %g /var/run/docker.sock)` before
+    # calling `up`. Deliberately `:?` (fail loudly), not a hardcoded or
+    # guessed default (reviewer nit): the socket's gid varies per host
+    # (992 here, commonly 999/998 elsewhere), and a wrong silent default
+    # would reproduce B1 with only a buried log line, not a visible
+    # failure. Always use `make monitoring-up`, never a bare
+    # `docker compose ... up`, unless you export DOCKER_GID yourself first.
+    group_add:
+      - "${DOCKER_GID:?set DOCKER_GID=$(stat -c %g /var/run/docker.sock), or use make monitoring-up which does this for you}"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${MONITORING_RETENTION:-48h}
+      # Reviewer finding S3-SF4: --web.enable-lifecycle (POST /-/reload,
+      # /-/quit) is deliberately NOT enabled. Nothing in this slice's own
+      # tooling calls it, and combined with a 0.0.0.0 default bind it
+      # would be an unauthenticated remote kill switch for anyone on the
+      # network. An operator who wants live config reload can add this
+      # flag back explicitly, after also narrowing PROMETHEUS_HOST_BIND
+      # to 127.0.0.1 or adding their own auth in front of it.
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      # Root-adjacent access to the whole Docker daemon, not just this
+      # project's containers — required by docker_sd_configs, which talks
+      # to the Docker Engine API directly. Reviewer finding S3-SF2:
+      # `:ro` only protects the socket *file* from being replaced — it
+      # does NOT make the Docker API itself read-only. Any process able
+      # to connect() to this socket can create, exec into, and delete
+      # containers, and bind-mount the host filesystem into a new one:
+      # this is full root-equivalent access to the host, not a scoped
+      # read-only capability. Scoped to "trusted local host only" per
+      # docs/MONITORING.md; a socket-proxy (e.g.
+      # tecnativa/docker-socket-proxy) is the real hardening option for
+      # anyone who needs this off a single trusted workstation, not built
+      # by this slice.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}/prometheus:/prometheus
+    ports:
+      - "${PROMETHEUS_HOST_BIND:-0.0.0.0}:9090:9090"
+    networks:
+      - graph-loader-net
+    # P6-S5 (found during P6-S3): lets prometheus.yml's graph-loader-cli
+    # job resolve host.docker.internal on a Linux Docker Engine (20.10+);
+    # macOS/Windows Docker Desktop already resolve this hostname without
+    # it, so the entry is a harmless no-op there. See prometheus.yml's own
+    # comment on that job, and docs/MONITORING.md §7, for the CLI-side
+    # opt-in (GRAPH_LOADER_METRICS_BIND_ADDR) needed to actually reach it.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  grafana:
+    image: grafana/grafana-oss:11.3.1
+    container_name: graph-loader-grafana
+    cpuset: "${MONITORING_CPUSET:-28-31}"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    environment:
+      # Anonymous Viewer access matches docker-compose.yaml's existing
+      # security posture for kafka-ui (also unauthenticated, also bound
+      # 0.0.0.0 by default) — consistency with the existing file, not a
+      # new precedent. This stack assumes a trusted local/private network
+      # (docs/MONITORING.md).
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      # Reviewer nit: mounted under /etc/grafana, not nested inside the
+      # /var/lib/grafana data bind mount below — avoids Docker silently
+      # creating an empty dashboards/ dir inside the data volume.
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}/grafana:/var/lib/grafana
+    ports:
+      - "${GRAFANA_HOST_BIND:-0.0.0.0}:3000:3000"
+    networks:
+      - graph-loader-net
+
+networks:
+  # Already declared and named by docker-compose.yaml. external: true
+  # tells Compose "join it, do not (re)create it" — the only correct
+  # relationship between two Compose files meant to be combined with
+  # `-f -f`. Verified empirically (Story 3's plan): `docker compose ...
+  # config` does NOT fail if graph-loader-net is missing (Compose's
+  # `config` is a pure render step, no Docker API call) — the actual,
+  # verified failure point is `docker compose ... up`, which fails with
+  # "network graph-loader-net declared as external, but could not be
+  # found" (exit 1).
+  graph-loader-net:
+    external: true
+    name: graph-loader-net

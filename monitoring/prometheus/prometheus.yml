@@ -1,0 +1,173 @@
+# graph-loader observability stack — Prometheus configuration.
+#
+# This file is only ever read when the optional monitoring profile is
+# started (`make monitoring-up`, i.e. `docker compose -f docker-compose.yaml
+# -f docker-compose.monitoring.yml up -d prometheus grafana`). It is never
+# referenced by the base `docker-compose.yaml`; `docker compose up` alone
+# never launches Prometheus and never reads this file.
+#
+# See docs/MONITORING.md for the full discovery/dashboard/alerting story,
+# including the two corrections to plan/v6/slices.md's original Slice 3
+# text: no Pushgateway, and the metrics port is 9464 (not 9090 — 9090 is
+# Prometheus's own default port, used for its self-scrape job below).
+
+global:
+  # Short enough to catch a ~60s bulk run's short-lived containers at
+  # least once (see the scrape-vs-container-lifetime edge case below).
+  scrape_interval: 3s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts/*.yml"
+
+scrape_configs:
+  # Every graph-loader loader/writer/dispatcher/lease-server/clock
+  # container, discovered by Docker label, never by a manually maintained
+  # target list.
+  - job_name: graph-loader
+    scrape_interval: 3s
+    # Review finding (Story 1): every graph_loader_* series already carries
+    # its own `kind` label (src/utils/metrics.py). Without honor_labels,
+    # Prometheus's default label-collision rule renames the *scraped*
+    # `kind` to `exported_kind` and keeps this job's target-level `kind`
+    # (added by relabel_configs #4 below) instead — today the two values
+    # are always identical (the Docker label and PROCESS_KINDS enum agree),
+    # but that would silently paper over any future divergence between what
+    # a container's Docker label says and what the process itself reports.
+    # honor_labels: true keeps the scraped label authoritative and avoids
+    # ever emitting an `exported_kind` twin. Nothing this job's exposition
+    # format emits collides with any other target label (run_id, node_label,
+    # edge_type, writer_id, replica_id, container_name are never metric
+    # labels per src/utils/metrics.py's label policy table), so this is
+    # safe to enable broadly, not just for `kind`.
+    honor_labels: true
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        # Fallback only, exercised solely if a graph_loader-labelled
+        # container ever exposes zero TCP ports (never happens today:
+        # docker_service.py's _metrics_ports_entry(env) always publishes
+        # at least the metrics port on every launcher). docker_sd_configs
+        # otherwise emits one target per (container, network, exposed
+        # port) tuple, address = <container's graph-loader-net IP>:<that
+        # port's own private-port number> — never this fallback value,
+        # and never the host-published 127.0.0.1 ephemeral mapping (that
+        # mapping is for a human on the host to curl directly; Prometheus
+        # is itself a container on graph-loader-net and reaches every
+        # target over the in-network address docker_sd already resolves).
+        port: 9464
+        # Docker API poll interval. Must be shorter than the shortest
+        # bulk run this stack is expected to observe, per the "short-
+        # lived containers discovered and scraped at least once"
+        # acceptance criterion. NOTE this is a best-effort, not an
+        # unconditional guarantee: a container whose total lifetime is
+        # shorter than refresh_interval + scrape_interval (here, under
+        # ~5s) can legitimately exit and be reaped before Prometheus
+        # ever discovers it. Its only durable record in that case is
+        # P6-S2 Story 9's exit-time `.prom` snapshot file under
+        # GRAPH_LOADER_TIMING_DIR, not a Prometheus series at all.
+        refresh_interval: 2s
+        filters:
+          - name: label
+            # Narrows the Docker API call itself: Neo4j, Kafka, Kafka UI,
+            # Prometheus and Grafana's own containers never carry this
+            # label and are never even fetched, not merely filtered out
+            # after the fact.
+            values: ["graph_loader.kind"]
+    relabel_configs:
+      # 1. Drop the two known control ports (never the metrics port).
+      #    RE2 has no backreferences, so this cannot be a dynamic
+      #    "port == the metrics_port label's value" comparison.
+      #    7700 = src/orchestrator/lease_server.py:DEFAULT_LEASE_PORT
+      #    7701 = src/orchestrator/planned_dispatcher.py:DEFAULT_DISPATCHER_PORT
+      #    Reserved-value note: an operator who sets
+      #    GRAPH_LOADER_METRICS_PORT=7700 or 7701 breaks this and gets no
+      #    scrape target for that container (documented in
+      #    docs/MONITORING.md).
+      - source_labels: [__meta_docker_port_private]
+        regex: "7700|7701"
+        action: drop
+      # 2. Skip containers that opted out (GRAPH_LOADER_METRICS_ENABLED=0).
+      - source_labels: [__meta_docker_container_label_graph_loader_metrics_enabled]
+        regex: "0"
+        action: drop
+      # 3. Keep only targets on graph-loader-net (a container joined to a
+      #    second network would otherwise be discovered twice).
+      - source_labels: [__meta_docker_network_name]
+        regex: "graph-loader-net"
+        action: keep
+      # 4. Promote Docker labels to series labels an operator queries by.
+      #    run_id is a *target* label here (Docker SD relabel), never a
+      #    *metric* label — see docs/MONITORING.md's cardinality budget
+      #    section for why this is safe on this disposable, short-
+      #    retention local stack but would not be on a long-lived,
+      #    multi-tenant Prometheus server.
+      - source_labels: [__meta_docker_container_label_graph_loader_kind]
+        target_label: kind
+      - source_labels: [__meta_docker_container_label_run_id]
+        target_label: run_id
+      - source_labels: [__meta_docker_container_label_node_label]
+        target_label: node_label
+      - source_labels: [__meta_docker_container_label_edge_type]
+        target_label: edge_type
+      - source_labels: [__meta_docker_container_label_writer_id]
+        target_label: writer_id
+      - source_labels: [__meta_docker_container_label_replica_id]
+        target_label: replica_id
+      - source_labels: [__meta_docker_container_name]
+        regex: "/(.*)"
+        target_label: container_name
+      # 5. instance otherwise defaults to the container's graph-loader-net
+      #    IP:port, which is reused across short-lived runs and not human-
+      #    readable; container_name is unique and stable for the life of
+      #    the container.
+      - source_labels: [__meta_docker_container_name]
+        regex: "/(.*)"
+        target_label: instance
+
+  # Self-scrape: gives the dashboard's own "is Prometheus healthy" panel
+  # something to query even before any graph-loader container ever runs.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # P6-S5 (found during P6-S3): the CLI's own metrics server -
+  # graph_loader_consumer_lag_records and the planner series
+  # (graph_loader_planner_rows_read_total,
+  # graph_loader_planner_chunks_published_total) are CLI-only, never
+  # emitted by any Docker container, so the job above (Docker SD) never
+  # discovers this target. `host.docker.internal` is Docker's own
+  # container-to-host-gateway hostname (Linux: needs the
+  # `host.docker.internal:host-gateway` extra_hosts entry on the
+  # prometheus service in docker-compose.monitoring.yml, added
+  # alongside this job; macOS/Windows Docker Desktop resolve it without
+  # any extra_hosts entry).
+  #
+  # OPT-IN, NOT FUNCTIONAL BY DEFAULT: the CLI's metrics server binds
+  # 127.0.0.1 by default (src/cli.py's `_handle_start`), which is not
+  # reachable from this container even via the host gateway -
+  # 127.0.0.1 inside a bind means "this container's own loopback," not
+  # "the host's." Set `GRAPH_LOADER_METRICS_BIND_ADDR=0.0.0.0` (found
+  # during P6-S3, closed during P6-S5 - not the same as P6-S5's own
+  # Story 6, which is a different, still-open item: a test proving a
+  # SIGTERM-driven stream run leaves a parseable metrics-cli.prom
+  # snapshot) in the CLI's own environment to make it reachable here -
+  # see docs/MONITORING.md §7 for the full tradeoff (it exposes an
+  # unauthenticated endpoint beyond localhost, logged at WARNING on
+  # every run that sets it). Without that opt-in, this job's one target
+  # is harmless: Prometheus just shows it "down" in the target list,
+  # same as any other unreachable target, and nothing else in this
+  # stack is affected.
+  #
+  # Fixed port, not ephemeral: the CLI's default metrics port (9464)
+  # falls back to a random OS-assigned port if 9464 is already taken on
+  # the host (`allow_ephemeral_fallback=True`), which a static target
+  # cannot follow. An operator who wants this job to actually resolve
+  # must ensure port 9464 is free on the CLI's host, or set
+  # `GRAPH_LOADER_METRICS_PORT` to a fixed value here and in the CLI's
+  # own environment.
+  - job_name: graph-loader-cli
+    scrape_interval: 3s
+    static_configs:
+      - targets: ["host.docker.internal:9464"]
+        labels:
+          kind: cli

@@ -6,7 +6,7 @@ the exact ordering of lifecycle calls.
 """
 import argparse
 from types import SimpleNamespace
-from unittest.mock import MagicMock, call
+from unittest.mock import ANY, MagicMock, call
 
 import src.cli as cli
 from src.orchestrator.bulk_monitor import QuiescentViolationError
@@ -50,7 +50,10 @@ def test_bulk_happy_path_uses_one_run_scope_and_orders_lifecycle(monkeypatch):
     )
     person_0, person_1, company_0 = (_container("person-0"), _container("person-1"), _container("company-0"))
     service = MagicMock()
-    service.run_node_loader.side_effect = [[person_0, person_1], [company_0]]
+    # Labels launch concurrently, so map returned containers by label.
+    service.run_node_loader.side_effect = lambda node_label, **_kwargs: {
+        "Person": [person_0, person_1], "Company": [company_0],
+    }[node_label]
     monitor = MagicMock()
     events = []
     monitor.wait_for_assignment_coverage.side_effect = lambda timeout: events.append("coverage")
@@ -71,8 +74,9 @@ def test_bulk_happy_path_uses_one_run_scope_and_orders_lifecycle(monkeypatch):
         {("Person", "0"), ("Person", "1"), ("Company", "0")},
         {("Person", "0"): person_0, ("Person", "1"): person_1, ("Company", "0"): company_0},
         bootstrap_servers="host-kafka:19092",
+        abort_requested=ANY,  # P6-S5 Story 2: the CLI shutdown hook
     )
-    assert service.run_node_loader.call_args_list == [
+    assert sorted(service.run_node_loader.call_args_list, key=lambda c: c.kwargs["node_label"], reverse=True) == [
         call(node_label="Person", topic="people", mode="bulk", config_path="config.yaml", replicas=2, network="test_net", run_id="run-42"),
         call(node_label="Company", topic="companies", mode="bulk", config_path="config.yaml", replicas=1, network="test_net", run_id="run-42"),
     ]

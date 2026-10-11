@@ -1,0 +1,540 @@
+{
+  "edges": {
+    "EMPLOYED_BY": {
+      "conflict_rule": "precedence",
+      "dead_letter": {
+        "mtc-employed-by-base": {
+          "dlq": "mtc-employed-by-failures",
+          "encoded_sha256": "d79a152c685bd02a2f7ce4d86b4972ef7e35e6ab0c372c3f8535d31700a5bb7c",
+          "key": "[4,\"k1\"]",
+          "value": "{\"properties\":{\"title\":\"v4\"},\"source\":{\"person_id\":4},\"target\":{\"company_id\":\"k1\"}}"
+        },
+        "mtc-employed-by-fix": {
+          "dlq": "mtc-employed-by-failures",
+          "encoded_sha256": "6490b640141a715bfb11a2bc8ca8e0e1130034a3d920406a0b8862832282f1d7",
+          "key": "[4,\"k1\"]",
+          "value": "{\"properties\":{\"title\":\"v4\"},\"source\":{\"person_id\":4},\"target\":{\"company_id\":\"k1\"}}"
+        }
+      },
+      "index": [
+        [
+          "[4,\"k1\",\"mtc-employed-by-fix\",1,10]",
+          "{\"first_failure_at_ms\":1700000000000,\"seq\":1}"
+        ],
+        [
+          "[4,\"k1\",\"mtc-employed-by-base\",1,11]",
+          "{\"first_failure_at_ms\":1700000000000,\"seq\":2}"
+        ]
+      ],
+      "names": [
+        "mtc-employed-by-failures",
+        "mtc-employed-by-failures.parked",
+        "mtc-employed-by-failures.parked-pairs"
+      ],
+      "queries": {
+        "apoc_collect": "c89a7af6ed7b13955ca3b16f85f8e03ed2eafffb185d9b10e53969b906835f2a",
+        "apoc_lease": "0512d3cb84e0e128e4d3fd8788e11e883992d5e49a0cef160f133e55d6314e14",
+        "apoc_locked": "0a02cdb5401d1e44dee4a8a9f5f2063e8f611d5b978894056eefe3c6f506ad1a",
+        "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+        "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+      },
+      "sub_edges": {
+        "mtc-employed-by-base": {
+          "conflict_rule": "single",
+          "dump": {
+            "dead_letter": {
+              "enabled": true,
+              "max_retry_attempts": 5,
+              "parked_topic": "mtc-employed-by-failures.parked",
+              "route_missing_endpoints_in_bulk": false,
+              "topic": "mtc-employed-by-failures"
+            },
+            "execution": {
+              "mode": "python_apoc",
+              "worker_count": 1
+            },
+            "mix_and_batch": {
+              "backward_slot_ms": 500,
+              "batch_size": 1000,
+              "forward_slot_ms": 500,
+              "lane_count": 1
+            },
+            "nodes": {
+              "source": "Person",
+              "target": "Company"
+            },
+            "order_by": null,
+            "properties": {
+              "title": {
+                "constraint": null,
+                "index": null,
+                "required": false,
+                "type": "string"
+              }
+            },
+            "replicas": 1,
+            "retry": {
+              "base_delay_seconds": 1.0,
+              "max_attempts": 3,
+              "max_delay_seconds": 60.0
+            },
+            "source_key_property": "person_id",
+            "target_key_property": "company_id",
+            "topic_conflict": null,
+            "topics": [
+              "mtc-employed-by-base"
+            ],
+            "type": "EMPLOYED_BY"
+          },
+          "is_multi_topic": false,
+          "names": [
+            "mtc-employed-by-failures",
+            "mtc-employed-by-failures.parked",
+            "mtc-employed-by-failures.parked-pairs"
+          ],
+          "queries": {
+            "apoc_collect": "c89a7af6ed7b13955ca3b16f85f8e03ed2eafffb185d9b10e53969b906835f2a",
+            "apoc_lease": "0512d3cb84e0e128e4d3fd8788e11e883992d5e49a0cef160f133e55d6314e14",
+            "apoc_locked": "0a02cdb5401d1e44dee4a8a9f5f2063e8f611d5b978894056eefe3c6f506ad1a",
+            "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+            "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+          }
+        },
+        "mtc-employed-by-fix": {
+          "conflict_rule": "single",
+          "dump": {
+            "dead_letter": {
+              "enabled": true,
+              "max_retry_attempts": 5,
+              "parked_topic": "mtc-employed-by-failures.parked",
+              "route_missing_endpoints_in_bulk": false,
+              "topic": "mtc-employed-by-failures"
+            },
+            "execution": {
+              "mode": "python_apoc",
+              "worker_count": 1
+            },
+            "mix_and_batch": {
+              "backward_slot_ms": 500,
+              "batch_size": 1000,
+              "forward_slot_ms": 500,
+              "lane_count": 1
+            },
+            "nodes": {
+              "source": "Person",
+              "target": "Company"
+            },
+            "order_by": null,
+            "properties": {
+              "title": {
+                "constraint": null,
+                "index": null,
+                "required": false,
+                "type": "string"
+              }
+            },
+            "replicas": 1,
+            "retry": {
+              "base_delay_seconds": 1.0,
+              "max_attempts": 3,
+              "max_delay_seconds": 60.0
+            },
+            "source_key_property": "person_id",
+            "target_key_property": "company_id",
+            "topic_conflict": null,
+            "topics": [
+              "mtc-employed-by-fix"
+            ],
+            "type": "EMPLOYED_BY"
+          },
+          "is_multi_topic": false,
+          "names": [
+            "mtc-employed-by-failures",
+            "mtc-employed-by-failures.parked",
+            "mtc-employed-by-failures.parked-pairs"
+          ],
+          "queries": {
+            "apoc_collect": "c89a7af6ed7b13955ca3b16f85f8e03ed2eafffb185d9b10e53969b906835f2a",
+            "apoc_lease": "0512d3cb84e0e128e4d3fd8788e11e883992d5e49a0cef160f133e55d6314e14",
+            "apoc_locked": "0a02cdb5401d1e44dee4a8a9f5f2063e8f611d5b978894056eefe3c6f506ad1a",
+            "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+            "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+          }
+        }
+      },
+      "substages": [
+        [
+          0,
+          "mtc-employed-by-base",
+          "run-A.topic.0.3fcf0cd6ca5057eeaeadea1e"
+        ],
+        [
+          1,
+          "mtc-employed-by-fix",
+          "run-A.topic.1.e710fcf7af1d41ae8050464e"
+        ]
+      ],
+      "topics": [
+        "mtc-employed-by-base",
+        "mtc-employed-by-fix"
+      ]
+    },
+    "KNOWS": {
+      "conflict_rule": "arrival",
+      "dead_letter": {
+        "mtc-knows-a": {
+          "dlq": "KNOWS.dlq",
+          "encoded_sha256": "157ea7b0568a008bcf8ca69614bb28b324250a2e6055e2e99fde3140c19f2831",
+          "key": "[4,1]",
+          "value": "{\"properties\":{\"weight\":4.25},\"source\":{\"person_id\":4},\"target\":{\"person_id\":1}}"
+        },
+        "mtc-knows-b": {
+          "dlq": "KNOWS.dlq",
+          "encoded_sha256": "c50d75db890bb47ebe0daa068e248e58a2c3c0c2dc34723f4508ca02cab846d6",
+          "key": "[4,1]",
+          "value": "{\"properties\":{\"weight\":4.25},\"source\":{\"person_id\":4},\"target\":{\"person_id\":1}}"
+        }
+      },
+      "index": [
+        [
+          "[4,1,\"mtc-knows-b\",1,10]",
+          "{\"first_failure_at_ms\":1700000000000,\"seq\":1}"
+        ],
+        [
+          "[4,1,\"mtc-knows-a\",1,11]",
+          "{\"first_failure_at_ms\":1700000000000,\"seq\":2}"
+        ]
+      ],
+      "names": [
+        "KNOWS.dlq",
+        "KNOWS.dlq.parked",
+        "KNOWS.dlq.parked-pairs"
+      ],
+      "queries": {
+        "apoc_collect": "84c31838330d3358308a1c0fd1db695afd9b161fc64ed5f0d75b31904229e6d5",
+        "apoc_lease": "5a62522a68a487cc368ec91d48312867e6bb1cfef2326dad60705399b6d9f451",
+        "apoc_locked": "3919d0c91aca992d6f5361255d0f774dec7f8fc371ec59108f049d6bf6b2eb04",
+        "classification": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+        "preflight": "3d94e29c115cd448dd9dfaa1bcdf750873d344fc1fa39806b9d2e62461e0a9c4"
+      },
+      "sub_edges": {
+        "mtc-knows-a": {
+          "conflict_rule": "single",
+          "dump": {
+            "dead_letter": {
+              "enabled": true,
+              "max_retry_attempts": 5,
+              "parked_topic": "KNOWS.dlq.parked",
+              "route_missing_endpoints_in_bulk": false,
+              "topic": "KNOWS.dlq"
+            },
+            "execution": {
+              "mode": "python_apoc",
+              "worker_count": 1
+            },
+            "mix_and_batch": {
+              "backward_slot_ms": 500,
+              "batch_size": 1000,
+              "forward_slot_ms": 500,
+              "lane_count": 1
+            },
+            "nodes": {
+              "source": "Person",
+              "target": "Person"
+            },
+            "order_by": null,
+            "properties": {
+              "weight": {
+                "constraint": null,
+                "index": null,
+                "required": false,
+                "type": "float"
+              }
+            },
+            "replicas": 1,
+            "retry": {
+              "base_delay_seconds": 1.0,
+              "max_attempts": 3,
+              "max_delay_seconds": 60.0
+            },
+            "source_key_property": "person_id",
+            "target_key_property": "person_id",
+            "topic_conflict": null,
+            "topics": [
+              "mtc-knows-a"
+            ],
+            "type": "KNOWS"
+          },
+          "is_multi_topic": false,
+          "names": [
+            "KNOWS.dlq",
+            "KNOWS.dlq.parked",
+            "KNOWS.dlq.parked-pairs"
+          ],
+          "queries": {
+            "apoc_collect": "84c31838330d3358308a1c0fd1db695afd9b161fc64ed5f0d75b31904229e6d5",
+            "apoc_lease": "5a62522a68a487cc368ec91d48312867e6bb1cfef2326dad60705399b6d9f451",
+            "apoc_locked": "3919d0c91aca992d6f5361255d0f774dec7f8fc371ec59108f049d6bf6b2eb04",
+            "classification": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+            "preflight": "3d94e29c115cd448dd9dfaa1bcdf750873d344fc1fa39806b9d2e62461e0a9c4"
+          }
+        },
+        "mtc-knows-b": {
+          "conflict_rule": "single",
+          "dump": {
+            "dead_letter": {
+              "enabled": true,
+              "max_retry_attempts": 5,
+              "parked_topic": "KNOWS.dlq.parked",
+              "route_missing_endpoints_in_bulk": false,
+              "topic": "KNOWS.dlq"
+            },
+            "execution": {
+              "mode": "python_apoc",
+              "worker_count": 1
+            },
+            "mix_and_batch": {
+              "backward_slot_ms": 500,
+              "batch_size": 1000,
+              "forward_slot_ms": 500,
+              "lane_count": 1
+            },
+            "nodes": {
+              "source": "Person",
+              "target": "Person"
+            },
+            "order_by": null,
+            "properties": {
+              "weight": {
+                "constraint": null,
+                "index": null,
+                "required": false,
+                "type": "float"
+              }
+            },
+            "replicas": 1,
+            "retry": {
+              "base_delay_seconds": 1.0,
+              "max_attempts": 3,
+              "max_delay_seconds": 60.0
+            },
+            "source_key_property": "person_id",
+            "target_key_property": "person_id",
+            "topic_conflict": null,
+            "topics": [
+              "mtc-knows-b"
+            ],
+            "type": "KNOWS"
+          },
+          "is_multi_topic": false,
+          "names": [
+            "KNOWS.dlq",
+            "KNOWS.dlq.parked",
+            "KNOWS.dlq.parked-pairs"
+          ],
+          "queries": {
+            "apoc_collect": "84c31838330d3358308a1c0fd1db695afd9b161fc64ed5f0d75b31904229e6d5",
+            "apoc_lease": "5a62522a68a487cc368ec91d48312867e6bb1cfef2326dad60705399b6d9f451",
+            "apoc_locked": "3919d0c91aca992d6f5361255d0f774dec7f8fc371ec59108f049d6bf6b2eb04",
+            "classification": "fb4fe5cae681d353f35428e53c31e4c53a973e61aec362fc5d91518b47252179",
+            "preflight": "3d94e29c115cd448dd9dfaa1bcdf750873d344fc1fa39806b9d2e62461e0a9c4"
+          }
+        }
+      },
+      "topics": [
+        "mtc-knows-a",
+        "mtc-knows-b"
+      ]
+    },
+    "WORKS_AT": {
+      "conflict_rule": "order_by",
+      "dead_letter": {
+        "mtc-works-at-a": {
+          "dlq": "WORKS_AT.dlq",
+          "encoded_sha256": "9125da61d9456c13aac27ef52b446ace4eca03b643c4c1365a5b120af05707c5",
+          "key": "[4,\"k1\"]",
+          "value": "{\"properties\":{\"role\":\"v4\",\"since\":\"2020-01-05\"},\"source\":{\"person_id\":4},\"target\":{\"company_id\":\"k1\"}}"
+        },
+        "mtc-works-at-b": {
+          "dlq": "WORKS_AT.dlq",
+          "encoded_sha256": "4b6556ce1e825b6051d20d18d3ad65a5ca2aab6ad74907a72a9ef21f3f1da4e4",
+          "key": "[4,\"k1\"]",
+          "value": "{\"properties\":{\"role\":\"v4\",\"since\":\"2020-01-05\"},\"source\":{\"person_id\":4},\"target\":{\"company_id\":\"k1\"}}"
+        }
+      },
+      "index": [
+        [
+          "[4,\"k1\",\"mtc-works-at-b\",1,10]",
+          "{\"first_failure_at_ms\":1700000000000,\"seq\":1}"
+        ],
+        [
+          "[4,\"k1\",\"mtc-works-at-a\",1,11]",
+          "{\"first_failure_at_ms\":1700000000000,\"seq\":2}"
+        ]
+      ],
+      "names": [
+        "WORKS_AT.dlq",
+        "WORKS_AT.dlq.parked",
+        "WORKS_AT.dlq.parked-pairs"
+      ],
+      "queries": {
+        "apoc_collect": "3b15a0d7e3b8f27e56d8e1adb283f8098bb133ace053965528b1b34a356e159b",
+        "apoc_lease": "87cfcea6686db7e73b950dd658225b5bf538e4ce8ac03921fc867442302b22e9",
+        "apoc_locked": "e4c26873e73549a78f9701e59c64b0b4610e04ac7c132dee8664d20f6e04464f",
+        "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+        "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+      },
+      "sub_edges": {
+        "mtc-works-at-a": {
+          "conflict_rule": "order_by",
+          "dump": {
+            "dead_letter": {
+              "enabled": true,
+              "max_retry_attempts": 4,
+              "parked_topic": "WORKS_AT.dlq.parked",
+              "route_missing_endpoints_in_bulk": false,
+              "topic": "WORKS_AT.dlq"
+            },
+            "execution": {
+              "mode": "python_apoc",
+              "worker_count": 1
+            },
+            "mix_and_batch": {
+              "backward_slot_ms": 500,
+              "batch_size": 1000,
+              "forward_slot_ms": 500,
+              "lane_count": 1
+            },
+            "nodes": {
+              "source": "Person",
+              "target": "Company"
+            },
+            "order_by": "since",
+            "properties": {
+              "role": {
+                "constraint": null,
+                "index": null,
+                "required": false,
+                "type": "string"
+              },
+              "since": {
+                "constraint": null,
+                "index": null,
+                "required": true,
+                "type": "date"
+              }
+            },
+            "replicas": 1,
+            "retry": {
+              "base_delay_seconds": 1.0,
+              "max_attempts": 3,
+              "max_delay_seconds": 60.0
+            },
+            "source_key_property": "person_id",
+            "target_key_property": "company_id",
+            "topic_conflict": null,
+            "topics": [
+              "mtc-works-at-a"
+            ],
+            "type": "WORKS_AT"
+          },
+          "is_multi_topic": false,
+          "names": [
+            "WORKS_AT.dlq",
+            "WORKS_AT.dlq.parked",
+            "WORKS_AT.dlq.parked-pairs"
+          ],
+          "queries": {
+            "apoc_collect": "3b15a0d7e3b8f27e56d8e1adb283f8098bb133ace053965528b1b34a356e159b",
+            "apoc_lease": "87cfcea6686db7e73b950dd658225b5bf538e4ce8ac03921fc867442302b22e9",
+            "apoc_locked": "e4c26873e73549a78f9701e59c64b0b4610e04ac7c132dee8664d20f6e04464f",
+            "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+            "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+          }
+        },
+        "mtc-works-at-b": {
+          "conflict_rule": "order_by",
+          "dump": {
+            "dead_letter": {
+              "enabled": true,
+              "max_retry_attempts": 4,
+              "parked_topic": "WORKS_AT.dlq.parked",
+              "route_missing_endpoints_in_bulk": false,
+              "topic": "WORKS_AT.dlq"
+            },
+            "execution": {
+              "mode": "python_apoc",
+              "worker_count": 1
+            },
+            "mix_and_batch": {
+              "backward_slot_ms": 500,
+              "batch_size": 1000,
+              "forward_slot_ms": 500,
+              "lane_count": 1
+            },
+            "nodes": {
+              "source": "Person",
+              "target": "Company"
+            },
+            "order_by": "since",
+            "properties": {
+              "role": {
+                "constraint": null,
+                "index": null,
+                "required": false,
+                "type": "string"
+              },
+              "since": {
+                "constraint": null,
+                "index": null,
+                "required": true,
+                "type": "date"
+              }
+            },
+            "replicas": 1,
+            "retry": {
+              "base_delay_seconds": 1.0,
+              "max_attempts": 3,
+              "max_delay_seconds": 60.0
+            },
+            "source_key_property": "person_id",
+            "target_key_property": "company_id",
+            "topic_conflict": null,
+            "topics": [
+              "mtc-works-at-b"
+            ],
+            "type": "WORKS_AT"
+          },
+          "is_multi_topic": false,
+          "names": [
+            "WORKS_AT.dlq",
+            "WORKS_AT.dlq.parked",
+            "WORKS_AT.dlq.parked-pairs"
+          ],
+          "queries": {
+            "apoc_collect": "3b15a0d7e3b8f27e56d8e1adb283f8098bb133ace053965528b1b34a356e159b",
+            "apoc_lease": "87cfcea6686db7e73b950dd658225b5bf538e4ce8ac03921fc867442302b22e9",
+            "apoc_locked": "e4c26873e73549a78f9701e59c64b0b4610e04ac7c132dee8664d20f6e04464f",
+            "classification": "b42cf62ebb9e3a93d7f42da23885bc0b2fa9e3491083be25e284cb71f47113ab",
+            "preflight": "973beffd8cf017a6a90f449d2b83d9f597469c70adc7adb15ae38507b9118ae6"
+          }
+        }
+      },
+      "topics": [
+        "mtc-works-at-a",
+        "mtc-works-at-b"
+      ]
+    }
+  },
+  "plan": {
+    "chunk_messages_sha256": "79251dea46a7e5055696f668069b21ded942d0b58b11760b2ea8a01292be62d5",
+    "chunks": 51,
+    "plan_json_without_stats_sha256": "04376e038bb1cc60b2c8f1a6ba22c3073cb3b5213d1e3b77c6929d4f959725b5"
+  },
+  "plan_hub": {
+    "chunk_messages_sha256": "2512016b1e63197ec51178f80e6a6b813d10060aa01a3e6f7f9931a644ce153c",
+    "chunks": 72,
+    "hubs": 8,
+    "plan_json_without_stats_sha256": "f8d421678aafe2a8549251e83b25296e3cd20051d72a463cf8a103c7f3e89af9"
+  }
+}

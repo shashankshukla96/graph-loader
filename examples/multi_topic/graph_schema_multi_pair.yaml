@@ -1,0 +1,52 @@
+# Multi-pair variant of the multi-topic example (v7-S7): ONE relationship type, LIKES, connects two label pairs.
+# Each topic binds its own pair; Post and Comment ids overlap on purpose (post 7 and comment 7 both exist), so a
+# loader that guessed the pair from the record could not be right.
+#
+#   python examples/multi_topic/multi_topic_graph.py publish --variant multi-pair --customers 2000
+#   python -m src.cli start --mode bulk --config examples/multi_topic/graph_schema_multi_pair.yaml
+#   python examples/multi_topic/multi_topic_graph.py verify --variant multi-pair --customers 2000
+loading:
+  consumer_group_id: graph-loader-mt-pairs
+  unwind_batch_size: 1000
+  edge_unwind_batch_size: 2000
+
+nodes:
+  - label: Customer
+    topic: mtp-customer
+    key_property: customer_id
+    properties:
+      customer_id: {type: integer, required: true, constraint: {type: uniqueness}}
+      name: {type: string, required: true}
+  - label: Post
+    topic: mtp-post
+    key_property: post_id
+    properties:
+      post_id: {type: integer, required: true, constraint: {type: uniqueness}}
+      title: {type: string, required: true}
+  - label: Comment
+    topic: mtp-comment
+    key_property: comment_id
+    properties:
+      comment_id: {type: integer, required: true, constraint: {type: uniqueness}}
+      text: {type: string, required: true}
+
+edges:
+  - type: LIKES
+    topics:
+      - name: mt-likes-posts               # Customer -> Post
+        nodes: {source: Customer, target: Post}
+        source_key_property: customer_id
+        target_key_property: post_id
+      - name: mt-likes-posts-import        # the same pair from a second topic: order_by decides
+        nodes: {source: Customer, target: Post}
+        source_key_property: customer_id
+        target_key_property: post_id
+      - name: mt-likes-comments            # Customer -> Comment, colliding ids
+        nodes: {source: Customer, target: Comment}
+        source_key_property: customer_id
+        target_key_property: comment_id
+    order_by: liked_at
+    replicas: 2
+    properties:
+      liked_at: {type: datetime, required: true}
+      reaction: {type: string, required: true}

@@ -14,21 +14,37 @@
 
 loading:
   mode: stream                      # bulk | stream
-  consumer_group_id: graph-loader   # Kafka consumer group shared by all loaders
+  consumer_group_id: graph-loader   # Prefix of every group: <id>-<Label> (nodes), <id>-<type> (stream edges), <id>-<type>-<run> (bulk edges), <id>-retry-consumer
   max_poll_interval_ms: 300000      # Max ms between poll() calls before broker evicts consumer
   session_timeout_ms: 45000         # Kafka session timeout in milliseconds
-  unwind_batch_size: 500             # Max records per Neo4j UNWIND transaction
+  unwind_batch_size: 500             # Records per node write transaction (1-10000); also the edge outer batch, classic only
   flush_interval_ms: 1000            # Idle partial-batch flush interval (ms)
   retry_max_attempts: 3            # Includes the initial node-write attempt
   retry_base_delay_ms: 100          # Initial exponential retry delay (ms)
   retry_max_delay_ms: 5000          # Maximum exponential retry delay (ms)
-  rejection_log_path: var/rejections/node-loader.jsonl  # Phase 5 replaces this sink with DLQ
+  rejection_log_path: var/rejections/node-loader.jsonl  # File sink for malformed records of entities without dead_letter.enabled: true
   coordination:
-    topic: graph.loader.coordination  # Phase 4 run-scoped clock topic
+    topic: graph.loader.coordination  # Deprecated Phase 4 clock topic, used only by --stream-clock-rotation; must not collide with data or DLQ topics;
+                                       # reachable only via --stream-clock-rotation after P5-S1
     bucket_count: 64
     slot_duration_ms: 60000
     lease_timeout_ms: 120000
-  slot_buffer_max_records: 10000       # Bounded unleased relationship records per loader
+  bucket_lease:                        # P5-S1: bucket-lease coordinator tuning + P5-Q1 fencing
+    health_check_interval_ms: 2000     # Streaming-only: supervisor poll interval for the lease server
+    max_consecutive_restarts: 5        # Streaming-only: fail the run closed after this many restarts
+    restart_count_reset_ms: 600000     # Streaming-only: a restarted server up this long after its quiet
+                                        # period resets the restart count (deaths far apart never add up)
+    restart_backoff_base_ms: 500       # Streaming-only: first restart-backoff delay
+    restart_backoff_max_ms: 30000      # Streaming-only: capped restart-backoff delay
+    reconnect_timeout_ms: 60000        # Streaming-only: bound on one lease-client reconnect (0 = unbounded, at the
+                                        # risk of exceeding max_poll_interval_ms; must fit with tx_timeout_ms + Q)
+    tx_timeout_ms: 30000               # T = lease duration and planned-writer tx timeout; leased writes get at most T-4 s (fenced BEGIN)
+                                        # must be >= 6000 in lease modes and >= 10x
+                                        # expected_chunk_commit_ms
+    expected_chunk_commit_ms: 1000     # Operator estimate of a typical chunk's commit time
+    restart_quiet_margin_ms: 5000      # Margin added to T for the post-restart quiet period Q
+                                        # (>= 2000: Neo4j's tx-monitor check interval)
+  slot_buffer_max_records: 10000       # Clock path only (--stream-clock-rotation): bounded unleased relationship records per loader
   slot_worker_queue_max_batches: 32    # Bounded handoff from Kafka poller to Neo4j worker
 
 nodes:
@@ -74,6 +90,15 @@ nodes:
       lastLogin:
         type: datetime              # Neo4j DateTime (ISO-8601 with timezone)
         required: false
+
+    # dead_letter:                  # Optional — opt into DLQ routing for malformed
+    #   enabled: true                #   Person records (Phase 5 Slice 2). Omitted here
+    #   # topic: dlq-person          #   on purpose: this label still uses the file
+    #                                #   rejection sink (rejection_log_path above),
+    #                                #   which is the zero-behavior-change default.
+    #                                #   `topic` is optional: when omitted, the
+    #                                #   effective DLQ topic defaults to
+    #                                #   "<this label's topic>.dlq".
 
   - label: Company
     topic: company-events
@@ -141,17 +166,43 @@ edges:
       base_delay_seconds: 1.0       # Initial backoff delay
       max_delay_seconds: 60.0       # Backoff ceiling — must be >= base_delay_seconds
 
+    # order_by: since                # Phase 5 Slice 4: alternative to pair-parking.
+    #   When set, retried and live writes use a conditional SET that only
+    #   applies when the incoming value is newer than what's stored, so a
+    #   stale retry can never clobber a newer commit. Must name a declared
+    #   property. Off here on purpose: WORKS_AT uses the default pair-parking
+    #   behavior instead.
+
     dead_letter:
-      topic: dlq-works-at           # Kafka DLQ topic for exhausted retries
-      enabled: true                 # Set false to log-and-drop instead of routing to DLQ
+      # Phase 5 Slice 2: this block used to be dead code (no loader read it);
+      # it is now live. Kept `enabled: false` here on purpose so this
+      # repository's own default schema keeps its pre-slice behavior
+      # (malformed WORKS_AT records keep going to rejection_log_path) with
+      # zero silent change. Flip to `true` to route them to the `topic`
+      # below instead (created automatically with unlimited retention).
+      # `topic` is optional; when omitted the effective topic defaults to
+      # "<this type's topic>.dlq".
+      topic: dlq-works-at           # Kafka DLQ topic for malformed records
+      enabled: false                # Set true to route malformed records here instead of the file
+      # route_missing_endpoints_in_bulk: true  # Phase 5 Slice 3: bulk-only opt-in.
+      #   Streaming always DLQs a missing/ambiguous endpoint when enabled: true
+      #   above; classic/lease BULK stays fail-closed (whole batch fails) unless
+      #   this is also set true. Requires enabled: true. Off here on purpose.
+      # max_retry_attempts: 5        # Phase 5 Slice 4: how many times the retry
+      #   consumer re-attempts a DLQ'd missing/ambiguous-endpoint (or write_failed) row before
+      #   parking it (default 5, 1-1000). Requires enabled: true.
+      # parked_topic: dlq-works-at-parked  # Phase 5 Slice 4: parking-lot topic
+      #   override. Omitted here on purpose: the effective topic defaults to
+      #   "<this type's resolved DLQ topic>.parked". Requires enabled: true.
 
   - type: KNOWS
     topic: knows-events
     nodes:
       source: Person
       target: Person                # Same as source → self-referencing edge
-                                    # The loader will schedule KNOWS in isolation to prevent
-                                    # deadlocks (SourceTargetConfig.is_self_referencing == True)
+                                    # Isolated only in classic bulk with --bulk-edge-overlap labels
+                                    # (and the clock path); planned, lease and stream
+                                    # run it together with the other types
 
     properties:
 
@@ -167,18 +218,20 @@ edges:
 
     mix_and_batch:
       lane_count: 1
-      batch_size: 500               # Smaller batch for self-referencing edges (higher lock contention)
+      batch_size: 500               # Smaller batch for self-referencing edges (higher lock contention; applies to classic only)
       forward_slot_ms: 500
       backward_slot_ms: 500
 
     retry:
-      max_attempts: 5               # More retries for self-referencing edges (higher contention)
+      max_attempts: 5               # More retries for self-referencing edges (higher contention; classic only)
       base_delay_seconds: 2.0
-      max_delay_seconds: 120.0      # Longer ceiling to absorb Neo4j lock storms
+      max_delay_seconds: 120.0      # Longer ceiling to absorb Neo4j lock storms (classic only)
 
     dead_letter:
+      # Same Phase 5 Slice 2 note as WORKS_AT above: kept `enabled: false`
+      # so this repository's default schema has zero silent behavior change.
       topic: dlq-knows
-      enabled: true
+      enabled: false                # Set true to route malformed records here instead of the file
     source_key_property: personId
     target_key_property: personId
     execution:

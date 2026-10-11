@@ -1,0 +1,59 @@
+# STARTING POINT, NOT AN SLO. Thresholds below are conservative defaults
+# chosen without production traffic data (P6-Q4, plan/v5-v6-orchestration.md).
+# Tune every threshold to your own environment before treating a firing
+# alert as an incident. `for:` durations are chosen to avoid a scrape-
+# interval blip firing an alert, not to model any real SLO.
+groups:
+  - name: graph-loader-progress
+    rules:
+      - alert: GraphLoaderPlannedRunStalled
+        # Review finding (Story 2): use changes(), not increase(), on a
+        # gauge — increase() assumes a counter's reset semantics and only
+        # happens to read correctly here because `committed` never
+        # decreases within one run. changes() says exactly what this
+        # rule means: "the value has not moved."
+        expr: >
+          (graph_loader_plan_chunks_committed < graph_loader_plan_chunks_planned)
+          and (changes(graph_loader_plan_chunks_committed[10m]) == 0)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Planned dispatcher run_id={{ $labels.run_id }} has not committed a chunk in ~20m (10m window + 10m for:) and is not yet complete."
+          description: >
+            A long node-readiness phase (chunks blocked on `ready_labels`
+            that are not yet ready) can also hold `committed` flat for
+            more than 10m during an otherwise-healthy run — check the
+            dispatcher's own logs for "waiting on ready_labels" before
+            treating this as stuck (P6-Q4: not an SLO).
+      - alert: GraphLoaderNoRecordsConsumed
+        # Review finding (Story 2, should-fix 1): the original
+        # `and on(kind, name)` join (a) collapses distinct replicas/runs
+        # sharing one (kind, name) so one idle replica flags a busy one
+        # too; (b) never matches for planned-writer, whose process_up
+        # carries name="-" while records_consumed carries name=<edge_type>
+        # (metrics.py); (c) can never fire for a loader that has not
+        # written its first record at all, since records_consumed has no
+        # series yet and `initialize_zero_series` does not pre-create it
+        # — `and` silently drops an absent right-hand side. Matching on
+        # the per-container `instance` target label (always present via
+        # Story 1's relabeling) and using `unless` (fires when NO matching
+        # series with nonzero increase exists, including "no series at
+        # all") fixes all three.
+        expr: >
+          (graph_loader_process_up{kind=~"node|edge|planned-writer"} == 1)
+          unless on(instance)
+          (sum by (instance) (increase(graph_loader_records_consumed_total[10m])) > 0)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.kind }}/{{ $labels.name }} ({{ $labels.instance }}) is up but has consumed 0 records in the last ~20m, or has never consumed one."
+          description: >
+            Expected to fire during legitimate idle periods for
+            long-lived streaming loaders with no traffic — tune `for:`
+            or scope this rule to bulk runs only in your own environment
+            (P6-Q4: not an SLO). Also fires for a container stuck before
+            its first batch write (bad Kafka config, stuck initial
+            flush), which is the more common real-world case this rule
+            exists to catch.

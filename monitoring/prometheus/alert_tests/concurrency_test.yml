@@ -1,0 +1,43 @@
+# promtool unit tests for the concurrency alert rules. Deliberately NOT
+# under monitoring/prometheus/alerts/: that directory's glob
+# ("alerts/*.yml") is prometheus.yml's own rule_files target AND
+# Story 5/6's "promtool check rules alerts/*.yml" validation target — a
+# promtool *test* file (this one) is not a valid rule-group file (no
+# top-level `groups:` key) and would break both if it lived there. Run
+# this file with:
+#   docker run --rm --entrypoint promtool \
+#     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+#     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/concurrency_test.yml
+#
+# This is the promtool proof required by Story 2's own acceptance
+# criterion: GraphLoaderPlannedModeDeadlockObserved fires against a
+# synthetic nonzero snapshot and does not fire against an all-zero one.
+rule_files:
+  - ../alerts/concurrency.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_deadlocks_recovered_total{kind="planned-writer",name="ACTED_IN"}'
+        values: "0 1"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: GraphLoaderPlannedModeDeadlockObserved
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              kind: planned-writer
+              name: ACTED_IN
+            exp_annotations:
+              summary: "Planned-mode writer recovered a deadlock — this must stay 0 by construction (docs/USAGE.md §6/§9); investigate the resource-disjointness invariant immediately."
+
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_deadlocks_recovered_total{kind="planned-writer",name="ACTED_IN"}'
+        values: "0 0"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: GraphLoaderPlannedModeDeadlockObserved
+        exp_alerts: []

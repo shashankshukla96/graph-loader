@@ -1,0 +1,49 @@
+# Dead-letter variant of the multi-topic example (v7-S4): stream mode, RATED fed by two topics,
+# with ONE dead-letter queue for the whole type.
+#
+#   RATED.dlq               every unresolved or malformed row of mt-rated-app AND mt-rated-import
+#                           (partitions: the widest of the two topics); each envelope keeps its
+#                           original_topic, so `replay-dlq --source-topic` can pick one topic.
+#   RATED.dlq.parked        rows that ran out of max_retry_attempts.
+#   RATED.dlq.parked-pairs  not created here: order_by types never need the parked-pair index
+#                           (the conditional SET protects the newer value). An `arrival` type
+#                           would get one, shared by both topics.
+#
+# WISHLISTED is left out: `topic_conflict: precedence` is bulk-only, and stream refuses it.
+# See README.md, "Dead-letter variant".
+loading:
+  mode: stream
+  consumer_group_id: multi-topic-dlq-example
+  unwind_batch_size: 500
+  edge_unwind_batch_size: 2000
+  rejection_log_path: var/rejections/multi-topic-dlq-node-loader.jsonl
+
+nodes:
+  - label: Customer
+    topic: mt-customer
+    key_property: customer_id
+    properties:
+      customer_id: {type: integer, required: true, constraint: {type: uniqueness}}
+      name: {type: string, required: true}
+  - label: Product
+    topic: mt-product
+    key_property: sku
+    properties:
+      sku: {type: string, required: true, constraint: {type: uniqueness}}
+      title: {type: string, required: true}
+
+edges:
+  - type: RATED
+    topics: [mt-rated-app, mt-rated-import]
+    order_by: rated_at
+    nodes: {source: Customer, target: Product}
+    source_key_property: customer_id
+    target_key_property: sku
+    retry: {base_delay_seconds: 1.0, max_delay_seconds: 10.0}
+    dead_letter:
+      enabled: true          # one DLQ for both topics: RATED.dlq (dead_letter.topic overrides it)
+      max_retry_attempts: 30
+    properties:
+      stars: {type: integer, required: true}
+      rated_at: {type: datetime, required: true}
+      channel: {type: string, required: true}

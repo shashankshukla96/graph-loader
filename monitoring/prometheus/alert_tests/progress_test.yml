@@ -1,0 +1,89 @@
+# promtool unit tests for progress.yml's GraphLoaderNoRecordsConsumed —
+# added at completion-review time (reviewer finding: only
+# GraphLoaderPlannedModeDeadlockObserved had a committed unit test; this
+# rule's `unless on(instance)` rewrite was previously proven only by the
+# reviewer's own scratch promtool runs, never committed). Run with:
+#   docker run --rm --entrypoint promtool \
+#     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+#     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/progress_test.yml
+rule_files:
+  - ../alerts/progress.yml
+
+evaluation_interval: 1m
+
+tests:
+  # A container that is up but has never written a single record: no
+  # graph_loader_records_consumed_total series exists at all for its
+  # instance. The old `and on(kind,name)` join silently dropped this case
+  # (an absent right-hand side); `unless on(instance)` must still fire.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_process_up{kind="node",name="Person",instance="stalled-0"}'
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: GraphLoaderNoRecordsConsumed
+        exp_alerts:
+          - exp_labels:
+              kind: node
+              name: Person
+              instance: stalled-0
+              severity: warning
+            exp_annotations:
+              summary: "node/Person (stalled-0) is up but has consumed 0 records in the last ~20m, or has never consumed one."
+              description: "Expected to fire during legitimate idle periods for long-lived streaming loaders with no traffic — tune `for:` or scope this rule to bulk runs only in your own environment (P6-Q4: not an SLO). Also fires for a container stuck before its first batch write (bad Kafka config, stuck initial flush), which is the more common real-world case this rule exists to catch.\n"
+
+  # A busy container consuming records steadily must never fire.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_process_up{kind="node",name="Person",instance="busy-0"}'
+        values: "1x12"
+      - series: 'graph_loader_records_consumed_total{kind="node",name="Person",label_or_type="Person",instance="busy-0"}'
+        values: "0+100x12"
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: GraphLoaderNoRecordsConsumed
+        exp_alerts: []
+
+  # Reviewer follow-up (optional nit, added for completeness): two
+  # replicas of the SAME kind+name, one busy and one idle. The old
+  # `and on(kind,name)` join collapsed distinct replicas sharing one
+  # (kind,name) — a busy replica would have flagged an idle sibling too.
+  # `unless on(instance)` must fire for exactly the idle one.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_process_up{kind="node",name="Person",instance="n1-busy"}'
+        values: "1x12"
+      - series: 'graph_loader_records_consumed_total{kind="node",name="Person",label_or_type="Person",instance="n1-busy"}'
+        values: "0+50x12"
+      - series: 'graph_loader_process_up{kind="node",name="Person",instance="n2-idle"}'
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: GraphLoaderNoRecordsConsumed
+        exp_alerts:
+          - exp_labels:
+              kind: node
+              name: Person
+              instance: n2-idle
+              severity: warning
+            exp_annotations:
+              summary: "node/Person (n2-idle) is up but has consumed 0 records in the last ~20m, or has never consumed one."
+              description: "Expected to fire during legitimate idle periods for long-lived streaming loaders with no traffic — tune `for:` or scope this rule to bulk runs only in your own environment (P6-Q4: not an SLO). Also fires for a container stuck before its first batch write (bad Kafka config, stuck initial flush), which is the more common real-world case this rule exists to catch.\n"
+
+  # Reviewer follow-up (optional nit): a planned-writer's process_up
+  # carries name="-" while its records_consumed carries
+  # name=<edge_type> (metrics.py) — the old `and on(kind,name)` join
+  # never matched this kind at all. `unless on(instance)` must not fire
+  # for a busy planned-writer despite the name mismatch, since instance
+  # is the same for both series.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_process_up{kind="planned-writer",name="-",instance="pw-0"}'
+        values: "1x12"
+      - series: 'graph_loader_records_consumed_total{kind="planned-writer",name="WORKS_AT",label_or_type="WORKS_AT",instance="pw-0"}'
+        values: "0+20x12"
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: GraphLoaderNoRecordsConsumed
+        exp_alerts: []

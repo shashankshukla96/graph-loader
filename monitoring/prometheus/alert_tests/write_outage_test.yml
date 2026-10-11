@@ -1,0 +1,68 @@
+# promtool unit tests for write_outage.yml (stream outage resilience). Run with:
+#   docker run --rm --entrypoint promtool \
+#     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+#     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/write_outage_test.yml
+rule_files:
+  - ../alerts/write_outage.yml
+
+evaluation_interval: 1m
+
+tests:
+  # WORKS_AT's edge loader rides out a 10-minute outage (the gauge counts
+  # seconds): above 120 s from 3m, firing after the 1m `for:` at 4m. A
+  # 90-second Neo4j restart seen by the Person node loader never fires, and
+  # neither does KNOWS, which recovers (back to 0) after 2 minutes.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_write_outage_seconds{kind="edge",name="WORKS_AT",run_id="r1",instance="e0"}'
+        values: "0+60x10"
+      - series: 'graph_loader_write_outage_seconds{kind="node",name="Person",run_id="r1",instance="n0"}'
+        values: "0 30 90 0x8"
+      - series: 'graph_loader_write_outage_seconds{kind="edge",name="KNOWS",run_id="r1",instance="e1"}'
+        values: "0+60x2 0x8"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: WORKS_AT
+              run_id: r1
+              severity: critical
+            exp_annotations:
+              summary: "edge/WORKS_AT Neo4j writes have failed for 4m 0s; the stream loader is holding its batch and retrying."
+              description: "A live stream loader cannot write to Neo4j. Nothing is lost: the batch stays uncommitted in Kafka and is retried in order, and the fleet stays up. Ingestion of this entity is stopped until Neo4j accepts writes again (consumer lag grows). Check Neo4j's health and the loader's reason=neo4j_outage ERROR lines for the error. Authentication and missing-database errors that persist for 10 minutes stop the fleet (reason=neo4j_fatal).\n"
+      - eval_time: 10m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: WORKS_AT
+              run_id: r1
+              severity: critical
+            exp_annotations:
+              summary: "edge/WORKS_AT Neo4j writes have failed for 10m 0s; the stream loader is holding its batch and retrying."
+              description: "A live stream loader cannot write to Neo4j. Nothing is lost: the batch stays uncommitted in Kafka and is retried in order, and the fleet stays up. Ingestion of this entity is stopped until Neo4j accepts writes again (consumer lag grows). Check Neo4j's health and the loader's reason=neo4j_outage ERROR lines for the error. Authentication and missing-database errors that persist for 10 minutes stop the fleet (reason=neo4j_fatal).\n"
+  # Recovery clears it: the gauge returns to 0 and the alert resolves.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_write_outage_seconds{kind="node",name="Person",run_id="r2",instance="n0"}'
+        values: "0+60x6 0x6"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts:
+          - exp_labels:
+              kind: node
+              name: Person
+              run_id: r2
+              severity: critical
+            exp_annotations:
+              summary: "node/Person Neo4j writes have failed for 5m 0s; the stream loader is holding its batch and retrying."
+              description: "A live stream loader cannot write to Neo4j. Nothing is lost: the batch stays uncommitted in Kafka and is retried in order, and the fleet stays up. Ingestion of this entity is stopped until Neo4j accepts writes again (consumer lag grows). Check Neo4j's health and the loader's reason=neo4j_outage ERROR lines for the error. Authentication and missing-database errors that persist for 10 minutes stop the fleet (reason=neo4j_fatal).\n"
+      - eval_time: 8m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts: []

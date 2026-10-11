@@ -3,26 +3,41 @@ services:
     # Enterprise is required for the planned concurrent-transaction and lock-optimization behavior.
     image: neo4j:5-enterprise
     container_name: graph-loader-neo4j
+    # Dedicated cores keep loader containers from contending with the database.
+    cpuset: "${NEO4J_CPUSET:-0-7}"
     ports:
       - "0.0.0.0:7474:7474"   # Neo4j Browser (HTTP)
       - "0.0.0.0:7687:7687"   # Bolt protocol (driver connections)
     environment:
-      NEO4J_AUTH: "${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD}"
+      # Neo4j requires its built-in admin name during initial setup.
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD}"
       NEO4J_ACCEPT_LICENSE_AGREEMENT: "${NEO4J_ACCEPT_LICENSE_AGREEMENT:-yes}"
-      # This 512m/2G/1G profile supports local development datasets up to roughly 10M nodes.
-      NEO4J_server_memory_heap_initial__size: "512m"
-      NEO4J_server_memory_heap_max__size: "3G"
-      NEO4J_server_memory_pagecache_size: "5G"
+      NEO4J_server_memory_heap_initial__size: "${NEO4J_HEAP_SIZE:-8G}"
+      NEO4J_server_memory_heap_max__size: "${NEO4J_HEAP_SIZE:-8G}"
+      NEO4J_server_memory_pagecache_size: "${NEO4J_PAGECACHE_SIZE:-12G}"
+      # Fine-grained CSV metrics let benchmarks see GC, page-cache and transaction pressure.
+      NEO4J_server_metrics_csv_interval: "${NEO4J_METRICS_INTERVAL:-5s}"
+      # Query-log rotation: Neo4j 5 has no rotation settings (only log4j), so config/neo4j/server-logs.xml
+      # (mounted below) rotates query.log at GL_QUERY_LOG_ROTATION_SIZE x GL_QUERY_LOG_KEEP_FILES instead of
+      # the default 20 MB x 7, which loses lock-wait evidence within minutes of a bulk run. Changing these
+      # needs a Neo4j container restart (the XML is re-read every 30s, the environment is not).
+      # The file is mounted OUTSIDE /var/lib/neo4j/conf because the entrypoint chowns conf/ and fails
+      # (exit 1) on a read-only mounted file there; server.logs.config points Neo4j at it instead.
+      NEO4J_server_logs_config: "/graph-loader-conf/server-logs.xml"
+      GL_QUERY_LOG_ROTATION_SIZE: "${NEO4J_QUERY_LOG_ROTATION_SIZE:-512 MB}"
+      GL_QUERY_LOG_KEEP_FILES: "${NEO4J_QUERY_LOG_KEEP_FILES:-20}"
+      # Parameter logging stays at the Neo4j default (on); for very large runs set
+      # NEO4J_QUERY_LOG_PARAMETERS=false to shrink the query log.
+      NEO4J_db_logs_query_parameter__logging__enabled: "${NEO4J_QUERY_LOG_PARAMETERS:-true}"
       NEO4J_dbms_security_procedures_unrestricted: "apoc.*,gds.*"
       NEO4J_dbms_security_procedures_allowlist: "apoc.*,gds.*"
       # APOC enables apoc.lock.nodes(), required by the planned deadlock-prevention strategy.
       # Automatic plugin installation requires internet the first time this container starts.
       NEO4J_PLUGINS: '["apoc", "graph-data-science", "genai"]'
     volumes:
-      - neo4j_data:/data
-      # Keep current Neo4j diagnostics visible to repository users without
-      # placing generated logs under version control.
-      - ./var/neo4j/logs:/logs
+      - ${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}/neo4j/data:/data
+      - ${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}/neo4j/logs:/logs
+      - ./config/neo4j/server-logs.xml:/graph-loader-conf/server-logs.xml:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:7474"]
       interval: 10s
@@ -35,6 +50,8 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.7.0
     container_name: graph-loader-kafka
+    cpuset: "${KAFKA_CPUSET:-8-11}"
+    mem_limit: "${KAFKA_MEM_LIMIT:-4g}"
     ports:
       - "0.0.0.0:9092:9092"       # External listener for host-machine clients
       - "0.0.0.0:9101:9101"       # JMX
@@ -53,10 +70,12 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       # Must be a Base64 UUID from `kafka-storage random-uuid`, not a human-readable value.
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_HEAP_OPTS: "${KAFKA_HEAP_OPTS:--Xms2g -Xmx2g}"
       KAFKA_JMX_PORT: 9101
       KAFKA_JMX_HOSTNAME: 0.0.0.0
     volumes:
-      - kafka_data:/var/lib/kafka/data
+      - ${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}/kafka/data:/var/lib/kafka/data
+      - ${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}/kafka/secrets:/etc/kafka/secrets
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "0.0.0.0:9092"]
       interval: 10s
@@ -80,10 +99,6 @@ services:
       DYNAMIC_CONFIG_ENABLED: "true"
     networks:
       - graph-loader-net
-
-volumes:
-  neo4j_data:
-  kafka_data:
 
 networks:
   graph-loader-net:
