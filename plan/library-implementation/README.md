@@ -16,7 +16,7 @@ smoke tests deselected; 406 focused tests passed; lint/dependency checks passed.
 The resumed IMDb 10,000-seed, depth-4 planned load produced 1,247,026 nodes and
 4,510,991 relationships, with all 1,780 chunks accounted for. Logs and benchmark
 artifacts are local/ignored. These results prove the exercised planned-load
-path, not the unrun real-service multi-topic DLQ case or future installed wheels.
+path, not the separately verified DLQ regression or future release artifacts.
 
 B1/B2 are implemented and E00 now binds fresh evidence to the repaired snapshot:
 **3,374 unit/example tests passed, four inherited skips individually explained,
@@ -26,7 +26,8 @@ with the exact graph, DLQ commits, parking and lock-wait assertions checked.
 See [baseline evidence](evidence/E00.F1.S1.md), [DLQ evidence](evidence/E00.F2.S1.md)
 and the [conditional E02 handoff](handoff-e02.md). The earlier results above
 remain historical. Nineteen existing fork deprecation warnings remain A5 work.
-No wheel or release exists yet; the approved API contract is a future implementation target.
+These E00 results predate package builds; no release exists, and the approved
+public API contract is a future implementation target.
 
 The [decision register](decisions.md) records approved names, public scope,
 compatibility/support/dependency targets and publishing policy. Under the user's
@@ -57,6 +58,22 @@ Final E02 evidence: **3,380 passed, four explained inherited skips, 49 deselecte
 and the [E03 handoff](handoff-e03.md). These are a new source identity, not a
 relabeling of E00's earlier baseline. Those are historical E02-only results. E04–E12 remain unstarted; no publication or
 remote graph operation was performed.
+
+## E03 completion and current handoff
+
+E03 implementation is committed at `bf5471e`, followed by the evidence-only
+`ffb8625`. [Fresh verification on 2026-10-18](reviews/e03-completion-verification-20261018.md)
+and the [independent source review](reviews/e03-revalidation-independent-20261018.md)
+accept the actual migration: 3,387 tests passed, the exact no-skip DLQ regression
+passed, and current artifacts/clean installs/four-image matrices passed.
+The wheel now includes all 49 migrated runtime modules; explicit public wrappers
+and cancellation are E04, console/resources are E05, and release delivery remains
+later work. Historical E02-only scaffold statements above describe that earlier
+phase, not the current E03 artifact.
+
+Use the [E04 handoff](handoff-e04.md) for the next assignment and maintain the
+[commit change tracker](CHANGE_TRACKER.md) for every implementation/fix/delivery.
+E04–E12 remain unstarted. Nothing authorizes a GitHub push or publication.
 
 ## Phases / epics
 
