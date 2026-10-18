@@ -232,7 +232,7 @@ def test_lease_fleet_streams_conflicting_and_self_referencing_edges_with_zero_lo
         env["NEO4J_USERNAME"] = user
         env["NEO4J_PASSWORD"] = password
         process = subprocess.Popen(
-            [sys.executable, "-m", "src.cli", "start", "--mode", "stream",
+            [sys.executable, "-m", "neo4j_graph_loader.cli", "start", "--mode", "stream",
              "--config", str(config_path), "--network", network, "--run-id", run_id,
              "--skip-image-build"],
             cwd=str(ROOT), env=env,

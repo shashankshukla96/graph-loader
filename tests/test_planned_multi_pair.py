@@ -9,21 +9,21 @@ from types import SimpleNamespace
 import pytest
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, GraphStore, likes_schema, likes_schema_dict, record
-from src.loader.edge_execution import build_edge_execution
-from src.loader.edge_loader import PendingEdgeRecord
-from src.loader.edge_plan import EdgePlan, EdgePlanError
-from src.loader.edge_planner import (
+from neo4j_graph_loader.loader.edge_execution import build_edge_execution
+from neo4j_graph_loader.loader.edge_loader import PendingEdgeRecord
+from neo4j_graph_loader.loader.edge_plan import EdgePlan, EdgePlanError
+from neo4j_graph_loader.loader.edge_planner import (
     EdgePlanError as PlannerError,
     IterableEdgeSource,
     KafkaEdgePlanner,
     PlanSettings,
     source_tasks,
 )
-from src.loader.edge_records import normalize_edge_record
-from src.loader.edge_execution import ApocLockedEdgeWriter
-from src.loader.planned_writer import ChunkDecoder, build_planned_writers, writer_for
-from src.models.schema import GraphSchema
-from src.orchestrator.planned_edges import PlannedEdgeError, validate_plan_against_schema
+from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+from neo4j_graph_loader.loader.planned_writer import ChunkDecoder, build_planned_writers, writer_for
+from neo4j_graph_loader.models.schema import GraphSchema
+from neo4j_graph_loader.orchestrator.planned_edges import PlannedEdgeError, validate_plan_against_schema
 from test_edge_planner import FakeCluster, FakeProducer
 
 GOLDEN = Path(__file__).resolve().parent / "golden" / "multi_pair_plan.json"
@@ -208,7 +208,7 @@ def test_a_producer_source_of_a_multi_pair_type_must_name_its_topic() -> None:
 
 def test_producer_sources_of_two_pairs_may_share_an_order(tmp_path) -> None:
     """Review round 4 N1: orders are distinct per (type, pair), and the plan matches the Kafka planner's."""
-    from src.loader.edge_planner import plan_and_publish_edges
+    from neo4j_graph_loader.loader.edge_planner import plan_and_publish_edges
 
     schema = likes_schema()
     records = _records()
@@ -230,7 +230,7 @@ def test_producer_sources_of_two_pairs_may_share_an_order(tmp_path) -> None:
 
 
 def _normalize_in_child(task, raw):
-    from src.loader.planned_writer import compile_record_normalizer
+    from neo4j_graph_loader.loader.planned_writer import compile_record_normalizer
 
     return task.pair, task.edge.pair_index, compile_record_normalizer(task.edge)(raw)
 
@@ -239,7 +239,7 @@ def test_pair_view_tasks_survive_a_spawned_planner_worker() -> None:
     """Review round 4 N4: read tasks of a multi-pair type are pickled to planner processes."""
     import multiprocessing
 
-    from src.loader.edge_planner import kafka_read_tasks
+    from neo4j_graph_loader.loader.edge_planner import kafka_read_tasks
 
     schema = likes_schema(comment_key_type="string")
     boundary = {topic: [(0, 0, 1)] for topic in schema.edges[0].topics}

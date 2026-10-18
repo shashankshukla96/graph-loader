@@ -214,7 +214,7 @@ def edge_record(source_key_property: str, target_key_property: str, source: obje
 def ensure_constraints(driver, schema) -> None:
     """Create every schema-declared constraint/index and wait until ONLINE.
 
-    Reuses ``src.orchestrator.schema_initializer.apply_schema`` (production
+    Reuses ``neo4j_graph_loader.orchestrator.schema_initializer.apply_schema`` (production
     DDL generation and index-online polling) rather than reinventing
     constraint Cypher here. Without this, ``MERGE`` over a 100k/1M-node
     ``Leaf`` label and every writer's endpoint ``MATCH`` become label scans
@@ -222,7 +222,7 @@ def ensure_constraints(driver, schema) -> None:
     production, which always has these constraints -- directly undermining
     this slice's own lock-wait claims.
     """
-    from src.orchestrator.schema_initializer import apply_schema
+    from neo4j_graph_loader.orchestrator.schema_initializer import apply_schema
 
     apply_schema(driver, schema)
 
@@ -405,7 +405,7 @@ def publish(dataset: Dataset, bootstrap: str, schema, *, partitions: int = 4, cr
     ``plan/v6/slice-4/stories.md``: the star-topology tests seed their small,
     bounded node set with one direct ``UNWIND ... MERGE`` Cypher statement,
     not through Kafka/NodeLoader). ``schema`` is a loaded ``GraphSchema``
-    (``src.utils.schema_loader.load_schema``-compatible): topics and key
+    (``neo4j_graph_loader.utils.schema_loader.load_schema``-compatible): topics and key
     property names come from it, never duplicated here.
     """
     import json

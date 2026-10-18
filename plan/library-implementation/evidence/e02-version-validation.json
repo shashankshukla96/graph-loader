@@ -1,0 +1,51 @@
+{
+  "artifact_inspections": [
+    "e02-final-artifacts.json",
+    "e02-sdist-rebuilt-artifacts.json"
+  ],
+  "original_and_rebuilt_wheel_members_identical": true,
+  "file_based_version_scm_mode": "N/A; no SCM source/tag lookup, candidate freeze E11/tagE12",
+  "version": "0.1.0a1.dev0",
+  "metrics_override": "GRAPH_LOADER_VERSION startup override for diagnostic labels only; unset uses package; empty direct value preserved; existing nonempty-only Docker forwarding unchanged",
+  "tests": {
+    "before_change": "1 expected default-label failure;5passed",
+    "after_change_focused": "147passed; final exact duration in owned focused log"
+  },
+  "logs": [
+    {
+      "path": "/tmp/graph-loader-e02-final-build.log",
+      "size": 5548,
+      "sha256": "7c0fa10b7a9328166e31d7b87981b2ec4611aa2d0c8ed977e2ab0579c5e6f048"
+    },
+    {
+      "path": "/tmp/graph-loader-e02-sdist-rebuild.log",
+      "size": 2825,
+      "sha256": "ae53171eb3c551823eb75b99b0d01c8dbc52b2cdc27e40e46ac6bfa0673516c0"
+    },
+    {
+      "path": "/tmp/graph-loader-e02-s3-before.log",
+      "size": 2849,
+      "sha256": "d871f49ee55d20c5a7a67b2a3e951d8d0b65aa5637eb82a0de86829f0989c10b"
+    },
+    {
+      "path": "/tmp/graph-loader-e02-s3-focused-final.log",
+      "size": 260,
+      "sha256": "be54494d45fea5108a90814576553af9f84527d123ee1f27308f7faff4f4cb60"
+    }
+  ],
+  "verification_tools": [
+    {
+      "path": "plan/library-implementation/tools/capture_baseline.py",
+      "sha256": "585a91d9b13d07163ba66c6bf8cae907c4de66e98bbf618a0ba0882260fd870c"
+    },
+    {
+      "path": "plan/library-implementation/tools/verify_e02_scaffold.py",
+      "sha256": "293560ab83ee0e65a43429c94911af4eef8fd797d5489280b36be705244c5439"
+    },
+    {
+      "path": "scripts/sync_requirements.py",
+      "sha256": "592e49010633ba2414b7be7b9870a27dff083e73e9c3d65e84c5f80a88bb2098"
+    }
+  ],
+  "wheel_generator": "Wheel-Version: 1.0\nGenerator: setuptools (84.0.0)\nRoot-Is-Purelib: true\nTag: py3-none-any\n\n"
+}

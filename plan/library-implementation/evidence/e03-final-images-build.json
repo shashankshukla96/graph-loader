@@ -1,0 +1,74 @@
+[
+  {
+    "component": "cli",
+    "dockerfile": "Dockerfile",
+    "tag": "graph-loader-e03-cli:local-20261017-2342",
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile",
+      "-t",
+      "graph-loader-e03-cli:local-20261017-2342",
+      "."
+    ],
+    "exit_code": 0,
+    "seconds": 1.85,
+    "dockerfile_sha256": "bcf799901f654b86617356c24618b8afef347f490df43f862d7013ad9b1eb111",
+    "id": "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f"
+  },
+  {
+    "component": "node",
+    "dockerfile": "Dockerfile.node_loader",
+    "tag": "graph-loader-e03-node:local-20261017-2342",
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile.node_loader",
+      "-t",
+      "graph-loader-e03-node:local-20261017-2342",
+      "."
+    ],
+    "exit_code": 0,
+    "seconds": 0.35,
+    "dockerfile_sha256": "96cb25a2e87722c8afc2964899c2b592a9aafe77da4ec70bc71d27765cc1d564",
+    "id": "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2"
+  },
+  {
+    "component": "edge",
+    "dockerfile": "Dockerfile.edge_loader",
+    "tag": "graph-loader-e03-edge:local-20261017-2342",
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile.edge_loader",
+      "-t",
+      "graph-loader-e03-edge:local-20261017-2342",
+      "."
+    ],
+    "exit_code": 0,
+    "seconds": 0.35,
+    "dockerfile_sha256": "1ef530b0e29632f37cb2c3e2be49853b63a7d8c8b4a0cbacc335bacf87de979c",
+    "id": "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183"
+  },
+  {
+    "component": "clock",
+    "dockerfile": "Dockerfile.clock",
+    "tag": "graph-loader-e03-clock:local-20261017-2342",
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile.clock",
+      "-t",
+      "graph-loader-e03-clock:local-20261017-2342",
+      "."
+    ],
+    "exit_code": 0,
+    "seconds": 0.4,
+    "dockerfile_sha256": "6d425fb6c706a17409c4e4a32c270c55faf3d6ee905fdab3dea50b268d964a1b",
+    "id": "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6"
+  }
+]

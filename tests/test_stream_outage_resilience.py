@@ -26,17 +26,17 @@ import pytest
 from confluent_kafka import TopicPartition
 from neo4j.exceptions import ClientError, ServiceUnavailable, SessionExpired, TransientError
 
-from src.loader import write_outage as wo
-from src.loader.edge_execution import (
+from neo4j_graph_loader.loader import write_outage as wo
+from neo4j_graph_loader.loader.edge_execution import (
     ApocLockedEdgeWriter, BucketLeaseExecutionCoordinator, LaneExecutionCoordinator, build_edge_execution,
 )
-from src.loader.edge_loader import EdgeLoader, MissingRelationshipEndpointError, main as edge_loader_main
-from src.loader.lease_client import BucketCellRouter, LeaseCoordinatorError
-from src.loader.node_loader import LeasedNodeWriter, NodeLoader, NodeWriter, main as node_loader_main
-from src.loader.write_outage import StreamWriteOutage, WriteOutageDrainAbandoned
-from src.models.schema import LoadingConfig
-from src.utils.metrics import GraphLoaderMetrics
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_loader import EdgeLoader, MissingRelationshipEndpointError, main as edge_loader_main
+from neo4j_graph_loader.loader.lease_client import BucketCellRouter, LeaseCoordinatorError
+from neo4j_graph_loader.loader.node_loader import LeasedNodeWriter, NodeLoader, NodeWriter, main as node_loader_main
+from neo4j_graph_loader.loader.write_outage import StreamWriteOutage, WriteOutageDrainAbandoned
+from neo4j_graph_loader.models.schema import LoadingConfig
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 ROOT = Path(__file__).resolve().parents[1]
 EDGE_TOPIC = "works-at-events"
@@ -614,7 +614,7 @@ def test_wait_polls_every_slice_and_stops_promptly() -> None:
 
 
 def test_drain_abandon_is_a_lease_drain_abandon() -> None:
-    from src.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
 
     assert issubclass(WriteOutageDrainAbandoned, LeaseDrainAbandoned)
 
@@ -1145,13 +1145,13 @@ def test_node_revoke_during_an_outage_hands_the_batch_over_uncommitted(person) -
 def _edge_main_loader_kwargs(schema, argv, environ=None):
     consumer, driver, loader = MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.Producer", return_value=MagicMock()), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.build_edge_execution",
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.Producer", return_value=MagicMock()), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution",
                return_value=(MagicMock(), MagicMock(), MagicMock(), MagicMock())), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls, \
          patch.dict("os.environ", environ or {}):
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--max-messages", "1", *argv]) == 0
     return loader_cls.call_args.kwargs
@@ -1197,8 +1197,8 @@ def test_stream_edge_main_wraps_the_dlq_sink_and_the_writers_index_with_one_memo
     the held batch's DLQ memory (one memory for both), so a row an earlier attempt already
     dead-lettered skips both its index re-add and its publish. The admission barrier keeps the
     plain index."""
-    from src.loader.dead_letter import DeadLetterRecordSink
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     dlq_schema = schema.model_copy(deep=True)
     index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
@@ -1208,15 +1208,15 @@ def test_stream_edge_main_wraps_the_dlq_sink_and_the_writers_index_with_one_memo
     real_sink = MagicMock(spec=DeadLetterRecordSink)
     loader = MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=MagicMock()), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=MagicMock()), \
-         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
-         patch("src.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, MagicMock())), \
-         patch("src.loader.edge_loader.ParkedPairIndex") as index_cls, \
-         patch("src.loader.edge_loader.warn_index_leftovers"), \
-         patch("src.loader.edge_loader.build_edge_execution",
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=MagicMock()), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=MagicMock()), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, MagicMock())), \
+         patch("neo4j_graph_loader.loader.edge_loader.ParkedPairIndex") as index_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.warn_index_leftovers"), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution",
                return_value=(MagicMock(), MagicMock(), MagicMock(), MagicMock())) as build, \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls, \
          patch.dict("os.environ", {"GRAPH_LOADER_BUCKET_LEASE_ADDR": "lease:7700"}):
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--mode", "stream", "--max-messages", "1"]) == 0
     sink, index = build.call_args.kwargs["missing_endpoint_sink"], build.call_args.kwargs["parked_pair_index"]
@@ -1292,12 +1292,12 @@ def test_node_loader_main_installs_the_ride_out_only_for_a_leased_stream_writer(
     def run(mode, leased):
         consumer, driver, loader, producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
         loader.run.return_value = 0
-        with patch("src.loader.node_loader.Consumer", return_value=consumer), \
-             patch("src.loader.node_loader.Producer", return_value=producer), \
-             patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-             patch("src.loader.node_loader.load_schema", return_value=schema), \
-             patch("src.loader.node_loader.build_leased_node_writer", return_value=leased), \
-             patch("src.loader.node_loader.NodeLoader", return_value=loader) as node_loader_cls:
+        with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer), \
+             patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+             patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+             patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
+             patch("neo4j_graph_loader.loader.node_loader.build_leased_node_writer", return_value=leased), \
+             patch("neo4j_graph_loader.loader.node_loader.NodeLoader", return_value=loader) as node_loader_cls:
             assert node_loader_main(["--node-label", "Person", "--mode", mode, "--max-messages", "1"]) == 0
         return node_loader_cls.call_args.kwargs
 
@@ -1335,7 +1335,7 @@ def test_bulk_node_connectivity_error_keeps_its_bounded_retry_then_fails(person,
 
 
 def test_planned_writer_connectivity_error_still_fails_closed() -> None:
-    from src.loader.planned_writer import PlannedEdgeWriterWorker
+    from neo4j_graph_loader.loader.planned_writer import PlannedEdgeWriterWorker
     from tests.test_planned_writer import FakeClient, FakeFetcher, _rows_in_one_cell, make_plan
 
     plan, _ = make_plan([_rows_in_one_cell(2)])
@@ -1354,13 +1354,13 @@ def test_the_ride_out_is_reachable_only_from_the_stream_entrypoints() -> None:
     never constructs it), and each constructs it in exactly one place, gated on --mode
     stream with a leased writer. The planner, dispatcher, planned writers, bulk monitors
     and the CLI never reference it."""
-    src = ROOT / "src"
+    src = ROOT / "src" / "neo4j_graph_loader"
     importers = sorted(
         str(path.relative_to(ROOT)) for path in src.rglob("*.py")
         if path.name != "write_outage.py" and "write_outage" in path.read_text()
-        and ("from src.loader.write_outage import" in path.read_text() or "import write_outage" in path.read_text())
+        and ("from neo4j_graph_loader.loader.write_outage import" in path.read_text() or "import write_outage" in path.read_text())
     )
-    assert importers == ["src/loader/edge_loader.py", "src/loader/node_loader.py"]
+    assert importers == ["src/neo4j_graph_loader/loader/edge_loader.py", "src/neo4j_graph_loader/loader/node_loader.py"]
     for name in ("planned_writer.py", "edge_planner.py", "planned_dispatcher.py", "planned_edges.py",
                  "bulk_monitor.py", "relationship_bulk_monitor.py", "cli.py"):
         for path in src.rglob(name):
@@ -1414,7 +1414,7 @@ class _FakeDurableIndex:
 def _row_level_stream_loader(works_at, graph, ledger, consumer, clock, *, admission_index=None):
     """The DLQ-enabled stream lease path as edge_loader.main and build_edge_execution build it:
     IndexedMissingEndpointSink over the memory-wrapped DLQ sink and the memory-wrapped index."""
-    from src.loader.edge_execution import IndexedMissingEndpointSink
+    from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink
 
     outage = _outage(clock)
     inner = MagicMock()
@@ -1452,7 +1452,7 @@ def _route_kwargs(offset: int, source: str = "p", target: str = "c") -> dict:
 
 def _wired(memory_outage=None):
     """IndexedMissingEndpointSink over a memory-wrapped DLQ and index, as edge_loader.main wires it."""
-    from src.loader.edge_execution import IndexedMissingEndpointSink
+    from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink
 
     outage = memory_outage or _outage(FakeClock())
     memory = outage.remember_dlq_acks()
@@ -1488,7 +1488,7 @@ def test_m1_the_docker_interleaving_applies_the_newer_row_last_only_with_the_mem
     removed its entry. r1's new copy was still indexed, so it was applied last: old over
     new (48 WORKS_AT pairs). A retry-consumer stand-in applies a copy only while its row is
     indexed (M12). Without the memory the old row wins; with it the newer row is last."""
-    from src.loader.edge_execution import IndexedMissingEndpointSink
+    from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink
 
     if with_memory:
         sink, dlq, index, _outage_state = _wired()

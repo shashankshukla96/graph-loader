@@ -20,16 +20,16 @@ import numpy as np
 import pytest
 
 from reference_edge_planner import plan_in_memory
-from src.loader import edge_planner
-from src.loader.edge_plan import (
+from neo4j_graph_loader.loader import edge_planner
+from neo4j_graph_loader.loader.edge_plan import (
     chunk_boundaries, decode_chunk_message, decode_key, decode_token, encode_chunk_message, encode_chunk_message_parts, key_token,
     plan_failure_marker, plan_progress_path,
 )
-from src.loader.edge_planner import (
+from neo4j_graph_loader.loader.edge_planner import (
     IterableEdgeSource, KafkaEdgePlanner, PlannerWorkerState, PlanSettings, capture_edge_boundary,
     chunk_topic_config, default_plan_memory_mb, kafka_read_tasks, producer_edge_planner, source_tasks,
 )
-from src.loader.edge_spill import unit_chunks
+from neo4j_graph_loader.loader.edge_spill import unit_chunks
 from test_edge_planner import EDGES, SOCIAL, FakeCluster, FakeProducer, envelope, publish, schema_with
 
 
@@ -152,7 +152,7 @@ def test_external_plan_is_identical_to_the_in_memory_plan(monkeypatch, tmp_path,
     spilled = sum(lane["spilled_bytes"] for lane in result.plan.stats["lanes"])
     assert (spilled > 0) == spill
     # The spill directory and the progress heartbeat are gone.
-    assert not (tmp_path / "spill" / ".edge-plan-spill-run-1").exists()
+    assert not list((tmp_path / "spill").glob(".edge-plan-spill-*"))
     assert not plan_progress_path(tmp_path / "plan.json").exists()
 
 
@@ -238,7 +238,7 @@ def test_memory_bound_is_respected_and_spill_files_are_removed(monkeypatch, tmp_
     degrees = state.candidate_degrees(candidates)
     hubs = {label: [decode_token(token) for token, count in counts.items() if count >= 10]
             for label, counts in degrees.items()}
-    from src.loader.edge_plan import ResourceTable
+    from neo4j_graph_loader.loader.edge_plan import ResourceTable
     table = ResourceTable({label for edge in SOCIAL.edges for label in (edge.nodes.source, edge.nodes.target)},
                           1, {label: keys for label, keys in hubs.items() if keys})
     loaded, streamed = [], []
@@ -275,7 +275,7 @@ def test_failed_plans_remove_spill_files_and_progress_and_write_the_marker(tmp_p
                                consumer_factory=cluster.consumer, producer_factory=lambda: FakeProducer(cluster),
                                admin_factory=cluster.admin, plan_path=tmp_path / "edge-plan.json")
     planner.start()
-    spill = tmp_path / ".edge-plan-spill-bad"
+    spill = planner.planner.spill_dir
     assert spill.is_dir() and plan_progress_path(tmp_path / "edge-plan.json").is_file()
     with pytest.raises(RuntimeError, match="invalid VISITED record"):
         planner.finish(tmp_path / "edge-plan.json")
@@ -309,7 +309,7 @@ def test_process_workers_plan_identically_to_inline_workers(tmp_path) -> None:
         expected = reference_cluster.logs["chunks"][by_key[chunk.key].partition][by_key[chunk.key].offset]
         assert recorded[(chunk.partition, chunk.offset)] == expected
     assert result.plan.resources.names == reference.resources.names
-    assert not (tmp_path / "spill" / ".edge-plan-spill-proc").exists()
+    assert not list((tmp_path / "spill").glob(".edge-plan-spill-*"))
 
 
 class _RecordingProducer:
@@ -399,13 +399,13 @@ def test_key_tokens_decode_to_canonical_keys() -> None:
                   datetime(2024, 1, 1, 12, tzinfo=timezone(timedelta(hours=2)))):
         decoded = decode_token(key_token(value))
         assert decoded == value and key_token(decoded) == key_token(value)
-        assert decode_key(json.loads(json.dumps(__import__("src.loader.edge_plan", fromlist=["encode_key"])
+        assert decode_key(json.loads(json.dumps(__import__("neo4j_graph_loader.loader.edge_plan", fromlist=["encode_key"])
                                                 .encode_key(decoded)))) == value
     assert str(decode_token(key_token(-0.0))) == "0.0"
 
 
 def test_flush_waits_while_delivery_progresses_and_failed_workers_drop_their_queue() -> None:
-    from src.loader.edge_planner import _abandon, _flush
+    from neo4j_graph_loader.loader.edge_planner import _abandon, _flush
 
     class Producer:
         def __init__(self, counts):
@@ -432,7 +432,7 @@ def test_flush_waits_while_delivery_progresses_and_failed_workers_drop_their_que
 
 
 def test_progress_heartbeat_changes_only_with_progress(tmp_path) -> None:
-    from src.loader.edge_planner import _Heartbeat
+    from neo4j_graph_loader.loader.edge_planner import _Heartbeat
 
     state = {"phase": "scan", "rows": 0}
     beat = _Heartbeat(tmp_path / "p.progress", "p", lambda: dict(state), interval=3600)

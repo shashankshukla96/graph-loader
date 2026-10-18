@@ -10,15 +10,15 @@ import pytest
 from confluent_kafka import TopicPartition
 from prometheus_client import CollectorRegistry
 
-from src.loader.edge_execution import BucketLeaseExecutionCoordinator
-from src.loader.lease_client import BucketCellRouter, LeaseCoordinatorError
-from src.loader.node_loader import (
+from neo4j_graph_loader.loader.edge_execution import BucketLeaseExecutionCoordinator
+from neo4j_graph_loader.loader.lease_client import BucketCellRouter, LeaseCoordinatorError
+from neo4j_graph_loader.loader.node_loader import (
     NODE_LEASE_WORKERS, LeasedNodeWriter, NodeLoader, NodeRecord, NodeWriter, build_leased_node_writer,
     main as node_loader_main,
 )
-from src.models.schema import LoadingConfig
-from src.utils.metrics import GraphLoaderMetrics
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.models.schema import LoadingConfig
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from test_bucket_lease_execution import _FakeClient, _Hub
 import test_cli_shutdown as _cli_tests
 
@@ -173,7 +173,7 @@ def test_node_writer_applies_the_deadline_as_a_neo4j_timeout(person_config) -> N
     writer = NodeWriter(driver, person_config, clock=lambda: 100.0)
 
     writer.write_batch([_record("p-1")], deadline=130.0, lease_liveness_check=lambda: True)
-    # The fenced budget: 30 s left minus the monitor slack and BEGIN allowance (src/loader/fenced_tx.py).
+    # The fenced budget: 30 s left minus the monitor slack and BEGIN allowance (src/neo4j_graph_loader/loader/fenced_tx.py).
     assert session.begin_transaction.call_args.kwargs == {"timeout": 26.0}
 
     session.begin_transaction.reset_mock()
@@ -257,12 +257,12 @@ def test_stopping_node_loader_abandons_unobtainable_leases_exits_zero_commits_no
 def _run_main(schema, mode, **patches):
     consumer, driver, loader, producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.node_loader.Consumer", return_value=consumer), \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
-         patch("src.loader.node_loader.build_leased_node_writer", **patches) as build, \
-         patch("src.loader.node_loader.NodeLoader", return_value=loader) as node_loader_cls:
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.node_loader.build_leased_node_writer", **patches) as build, \
+         patch("neo4j_graph_loader.loader.node_loader.NodeLoader", return_value=loader) as node_loader_cls:
         code = node_loader_main(["--node-label", "Person", "--mode", mode, "--max-messages", "1"])
     return code, build, node_loader_cls
 
@@ -285,7 +285,7 @@ def test_stream_mode_passes_the_leased_writer_to_the_loader_and_closes_it(schema
 # -- orchestration: lease server before node loaders, env passthrough ---------
 
 def test_run_node_loader_passes_the_lease_settings_to_node_containers(tmp_path) -> None:
-    from src.orchestrator.docker_service import DockerService
+    from neo4j_graph_loader.orchestrator.docker_service import DockerService
 
     client = MagicMock()
     service = DockerService(client=client)
@@ -321,7 +321,7 @@ def test_stream_start_launches_the_lease_server_before_the_node_loaders(harness)
         captured.update(kwargs)
         return 0
 
-    with patch("src.cli._run_lease_relationship_fleet", side_effect=fake_fleet):
+    with patch("neo4j_graph_loader.cli._run_lease_relationship_fleet", side_effect=fake_fleet):
         result = harness.run(_schema(edges=[_edge("WORKS_AT", "Person", "Company")]), _stream_args())
 
     assert result == 0
@@ -341,7 +341,7 @@ def test_stream_start_launches_the_lease_server_before_the_node_loaders(harness)
 def test_bulk_start_does_not_start_a_lease_server_for_nodes(harness) -> None:
     from test_cli_shutdown import FakeBulkMonitor, _bulk_args, _schema
 
-    with patch("src.cli.BulkMonitor", FakeBulkMonitor):
+    with patch("neo4j_graph_loader.cli.BulkMonitor", FakeBulkMonitor):
         harness.run(_schema(), _bulk_args())
     harness.state.docker.run_bucket_lease_server.assert_not_called()
     for call in harness.state.docker.run_node_loader.call_args_list:
@@ -385,7 +385,7 @@ def test_stream_shutdown_stops_edges_then_nodes_then_the_lease_server(harness) -
             pass
 
     schema = _schema(edges=[_edge("WORKS_AT", "Person", "Company")])
-    with patch("src.cli.RelationshipBulkMonitor", Monitor), patch.object(FakeContainer, "stop", recording_stop):
+    with patch("neo4j_graph_loader.cli.RelationshipBulkMonitor", Monitor), patch.object(FakeContainer, "stop", recording_stop):
         assert harness.run(schema, _stream_args()) == 0
     assert harness.state.docker.run_bucket_lease_server.call_count == 1
     assert order.index("edge") < order.index("node") < order.index("lease")

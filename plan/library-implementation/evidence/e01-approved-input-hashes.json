@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-16",
+  "meaning": "SHA-256 of the brief and contracts read when the user approved D01-D05/D07 and selected prebuilt delivery; later edits only mirror acceptance status.",
+  "files": {
+    "plan/library-implementation/decision-brief.md": "f68a27ded2f6a3447f7b7167f7f5692f7f2a81ee1b2637fdac6f39133eeb36a6",
+    "plan/library-implementation/cancellation-contract.md": "8c7fd624d8f2f9287efc164f2d881be3563cc7dffe52cefe0b9ce41187de5692",
+    "plan/library-implementation/ordering-matrix.md": "b02d4e87f8ee13ac03fec2a256ad0e3fae3902f19523eaa9ded9a3747c532058"
+  }
+}

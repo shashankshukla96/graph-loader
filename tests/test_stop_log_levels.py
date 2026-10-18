@@ -14,13 +14,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 from confluent_kafka import TopicPartition
 
-from src import cli
-from src.loader.edge_loader import EdgeLoader
-from src.loader.edge_planner import KafkaEdgePlanner
-from src.loader.lease_client import LeaseCoordinatorError
-from src.loader.retry_consumer import main as retry_consumer_main
-from src.orchestrator.bulk_monitor import BulkShutdownRequested
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.loader.edge_loader import EdgeLoader
+from neo4j_graph_loader.loader.edge_planner import KafkaEdgePlanner
+from neo4j_graph_loader.loader.lease_client import LeaseCoordinatorError
+from neo4j_graph_loader.loader.retry_consumer import main as retry_consumer_main
+from neo4j_graph_loader.orchestrator.bulk_monitor import BulkShutdownRequested
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -198,7 +198,7 @@ def test_close_after_a_finished_plan_is_not_an_abort(tmp_path) -> None:
 
 
 def test_start_kafka_edge_planner_hands_the_stop_predicate_to_the_planner(schema, tmp_path, monkeypatch) -> None:
-    from src.orchestrator.planned_edges import start_kafka_edge_planner
+    from neo4j_graph_loader.orchestrator.planned_edges import start_kafka_edge_planner
 
     monkeypatch.chdir(tmp_path)
     created = {}
@@ -228,7 +228,7 @@ def _stop_then_refuse(*_args, **_kwargs):
 
 
 def test_retry_consumer_stopped_during_startup_exits_zero(caplog) -> None:
-    with patch("src.loader.retry_consumer.load_schema", side_effect=_stop_then_refuse), \
+    with patch("neo4j_graph_loader.loader.retry_consumer.load_schema", side_effect=_stop_then_refuse), \
             caplog.at_level(logging.INFO):
         assert retry_consumer_main(["--dlq-topics", "social-works-at.dlq"]) == 0
     assert _levels(caplog, "stage=retry-consumer reason=stopped_during_startup") == [logging.WARNING]
@@ -236,7 +236,7 @@ def test_retry_consumer_stopped_during_startup_exits_zero(caplog) -> None:
 
 
 def test_retry_consumer_startup_failure_without_a_stop_still_exits_one(caplog) -> None:
-    with patch("src.loader.retry_consumer.load_schema",
+    with patch("neo4j_graph_loader.loader.retry_consumer.load_schema",
                side_effect=LeaseCoordinatorError("lease coordinator unreachable")), \
             caplog.at_level(logging.INFO):
         assert retry_consumer_main(["--dlq-topics", "social-works-at.dlq"]) == 1
@@ -248,7 +248,7 @@ def test_retry_consumer_real_startup_failure_during_a_stop_stays_an_error(caplog
         signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
         raise RuntimeError("schema file unreadable")
 
-    with patch("src.loader.retry_consumer.load_schema", side_effect=stop_then_fail), \
+    with patch("neo4j_graph_loader.loader.retry_consumer.load_schema", side_effect=stop_then_fail), \
             caplog.at_level(logging.INFO):
         assert retry_consumer_main(["--dlq-topics", "social-works-at.dlq"]) == 1
     assert _levels(caplog, "stage=retry-consumer reason=startup_failed error=schema file unreadable") == [logging.ERROR]

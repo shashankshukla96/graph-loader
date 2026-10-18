@@ -9,10 +9,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.cli import AUTO_EDGE_PLAN, _validate_edge_plan_settings, build_parser, handle_start
-from src.loader.edge_plan import ChunkSpec, ResourceTable, assemble_plan, resource_pair, write_plan_file
-from src.orchestrator.docker_service import DockerService
-from src.orchestrator.planned_edges import (
+from neo4j_graph_loader.cli import AUTO_EDGE_PLAN, _validate_edge_plan_settings, build_parser, handle_start
+from neo4j_graph_loader.loader.edge_plan import ChunkSpec, ResourceTable, assemble_plan, resource_pair, write_plan_file
+from neo4j_graph_loader.orchestrator.docker_service import DockerService
+from neo4j_graph_loader.orchestrator.planned_edges import (
     PlannedEdgeError, run_planned_edge_phase, validate_plan_against_schema, verify_ledger, verify_plan_topic,
     wait_for_plan,
 )
@@ -169,7 +169,7 @@ def _stall_phase(tmp_path, statuses, *, ready, timeout=5, steps=200):
 
 
 def test_dispatch_timeout_is_progress_based_and_ignores_waiting_for_node_labels(tmp_path, monkeypatch) -> None:
-    import src.orchestrator.planned_edges as planned_edges
+    import neo4j_graph_loader.orchestrator.planned_edges as planned_edges
     monkeypatch.setattr(planned_edges, "_POLL_SECONDS", 0.001)
     # 100 s of steady chunk completions (20x the timeout) succeed.
     steady = [{"state": "running", "done": step, "granted": [step % 3]} for step in range(100)]
@@ -418,7 +418,7 @@ def test_phase_stops_when_cancelled_by_a_node_failure(tmp_path) -> None:
 
 
 def test_operator_stop_is_logged_as_a_warning_and_aborts_with_the_stop_reason(tmp_path, caplog) -> None:
-    from src.loader.planned_writer import STOP_REASON
+    from neo4j_graph_loader.loader.planned_writer import STOP_REASON
     plan = make_plan()
     path = tmp_path / "edge-plan.json"
     write_plan_file(path, plan)
@@ -456,14 +456,14 @@ def test_phase_without_a_plan_launches_nothing(tmp_path) -> None:
     docker.run_planned_edge_writers.assert_not_called()
 
 
-@patch("src.cli._run_relationship_orchestration")
-@patch("src.cli._run_completion_driven_bulk_edges")
-@patch("src.cli.run_planned_edge_phase")
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration")
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges")
+@patch("neo4j_graph_loader.cli.run_planned_edge_phase")
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_runs_the_planned_phase_instead_of_per_type_loaders(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, planned, per_type, orchestration, tmp_path,
 ):
@@ -499,12 +499,12 @@ def test_handle_start_runs_the_planned_phase_instead_of_per_type_loaders(
     docker.run_edge_loader.assert_not_called()
 
 
-@patch("src.cli.run_planned_edge_phase", return_value=1)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.run_planned_edge_phase", return_value=1)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_fails_when_the_planned_phase_fails(mock_load, mock_driver, _apply, mock_docker, monitor_cls, _planned):
     mock_load.return_value = SCHEMA
     docker = MagicMock()
@@ -528,7 +528,7 @@ class TestPlannedDockerLaunches:
         plan.write_text("{}", encoding="utf-8")
         self.service.run_planned_dispatcher(run_id="r1", plan_path=str(plan), network="net", ready_labels=["B", "A"])
         kwargs = self.client.containers.run.call_args.kwargs
-        assert kwargs["entrypoint"] == ["python", "-m", "src.orchestrator.planned_dispatcher"]
+        assert kwargs["entrypoint"] == ["python", "-m", "neo4j_graph_loader.orchestrator.planned_dispatcher"]
         assert kwargs["command"][-2:] == ["--ready-labels", "A,B"]
         assert kwargs["volumes"] == {str(plan): {"bind": "/app/edge-plan.json", "mode": "ro"}}
         assert kwargs["ports"] == {"7701/tcp": ("127.0.0.1", None), "9464/tcp": ("127.0.0.1", None)}
@@ -562,7 +562,7 @@ class TestPlannedDockerLaunches:
         calls = sorted((call.kwargs for call in self.client.containers.run.call_args_list), key=lambda k: k["name"])
         assert [kwargs["command"][kwargs["command"].index("--writer-id") + 1] for kwargs in calls] == ["w0", "w1", "w2"]
         first = calls[0]
-        assert first["entrypoint"] == ["python", "-m", "src.loader.planned_writer"]
+        assert first["entrypoint"] == ["python", "-m", "neo4j_graph_loader.loader.planned_writer"]
         assert "--dispatcher" in first["command"] and "172.18.0.9:7701" in first["command"]
         assert first["environment"]["NEO4J_DATABASE"] == "bench"
         assert first["environment"]["GRAPH_LOADER_TIMING_LOG_PATH"] == "/app/write-timings/edge-planned-w0.log"
@@ -610,7 +610,7 @@ def _service_with(*statuses):
 
 
 def test_stale_chunk_topic_is_replaced_only_when_no_container_of_the_run_is_alive() -> None:
-    from src.orchestrator.planned_edges import replace_stale_chunk_topic
+    from neo4j_graph_loader.orchestrator.planned_edges import replace_stale_chunk_topic
     _FakeAdmin.removed, _FakeAdmin.topics, _FakeAdmin.lag_lists = [], {"graph-loader-edge-chunks-r1"}, 2
     assert replace_stale_chunk_topic(
         _service_with("exited"), "r1", "k:1", admin_factory=_FakeAdmin, sleep=lambda seconds: None,
@@ -620,7 +620,7 @@ def test_stale_chunk_topic_is_replaced_only_when_no_container_of_the_run_is_aliv
 
 
 def test_stale_chunk_topic_is_kept_while_a_container_of_the_run_is_alive() -> None:
-    from src.orchestrator.planned_edges import replace_stale_chunk_topic
+    from neo4j_graph_loader.orchestrator.planned_edges import replace_stale_chunk_topic
     _FakeAdmin.removed, _FakeAdmin.topics, _FakeAdmin._pending = [], {"graph-loader-edge-chunks-r1"}, set()
     with pytest.raises(PlannedEdgeError, match="still alive"):
         replace_stale_chunk_topic(_service_with("exited", "running"), "r1", "k:1", admin_factory=_FakeAdmin)
@@ -628,21 +628,21 @@ def test_stale_chunk_topic_is_kept_while_a_container_of_the_run_is_alive() -> No
 
 
 def test_no_stale_chunk_topic_is_a_noop() -> None:
-    from src.orchestrator.planned_edges import replace_stale_chunk_topic
+    from neo4j_graph_loader.orchestrator.planned_edges import replace_stale_chunk_topic
     _FakeAdmin.topics, _FakeAdmin._pending = {"graph-loader-edge-chunks-r1"}, set()
     assert replace_stale_chunk_topic(_service_with(), "other", "k:1", admin_factory=_FakeAdmin) is False
 
 
-@patch("src.cli._ensure_dead_letter_topics")
-@patch("src.cli.start_kafka_edge_planner")
-@patch("src.cli._validate_edge_plan_settings", wraps=_validate_edge_plan_settings)
-@patch("src.cli.auto_settings.probe_neo4j_cores", return_value=8)
-@patch("src.cli.run_planned_edge_phase", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._ensure_dead_letter_topics")
+@patch("neo4j_graph_loader.cli.start_kafka_edge_planner")
+@patch("neo4j_graph_loader.cli._validate_edge_plan_settings", wraps=_validate_edge_plan_settings)
+@patch("neo4j_graph_loader.cli.auto_settings.probe_neo4j_cores", return_value=8)
+@patch("neo4j_graph_loader.cli.run_planned_edge_phase", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_flagless_bulk_start_reaches_the_planned_path(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, phase, _cores, validate, start_planner, ensure_dlq, caplog,
 ):

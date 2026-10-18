@@ -9,7 +9,7 @@ import copy
 import re
 import threading
 
-from src.models.schema import GraphSchema
+from neo4j_graph_loader.models.schema import GraphSchema
 
 POSTS, BACKFILL, COMMENTS = "likes-posts", "likes-posts-backfill", "likes-comments"
 

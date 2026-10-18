@@ -1,0 +1,3 @@
+# Build/review tools only; never runtime dependencies or container install inputs.
+build>=1.2,<2
+twine>=6,<7

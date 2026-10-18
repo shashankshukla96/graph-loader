@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from src.orchestrator.bulk_monitor import OffsetResolutionError, QuiescentViolationError
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.orchestrator.bulk_monitor import OffsetResolutionError, QuiescentViolationError
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from test_bulk_monitor import _cover_all_partitions, _monitor as _node_monitor
 from test_multi_topic_stream_bulk import MAPPING, T1, T2, _ack, _monitor as _edge_monitor, edge  # noqa: F401
 

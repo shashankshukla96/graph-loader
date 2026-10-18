@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.orchestrator.isolation import (
+from neo4j_graph_loader.orchestrator.isolation import (
     IsolatedRelationshipPhase,
     RelationshipIsolationPlan,
     build_relationship_isolation_plan,

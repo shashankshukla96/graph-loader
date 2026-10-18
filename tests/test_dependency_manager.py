@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.orchestrator.dependency_manager import (
+from neo4j_graph_loader.orchestrator.dependency_manager import (
     build_conflict_families,
     build_relationship_conflict_plan,
 )

@@ -5,12 +5,12 @@ from unittest.mock import MagicMock
 import pytest
 from neo4j.exceptions import ClientError, TransientError
 
-from src.loader.edge_execution import ApocLockedEdgeWriter, LaneExecutionCoordinator, NativeDisjointEdgeWriter, ServerCapabilities, ExecutionModeError, build_apoc_locked_upsert_query, build_edge_execution
-from src.loader.lease_client import LeaseCoordinatorError
-from src.loader.mix_and_batch import RoutedEdgeRecord
-from src.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError, PendingEdgeRecord
-from src.models.schema import DeadLetterConfig
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter, LaneExecutionCoordinator, NativeDisjointEdgeWriter, ServerCapabilities, ExecutionModeError, build_apoc_locked_upsert_query, build_edge_execution
+from neo4j_graph_loader.loader.lease_client import LeaseCoordinatorError
+from neo4j_graph_loader.loader.mix_and_batch import RoutedEdgeRecord
+from neo4j_graph_loader.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError, PendingEdgeRecord
+from neo4j_graph_loader.models.schema import DeadLetterConfig
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 def _edge():
@@ -284,7 +284,7 @@ def test_python_coordinator_writes_four_lanes_concurrently():
 
 def test_build_execution_refuses_native_before_constructing_components(monkeypatch):
     edge = _edge(); edge.execution.mode = "native_disjoint"
-    monkeypatch.setattr("src.loader.edge_execution.probe_server_capabilities", lambda _driver: ServerCapabilities("5.21", False))
+    monkeypatch.setattr("neo4j_graph_loader.loader.edge_execution.probe_server_capabilities", lambda _driver: ServerCapabilities("5.21", False))
     with pytest.raises(ExecutionModeError):
         build_edge_execution(edge, MagicMock())
 
@@ -298,7 +298,7 @@ def test_build_native_maps_neo4j_526_cypher25_rejection_before_constructing_writ
         message="25 is not a valid option for cypher version. Valid options are: 5",
     )
     native_writer = MagicMock()
-    monkeypatch.setattr("src.loader.edge_execution.NativeDisjointEdgeWriter", native_writer)
+    monkeypatch.setattr("neo4j_graph_loader.loader.edge_execution.NativeDisjointEdgeWriter", native_writer)
     with pytest.raises(ExecutionModeError, match="native_disjoint.*5.26.30"):
         build_edge_execution(edge, driver)
     native_writer.assert_not_called()
@@ -554,7 +554,7 @@ def test_ping_never_raises_and_reflects_request_outcome():
     """The client's ping() is unit tested independent of the writer:
     success, LeaseCoordinatorError caught and turned into False, never
     raises to the caller."""
-    from src.loader.lease_client import BucketLeaseClient
+    from neo4j_graph_loader.loader.lease_client import BucketLeaseClient
 
     class _OkSocket:
         def setsockopt(self, *_a, **_k):
@@ -621,7 +621,7 @@ def _transient_writer_with_metrics(tx_runs, *, attempts=3, metrics=None, kind="e
 
 def test_deadlock_retried_then_successful_increments_deadlocks_recovered_once():
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     deadlock = TransientError("Neo.TransientError.Transaction.DeadlockDetected")
@@ -636,7 +636,7 @@ def test_two_retries_then_success_increments_deadlocks_recovered_by_one_not_by_a
     """P6-S2 review finding N-c: one retry can't distinguish 'count once'
     from 'count per retry'; two retries before success can."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     deadlock = TransientError("Neo.TransientError.Transaction.DeadlockDetected")
@@ -650,7 +650,7 @@ def test_two_retries_then_success_increments_deadlocks_recovered_by_one_not_by_a
 
 def test_batch_without_transient_error_never_increments_deadlocks_recovered():
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     writer, tx = _transient_writer_with_metrics([_ok()], metrics=metrics)
@@ -662,7 +662,7 @@ def test_batch_without_transient_error_never_increments_deadlocks_recovered():
 
 def test_exhausted_retry_never_increments_deadlocks_recovered():
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     writer, tx = _transient_writer_with_metrics([TransientError("busy")] * 3, attempts=3, metrics=metrics)
@@ -679,7 +679,7 @@ def test_planned_writer_kind_keeps_deadlocks_recovered_at_zero_construction():
     incrementing on a real recovered deadlock (structurally never expected
     to happen in planned mode's disjoint-resource design)."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     writer, tx = _transient_writer_with_metrics([_ok()], metrics=metrics, kind="planned-writer")
@@ -697,7 +697,7 @@ def test_apoc_writer_metrics_failure_never_blocks_a_successful_write(monkeypatch
     exception must never turn an already-successful write into a raised
     error."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     deadlock = TransientError("Neo.TransientError.Transaction.DeadlockDetected")
@@ -888,7 +888,7 @@ def test_write_provenanced_batch_lease_loss_during_fallback_raises_lease_error_n
 
 
 def test_indexed_missing_endpoint_sink_records_before_delegating():
-    from src.loader.edge_execution import IndexedMissingEndpointSink
+    from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink
 
     order = []
     index = MagicMock()
@@ -923,7 +923,7 @@ def test_indexed_missing_endpoint_sink_never_publishes_when_add_raises():
     fail-closed contract) must propagate uncaught, exactly like a DLQ
     publish failure already does -- the wrapped sink's own publish must
     never be attempted."""
-    from src.loader.edge_execution import IndexedMissingEndpointSink
+    from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink
 
     index = MagicMock()
     index.add.side_effect = RuntimeError("simulated unconfirmed publish")
@@ -944,7 +944,7 @@ def test_indexed_missing_endpoint_sink_never_publishes_when_add_raises():
 def test_lease_flush_is_parked_checks_durable_index_as_fallback():
     from threading import Lock as _Lock
 
-    from src.loader.edge_execution import _LeaseFlush
+    from neo4j_graph_loader.loader.edge_execution import _LeaseFlush
 
     index = MagicMock()
     index.is_blocked.return_value = True
@@ -959,7 +959,7 @@ def test_lease_flush_is_parked_checks_durable_index_as_fallback():
 def test_lease_flush_is_parked_prefers_local_set_without_consulting_index():
     from threading import Lock as _Lock
 
-    from src.loader.edge_execution import _LeaseFlush
+    from neo4j_graph_loader.loader.edge_execution import _LeaseFlush
 
     index = MagicMock()
     state = _LeaseFlush(
@@ -974,7 +974,7 @@ def test_lease_flush_is_parked_prefers_local_set_without_consulting_index():
 def test_lease_flush_is_parked_false_and_no_crash_without_a_durable_index():
     from threading import Lock as _Lock
 
-    from src.loader.edge_execution import _LeaseFlush
+    from neo4j_graph_loader.loader.edge_execution import _LeaseFlush
 
     state = _LeaseFlush(
         cells={}, totals={}, resources={}, by_resource={}, nonempty=set(),
@@ -1030,7 +1030,7 @@ def test_order_by_apoc_lock_shape_query_has_conditional_set_and_skip_count():
 
 
 def test_classify_rows_order_by_configured_skips_the_blocking_pass_entirely():
-    from src.loader.edge_execution import ApocLockedEdgeWriter
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
 
     rows = [
         {"source_key": "missing-src", "target_key": "c-1", "properties": {}},
@@ -1043,7 +1043,7 @@ def test_classify_rows_order_by_configured_skips_the_blocking_pass_entirely():
 
 
 def test_classify_rows_order_by_configured_ignores_pre_blocked_pairs_too():
-    from src.loader.edge_execution import ApocLockedEdgeWriter
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
 
     rows = [{"source_key": "a", "target_key": "b", "properties": {}}]
     by_index = {0: (1, 1)}  # individually resolvable
@@ -1080,7 +1080,7 @@ def test_missing_order_by_value_applies_unconditionally_and_logs_a_warning(caplo
         driver, _edge_with_order_by(), missing_endpoint_error_factory=MissingRelationshipEndpointError,
     )
     record = EdgeRecord("p-1", "c-1", {"since": None})
-    with caplog.at_level(logging.WARNING, logger="src.loader.edge_execution"):
+    with caplog.at_level(logging.WARNING, logger="neo4j_graph_loader.loader.edge_execution"):
         writer.write_batch([record])
     assert tx.run.call_count == 1  # applied unconditionally -- no special handling needed
     assert any("stage=edge-order-by-missing" in message for message in caplog.messages)
@@ -1096,7 +1096,7 @@ def test_present_order_by_value_logs_no_warning(caplog):
         driver, _edge_with_order_by(), missing_endpoint_error_factory=MissingRelationshipEndpointError,
     )
     record = EdgeRecord("p-1", "c-1", {"since": date(2024, 1, 1)})
-    with caplog.at_level(logging.WARNING, logger="src.loader.edge_execution"):
+    with caplog.at_level(logging.WARNING, logger="neo4j_graph_loader.loader.edge_execution"):
         writer.write_batch([record])
     assert not any("stage=edge-order-by-missing" in message for message in caplog.messages)
 
@@ -1113,7 +1113,7 @@ def test_skipped_as_not_newer_rows_logged_at_info_when_nonzero(caplog):
     writer = ApocLockedEdgeWriter(
         driver, _edge_with_order_by(), missing_endpoint_error_factory=MissingRelationshipEndpointError,
     )
-    with caplog.at_level(logging.INFO, logger="src.loader.edge_execution"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.loader.edge_execution"):
         writer.write_batch([EdgeRecord("p-1", "c-1", {"since": date(2020, 1, 1)})])
     assert any("stage=edge-order-by-superseded" in message for message in caplog.messages)
 
@@ -1277,7 +1277,7 @@ def test_non_order_by_writer_never_checks_or_logs_order_by_things(caplog):
     driver, session, tx = _apoc_tx_with_session()
     tx.run.side_effect = [_ok(1)]
     writer = ApocLockedEdgeWriter(driver, _edge(), missing_endpoint_error_factory=MissingRelationshipEndpointError)
-    with caplog.at_level(logging.INFO, logger="src.loader.edge_execution"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.loader.edge_execution"):
         writer.write_batch([_record("p-1")])
     assert not any("order-by" in message for message in caplog.messages)
 
@@ -1287,7 +1287,7 @@ def test_non_order_by_writer_never_checks_or_logs_order_by_things(caplog):
 
 def _envelope_for_retry(source_key="p-1", target_key="c-1", properties=None, *,
                          original_topic="works-at-events", original_partition=0, original_offset=7):
-    from src.loader.dead_letter import DeadLetterEnvelope, LoaderIdentity, SCHEMA_VERSION
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterEnvelope, LoaderIdentity, SCHEMA_VERSION
     import json as _json
 
     value = _json.dumps({
@@ -1334,7 +1334,7 @@ def test_retry_provenanced_batch_empty_list_is_a_noop():
 
 
 def _unreadable_envelope(original_offset=1):
-    from src.loader.dead_letter import DeadLetterEnvelope, LoaderIdentity, SCHEMA_VERSION
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterEnvelope, LoaderIdentity, SCHEMA_VERSION
 
     return DeadLetterEnvelope(
         schema_version=SCHEMA_VERSION, failure_class="missing_endpoint", entity_kind="edge", entity_name="WORKS_AT",

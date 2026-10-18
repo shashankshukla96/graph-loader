@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from src.utils.neo4j_session import open_session
+from neo4j_graph_loader.utils.neo4j_session import open_session
 
 
 def test_open_session_uses_configured_database(monkeypatch):

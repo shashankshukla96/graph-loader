@@ -13,19 +13,19 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.loader.edge_execution import (
+from neo4j_graph_loader.loader.edge_execution import (
     ApocLockedEdgeWriter, BucketLeaseExecutionCoordinator, ExecutionModeError, LeaseDrainAbandoned,
     LaneExecutionCoordinator, build_edge_execution, lease_mode_settings,
     streaming_lease_client_factory,
 )
-from src.loader.edge_loader import (
+from neo4j_graph_loader.loader.edge_loader import (
     EdgeLoader, EdgeRecord, PendingEdgeRecord, apply_edge_outer_batch_override, main as edge_loader_main,
 )
-from src.loader.lease_client import BucketCellRouter, BucketLeaseClient, LeaseCoordinatorError
-from src.loader.mix_and_batch import endpoint_bucket
-from src.models.schema import DeadLetterConfig, LoadingConfig
-from src.orchestrator.lease_server import BucketLeaseServer
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.lease_client import BucketCellRouter, BucketLeaseClient, LeaseCoordinatorError
+from neo4j_graph_loader.loader.mix_and_batch import endpoint_bucket
+from neo4j_graph_loader.models.schema import DeadLetterConfig, LoadingConfig
+from neo4j_graph_loader.orchestrator.lease_server import BucketLeaseServer
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -386,7 +386,7 @@ def test_build_edge_execution_lease_mode_default_mode_is_bulk_no_opt_in(works_at
 
 
 def test_build_edge_execution_stream_row_level_dlq_wires_index_into_sink_and_coordinator(works_at) -> None:
-    from src.loader.edge_execution import IndexedMissingEndpointSink
+    from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink
 
     edge = works_at.model_copy(update={"dead_letter": DeadLetterConfig(topic="dlq-works-at", enabled=True)})
     sink = MagicMock()
@@ -481,8 +481,8 @@ def test_dlq_routed_metric_increments_with_zero_new_instrumentation(works_at) ->
     seam, confirmed via an isolated GraphLoaderMetrics instance -- no new
     metrics code anywhere in this slice."""
     from prometheus_client import CollectorRegistry
-    from src.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
-    from src.utils.metrics import GraphLoaderMetrics, install_dlq_routed_listener
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics, install_dlq_routed_listener
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     install_dlq_routed_listener(metrics)
@@ -542,7 +542,7 @@ def test_every_cell_written_exactly_once_in_fifo_order() -> None:
 
 def test_lease_wait_seconds_observes_once_per_flush_and_distinguishes_contention() -> None:
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     # Contended: a tiny key space over a small bucket count guarantees
     # heavy resource overlap across a worker pool, so some ANY requests
@@ -1036,12 +1036,12 @@ def test_edge_loader_main_applies_outer_override_and_closes_lease_clients(schema
     loader.run.return_value = 0
     coordinator = MagicMock()
     monkeypatch.setenv("GRAPH_LOADER_EDGE_OUTER_BATCH_SIZE", "32000")
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.Producer", return_value=producer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.build_edge_execution", return_value=(MagicMock(), None, None, coordinator)), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution", return_value=(MagicMock(), None, None, coordinator)), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--mode", "bulk", "--run-id", "run-9"]) == 0
     assert loader_cls.call_args.kwargs["loading_config"].edge_unwind_batch_size == 32000
     coordinator.close.assert_called_once()
@@ -1056,12 +1056,12 @@ def test_edge_loader_main_passes_bucket_lease_tx_timeout_seconds_from_schema(sch
     producer.flush.return_value = 0
     loader.run.return_value = 0
     build_execution = MagicMock(return_value=(MagicMock(), None, None, MagicMock()))
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.Producer", return_value=producer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.build_edge_execution", build_execution), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution", build_execution), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader):
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--mode", "bulk", "--run-id", "run-9"]) == 0
     assert build_execution.call_args.kwargs["bucket_lease_tx_timeout_seconds"] == (
         schema.loading.bucket_lease.tx_timeout_ms / 1000
@@ -1077,11 +1077,11 @@ def test_edge_loader_main_passes_streaming_lease_client_factory_only_in_stream_m
     consumer, driver, loader = MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
     build_execution = MagicMock(return_value=(MagicMock(), None, None, MagicMock()))
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.build_edge_execution", build_execution), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution", build_execution), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader):
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--mode", "stream", "--run-id", "run-9"]) == 0
     stream_factory = build_execution.call_args.kwargs["lease_client_factory"]
     assert stream_factory is not None
@@ -1089,12 +1089,12 @@ def test_edge_loader_main_passes_streaming_lease_client_factory_only_in_stream_m
     assert client._connect_timeout == schema.loading.bucket_lease.reconnect_timeout_ms / 1000 and client._backoff_ms is not None
 
     build_execution.reset_mock()
-    with patch("src.loader.edge_loader.Consumer", return_value=MagicMock()), \
-         patch("src.loader.edge_loader.Producer", return_value=MagicMock()), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.build_edge_execution", build_execution), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=MagicMock()), \
+         patch("neo4j_graph_loader.loader.edge_loader.Producer", return_value=MagicMock()), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution", build_execution), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader):
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--mode", "bulk", "--run-id", "run-9"]) == 0
     assert build_execution.call_args.kwargs["lease_client_factory"] is None
 
@@ -1106,7 +1106,7 @@ def test_edge_loader_main_reports_clean_exit_on_shutdown_during_startup(schema, 
     reported as "unable to start"."""
     import signal as signal_module
 
-    from src.loader.lease_client import LeaseCoordinatorError
+    from neo4j_graph_loader.loader.lease_client import LeaseCoordinatorError
 
     consumer, driver = MagicMock(), MagicMock()
     installed_sigterm_handler = {}
@@ -1123,11 +1123,11 @@ def test_edge_loader_main_reports_clean_exit_on_shutdown_during_startup(schema, 
         installed_sigterm_handler["shutdown_requested"](signal_module.SIGTERM, None)
         raise LeaseCoordinatorError("lease coordinator lease:7700: lease reconnect abandoned: shutdown requested")
 
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.build_edge_execution", side_effect=raise_after_sigterm), \
-         patch("src.loader.edge_loader.signal.signal", side_effect=capturing_signal):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution", side_effect=raise_after_sigterm), \
+         patch("neo4j_graph_loader.loader.edge_loader.signal.signal", side_effect=capturing_signal):
         with caplog.at_level("INFO"):
             exit_code = edge_loader_main(["--edge-type", "WORKS_AT", "--mode", "stream"])
     assert exit_code == 0
@@ -1365,7 +1365,7 @@ def test_stop_drain_still_writes_when_leases_are_available() -> None:
 
 def test_a_real_write_error_replaces_a_recorded_drain_abandon() -> None:
     """S2: the first failure wins, except a stop-drain abandon never masks a real error."""
-    from src.loader.edge_execution import _LeaseFlush
+    from neo4j_graph_loader.loader.edge_execution import _LeaseFlush
 
     state = SimpleNamespace(failure=None)
     record = lambda exc: _LeaseFlush.record_failure(state, exc)  # noqa: E731
@@ -1384,7 +1384,7 @@ def test_a_real_write_error_replaces_a_recorded_drain_abandon() -> None:
 def test_lease_reconnect_aborted_by_the_stop_is_recorded_as_a_drain_abandon() -> None:
     """The streaming client raises LeaseCoordinatorError('... shutdown requested') once the
     stop event is set; that is an abandon, not a failure. Without a stop it stays an error."""
-    from src.loader.edge_execution import _LeaseFlush
+    from neo4j_graph_loader.loader.edge_execution import _LeaseFlush
 
     hub, router = _Hub(), BucketCellRouter("Person", "Title", 4)
     stop = threading.Event()

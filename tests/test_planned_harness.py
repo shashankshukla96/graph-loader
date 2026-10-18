@@ -13,8 +13,8 @@ import pytest
 import yaml
 from confluent_kafka.admin import AdminClient
 
-from src.loader.edge_execution import ApocLockedEdgeWriter
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from tests.stress import planned_harness, star_topology_data as std
 
 

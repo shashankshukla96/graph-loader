@@ -12,7 +12,7 @@ from confluent_kafka import TopicPartition
 from neo4j.exceptions import ClientError, TransientError
 from prometheus_client import CollectorRegistry
 
-from src.loader.node_loader import (
+from neo4j_graph_loader.loader.node_loader import (
     ControlDeliveryError,
     NodeRecordValidationError,
     NodeWriter,
@@ -22,9 +22,9 @@ from src.loader.node_loader import (
     normalize_node_record,
     main as node_loader_main,
 )
-from src.models.schema import LoadingConfig
-from src.utils.metrics import GraphLoaderMetrics
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.models.schema import LoadingConfig
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -295,11 +295,11 @@ def test_node_loader_main_rejects_unknown_label_and_invalid_cap():
 
 def test_node_loader_main_closes_resources_when_subscription_fails(schema):
     consumer, driver, producer = MagicMock(), MagicMock(), MagicMock()
-    with patch("src.loader.node_loader.Consumer", return_value=consumer), \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
-         patch("src.loader.node_loader.NodeLoader", side_effect=RuntimeError("subscribe failed")):
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.node_loader.NodeLoader", side_effect=RuntimeError("subscribe failed")):
         assert node_loader_main(["--node-label", "Person"]) == 1
     consumer.close.assert_called_once()
     producer.flush.assert_called_once()
@@ -309,11 +309,11 @@ def test_node_loader_main_closes_resources_when_subscription_fails(schema):
 def test_node_loader_main_uses_config_and_closes_resources(schema):
     consumer, driver, loader, producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.node_loader.Consumer", return_value=consumer) as consumer_cls, \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
-         patch("src.loader.node_loader.NodeLoader", return_value=loader) as loader_cls:
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer) as consumer_cls, \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.node_loader.NodeLoader", return_value=loader) as loader_cls:
         assert node_loader_main(["--node-label", "Person", "--max-messages", "1", "--run-id", "test-run", "--replica-id", "2"]) == 0
     config = consumer_cls.call_args.args[0]
     assert config["bootstrap.servers"] == "localhost:9092"
@@ -345,11 +345,11 @@ def test_node_loader_main_runs_end_to_end_with_metrics_disabled(schema, monkeypa
     monkeypatch.setenv("GRAPH_LOADER_METRICS_ENABLED", "0")
     consumer, driver, loader, producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.node_loader.Consumer", return_value=consumer), \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
-         patch("src.loader.node_loader.NodeLoader", return_value=loader):
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.node_loader.NodeLoader", return_value=loader):
         assert node_loader_main(["--node-label", "Person", "--max-messages", "1"]) == 0
     loader.run.assert_called_once_with(max_messages=1)
 
@@ -361,7 +361,7 @@ def test_node_loader_main_wires_dead_letter_sink_and_flushes_its_producer(schema
     picks the DeadLetterRecordSink branch instead of the RejectionSink
     fallback -- proving node_config.dead_letter actually reaches main().
     """
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     dlq_schema = schema.model_copy(deep=True)
     person_index = next(i for i, node in enumerate(dlq_schema.nodes) if node.label == "Person")
@@ -373,13 +373,13 @@ def test_node_loader_main_wires_dead_letter_sink_and_flushes_its_producer(schema
         MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
     )
     loader.run.return_value = 0
-    with patch("src.loader.node_loader.Consumer", return_value=consumer), \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.node_loader.load_schema", return_value=dlq_schema), \
-         patch("src.loader.node_loader.NodeLoader", return_value=loader) as loader_cls, \
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=dlq_schema), \
+         patch("neo4j_graph_loader.loader.node_loader.NodeLoader", return_value=loader) as loader_cls, \
          patch(
-             "src.loader.node_loader.build_malformed_record_sink",
+             "neo4j_graph_loader.loader.node_loader.build_malformed_record_sink",
              return_value=(MagicMock(), dlq_producer),
          ) as build_sink:
         assert node_loader_main(["--node-label", "Person", "--max-messages", "1"]) == 0
@@ -395,10 +395,10 @@ def test_node_loader_main_wires_dead_letter_sink_and_flushes_its_producer(schema
 def test_node_loader_main_subscribes_only_to_selected_topic(schema, monkeypatch):
     consumer, driver, producer = MagicMock(), MagicMock(), MagicMock()
     monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", "kafka-test:9092")
-    with patch("src.loader.node_loader.Consumer", return_value=consumer) as consumer_cls, \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer) as consumer_cls, \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
          patch.object(NodeLoader, "run", return_value=0):
         assert node_loader_main(["--node-label", "Person", "--max-messages", "1"]) == 0
     assert consumer_cls.call_args.args[0]["bootstrap.servers"] == "kafka-test:9092"
@@ -850,7 +850,7 @@ def test_rejection_sink_writes_metadata_jsonl_and_fsyncs(tmp_path) -> None:
     path = tmp_path / "nested" / "rejections.jsonl"
     sink = RejectionSink(path)
 
-    with patch("src.loader.node_loader.os.fsync") as fsync:
+    with patch("neo4j_graph_loader.loader.node_loader.os.fsync") as fsync:
         sink.append(
             topic="person-events",
             partition=2,
@@ -947,7 +947,7 @@ def test_rejection_sink_failure_leaves_offset_uncommitted(person_config) -> None
 
 
 def test_dead_letter_sink_receives_exact_raw_bytes_and_commits_only_after_publish(person_config) -> None:
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     sink = DeadLetterRecordSink(
@@ -992,8 +992,8 @@ def test_dlq_routed_record_increments_dlq_counter_not_records_consumed(person_co
     injected metrics instance end to end, not merely that the seam can be
     called directly.
     """
-    from src.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     try:
@@ -1041,7 +1041,7 @@ def test_dlq_routed_record_increments_dlq_counter_not_records_consumed(person_co
 
 
 def test_dead_letter_publish_failure_leaves_offset_uncommitted(person_config) -> None:
-    from src.loader.dead_letter import DeadLetterPublishError, DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterPublishError, DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     dlq_producer.publish.side_effect = DeadLetterPublishError("broker unreachable")
@@ -1069,7 +1069,7 @@ def test_mixed_batch_dlq_offset_resolves_independent_of_batch_flush_timing(perso
     dlq_producer = MagicMock()
     consumer, writer, producer = MagicMock(), MagicMock(), MagicMock()
     producer.flush.return_value = 0
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     sink = DeadLetterRecordSink(
         producer=dlq_producer, topic="person-events.dlq", run_id="run-1",
@@ -1095,7 +1095,7 @@ def test_mixed_batch_dlq_offset_resolves_independent_of_batch_flush_timing(perso
 
 def test_dead_letter_disabled_is_byte_identical_to_file_fallback(person_config, tmp_path) -> None:
     """dead_letter absent/disabled keeps writing the exact pre-slice JSONL entry."""
-    from src.loader.dead_letter import RejectionSink
+    from neo4j_graph_loader.loader.dead_letter import RejectionSink
 
     path = tmp_path / "rejections.jsonl"
     sink = RejectionSink(path)
@@ -1124,7 +1124,7 @@ def test_dead_letter_redelivery_produces_a_second_envelope_at_least_once(person_
     Documented as at-least-once (matches P5-Q5's counter precedent): not
     deduplicated in this slice.
     """
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     clock_values = iter([1_700_000_000_000, 1_700_000_000_999])
@@ -1210,7 +1210,7 @@ def test_successful_batch_increments_records_consumed_and_write_duration_once(pe
     assert loader._buffer_message(_message(b'{"personId":"p-1","name":"Ada"}'))
     assert loader._buffer_message(_message(b'{"personId":"p-2","name":"Bob"}'))
 
-    with patch("src.loader.node_loader.time.perf_counter", side_effect=[1.0, 1.0125]):
+    with patch("neo4j_graph_loader.loader.node_loader.time.perf_counter", side_effect=[1.0, 1.0125]):
         assert loader._write_batch_with_retry()
 
     assert metrics.registry.get_sample_value(
@@ -1295,7 +1295,7 @@ def test_node_batch_log_reports_write_duration(person_config) -> None:
     loader = NodeLoader(consumer, writer, person_config, event_logger=event_logger)
     assert loader._buffer_message(_message(b'{"personId":"p-1","name":"Ada"}'))
 
-    with patch("src.loader.node_loader.time.perf_counter", side_effect=[1.0, 1.0125]):
+    with patch("neo4j_graph_loader.loader.node_loader.time.perf_counter", side_effect=[1.0, 1.0125]):
         assert loader._write_batch_with_retry()
 
     message, *values = event_logger.info.call_args.args
@@ -1444,11 +1444,11 @@ def test_consumer_close_failure_still_keeps_sigterm_handler(schema):
     consumer.close.side_effect = RuntimeError("close failed")
     loader.run.return_value = 0
 
-    with patch("src.loader.node_loader.Consumer", return_value=consumer), \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
-         patch("src.loader.node_loader.NodeLoader", return_value=loader):
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.node_loader.NodeLoader", return_value=loader):
         # P6-S5 Story 4: a close/flush failure during an otherwise-clean
         # shutdown must be reflected in the exit code (previously silently
         # swallowed here, unlike edge_loader.py's existing
@@ -1506,11 +1506,11 @@ def test_node_loader_sigterm_mid_run_leaves_snapshot_with_accumulated_counters(s
 
     consumer.poll.side_effect = poll_side_effect
 
-    with patch("src.loader.node_loader.Consumer", return_value=consumer), \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
-         patch("src.loader.node_loader.signal.signal", side_effect=capturing_signal):
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.node_loader.signal.signal", side_effect=capturing_signal):
         assert node_loader_main(["--node-label", "Person"]) == 0
 
     assert snapshot_path.exists()
@@ -1572,7 +1572,7 @@ def test_revoke_settles_buffered_valid_record_and_already_dlqd_malformed_record(
     settlement writes the buffered valid record and commits a prefix that
     covers both the DLQ'd and the written offset, never less.
     """
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     sink = DeadLetterRecordSink(
@@ -1597,7 +1597,7 @@ def test_revoke_settles_buffered_valid_record_and_already_dlqd_malformed_record(
 
 def test_revoke_after_dlq_publish_failure_fails_closed_without_committing(person_config) -> None:
     """A DLQ publish failure never lets a later revoke commit past the gap."""
-    from src.loader.dead_letter import DeadLetterPublishError, DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterPublishError, DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     dlq_producer.publish.side_effect = DeadLetterPublishError("broker unreachable")
@@ -1828,8 +1828,8 @@ def test_sigterm_handler_installed_before_any_startup_work(schema):
         return real_signal(sig, handler)
 
     previous = signal.getsignal(signal.SIGTERM)
-    with patch("src.loader.node_loader.signal.signal", side_effect=tracking_signal), \
-         patch("src.loader.node_loader.build_parser",
+    with patch("neo4j_graph_loader.loader.node_loader.signal.signal", side_effect=tracking_signal), \
+         patch("neo4j_graph_loader.loader.node_loader.build_parser",
                side_effect=lambda: order.append("parse") or (_ for _ in ()).throw(SystemExit(2))):
         with pytest.raises(SystemExit):
             node_loader_main([])

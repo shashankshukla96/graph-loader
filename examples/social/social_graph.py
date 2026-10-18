@@ -20,7 +20,7 @@ any library code, and compared exactly with what Neo4j holds.
 Usage::
 
     python examples/social/social_graph.py publish --bootstrap localhost:9092 --persons 20000
-    python -m src.cli start --mode bulk --config examples/social/graph_schema.yaml --edge-plan
+    python -m neo4j_graph_loader.cli start --mode bulk --config examples/social/graph_schema.yaml --edge-plan
     python examples/social/social_graph.py verify --persons 20000 --neo4j-uri bolt://localhost:7687
 """
 from __future__ import annotations
@@ -33,7 +33,6 @@ import json
 import os
 from pathlib import Path
 import random
-import sys
 import time
 
 SCHEMA_PATH = Path(__file__).with_name("graph_schema.yaml")
@@ -395,5 +394,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     raise SystemExit(main())

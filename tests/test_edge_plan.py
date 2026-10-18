@@ -7,7 +7,7 @@ import zlib
 
 import pytest
 
-from src.loader.edge_plan import (
+from neo4j_graph_loader.loader.edge_plan import (
     ChunkSpec, EdgePlan, EdgePlanError, PlannedChunk, ResourceTable, assemble_plan, chunk_boundaries,
     chunk_cost, decode_chunk_message, encode_chunk_message, key_token, plan_failure_marker, planned_bucket,
     rank_chunks, read_plan_file, resource_pair, select_hubs, split_sizes, write_plan_file,

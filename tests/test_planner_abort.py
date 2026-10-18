@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from src.loader.edge_plan import plan_failure_marker, plan_progress_path
-from src.loader.edge_planner import KafkaEdgePlanner, _ProcessWorker
+from neo4j_graph_loader.loader.edge_plan import plan_failure_marker, plan_progress_path
+from neo4j_graph_loader.loader.edge_planner import KafkaEdgePlanner, _ProcessWorker
 
 
 def test_process_worker_close_with_terminate_does_not_wait_for_the_scan() -> None:

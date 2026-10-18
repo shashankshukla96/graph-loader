@@ -6,8 +6,8 @@ import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from src import cli
-from src.cli import _missing_schema_topics, _preflight_stream_topics, handle_start
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.cli import _missing_schema_topics, _preflight_stream_topics, handle_start
 
 _REAL_PREFLIGHT = _preflight_stream_topics
 
@@ -52,15 +52,15 @@ def test_preflight_names_missing_topics_and_never_creates(caplog) -> None:
 
 
 def test_preflight_fails_closed_when_broker_unreachable() -> None:
-    with patch("src.cli._missing_schema_topics", side_effect=RuntimeError("broker down")):
+    with patch("neo4j_graph_loader.cli._missing_schema_topics", side_effect=RuntimeError("broker down")):
         assert _REAL_PREFLIGHT(_schema(), "kafka:9092") is False
 
 
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
-@patch("src.cli._ensure_dead_letter_topics")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
+@patch("neo4j_graph_loader.cli._ensure_dead_letter_topics")
 def test_handle_start_stream_with_missing_topics_returns_1_and_launches_nothing(
     mock_dlq, mock_load, _driver, mock_apply, mock_docker, monkeypatch,
 ) -> None:
@@ -71,7 +71,7 @@ def test_handle_start_stream_with_missing_topics_returns_1_and_launches_nothing(
     mock_docker.return_value = docker_instance
     args = argparse.Namespace(mode="stream", config="config.yaml", network="test_net")
 
-    with patch("src.cli._missing_schema_topics", return_value=["knows-events"]):
+    with patch("neo4j_graph_loader.cli._missing_schema_topics", return_value=["knows-events"]):
         assert handle_start(args) == 1
 
     mock_dlq.assert_not_called()
@@ -79,11 +79,11 @@ def test_handle_start_stream_with_missing_topics_returns_1_and_launches_nothing(
     assert docker_instance.method_calls == []
 
 
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
-@patch("src.cli._ensure_dead_letter_topics")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
+@patch("neo4j_graph_loader.cli._ensure_dead_letter_topics")
 def test_handle_start_bulk_skips_the_preflight(mock_dlq, mock_load, _driver, mock_apply, mock_docker, monkeypatch) -> None:
     monkeypatch.setenv("GRAPH_LOADER_METRICS_ENABLED", "0")
     mock_load.return_value = _schema()

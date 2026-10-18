@@ -3,7 +3,7 @@
 Test reference only: :func:`plan_in_memory` runs the original three rounds
 (scan, candidates/count, emit) of the in-memory planner over the same tasks in
 this process, so tests can prove that the external-memory planner of
-:mod:`src.loader.edge_planner` produces the identical plan.  The worker state
+:mod:`neo4j_graph_loader.loader.edge_planner` produces the identical plan.  The worker state
 below is the original ``PlannerWorkerState`` verbatim.
 """
 from __future__ import annotations
@@ -15,11 +15,11 @@ import time
 from typing import Mapping, Sequence
 import zlib
 
-from src.loader.edge_plan import (
+from neo4j_graph_loader.loader.edge_plan import (
     ChunkSpec, EdgePlanError, ResourceTable, assemble_plan, chunk_boundaries, encode_chunk_message, key_token,
     resource_pair, select_hubs,
 )
-from src.loader.edge_planner import KafkaReadTask, PlanSettings, _produce, assign_lanes, scan_kafka_tasks
+from neo4j_graph_loader.loader.edge_planner import KafkaReadTask, PlanSettings, _produce, assign_lanes, scan_kafka_tasks
 
 _ORDER_BITS = 32
 

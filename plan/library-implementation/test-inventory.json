@@ -1,0 +1,220 @@
+{
+  "status": "planning inventory; not an executable runner yet",
+  "policy": "E07.F1.S3 enumerates exact collected test IDs and full recursive helper/config closure and classifies ALL remaining test files before porting; preserve the checkout suite. No invented current test pass or silently reduced coverage. New E09 targets must be implemented and executed against real isolated services.",
+  "runner_owner": "E07.F1.S1",
+  "service_adapter_owner": "E09.F1.S6",
+  "inventory_owner": "E07.F1.S3",
+  "lanes": {
+    "core": {
+      "owner": "E07.F1.S2",
+      "kind": "installed unit regression",
+      "current_test_files": [
+        "tests/test_schema_validation.py",
+        "tests/test_schema_multi_topic.py",
+        "tests/test_schema_multi_pair.py",
+        "tests/test_edge_plan.py",
+        "tests/test_edge_planner.py",
+        "tests/test_external_planner.py",
+        "tests/test_library_preflight.py",
+        "tests/test_planner_abort.py",
+        "tests/test_planned_multi_topic.py",
+        "tests/test_planned_multi_pair.py",
+        "tests/test_single_topic_compat.py",
+        "tests/test_single_pair_compat.py"
+      ],
+      "target_status": "initial bounded selection; test IDs and recursive closure frozen by E07.F1.S3",
+      "command": "python scripts/verify_installed.py --lane core --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json"
+    },
+    "safety": {
+      "owner": "E07.F1.S4",
+      "kind": "installed unit regression",
+      "current_test_files": [
+        "tests/test_fenced_tx.py",
+        "tests/test_lease_server.py",
+        "tests/test_bucket_lease_execution.py",
+        "tests/test_slot_admission.py",
+        "tests/test_parked_pair_index.py",
+        "tests/test_retry_consumer.py",
+        "tests/test_retry_replay_resurrection.py",
+        "tests/test_retry_pair_order_fuzz.py",
+        "tests/test_retry_liveness.py",
+        "tests/test_retry_amplification.py",
+        "tests/test_dead_letter.py",
+        "tests/test_dead_letter_replay.py",
+        "tests/test_multi_pair_retry.py",
+        "tests/test_multi_pair_dlq.py",
+        "tests/test_multi_topic_dlq.py",
+        "tests/test_edge_rebalance.py",
+        "tests/test_stream_consumer_groups.py",
+        "tests/test_stream_outage_resilience.py"
+      ],
+      "target_status": "initial bounded selection; test IDs and recursive closure frozen by E07.F1.S3",
+      "command": "python scripts/verify_installed.py --lane safety --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json"
+    },
+    "cli-runtime": {
+      "owner": "E07.F1.S5",
+      "kind": "installed unit regression",
+      "current_test_files": [
+        "tests/test_cli.py",
+        "tests/test_cli_env_polish.py",
+        "tests/test_cli_shutdown.py",
+        "tests/test_cli_topic_preflight.py",
+        "tests/test_planned_edges_cli.py",
+        "tests/test_auto_settings.py",
+        "tests/test_docker_service.py",
+        "tests/test_docker_build.py",
+        "tests/test_metrics.py",
+        "tests/test_write_timing_capture.py",
+        "tests/test_node_loader_early_stop.py",
+        "tests/test_stop_signal_ready.py"
+      ],
+      "target_status": "initial bounded selection; test IDs and recursive closure frozen by E07.F1.S3",
+      "command": "python scripts/verify_installed.py --lane cli-runtime --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json"
+    },
+    "service-harness": {
+      "owner": "E09.F1.S6",
+      "kind": "proposed actual-service harness/probe lane",
+      "new_target": "tests/installed_service/conftest.py",
+      "reference_files": [
+        "tests/conftest.py",
+        "tests/it_scratch_db.py",
+        "tests/stress/lock_wait.py",
+        "tests/test_lock_wait_integration.py"
+      ],
+      "note": "Reference files include unit/in-process or opt-in developer tests; merely executing them does not prove the new installed-image live lane. Port the named assertions into the isolated shared E09.F1.S6 harness.",
+      "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
+      "command": "python scripts/verify_installed.py --lane service-harness --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>"
+    },
+    "service-bulk": {
+      "owner": "E09.F1.S1",
+      "kind": "proposed actual-service harness/probe lane",
+      "new_target": "tests/installed_service/test_bulk.py",
+      "reference_files": [
+        "tests/test_planned_harness.py",
+        "tests/test_social_planned_integration.py",
+        "tests/integration/test_planned_order_by_chunks.py",
+        "tests/test_lock_wait_integration.py"
+      ],
+      "note": "Reference files include unit/in-process or opt-in developer tests; merely executing them does not prove the new installed-image live lane. Port the named assertions into the isolated shared E09.F1.S6 harness.",
+      "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
+      "command": "python scripts/verify_installed.py --lane service-bulk --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>"
+    },
+    "service-stream": {
+      "owner": "E09.F1.S2",
+      "kind": "proposed actual-service harness/probe lane",
+      "new_target": "tests/installed_service/test_stream.py",
+      "reference_files": [
+        "tests/test_streaming_lease_e2e.py",
+        "tests/test_node_leases.py",
+        "tests/test_stream_consumer_groups.py"
+      ],
+      "note": "Reference files include unit/in-process or opt-in developer tests; merely executing them does not prove the new installed-image live lane. Port the named assertions into the isolated shared E09.F1.S6 harness.",
+      "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
+      "command": "python scripts/verify_installed.py --lane service-stream --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>"
+    },
+    "service-classic": {
+      "owner": "E09.F1.S3",
+      "kind": "proposed actual-service harness/probe lane",
+      "new_target": "tests/installed_service/test_classic.py",
+      "reference_files": [
+        "tests/integration/test_multi_topic_relationship.py",
+        "tests/test_relationship_bulk_e2e.py"
+      ],
+      "note": "Reference files include unit/in-process or opt-in developer tests; merely executing them does not prove the new installed-image live lane. Port the named assertions into the isolated shared E09.F1.S6 harness.",
+      "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
+      "command": "python scripts/verify_installed.py --lane service-classic --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>"
+    },
+    "service-dlq": {
+      "owner": "E09.F1.S4",
+      "kind": "proposed actual-service harness/probe lane",
+      "new_target": "tests/installed_service/test_dlq.py",
+      "reference_files": [
+        "tests/integration/test_multi_topic_relationship.py",
+        "tests/integration/test_edge_before_node_dlq.py",
+        "tests/integration/test_multi_pair_relationship.py"
+      ],
+      "note": "Reference files include unit/in-process or opt-in developer tests; merely executing them does not prove the new installed-image live lane. Port the named assertions into the isolated shared E09.F1.S6 harness.",
+      "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
+      "command": "python scripts/verify_installed.py --lane service-dlq --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>"
+    },
+    "service-failure": {
+      "owner": "E09.F1.S5",
+      "kind": "proposed actual-service harness/probe lane",
+      "new_target": "tests/installed_service/test_failure.py",
+      "reference_files": [
+        "tests/test_stream_outage_resilience.py",
+        "tests/test_cli_shutdown.py",
+        "tests/test_streaming_lease_e2e.py",
+        "tests/test_planned_harness.py"
+      ],
+      "note": "Reference files include unit/in-process or opt-in developer tests; merely executing them does not prove the new installed-image live lane. Port the named assertions into the isolated shared E09.F1.S6 harness.",
+      "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
+      "command": "python scripts/verify_installed.py --lane service-failure --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>"
+    },
+    "ordering-memory": {
+      "owner": "E09.F2.S1",
+      "kind": "proposed actual-service harness/probe lane",
+      "new_target": "tests/installed_service/test_ordering_memory.py",
+      "reference_files": [
+        "tests/test_retry_replay_resurrection.py",
+        "tests/test_retry_consumer.py"
+      ],
+      "note": "Reference files include unit/in-process or opt-in developer tests; merely executing them does not prove the new installed-image live lane. Port the named assertions into the isolated shared E09.F1.S6 harness.",
+      "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
+      "command": "python scripts/verify_installed.py --lane ordering-memory --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>"
+    },
+    "ordering-boundaries": {
+      "owner": "E09.F2.S2",
+      "kind": "proposed actual-service harness/probe lane",
+      "new_target": "tests/installed_service/test_ordering_boundaries.py",
+      "reference_files": [
+        "tests/test_retry_replay_resurrection.py",
+        "tests/test_retry_pair_order_fuzz.py",
+        "tests/test_dead_letter_replay.py",
+        "tests/integration/test_multi_topic_relationship.py",
+        "tests/integration/test_planned_order_by_chunks.py"
+      ],
+      "note": "Reference files include unit/in-process or opt-in developer tests; merely executing them does not prove the new installed-image live lane. Port the named assertions into the isolated shared E09.F1.S6 harness.",
+      "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
+      "command": "python scripts/verify_installed.py --lane ordering-boundaries --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>"
+    }
+  },
+  "initial_helper_config_fixture_closure": [
+    "tests/conftest.py",
+    "tests/reference_edge_planner.py",
+    "tests/test_edge_planner.py",
+    "tests/test_retry_consumer.py",
+    "tests/test_retry_pair_order_fuzz.py",
+    "tests/multi_pair_support.py",
+    "tests/fixtures/multi_topic_arrival.py",
+    "tests/it_scratch_db.py",
+    "tests/stress/lock_wait.py",
+    "tests/stress/planned_harness.py",
+    "tests/stress/star_topology_data.py",
+    "config/graph_schema.yaml",
+    "tests/golden/fixtures/single_pair_multi_topic.yaml",
+    "tests/golden/fixtures/single_topic_dlq.yaml",
+    "tests/golden/multi_pair_plan.json",
+    "tests/golden/single_pair_compat.json",
+    "tests/golden/single_pair_multi_topic_compat.json",
+    "tests/golden/single_topic_compat.json",
+    "tests/test_edge_execution_writer.py",
+    "tests/test_multi_pair_leases.py",
+    "tests/test_planned_writer.py",
+    "examples/social/graph_schema.yaml",
+    "examples/imdb/graph_schema.yaml"
+  ],
+  "remaining_files_policy": "Every test file not initially selected gets an installed/service lane or explicit checkout-only rationale. Missing runtime regression coverage adds bounded stories with independent review. Large stress/developer-environment/build-tool tests may stay checkout-only only with recorded rationale and equivalent required behavior coverage elsewhere.",
+  "freeze_exit_requirements": [
+    "Staged file counts and recursive helper/config manifest",
+    "Collected test IDs including parametrization and source-to-installed mapping",
+    "Re-estimated per-lane effort and independent review of any split before porting starts"
+  ],
+  "fresh_audit_ast_inventory": {
+    "as_of": "2026-10-16",
+    "core": 253,
+    "safety": 688,
+    "cli-runtime": 308,
+    "meaning": "AST function counts before parametrization; not execution/pass evidence. Recount at inventory freeze."
+  }
+}

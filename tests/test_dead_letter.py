@@ -8,9 +8,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.loader import dead_letter
-from src.loader.edge_records import EdgeRecord
-from src.loader.dead_letter import (
+from neo4j_graph_loader.loader import dead_letter
+from neo4j_graph_loader.loader.edge_records import EdgeRecord
+from neo4j_graph_loader.loader.dead_letter import (
     DEAD_LETTER_MAX_ENVELOPE_BYTES,
     DEAD_LETTER_TOPIC_CONFIG,
     PARKED_PAIR_INDEX_TOPIC_CONFIG,
@@ -477,7 +477,7 @@ def test_publish_succeeds_even_if_on_dlq_routed_listener_raises(monkeypatch) -> 
 
 
 def test_producer_config_has_safety_critical_settings() -> None:
-    from src.loader.dead_letter import DEAD_LETTER_PRODUCER_CONFIG, DEAD_LETTER_MAX_ENVELOPE_BYTES
+    from neo4j_graph_loader.loader.dead_letter import DEAD_LETTER_PRODUCER_CONFIG, DEAD_LETTER_MAX_ENVELOPE_BYTES
 
     assert DEAD_LETTER_PRODUCER_CONFIG["acks"] == "all"
     assert DEAD_LETTER_PRODUCER_CONFIG["enable.idempotence"] is True
@@ -1110,7 +1110,7 @@ def test_build_malformed_record_sink_returns_rejection_sink_when_disabled(tmp_pa
 
 
 def test_build_malformed_record_sink_returns_dead_letter_sink_when_enabled() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     fake_producer = MagicMock()
     sink, producer = build_malformed_record_sink(
@@ -1129,7 +1129,7 @@ def test_build_malformed_record_sink_returns_dead_letter_sink_when_enabled() -> 
 
 
 def test_build_malformed_record_sink_uses_default_topic_naming_when_topic_unset() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     fake_producer = MagicMock()
     sink, producer = build_malformed_record_sink(

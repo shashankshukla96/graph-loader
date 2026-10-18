@@ -8,8 +8,8 @@ import argparse
 from types import SimpleNamespace
 from unittest.mock import ANY, MagicMock, call
 
-import src.cli as cli
-from src.orchestrator.bulk_monitor import QuiescentViolationError
+import neo4j_graph_loader.cli as cli
+from neo4j_graph_loader.orchestrator.bulk_monitor import QuiescentViolationError
 
 
 def _args() -> argparse.Namespace:

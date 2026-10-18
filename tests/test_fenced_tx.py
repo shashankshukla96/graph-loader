@@ -1,4 +1,4 @@
-"""Lease-fenced BEGIN: a leased transaction never outlives its lease deadline (src/loader/fenced_tx.py).
+"""Lease-fenced BEGIN: a leased transaction never outlives its lease deadline (src/neo4j_graph_loader/loader/fenced_tx.py).
 
 The model: the client picks the Neo4j timeout just before ``begin_transaction()``; the server begins the
 transaction at some time no later than when ``begin_transaction()`` returns; Neo4j ends it at most
@@ -12,11 +12,11 @@ from contextlib import contextmanager
 
 import pytest
 
-from src.loader.fenced_tx import (
+from neo4j_graph_loader.loader.fenced_tx import (
     BEGIN_ALLOWANCE_SECONDS, MIN_LEASED_TX_TIMEOUT_MS, MIN_TX_TIMEOUT_SECONDS, TX_MONITOR_SLACK_SECONDS,
     LeaseDeadlineExceeded, begin_fenced_transaction,
 )
-from src.loader.lease_client import LeaseCoordinatorError
+from neo4j_graph_loader.loader.lease_client import LeaseCoordinatorError
 
 
 class _Clock:
@@ -94,7 +94,7 @@ def test_an_accepted_transaction_never_outlives_the_deadline(delay, left) -> Non
 def test_a_late_begin_is_rolled_back_before_any_statement_and_retried(caplog) -> None:
     clock = _Clock()
     session = _SlowSession(clock, [4.0, 0.0])  # a slow new connection, then a pooled one
-    with caplog.at_level(logging.INFO, logger="src.loader.fenced_tx"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.loader.fenced_tx"):
         _write(session, clock, clock.now + 30.0)
     first, second = session.transactions
     assert first.statements == 0 and first.rolled_back
@@ -170,7 +170,7 @@ def test_the_driver_does_not_pipeline_an_explicit_begin() -> None:
 def _schema_with_tx_timeout(tmp_path, tx_timeout_ms: int):
     import yaml
 
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     raw = yaml.safe_load(open("config/graph_schema.yaml", encoding="utf-8"))
     raw["loading"]["bucket_lease"].update({"tx_timeout_ms": tx_timeout_ms, "expected_chunk_commit_ms": 100})
@@ -183,8 +183,8 @@ def test_a_short_tx_timeout_still_loads_and_plans_but_lease_modes_refuse_it(tmp_
     """The fenced budget is a lease-mode rule only: planned and classic bulk keep T as a flat timeout."""
     import argparse
 
-    from src.cli import _validate_edge_lease_settings, _validate_edge_plan_settings, _validate_stream_lease_settings
-    from src.models.schema import BucketLeaseStreamConfig
+    from neo4j_graph_loader.cli import _validate_edge_lease_settings, _validate_edge_plan_settings, _validate_stream_lease_settings
+    from neo4j_graph_loader.models.schema import BucketLeaseStreamConfig
     from test_single_topic_compat import _plan_fingerprint
 
     assert MIN_LEASED_TX_TIMEOUT_MS == 6_000
@@ -208,12 +208,12 @@ def test_handle_start_refuses_a_short_tx_timeout_for_stream_before_any_side_effe
     import argparse
     from unittest.mock import patch
 
-    from src.cli import handle_start
+    from neo4j_graph_loader.cli import handle_start
 
     schema = _schema_with_tx_timeout(tmp_path, 4_000)
     args = argparse.Namespace(mode="bulk", config="c.yaml", network="net", skip_image_build=True, edge_leases=True)
-    with patch("src.cli.load_schema", return_value=schema), patch("src.cli.DockerService") as docker, \
-            patch("src.cli.apply_schema") as apply_schema, caplog.at_level(logging.ERROR):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), patch("neo4j_graph_loader.cli.DockerService") as docker, \
+            patch("neo4j_graph_loader.cli.apply_schema") as apply_schema, caplog.at_level(logging.ERROR):
         assert handle_start(args) == 1
     assert any("tx_timeout_ms >= 6000" in record.getMessage() for record in caplog.records)
     apply_schema.assert_not_called()
@@ -225,8 +225,8 @@ def test_handle_start_refuses_a_short_tx_timeout_for_stream_before_any_side_effe
 def _apoc_writer(clock):
     from unittest.mock import MagicMock
 
-    from src.loader.edge_execution import ApocLockedEdgeWriter
-    from src.loader.edge_loader import MissingRelationshipEndpointError
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+    from neo4j_graph_loader.loader.edge_loader import MissingRelationshipEndpointError
     from test_edge_execution_writer import _edge, _ok
 
     driver = MagicMock()
@@ -254,8 +254,8 @@ def test_edge_writer_retries_a_late_begin_within_the_lease(monkeypatch) -> None:
 def test_node_writer_never_begins_past_the_budget() -> None:
     from unittest.mock import MagicMock
 
-    from src.loader.node_loader import NodeWriter
-    from src.models.schema import NodeConfig
+    from neo4j_graph_loader.loader.node_loader import NodeWriter
+    from neo4j_graph_loader.models.schema import NodeConfig
 
     clock = _Clock()
     driver = MagicMock()
@@ -264,7 +264,7 @@ def test_node_writer_never_begins_past_the_budget() -> None:
     config = NodeConfig(label="Person", topic="people", key_property="id",
                         properties={"id": {"type": "string", "required": True}})
     writer = NodeWriter(driver, config, clock=clock)
-    from src.loader.node_loader import NodeRecord
+    from neo4j_graph_loader.loader.node_loader import NodeRecord
 
     with pytest.raises(LeaseDeadlineExceeded):
         writer.write_batch([NodeRecord(key="p-1", properties={})], deadline=clock.now + 20.0)
@@ -294,7 +294,7 @@ class _FencedWriter:
 def test_coordinator_requeues_a_cell_whose_deadline_ran_out_and_regrants_it() -> None:
     from test_bucket_lease_execution import _Hub, _coordinator, _pending
 
-    from src.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
 
     clock = _Clock()
     hub, router = _Hub(), BucketCellRouter("Person", "Title", 4)
@@ -319,8 +319,8 @@ def test_coordinator_requeues_a_cell_whose_deadline_ran_out_and_regrants_it() ->
 def test_coordinator_fails_the_flush_after_too_many_requeues() -> None:
     from test_bucket_lease_execution import _Hub, _coordinator, _pending
 
-    from src.loader.edge_execution import BucketLeaseExecutionCoordinator
-    from src.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.edge_execution import BucketLeaseExecutionCoordinator
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
 
     clock = _Clock()
     hub, router = _Hub(), BucketCellRouter("Person", "Title", 4)

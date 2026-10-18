@@ -30,12 +30,12 @@ import yaml
 from neo4j import GraphDatabase
 
 from examples.social import social_graph
-from src.loader.edge_execution import build_edge_execution
-from src.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError, PendingEdgeRecord
-from src.loader.lease_client import LEASE_ADDRESS_ENV
-from src.orchestrator.lease_server import BucketLeaseServer
-from src.orchestrator.schema_initializer import apply_schema
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_execution import build_edge_execution
+from neo4j_graph_loader.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError, PendingEdgeRecord
+from neo4j_graph_loader.loader.lease_client import LEASE_ADDRESS_ENV
+from neo4j_graph_loader.orchestrator.lease_server import BucketLeaseServer
+from neo4j_graph_loader.orchestrator.schema_initializer import apply_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from tests.stress import lock_wait, planned_harness
 
 PERSONS = 200
@@ -353,7 +353,7 @@ def test_missing_endpoint_fails_closed_by_default_in_every_mode(
         # mismatch, or a writer exiting nonzero for any cause. Pin the
         # actual cause via the writer's own logged reason
         # (stage=planned-writer ... reason=<ExcType>: ...).
-        with caplog.at_level(logging.ERROR, logger="src.loader.planned_writer"):
+        with caplog.at_level(logging.ERROR, logger="neo4j_graph_loader.loader.planned_writer"):
             with pytest.raises(planned_harness.PlannedHarnessError, match="exited nonzero"):
                 planned_harness.run_planned_mode(
                     _visited_only_schema(tmp_path), social_driver, kafka_bootstrap, plan_dir=tmp_path,

@@ -8,19 +8,19 @@ import pytest
 from confluent_kafka import TopicPartition
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, GraphStore, likes, record
-from src.loader import edge_execution, edge_loader, planned_writer
-from src.loader.edge_execution import (
+from neo4j_graph_loader.loader import edge_execution, edge_loader, planned_writer
+from neo4j_graph_loader.loader.edge_execution import (
     ApocLockedEdgeWriter,
     ExecutionModeError,
     LaneExecutionCoordinator,
     PairSplitLaneExecution,
     build_edge_execution,
 )
-from src.loader.edge_loader import EdgeLoader, PendingEdgeRecord
-from src.loader.edge_records import normalize_edge_record
-from src.loader.mix_and_batch import LaneBatcher, MixAndBatchPartitioner
-from src.models.schema import LoadingConfig, MultiPairEdgeError
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_loader import EdgeLoader, PendingEdgeRecord
+from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+from neo4j_graph_loader.loader.mix_and_batch import LaneBatcher, MixAndBatchPartitioner
+from neo4j_graph_loader.models.schema import LoadingConfig, MultiPairEdgeError
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 class _Sink:

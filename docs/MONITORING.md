@@ -112,7 +112,7 @@ make monitoring-up                        # starts prometheus + grafana
 ## 3. How discovery works
 
 Every container `docker_service.py` launches carries these Docker labels
-(confirmed by reading `src/orchestrator/docker_service.py` directly):
+(confirmed by reading `src/neo4j_graph_loader/orchestrator/docker_service.py` directly):
 
 | Label | Set by | Meaning |
 | --- | --- | --- |
@@ -147,7 +147,7 @@ Grafana's own containers are never even fetched. `relabel_configs` then:
 3. Keeps only targets on `graph-loader-net` (a container joined to a
    second network would otherwise be discovered twice). **Gotcha:** if you
    start containers with `--network` set to anything other than
-   `graph-loader-net` (`src/cli.py`'s `--network` flag, default
+   `graph-loader-net` (`src/neo4j_graph_loader/cli.py`'s `--network` flag, default
    `graph-loader-net`), this rule silently drops them — Prometheus never
    even shows them as a target, and nothing anywhere logs an error. The
    dashboard just shows no data for that run. Fix: either use the default
@@ -159,7 +159,7 @@ Grafana's own containers are never even fetched. `relabel_configs` then:
    name.
 
 `honor_labels: true` is set on this scrape job: every `graph_loader_*`
-metric already carries its own `kind` label (`src/utils/metrics.py`).
+metric already carries its own `kind` label (`src/neo4j_graph_loader/utils/metrics.py`).
 Without `honor_labels`, Prometheus's default label-collision rule would
 rename the *scraped* `kind` to `exported_kind` and keep this job's
 target-level `kind` instead — today the two values always agree, but
@@ -175,7 +175,7 @@ None)}`) that the Docker launcher adds — that mapping is for a human on the ho
 `curl` one container directly, a different consumer of the same port.
 
 **Port note.** The metrics port is **9464**
-(`src/utils/metrics.py:DEFAULT_METRICS_PORT`), not Prometheus's own
+(`src/neo4j_graph_loader/utils/metrics.py:DEFAULT_METRICS_PORT`), not Prometheus's own
 default port (9090) — this stack runs a real Prometheus server on the
 same `graph-loader-net` network, so the two must differ. Prometheus scrapes each
 container's own **exposed** metrics port, which `docker_service.py`

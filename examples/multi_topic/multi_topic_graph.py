@@ -16,7 +16,7 @@ The expected graph is computed here from the generated Python values, without an
 Usage::
 
     python examples/multi_topic/multi_topic_graph.py publish --bootstrap localhost:9092 --customers 2000
-    python -m src.cli start --mode bulk --config examples/multi_topic/graph_schema.yaml
+    python -m neo4j_graph_loader.cli start --mode bulk --config examples/multi_topic/graph_schema.yaml
     python examples/multi_topic/multi_topic_graph.py verify --customers 2000
 
 ``--variant multi-pair`` (v7-S7) uses ``graph_schema_multi_pair.yaml`` instead: ONE type, ``LIKES``, over the
@@ -32,7 +32,6 @@ import json
 import os
 from pathlib import Path
 import random
-import sys
 import time
 
 SCHEMA_PATH = Path(__file__).with_name("graph_schema.yaml")
@@ -524,5 +523,4 @@ def _main_multi_pair(args) -> int:
 
 
 if __name__ == "__main__":
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     raise SystemExit(main())

@@ -37,7 +37,7 @@ docker exec graph-loader-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
    Relationship records use the envelope
    `{"source": {...key...}, "target": {...key...}, "properties": {...}}`,
    keyed by the source key.
-3. **Load:** `python -m src.cli start --mode bulk --config graph_schema.yaml`
+3. **Load:** `python -m neo4j_graph_loader.cli start --mode bulk --config graph_schema.yaml`
    (planned mode is the bulk default; `--edge-classic` selects the old
    APOC-locked loaders). The loader derives the schedule, parallelism and lock-free write plan by
    itself.

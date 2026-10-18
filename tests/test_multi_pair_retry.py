@@ -10,12 +10,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, GraphStore, likes, likes_schema, record
-from src import cli
-from src.loader.dead_letter import DeadLetterRecordSink
-from src.loader.edge_execution import IndexedMissingEndpointSink, LabelledEndpointSink, LeaseDrainAbandoned
-from src.loader.edge_records import normalize_edge_record
-from src.loader.lease_client import BucketCellRouter, BucketLeaseClient
-from src.loader.retry_consumer import (
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink, LabelledEndpointSink, LeaseDrainAbandoned
+from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+from neo4j_graph_loader.loader.lease_client import BucketCellRouter, BucketLeaseClient
+from neo4j_graph_loader.loader.retry_consumer import (
     RETRY_OUTCOME_WRITTEN,
     PairSplitRetryWriter,
     RetryConsumer,
@@ -32,7 +32,7 @@ from test_parked_pair_index import _FakeTopicLog, _wait_caught_up
 from test_retry_consumer import _Clock, _FakeConsumer, _FakeDlqMessage
 from tests.test_multi_topic_dlq import _AckingIndexProducer
 from tests.test_parked_pair_index import _FakeConsumer as _IndexConsumer
-from src.loader.parked_pair_index import ParkedPairIndex
+from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex
 
 DLQ = "LIKES.dlq"
 PARKED = "LIKES.dlq.parked"
@@ -412,7 +412,7 @@ def _replay_args(**kwargs) -> argparse.Namespace:
 def test_replay_refuses_target_topics_that_would_change_the_pair(kwargs, ok, caplog) -> None:
     schema = likes_schema(order_by=False, topic_conflict="arrival", dead_letter={"enabled": True})
     with patch.object(cli, "load_schema", return_value=schema), \
-            patch("src.loader.dead_letter_replay.run_replay", return_value=MagicMock(matched=0, published=0)) as run:
+            patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", return_value=MagicMock(matched=0, published=0)) as run:
         rc = cli.handle_replay_dlq(_replay_args(**kwargs))
     if ok:
         assert run.called
@@ -430,7 +430,7 @@ def test_replay_warns_loudly_when_the_target_topic_is_outside_the_type(schema_kw
     """Final follow-ups nit: a staging topic stays allowed, but a WARNING says no loader of the type reads it."""
     schema = likes_schema(dead_letter={"enabled": True}, **schema_kwargs)
     with caplog.at_level(logging.WARNING), patch.object(cli, "load_schema", return_value=schema), \
-            patch("src.loader.dead_letter_replay.run_replay", return_value=MagicMock(matched=0, published=0)) as run:
+            patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", return_value=MagicMock(matched=0, published=0)) as run:
         assert cli.handle_replay_dlq(_replay_args(**kwargs)) == 0
     assert run.called
     warning = [r for r in caplog.records if "reason=target_outside_entity" in r.getMessage()]

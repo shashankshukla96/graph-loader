@@ -15,15 +15,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.loader import edge_planner
-from src.loader.edge_execution import ApocLockedEdgeWriter, build_apoc_locked_upsert_query
-from src.loader.edge_loader import MissingRelationshipEndpointError
-from src.loader.edge_plan import EdgePlan
-from src.loader.edge_planner import (
+from neo4j_graph_loader.loader import edge_planner
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter, build_apoc_locked_upsert_query
+from neo4j_graph_loader.loader.edge_loader import MissingRelationshipEndpointError
+from neo4j_graph_loader.loader.edge_plan import EdgePlan
+from neo4j_graph_loader.loader.edge_planner import (
     EdgePlanInputError, KafkaEdgePlanner, PlannerWorkerState, PlanSettings, capture_edge_boundary, kafka_read_tasks,
 )
-from src.models.schema import EdgeConfig
-from src.orchestrator.planned_edges import PlannedEdgeError, validate_plan_against_schema
+from neo4j_graph_loader.models.schema import EdgeConfig
+from neo4j_graph_loader.orchestrator.planned_edges import PlannedEdgeError, validate_plan_against_schema
 from test_edge_planner import EDGES, SOCIAL, FakeCluster, FakeProducer, chains, envelope
 
 
@@ -386,7 +386,7 @@ def test_order_bound_is_topic_4095_partition_2_20_minus_1_and_one_more_fails() -
 
 
 def test_group_overhead_is_charged_against_the_row_budget(monkeypatch, tmp_path) -> None:
-    from src.loader.edge_spill import GROUP_OVERHEAD_BYTES, GroupStore, SpillFile
+    from neo4j_graph_loader.loader.edge_spill import GROUP_OVERHEAD_BYTES, GroupStore, SpillFile
 
     store = GroupStore(SpillFile(tmp_path / "rows.bin"), 100_000)
     assert store.limit == 100_000

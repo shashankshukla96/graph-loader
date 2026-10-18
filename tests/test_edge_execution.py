@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from neo4j.exceptions import ClientError, CypherSyntaxError, ServiceUnavailable
 
-from src.loader.edge_execution import (
+from neo4j_graph_loader.loader.edge_execution import (
     ExecutionModeError, ServerCapabilities, probe_server_capabilities, require_execution_mode,
 )
 

@@ -18,7 +18,7 @@ def test_docker_build_node_loader():
         # Verify ENTRYPOINT
         attrs = image.attrs
         entrypoint = attrs.get("Config", {}).get("Entrypoint")
-        assert entrypoint == ["python", "-m", "src.loader.node_loader"]
+        assert entrypoint == ["python", "-m", "neo4j_graph_loader.loader.node_loader"]
         
     except (BuildError, APIError) as e:
         pytest.fail(f"Docker build failed: {e}")

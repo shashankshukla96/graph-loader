@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-16",
+  "source_sha256": "4e293357a858209d250d91818b732030a5951784f2dc468495d2c6ad21858f2b",
+  "environment_sha256": "048a4d2d18ada968b28398105c6086473679ae25eb88c7a6e5d175dad965bf89",
+  "before_after_source_environment_diffs_identical": true,
+  "input_count": 232,
+  "main_deployment_version_environment": null,
+  "metrics_test_inputs": [
+    null,
+    "",
+    "deployment-override"
+  ],
+  "full_baseline": {
+    "command": ".venv/bin/python -m pytest tests examples/imdb/tests -m \"not integration and not smoke\" -q -rs",
+    "exit_code": 0,
+    "passed": 3380,
+    "skipped": 4,
+    "deselected": 49,
+    "warnings": 19,
+    "elapsed_seconds": 172.12
+  },
+  "focused": {
+    "command": ".venv/bin/python -m pytest tests/test_distribution_foundation.py tests/test_metrics.py tests/test_cli_env_polish.py tests/test_docker_service.py tests/test_library_preflight.py -q",
+    "exit_code": 0,
+    "passed": 147,
+    "elapsed_seconds": 6.77
+  },
+  "checks": {
+    "ruff": 0,
+    "pip_check_repository": 0,
+    "requirements_parity": 0,
+    "git_diff_check": 0,
+    "twine_original_sdist_wheel": 0,
+    "twine_rebuilt_wheel": 0,
+    "clean_base_pip_check_both_wheels": 0
+  },
+  "logs": [
+    {
+      "path": "/tmp/graph-loader-e02-full-final-20261016.log",
+      "size": 4936,
+      "sha256": "9c65689f95bdf107f368101bcc64b4b5c1c75156aed00f4f0956b50f2ff5e57c"
+    },
+    {
+      "path": "/tmp/graph-loader-e02-s3-focused-final.log",
+      "size": 260,
+      "sha256": "be54494d45fea5108a90814576553af9f84527d123ee1f27308f7faff4f4cb60"
+    },
+    {
+      "path": "/tmp/graph-loader-e02-s1-checkout.log",
+      "size": 500,
+      "sha256": "b265ced0288f557d527be327c9d52882e945cedc4f2f07b0beb8e1e117e004e3"
+    },
+    {
+      "path": "/tmp/graph-loader-e02-s2-build.log",
+      "size": 5545,
+      "sha256": "311205356b67fc386a08d46e589a9c78d2383f119b7b8c30a851f8b1ab22347d"
+    },
+    {
+      "path": "/tmp/graph-loader-e02-final-build.log",
+      "size": 5548,
+      "sha256": "7c0fa10b7a9328166e31d7b87981b2ec4611aa2d0c8ed977e2ab0579c5e6f048"
+    },
+    {
+      "path": "/tmp/graph-loader-e02-sdist-rebuild.log",
+      "size": 2825,
+      "sha256": "ae53171eb3c551823eb75b99b0d01c8dbc52b2cdc27e40e46ac6bfa0673516c0"
+    }
+  ],
+  "skips": [
+    "bash-specific negative control:sh andbash differ",
+    "historical lease slice guard:8748274 absent",
+    "historical orchestration guard:8748274/239deb4 absent",
+    "intentionally multi-pair schema excluded from single-pair invariant"
+  ],
+  "warnings_owner": "A5/E08:15IMDbsubset+4plannededges multithreadedfork deprecations",
+  "superseded_run": "/tmp/graph-loader-e02-full-20261016.log preceded final docstring correction; not accepted as final source evidence",
+  "artifact_records": [
+    "e02-final-artifacts.json",
+    "e02-sdist-rebuilt-artifacts.json",
+    "e02-s2-resolution.json",
+    "e02-version-validation.json"
+  ],
+  "independent_story_review": "../reviews/e02-checkpoints.md",
+  "fresh_adversarial_review": "../reviews/e02-final-adversarial.md",
+  "final_verdict": "APPROVED; no actionable E02 findings; no E03 implementation or publication authorized"
+}

@@ -9,8 +9,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from examples.social import social_graph  # noqa: E402
-from src.loader.edge_records import normalize_edge_record  # noqa: E402
-from src.utils.schema_loader import load_schema  # noqa: E402
+from neo4j_graph_loader.loader.edge_records import normalize_edge_record  # noqa: E402
+from neo4j_graph_loader.utils.schema_loader import load_schema  # noqa: E402
 
 
 def test_generator_is_deterministic_and_exercises_the_contract() -> None:

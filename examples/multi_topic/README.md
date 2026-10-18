@@ -50,7 +50,7 @@ Set the connection variables from [`../README.md`](../README.md#common-setup), t
 
 ```bash
 python examples/multi_topic/multi_topic_graph.py publish --customers 3000
-python -m src.cli start --mode bulk --config examples/multi_topic/graph_schema.yaml      # planned mode
+python -m neo4j_graph_loader.cli start --mode bulk --config examples/multi_topic/graph_schema.yaml      # planned mode
 python examples/multi_topic/multi_topic_graph.py verify --customers 3000
 ```
 
@@ -81,7 +81,7 @@ the retry consumer writes them once the customers and products arrive:
 
 ```bash
 python examples/multi_topic/multi_topic_graph.py publish --customers 1000 --only edges   # also creates the topics
-python -m src.cli start --mode stream --config examples/multi_topic/graph_schema_dead_letter.yaml &
+python -m neo4j_graph_loader.cli start --mode stream --config examples/multi_topic/graph_schema_dead_letter.yaml &
 python examples/multi_topic/multi_topic_graph.py publish --customers 1000 --only nodes
 python examples/multi_topic/multi_topic_graph.py verify --customers 1000 --types RATED  # repeat until exact_match
 ```
@@ -90,9 +90,9 @@ Every envelope in `RATED.dlq` keeps its `original_topic`, so a replay can pick o
 record to the topic it came from:
 
 ```bash
-python -m src.cli replay-dlq --config examples/multi_topic/graph_schema_dead_letter.yaml \
+python -m neo4j_graph_loader.cli replay-dlq --config examples/multi_topic/graph_schema_dead_letter.yaml \
   --edge-type RATED --source-topic mt-rated-import --dry-run           # count one topic's records
-python -m src.cli replay-dlq --config examples/multi_topic/graph_schema_dead_letter.yaml \
+python -m neo4j_graph_loader.cli replay-dlq --config examples/multi_topic/graph_schema_dead_letter.yaml \
   --edge-type RATED --parked --source-topic mt-rated-app               # parked rows of one topic
 ```
 
@@ -129,7 +129,7 @@ record, so Comment 7 and Post 7 can never be confused.
 
 ```bash
 python examples/multi_topic/multi_topic_graph.py publish --variant multi-pair --customers 3000
-python -m src.cli start --mode bulk --config examples/multi_topic/graph_schema_multi_pair.yaml
+python -m neo4j_graph_loader.cli start --mode bulk --config examples/multi_topic/graph_schema_multi_pair.yaml
 python examples/multi_topic/multi_topic_graph.py verify --variant multi-pair --customers 3000
 python examples/multi_topic/multi_topic_graph.py reset --variant multi-pair   # delete the variant's topics
 ```

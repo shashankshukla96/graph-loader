@@ -1,8 +1,8 @@
 # Command-line reference
 
-`python -m src.cli <command>` is the single entry point. This page is derived
-from `build_parser()` in `src/cli.py` and the code behind it; run
-`python -m src.cli <command> --help` for the live text (no Kafka, Neo4j or
+`python -m neo4j_graph_loader.cli <command>` is the single entry point. This page is derived
+from `build_parser()` in `src/neo4j_graph_loader/cli.py` and the code behind it; run
+`python -m neo4j_graph_loader.cli <command> --help` for the live text (no Kafka, Neo4j or
 Docker needed to print help).
 
 Related: [README](../README.md) (quick start) | [USAGE](USAGE.md) (detailed
@@ -25,8 +25,8 @@ Contents: [Commands](#commands) | [start](#start) | [stop](#stop) |
 | `replay-dlq` | Republish dead-lettered (or parked) records of one node label or relationship type to their source topic. |
 
 There are no other subcommands. Related helpers are separate modules, not CLI
-commands: `python -m src.loader.node_loader`, `python -m src.loader.edge_loader`
-(single-topic debugging runs), `python -m src.loader.retry_consumer`
+commands: `python -m neo4j_graph_loader.loader.node_loader`, `python -m neo4j_graph_loader.loader.edge_loader`
+(single-topic debugging runs), `python -m neo4j_graph_loader.loader.retry_consumer`
 (standalone DLQ drain), `scripts/validate_monitoring.py`, and the
 `make monitoring-up|monitoring-down|monitoring-validate` targets.
 
@@ -37,7 +37,7 @@ The CLI does **not** read `.env`. Export the connection variables yourself
 ## start
 
 ```text
-python -m src.cli start --mode {bulk,stream} [--config PATH] [options]
+python -m neo4j_graph_loader.cli start --mode {bulk,stream} [--config PATH] [options]
 ```
 
 Validation errors are logged as `stage=launch reason=...` and exit 1 before any
@@ -75,7 +75,7 @@ The former-DLQ and DLQ-leftover preflights are skipped when the run is planned
 
 ### Planned mode tuning (`--edge-plan`, also the bulk default)
 
-Every value is derived automatically (`src/orchestrator/auto_settings.py`); a
+Every value is derived automatically (`src/neo4j_graph_loader/orchestrator/auto_settings.py`); a
 flag overrides it. Range errors exit 1. These flags are validated only when the
 run is planned and are silently unused in lease, classic and stream runs.
 
@@ -174,7 +174,7 @@ Stream mode always uses the bucket-lease fleet (unless the deprecated
 ## stop
 
 ```text
-python -m src.cli stop [--loader LABEL]
+python -m neo4j_graph_loader.cli stop [--loader LABEL]
 ```
 
 | Flag | Default | Notes |
@@ -193,7 +193,7 @@ graph-loader node-loader container, including other users' runs. Use
 ## status
 
 ```text
-python -m src.cli status [--config PATH]
+python -m neo4j_graph_loader.cli status [--config PATH]
 ```
 
 Logs one line per node-loader container (`Loader <name> (<id>): <status> [Node:
@@ -204,7 +204,7 @@ metrics ([MONITORING](MONITORING.md)) or Kafka's consumer-group tooling.
 ## replay-dlq
 
 ```text
-python -m src.cli replay-dlq (--node-label LABEL | --edge-type TYPE) [options]
+python -m neo4j_graph_loader.cli replay-dlq (--node-label LABEL | --edge-type TYPE) [options]
 ```
 
 Reads the entity's DLQ topic (or parking lot) up to a captured boundary and
@@ -329,6 +329,6 @@ See [MONITORING](MONITORING.md) for the metric catalogue.
 | `GRAPH_LOADER_METRICS_BIND_ADDR` | `127.0.0.1` | CLI only | Set to expose the CLI's endpoint to a Prometheus container; logs a warning because the endpoint is unauthenticated. |
 | `GRAPH_LOADER_METRICS_SNAPSHOT_PATH` | set by the CLI per replica | containers; CLI uses `$GRAPH_LOADER_TIMING_DIR/metrics-cli.prom` | Atomic Prometheus-text snapshot written periodically and at exit. |
 | `GRAPH_LOADER_METRICS_SNAPSHOT_INTERVAL_S` | `15` | every process (forwarded by the CLI) | Seconds between periodic snapshot rewrites. `0` disables the periodic timer (the exit-time write still happens); non-finite values fall back to the default, values below 1 are raised to 1 and values above 86400 are clamped. |
-| `GRAPH_LOADER_VERSION` | `dev` | every process (forwarded by the CLI to containers) | Reported in the process-info metric. |
+| `GRAPH_LOADER_VERSION` | package version (`0.1.0a1.dev0` in the E02 scaffold) | every process (nonempty overrides forwarded by the CLI to containers) | Startup override for the process-info metric only; does not change package/image identity. A directly supplied empty value remains empty for compatibility. |
 | `GRAPH_LOADER_LEASE_MERGE_ROWS` | `200` | stream edge loaders and the retry consumer (forwarded by the CLI) | Small lease cells are merged under one lease up to this many rows. |
 | `GRAPH_LOADER_BUCKET_LEASE_ADDR` | set by the CLI | edge loaders, node loaders, retry consumer | Lease server address. `GRAPH_LOADER_LEASE_ADDR` is a deprecated alias (logs `stage=deprecation`). |

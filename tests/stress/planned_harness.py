@@ -3,14 +3,14 @@
 Runs `KafkaEdgePlanner -> PlannedDispatcher -> N PlannedEdgeWriterWorker`
 threads against a real Neo4j/Kafka pair, with no Docker container beyond
 those two, and returns the same completion proof the CLI's own
-`run_planned_edge_phase` checks (`src.orchestrator.planned_edges.verify_ledger`).
+`run_planned_edge_phase` checks (`neo4j_graph_loader.orchestrator.planned_edges.verify_ledger`).
 Every star-topology and correctness test in this slice that exercises
 planned mode shares this one harness, so a bug in the wiring is fixed once.
 
 Correction vs. the Cartographer's sketch (`plan/v6/slice-4/stories.md`
 Story 3): writers are NOT built through
-`src.loader.edge_execution.build_edge_execution` -- traced
-`src/loader/planned_writer.py::main()` (the real planned-writer process
+`neo4j_graph_loader.loader.edge_execution.build_edge_execution` -- traced
+`src/neo4j_graph_loader/loader/planned_writer.py::main()` (the real planned-writer process
 entry point), which builds them directly as ``ApocLockedEdgeWriter(driver,
 edge_config, explicit_locks=False, sort_rows=False,
 missing_endpoint_error_factory=MissingRelationshipEndpointError)``. This
@@ -29,20 +29,20 @@ import time
 from typing import Any
 import uuid
 
-from src.loader.edge_execution import ApocLockedEdgeWriter
-from src.loader.edge_loader import MissingRelationshipEndpointError
-from src.loader.edge_plan import DEFAULT_CHUNK_ROWS, DEFAULT_MAX_MESSAGE_BYTES, EdgePlan
-from src.loader.edge_planner import DEFAULT_HUB_DEGREE, DEFAULT_PLAN_BUCKETS, KafkaEdgePlanner, PlanSettings
-from src.loader.planned_writer import (
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+from neo4j_graph_loader.loader.edge_loader import MissingRelationshipEndpointError
+from neo4j_graph_loader.loader.edge_plan import DEFAULT_CHUNK_ROWS, DEFAULT_MAX_MESSAGE_BYTES, EdgePlan
+from neo4j_graph_loader.loader.edge_planner import DEFAULT_HUB_DEGREE, DEFAULT_PLAN_BUCKETS, KafkaEdgePlanner, PlanSettings
+from neo4j_graph_loader.loader.planned_writer import (
     ChunkDecoder, ChunkFetcher, DispatcherClient, PlannedEdgeWriterWorker, build_planned_writers, planned_consumer_config,
 )
-from src.orchestrator.planned_dispatcher import PlannedDispatcher
-from src.orchestrator.planned_edges import verify_ledger
+from neo4j_graph_loader.orchestrator.planned_dispatcher import PlannedDispatcher
+from neo4j_graph_loader.orchestrator.planned_edges import verify_ledger
 
 logger = logging.getLogger(__name__)
 
 _ATTEMPTS_PREFIX = "stage=edge-write "
-_WRITER_LOGGER_NAME = "src.loader.planned_writer"
+_WRITER_LOGGER_NAME = "neo4j_graph_loader.loader.planned_writer"
 
 
 class PlannedHarnessError(RuntimeError):
@@ -201,7 +201,7 @@ def run_planned_mode(
         if len(handler.attempts) != len(plan.chunks):
             raise PlannedHarnessError(
                 f"expected {len(plan.chunks)} edge-write log lines, captured {len(handler.attempts)} -- "
-                "the attempts handler may not be observing src.loader.planned_writer, which would make "
+                "the attempts handler may not be observing neo4j_graph_loader.loader.planned_writer, which would make "
                 "total_attempts_over_one vacuously trustworthy"
             )
 

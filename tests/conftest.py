@@ -49,13 +49,13 @@ def _reset_cli_stop_registry():
     import sys
 
     yield
-    cli = sys.modules.get("src.cli")
+    cli = sys.modules.get("neo4j_graph_loader.cli")
     if cli is not None:
         with cli._stop_registry_lock:
             cli._stop_locks.clear()
             cli._stop_initiated.clear()
             cli._stop_done.clear()
-    docker_service = sys.modules.get("src.orchestrator.docker_service")
+    docker_service = sys.modules.get("neo4j_graph_loader.orchestrator.docker_service")
     if docker_service is not None:
         with docker_service._launch_lock:
             docker_service._launched_at.clear()
@@ -75,9 +75,9 @@ def _stop_snapshotters(metrics_module) -> None:
 def _reset_metrics_globals():
     """Reset every process-wide metrics global before AND after each test.
 
-    ``src.utils.metrics.process_metrics()`` is a per-process singleton and
+    ``neo4j_graph_loader.utils.metrics.process_metrics()`` is a per-process singleton and
     ``install_dlq_routed_listener()``/``install_parked_listener()`` (P5-S4
-    Story 7) permanently rebind ``src.loader.dead_letter.on_dlq_routed``/
+    Story 7) permanently rebind ``neo4j_graph_loader.loader.dead_letter.on_dlq_routed``/
     ``on_parked`` (P6-S2 review finding B3): once any test — today only
     ``tests/test_metrics.py``, soon also every
     ``main()``-calling test once Story 4/5 wires the loaders — calls either,
@@ -86,8 +86,8 @@ def _reset_metrics_globals():
     ``tests/test_metrics.py``'s own fixture, so a Story 4/5 test in a
     different file can never silently inherit contaminated state.
     """
-    from src.loader import dead_letter
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.loader import dead_letter
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     original_on_dlq_routed = dead_letter.on_dlq_routed
     original_on_parked = dead_letter.on_parked
@@ -110,7 +110,7 @@ def neo4j_connection() -> Iterator[tuple[str, str, str]]:
     container = (
         # P6-S5 (found during P6-S4): bumped from 5.21 - 5.21 cannot parse
         # `CALL (vars) { ... }` scoped subqueries, which
-        # build_apoc_locked_upsert_query (src/loader/edge_execution.py)
+        # build_apoc_locked_upsert_query (src/neo4j_graph_loader/loader/edge_execution.py)
         # uses for the classic and lease relationship writers' queries
         # (the lease server itself runs no Cypher at all). 5.26 is
         # confirmed working; see docs/USAGE.md Sec 2 for the documented
@@ -248,14 +248,14 @@ def it_database(monkeypatch) -> str:
 def _no_control_topic_admin(request, monkeypatch):
     """Unit tests drive ``handle_start`` without a broker: skip ensuring the control topic and the stream topic preflight."""
     if request.node.get_closest_marker("integration") is None:
-        monkeypatch.setattr("src.cli._ensure_control_topic", lambda _bootstrap: None)
-        monkeypatch.setattr("src.cli._preflight_stream_topics", lambda _schema, _bootstrap: True)
+        monkeypatch.setattr("neo4j_graph_loader.cli._ensure_control_topic", lambda _bootstrap: None)
+        monkeypatch.setattr("neo4j_graph_loader.cli._preflight_stream_topics", lambda _schema, _bootstrap: True)
         # v7-S4: the former-DLQ-name preflight lists topics too; tested directly with fakes.
-        monkeypatch.setattr("src.cli._require_no_stale_dead_letter_topics", lambda _schema, _bootstrap, **_kw: None)
+        monkeypatch.setattr("neo4j_graph_loader.cli._require_no_stale_dead_letter_topics", lambda _schema, _bootstrap, **_kw: None)
         # Final follow-ups S2: the index-leftover preflight reads index topics; tested directly with fakes.
-        monkeypatch.setattr("src.cli._require_no_dlq_leftovers", lambda _schema, _bootstrap, **_kw: None)
+        monkeypatch.setattr("neo4j_graph_loader.cli._require_no_dlq_leftovers", lambda _schema, _bootstrap, **_kw: None)
         # Stable stream groups: the pre-launch member check and migration talk to Kafka;
         # tested directly with a fake admin (tests/test_stream_consumer_groups.py).
         # Tests marked ``real_stream_groups`` keep the real function.
         if request.node.get_closest_marker("real_stream_groups") is None:
-            monkeypatch.setattr("src.cli._prepare_stream_consumer_groups", lambda *_a, **_kw: None)
+            monkeypatch.setattr("neo4j_graph_loader.cli._prepare_stream_consumer_groups", lambda *_a, **_kw: None)

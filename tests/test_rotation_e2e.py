@@ -22,13 +22,13 @@ from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j import GraphDatabase
 
 from it_scratch_db import ensure_database, explicit_neo4j_auth
-from src.cli import _run_rotating_relationship_fleet
-from src.loader.mix_and_batch import endpoint_bucket
-from src.orchestrator.coordination import decode_clock_lease
-from src.orchestrator.dependency_manager import build_conflict_families
-from src.orchestrator.docker_service import DockerService
-from src.orchestrator.rotation import build_rotation_plan
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.cli import _run_rotating_relationship_fleet
+from neo4j_graph_loader.loader.mix_and_batch import endpoint_bucket
+from neo4j_graph_loader.orchestrator.coordination import decode_clock_lease
+from neo4j_graph_loader.orchestrator.dependency_manager import build_conflict_families
+from neo4j_graph_loader.orchestrator.docker_service import DockerService
+from neo4j_graph_loader.orchestrator.rotation import build_rotation_plan
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -2,10 +2,10 @@ import pytest
 import json
 from types import SimpleNamespace
 
-from src.orchestrator.coordination import ClockHealthError, ClockLease, ClockProtocolError, ClockPublishError, GlobalBatchClock, decode_clock_lease, encode_clock_lease
-from src.orchestrator.dependency_manager import build_conflict_families
-from src.orchestrator.rotation import build_rotation_plan
-from src.models.schema import CoordinationConfig
+from neo4j_graph_loader.orchestrator.coordination import ClockHealthError, ClockLease, ClockProtocolError, ClockPublishError, GlobalBatchClock, decode_clock_lease, encode_clock_lease
+from neo4j_graph_loader.orchestrator.dependency_manager import build_conflict_families
+from neo4j_graph_loader.orchestrator.rotation import build_rotation_plan
+from neo4j_graph_loader.models.schema import CoordinationConfig
 
 
 def _lease(**changes):

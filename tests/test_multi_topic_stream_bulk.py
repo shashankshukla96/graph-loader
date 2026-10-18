@@ -12,9 +12,9 @@ import yaml
 from confluent_kafka import OFFSET_BEGINNING, TopicPartition
 from prometheus_client import CollectorRegistry
 
-from src import cli
-from src.loader.edge_execution import ApocLockedEdgeWriter
-from src.loader.edge_loader import (
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+from neo4j_graph_loader.loader.edge_loader import (
     EdgeLoader,
     MissingRelationshipEndpointError,
     StaticAssignmentError,
@@ -23,14 +23,14 @@ from src.loader.edge_loader import (
     build_parser,
     main as edge_loader_main,
 )
-from src.loader.edge_records import EdgeRecord
-from src.loader.mix_and_batch import MixAndBatchPartitioner
-from src.models.schema import EdgeConfig, GraphSchema, LoadingConfig
-from src.orchestrator.bulk_monitor import OffsetResolutionError, QuiescentViolationError
-from src.orchestrator.docker_service import DockerService
-from src.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
-from src.utils.metrics import GraphLoaderMetrics
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_records import EdgeRecord
+from neo4j_graph_loader.loader.mix_and_batch import MixAndBatchPartitioner
+from neo4j_graph_loader.models.schema import EdgeConfig, GraphSchema, LoadingConfig
+from neo4j_graph_loader.orchestrator.bulk_monitor import OffsetResolutionError, QuiescentViolationError
+from neo4j_graph_loader.orchestrator.docker_service import DockerService
+from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 _REAL_PREFLIGHT = cli._preflight_stream_topics  # conftest stubs the module attribute
 ROOT = Path(__file__).resolve().parents[1]
@@ -234,11 +234,11 @@ def test_edge_loader_main_passes_all_topics_to_the_loader(edge) -> None:
     schema = _multi_schema()
     consumer, loader = MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-            patch("src.loader.edge_loader.Producer", return_value=MagicMock()), \
-            patch("src.loader.edge_loader.get_neo4j_driver", return_value=MagicMock()), \
-            patch("src.loader.edge_loader.load_schema", return_value=schema), \
-            patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+            patch("neo4j_graph_loader.loader.edge_loader.Producer", return_value=MagicMock()), \
+            patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=MagicMock()), \
+            patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+            patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--mode", "stream"]) == 0
     assert loader_cls.call_args.kwargs["topics"] == [T1, T2]
     # one consumer group per type, not per topic
@@ -249,9 +249,9 @@ def test_edge_loader_main_refuses_precedence_in_stream_before_any_resource() -> 
     schema = SimpleNamespace(edges=[SimpleNamespace(
         type="WORKS_AT", is_multi_topic=True, conflict_rule="precedence", topics=[T1, T2],
     )])
-    with patch("src.loader.edge_loader.Consumer") as consumer_cls, \
-            patch("src.loader.edge_loader.load_schema", return_value=schema), \
-            patch("src.loader.edge_loader._select_edge_config", return_value=schema.edges[0]):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer") as consumer_cls, \
+            patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+            patch("neo4j_graph_loader.loader.edge_loader._select_edge_config", return_value=schema.edges[0]):
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--mode", "stream"]) == 1
     consumer_cls.assert_not_called()
 
@@ -267,7 +267,7 @@ def test_run_edge_loader_passes_repeated_topics_only_for_multi_topic(tmp_path) -
     config.write_text("x: 1")
     service = _service()
     service.client.containers.run.return_value = MagicMock()
-    with patch("src.orchestrator.docker_service._mount_write_timing_directory", return_value=False):
+    with patch("neo4j_graph_loader.orchestrator.docker_service._mount_write_timing_directory", return_value=False):
         service.run_edge_loader(edge_type="WORKS_AT", topics=[T1, T2], mode="bulk", config_path=str(config),
                                 rejection_dir=str(tmp_path / "rej"), environment={})
         multi = service.client.containers.run.call_args.kwargs["command"]
@@ -573,7 +573,7 @@ def test_static_round_robin_is_exactly_once_and_spreads_small_topics(sizes, coun
 
 
 def test_static_round_robin_single_topic_equals_modulo() -> None:
-    from src.loader.edge_loader import static_partition_assignment
+    from neo4j_graph_loader.loader.edge_loader import static_partition_assignment
     for count in (1, 2, 3, 4, 7):
         for i in range(count):
             assert [p for _, p in static_topic_partition_assignment([("t", p) for p in range(6)], i, count)] == \

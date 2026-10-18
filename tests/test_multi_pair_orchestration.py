@@ -10,12 +10,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, likes, likes_schema, likes_schema_dict, nodes
-from src import cli
-from src.models.schema import GraphSchema, MultiPairEdgeError
-from src.orchestrator.coordination import ClockPublishError, GlobalBatchClock
-from src.orchestrator.dependency_manager import build_conflict_families, build_relationship_conflict_plan
-from src.orchestrator.fleet_contract import select_shared_fleet_edges
-from src.orchestrator.isolation import build_relationship_isolation_plan
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.models.schema import GraphSchema, MultiPairEdgeError
+from neo4j_graph_loader.orchestrator.coordination import ClockPublishError, GlobalBatchClock
+from neo4j_graph_loader.orchestrator.dependency_manager import build_conflict_families, build_relationship_conflict_plan
+from neo4j_graph_loader.orchestrator.fleet_contract import select_shared_fleet_edges
+from neo4j_graph_loader.orchestrator.isolation import build_relationship_isolation_plan
 from test_precedence_substages import _args, _docker, _monitor_cls
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,7 +59,7 @@ def test_a_three_label_type_conflicts_with_every_type_touching_one_of_its_labels
 # ── AC 2 ─────────────────────────────────────────────────────────────────────
 
 
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_the_scheduler_waits_for_every_label_of_every_pair(run_edge) -> None:
     edge = likes()
     started = Event()

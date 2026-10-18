@@ -4,12 +4,12 @@ from __future__ import annotations
 import pytest
 import json
 
-from src.loader.edge_loader import EdgeRecord, PendingEdgeRecord
-from src.loader.mix_and_batch import EndpointBuckets
-from src.loader.slot_admission import GatedPendingRecord, LeaseStateError, SlotAdmission, SlotAwareAdmissionBuffer
-from src.orchestrator.coordination import ClockLease, encode_clock_lease
-from src.orchestrator.dependency_manager import build_conflict_families
-from src.orchestrator.rotation import build_rotation_plan
+from neo4j_graph_loader.loader.edge_loader import EdgeRecord, PendingEdgeRecord
+from neo4j_graph_loader.loader.mix_and_batch import EndpointBuckets
+from neo4j_graph_loader.loader.slot_admission import GatedPendingRecord, LeaseStateError, SlotAdmission, SlotAwareAdmissionBuffer
+from neo4j_graph_loader.orchestrator.coordination import ClockLease, encode_clock_lease
+from neo4j_graph_loader.orchestrator.dependency_manager import build_conflict_families
+from neo4j_graph_loader.orchestrator.rotation import build_rotation_plan
 
 
 def _payload(*, epoch: int = 1, slot_id: int = 0, owners=None, run_id: str = "run") -> bytes:

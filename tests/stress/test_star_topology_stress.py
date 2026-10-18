@@ -2,7 +2,7 @@
 
 Every test in this file drives the real write-path classes directly
 (planned mode via `tests.stress.planned_harness`, contended modes via
-`src.loader.edge_execution` directly -- Stories 5-6), multi-threaded,
+`neo4j_graph_loader.loader.edge_execution` directly -- Stories 5-6), multi-threaded,
 against real testcontainers-backed Neo4j/Kafka, per Decision 1 in
 `plan/v6/slice-4/stories.md`: this proves the epic's "no deadlocks/lock
 waits under contention" claim at the level that actually decides it (the
@@ -30,11 +30,11 @@ import pytest
 import yaml
 from neo4j import GraphDatabase
 
-from src.loader.edge_execution import ApocLockedEdgeWriter, build_edge_execution
-from src.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError, PendingEdgeRecord
-from src.loader.lease_client import LEASE_ADDRESS_ENV, LEASE_BUCKETS_ENV
-from src.orchestrator.lease_server import BucketLeaseServer
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter, build_edge_execution
+from neo4j_graph_loader.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError, PendingEdgeRecord
+from neo4j_graph_loader.loader.lease_client import LEASE_ADDRESS_ENV, LEASE_BUCKETS_ENV
+from neo4j_graph_loader.orchestrator.lease_server import BucketLeaseServer
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from tests.stress import lock_wait, planned_harness
 from tests.stress import star_topology_data as std
 
@@ -201,7 +201,7 @@ def _resource_of_label(plan, chunk, label: str) -> int:
 
     ``PlannedChunk`` has no ``source_resource``/``target_resource`` field --
     only a sorted, deduplicated ``resources`` tuple (confirmed reading
-    ``src/loader/edge_plan.py``'s dataclass directly). This slice's
+    ``src/neo4j_graph_loader/loader/edge_plan.py``'s dataclass directly). This slice's
     topologies always pair two distinct labels, so a resource's label
     unambiguously identifies its endpoint role.
     """
@@ -371,7 +371,7 @@ def test_100k_edges_into_one_hub_shared_overlap_zero_unhandled_deadlocks(stress_
         # threads to ever land on the hub at the same instant.
         workers, batch_size = 16, 25
         batches = [rows[i:i + batch_size] for i in range(0, len(rows), batch_size)]
-        with caplog.at_level(logging.WARNING, logger="src.loader.edge_execution"):
+        with caplog.at_level(logging.WARNING, logger="neo4j_graph_loader.loader.edge_execution"):
             with ThreadPoolExecutor(max_workers=workers) as pool:
                 attempts = list(pool.map(writer.write_rows, batches))
         # Every call returned normally: no unhandled DeadlockDetectedException/
@@ -417,7 +417,7 @@ def test_100k_edges_into_one_hub_bulk_lease_mode_zero_lock_waits(stress_neo4j, t
 
     Review fix: `schema_dict` does not set `execution`, so
     `EdgeExecutionConfig.worker_count` defaults to 1
-    (`src/models/schema.py`), which alone would make the coordinator run
+    (`src/neo4j_graph_loader/models/schema.py`), which alone would make the coordinator run
     `min(1, len(cells))` = 1 worker (`edge_execution.py`) -- a single
     worker can never contend with itself, so "zero lock wait" would be
     true whether or not the lease coordinator did anything. This test
@@ -505,7 +505,7 @@ def test_100k_edges_into_one_hub_bulk_lease_mode_zero_lock_waits(stress_neo4j, t
         try:
             host, port = asyncio.run_coroutine_threadsafe(server.start("127.0.0.1", 0), loop).result(10)
             # Bucket-lease addresses are plain host:port -- no "tcp://" scheme
-            # (confirmed against src.loader.lease_client.parse_lease_address).
+            # (confirmed against neo4j_graph_loader.loader.lease_client.parse_lease_address).
             _writer, _partitioner, _batcher, coordinator = build_edge_execution(
                 edge_config, driver,
                 environ={LEASE_ADDRESS_ENV: f"{host}:{port}", LEASE_BUCKETS_ENV: "16"},

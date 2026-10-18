@@ -1,12 +1,54 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neo4j-graph-loader"
+dynamic = ["version"]
+dependencies = [
+    "neo4j>=5.20,<7",
+    "confluent-kafka>=2.5,<3",
+    "pydantic>=2.7,<3",
+    "PyYAML>=6.0,<7",
+    "docker>=7.1.0,<8",
+    "neo4j-rust-ext>=5.20,<7",
+    "numpy>=1.26,<3",
+    "prometheus-client>=0.20,<1",
+]
+description = "Development build of the Neo4j Graph Loader with migrated runtime modules"
+readme = "PACKAGE_README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{name = "Shashank Shukla", email = "shashankshukla96@gmail.com"}]
+maintainers = [{name = "Shashank Shukla", email = "shashankshukla96@gmail.com"}]
+keywords = ["neo4j", "kafka", "graph"]
+classifiers = ["Development Status :: 2 - Pre-Alpha", "Programming Language :: Python :: 3"]
+
+[project.urls]
+Repository = "https://github.com/shashankshukla96/graph-loader"
+Documentation = "https://github.com/shashankshukla96/graph-loader/blob/main/README.md"
+Issues = "https://github.com/shashankshukla96/graph-loader/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["neo4j_graph_loader", "neo4j_graph_loader.*"]
+namespaces = false
+
+[tool.setuptools.dynamic]
+version = {attr = "neo4j_graph_loader._version.__version__"}
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# Keep repository imports consistent in pytest, python -m pytest and IDEs.
-pythonpath = ["."]
 markers = [
     "smoke: environment smoke tests (require docker compose up)",
     "integration: integration tests against a live database",
     "stress: heavyweight star-topology/hub-node scale tests under tests/stress/ (requires Docker; the 1M tier additionally requires GRAPH_LOADER_STRESS_SCALE=1000000)",
-    "real_stream_groups: keep the real src.cli._prepare_stream_consumer_groups (tests/conftest.py stubs it for unit tests)",
+    "real_stream_groups: keep the real neo4j_graph_loader.cli._prepare_stream_consumer_groups (tests/conftest.py stubs it for unit tests)",
 ]
 
 [tool.ruff]
@@ -21,10 +63,10 @@ select = [
     "F",    # pyflakes: unused imports/names, undefined names, f-strings
 ]
 ignore = [
-    # 29 hits (10 src/cli.py, 6 examples/imdb/publish_and_load_nodes.py,
+    # 29 hits (10 src/neo4j_graph_loader/cli.py, 6 examples/imdb/publish_and_load_nodes.py,
     # 4 examples/imdb/tests/test_publish_and_load_nodes.py, 3
-    # src/orchestrator/schema_initializer.py, 2 tests/test_cypher_generator.py,
-    # 2 tests/test_schema_initializer.py, 1 src/orchestrator/docker_service.py,
+    # src/neo4j_graph_loader/orchestrator/schema_initializer.py, 2 tests/test_cypher_generator.py,
+    # 2 tests/test_schema_initializer.py, 1 src/neo4j_graph_loader/orchestrator/docker_service.py,
     # 1 tests/test_node_loader.py). Most are imports placed after
     # helper-function definitions further up the same module. A few
     # (examples/imdb/publish_and_load_nodes.py, examples/imdb/tests/
@@ -36,7 +78,7 @@ ignore = [
     # lint-only slice. Revisit in a dedicated cleanup story.
     "E402",
     # E701 (colon) / E702 (semicolon): 22 + 96 hits, heaviest in
-    # src/loader/edge_execution.py (e.g. line 243:
+    # src/neo4j_graph_loader/loader/edge_execution.py (e.g. line 243:
     # "self._driver = driver; self._error_factory = ...") — an
     # intentional compact-assignment style used throughout the hot
     # write path, not a defect.

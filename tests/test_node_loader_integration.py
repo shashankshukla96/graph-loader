@@ -11,15 +11,15 @@ from confluent_kafka import Consumer, Producer, TopicPartition
 from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j.exceptions import TransientError
 
-from src.loader.node_loader import (
+from neo4j_graph_loader.loader.node_loader import (
     NodeLoader,
     NodeWriter,
     RejectionSink,
     main as node_loader_main,
     normalize_node_record,
 )
-from src.orchestrator.schema_initializer import apply_schema
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.orchestrator.schema_initializer import apply_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

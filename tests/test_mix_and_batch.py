@@ -6,12 +6,12 @@ from datetime import date
 
 import pytest
 
-from src.loader.edge_loader import EdgeRecord
-from src.loader.mix_and_batch import (
+from neo4j_graph_loader.loader.edge_loader import EdgeRecord
+from neo4j_graph_loader.loader.mix_and_batch import (
     LaneBatcher, MixAndBatchPartitioner, RoutedEdgeRecord, canonical_endpoint_token, endpoint_bucket,
     endpoint_buckets, endpoint_digest,
 )
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from pathlib import Path
 
 

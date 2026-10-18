@@ -3,8 +3,8 @@ from types import MappingProxyType
 
 import pytest
 
-from src.orchestrator.dependency_manager import ConflictFamily, build_conflict_families
-from src.orchestrator.rotation import SharedLabelResource, build_rotation_plan
+from neo4j_graph_loader.orchestrator.dependency_manager import ConflictFamily, build_conflict_families
+from neo4j_graph_loader.orchestrator.rotation import SharedLabelResource, build_rotation_plan
 
 
 class _Edge:

@@ -55,7 +55,7 @@ def with_apoc(container):
     ``ApocLockedEdgeWriter(explicit_locks=True)`` (the classic/shared-overlap
     default) or that manufacture contention with ``apoc.util.sleep``;
     planned mode and bulk-lease mode never call an APOC procedure (traced
-    against ``src.loader.edge_execution.build_apoc_locked_upsert_query``).
+    against ``neo4j_graph_loader.loader.edge_execution.build_apoc_locked_upsert_query``).
     """
     return (
         container
@@ -191,7 +191,7 @@ def count_retry_log_lines(caplog, edge_type: str | None = None) -> int:
     """
     count = 0
     for record in caplog.records:
-        if record.name != "src.loader.edge_execution" or not record.getMessage().startswith("stage=edge-write-retry"):
+        if record.name != "neo4j_graph_loader.loader.edge_execution" or not record.getMessage().startswith("stage=edge-write-retry"):
             continue
         if edge_type is not None and (not record.args or record.args[0] != edge_type):
             continue

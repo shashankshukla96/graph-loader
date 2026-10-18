@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from contextlib import ExitStack
 import json
 import math
 import os
@@ -55,14 +56,14 @@ from confluent_kafka import Consumer, Producer, TopicPartition
 from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j import GraphDatabase
 
-from src import cli
-from src.loader.control import CONTROL_TOPIC
-from src.loader.dead_letter import RejectionSink
-from src.loader.edge_execution import build_edge_execution, streaming_lease_client_factory
-from src.loader.edge_loader import EdgeLoader, apply_edge_outer_batch_override
-from src.loader.lease_client import LEASE_ADDRESS_ENV, LEASE_BUCKETS_ENV, LEASE_KEYED_LABELS_ENV
-from src.orchestrator.lease_server import BucketLeaseServer
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.loader.control import CONTROL_TOPIC
+from neo4j_graph_loader.loader.dead_letter import RejectionSink
+from neo4j_graph_loader.loader.edge_execution import build_edge_execution, streaming_lease_client_factory
+from neo4j_graph_loader.loader.edge_loader import EdgeLoader, apply_edge_outer_batch_override
+from neo4j_graph_loader.loader.lease_client import LEASE_ADDRESS_ENV, LEASE_BUCKETS_ENV, LEASE_KEYED_LABELS_ENV, lease_scheme_token
+from neo4j_graph_loader.orchestrator.lease_server import BucketLeaseServer
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from tests.stress import lock_wait, planned_harness
 from tests.stress import star_topology_data as std
 
@@ -188,13 +189,17 @@ def neo4j_logged():
         except Exception:
             pass
         raise
-    driver = GraphDatabase.driver(container.get_connection_url(), auth=(container.username, container.password))
+    driver = None
     try:
+        driver = GraphDatabase.driver(container.get_connection_url(), auth=(container.username, container.password))
         driver.verify_connectivity()
         yield container, driver
     finally:
-        driver.close()
-        container.stop()
+        try:
+            if driver is not None:
+                driver.close()
+        finally:
+            container.stop()
 
 
 def schema_dict(run_id: str, *, rule: str, mode: str, replicas: int) -> dict:
@@ -326,7 +331,8 @@ class Fleet:
     def _environ(self) -> dict:
         if not self.lease:
             return {}
-        return {LEASE_ADDRESS_ENV: self.lease_address, LEASE_BUCKETS_ENV: "16", LEASE_KEYED_LABELS_ENV: "Person,Item"}
+        labels = ",".join(sorted(node.label for node in self.case.schema.nodes))
+        return {LEASE_ADDRESS_ENV: self.lease_address, LEASE_BUCKETS_ENV: "16", LEASE_KEYED_LABELS_ENV: labels}
 
     def _run_replica(self, index: int) -> None:
         schema = self.case.schema
@@ -406,12 +412,21 @@ class Fleet:
 
 
 class LeaseServer:
+    def __init__(self, keyed_labels=None):
+        self.scheme = None if keyed_labels is None else lease_scheme_token(keyed_labels)
+
     def __enter__(self):
+        self.server = BucketLeaseServer(scheme=self.scheme)
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.loop.run_forever, daemon=True, name="mt-lease-loop")
         self.thread.start()
-        self.server = BucketLeaseServer()
-        host, port = asyncio.run_coroutine_threadsafe(self.server.start("127.0.0.1", 0), self.loop).result(10)
+        start = asyncio.run_coroutine_threadsafe(self.server.start("127.0.0.1", 0), self.loop)
+        try:
+            host, port = start.result(10)
+        except BaseException:
+            start.cancel()
+            self.__exit__(None, None, None)
+            raise
         self.address = f"{host}:{port}"
         return self
 
@@ -421,6 +436,8 @@ class LeaseServer:
         finally:
             self.loop.call_soon_threadsafe(self.loop.stop)
             self.thread.join(10)
+            assert not self.thread.is_alive(), "owned lease loop did not stop"
+            self.loop.close()
         return False
 
 
@@ -688,23 +705,12 @@ def test_arrival_stream_lease_counts_and_no_lock_waits(neo4j_logged, kafka_boots
 
 # -- v7-S4: one DLQ per multi-topic type, edges before nodes, real retry consumer ------------------------
 #
-# The S4 Docker proof's ``arrival`` dataset (plan/v7/slice-4/docker_proof/proof.py): topic b is published and
+# The maintained arrival dataset: topic b is published and
 # fully dead-lettered first, then topic a (names sort the other way), then the endpoints. Every row of both
 # topics goes to the type's ONE dead-letter queue ``LIKES.dlq``; the real retry consumer (a subprocess:
-# ``python -m src.loader.retry_consumer``, fenced by the same in-process lease server) drains it once the nodes
+# ``python -m neo4j_graph_loader.loader.retry_consumer``, fenced by the same in-process lease server) drains it once the nodes
 # exist. The sequenced parked-pair index must replay each pair b-then-a, so every pair ends with its
 # last-indexed record. Own labels (DlqPerson, DlqCompany): the module's other cases seed Person/Item up front.
-
-
-def _s4_arrival_dataset():
-    import importlib.util
-
-    path = Path(__file__).resolve().parents[2] / "plan" / "v7" / "slice-4" / "docker_proof" / "proof.py"
-    spec = importlib.util.spec_from_file_location("v7s4_proof", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    data = module.arrival_dataset()
-    return data[module.TB], data[module.TA], module.expected("arrival")
 
 
 def _dlq_schema_dict(run_id: str) -> dict:
@@ -737,9 +743,9 @@ class DlqFleet(Fleet):
     writable sequenced parked-pair index and the admission barrier."""
 
     def _run_replica(self, index: int) -> None:
-        from src.loader.dead_letter import build_malformed_record_sink
-        from src.loader.parked_pair_index import ParkedPairIndex
-        from src.models.schema import edge_parked_pair_index_topic_name
+        from neo4j_graph_loader.loader.dead_letter import build_malformed_record_sink
+        from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex
+        from neo4j_graph_loader.models.schema import edge_parked_pair_index_topic_name
 
         schema = self.case.schema
         consumer = dlq_producer = coordinator = parked = None
@@ -812,13 +818,38 @@ def _publish_likes(bootstrap: str, topic: str, rows) -> None:
     assert producer.flush(60) == 0
 
 
-def test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer(neo4j_logged, kafka_bootstrap, tmp_path):
+def _cleanup_dlq_case(retry_proc, fleet, server, bootstrap, topics, retry_log):
+    """Attempt every owned closer even after a failed replica/child shutdown."""
     import signal
+    import subprocess
+
+    def stop_retry():
+        if retry_proc.poll() is None:
+            retry_proc.send_signal(signal.SIGTERM)
+            try:
+                retry_proc.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                retry_proc.kill()
+                retry_proc.wait(timeout=10)
+
+    with ExitStack() as cleanup:
+        cleanup.callback(std.delete_topics, bootstrap, topics)
+        if server is not None:
+            cleanup.callback(server.__exit__, None, None, None)
+        if fleet is not None:
+            cleanup.callback(fleet.stop)
+        if retry_log is not None:
+            cleanup.callback(retry_log.close)
+        if retry_proc is not None:
+            cleanup.callback(stop_retry)
+
+
+def test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer(neo4j_logged, kafka_bootstrap, tmp_path):
     import subprocess
     import sys
     from datetime import date
 
-    from src.models.schema import edge_dead_letter_topic_name, edge_parked_topic_name
+    from neo4j_graph_loader.models.schema import edge_dead_letter_topic_name, edge_parked_topic_name
 
     container, driver = neo4j_logged
     run_id = uuid.uuid4().hex[:8]
@@ -832,11 +863,14 @@ def test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer(
     topic_a, topic_b = case.edge.topics
     dlq, parked = edge_dead_letter_topic_name(case.edge), edge_parked_topic_name(case.edge)
     assert dlq == "LIKES.dlq"
-    b_rows, a_rows, want = _s4_arrival_dataset()
+    from tests.fixtures.multi_topic_arrival import arrival_dataset
+
+    b_rows, a_rows, want = arrival_dataset()
     uri, auth = container.get_connection_url(), (container.username, container.password)
     admin = AdminClient({"bootstrap.servers": kafka_bootstrap})
     family = [dlq, parked, f"{dlq}.parked-pairs"]
     retry_proc = None
+    retry_log = None
     server = None
     fleet = None
     try:
@@ -852,21 +886,24 @@ def test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer(
             cli._ensure_retry_topics(case.schema, kafka_bootstrap)
             assert _topic_records(kafka_bootstrap, dlq)[0] == 4  # the widest of the type's topics
             mark = lock_wait.query_log_mark(container)
-            server = LeaseServer().__enter__()
+            labels = sorted(node.label for node in case.schema.nodes)
+            server = LeaseServer(keyed_labels=labels).__enter__()
             fleet = DlqFleet(case, topics=list(case.edge.topics), edge=case.edge, mode="stream", lease=True,
                              replicas=REPLICAS, static=False, group=f"g-{run_id}", run_id=run_id,
-                             lease_address=server.address).start(uri, auth)
+                             lease_address=server.address)
+            fleet.start(uri, auth)
             env = {**os.environ, "KAFKA_BOOTSTRAP_SERVERS": kafka_bootstrap, "NEO4J_URI": uri,
                    "NEO4J_USERNAME": auth[0], "NEO4J_PASSWORD": auth[1], LEASE_BUCKETS_ENV: "16",
                    LEASE_ADDRESS_ENV: server.address,
-                   LEASE_KEYED_LABELS_ENV: "DlqPerson,DlqCompany", "GRAPH_LOADER_METRICS_ENABLED": "0",
+                   LEASE_KEYED_LABELS_ENV: fleet._environ()[LEASE_KEYED_LABELS_ENV], "GRAPH_LOADER_METRICS_ENABLED": "0",
                    "KAFKA_GROUP_ID": f"retry-{run_id}"}
             env.pop("NEO4J_DATABASE", None)  # explicit: never inherit an ambient database (also scrubbed by tests/conftest.py)
+            retry_log = (tmp_path / "retry-consumer.log").open("w")
             retry_proc = subprocess.Popen(
-                [sys.executable, "-m", "src.loader.retry_consumer", "--config", str(path), "--run-id", run_id,
+                [sys.executable, "-m", "neo4j_graph_loader.loader.retry_consumer", "--config", str(path), "--run-id", run_id,
                  "--dlq-topics", dlq, "--lease-address", server.address],
                 env=env, cwd=str(Path(__file__).resolve().parents[2]),
-                stdout=open(tmp_path / "retry-consumer.log", "w"), stderr=subprocess.STDOUT,
+                stdout=retry_log, stderr=subprocess.STDOUT,
             )
 
             def consumed(topic: str) -> None:
@@ -891,7 +928,9 @@ def test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer(
                     got = {(r["p"], r["c"]): (date.fromisoformat(str(r["since"])), r["role"]) for r in session.run(
                         "MATCH (p:DlqPerson)-[r:LIKES]->(c:DlqCompany) "
                         "RETURN p.person_id AS p, c.company_id AS c, r.since AS since, r.role AS role")}
-                if got == want:
+                ends = case.high_watermarks([dlq])
+                drained = case.committed(f"retry-{run_id}", ends) == sum(ends.values())
+                if got == want and drained:
                     break
                 assert retry_proc.poll() is None, (tmp_path / "retry-consumer.log").read_text()[-3000:]
                 assert time.monotonic() < deadline, (
@@ -906,20 +945,21 @@ def test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer(
             assert not any(n in admin.list_topics(timeout=20).topics for n in (f"{topic_a}.dlq", f"{topic_b}.dlq")), \
                 "no per-topic DLQ"
             seen = assert_zero_waits(container, mark, math.ceil(len(want) / EDGE_BATCH))
+            (tmp_path / "proof-summary.json").write_text(json.dumps({
+                "input_rows": len(a_rows) + len(b_rows), "expected_pairs": len(want), "actual_pairs": len(got),
+                "shared_pairs": len(both), "dlq_partitions": dlq_partitions, "dlq_records": dlq_records,
+                "retry_committed": case.committed(f"retry-{run_id}", ends),
+                "dlq_high_watermarks": {f"{t}:{p}": offset for (t, p), offset in ends.items()},
+                "parked_rows": 0, "per_topic_dlq_absent": True, "likes_write_entries": seen,
+                "lock_wait_ms": 0, "lease_keyed_labels": labels,
+            }, indent=2) + "\n")
             print(f"dlq: {dlq_partitions} partitions, {dlq_records} envelopes for {len(a_rows) + len(b_rows)} "
                   f"records, {len(both)} pairs in both topics, {seen} LIKES write entries all waiting 0")
     finally:
-        if retry_proc is not None and retry_proc.poll() is None:
-            retry_proc.send_signal(signal.SIGTERM)
-            try:
-                retry_proc.wait(60)
-            except subprocess.TimeoutExpired:
-                retry_proc.kill()
-        if fleet is not None:
-            fleet.stop()
-        if server is not None:
-            server.__exit__(None, None, None)
+        # Capture only this throwaway database's parameter-free query log and
+        # service output, before the fixtures remove their owned containers.
         try:
-            std.delete_topics(kafka_bootstrap, [*case.edge.topics, *family])
-        except Exception:  # best effort
-            pass
+            (tmp_path / "neo4j-query.log").write_bytes(lock_wait._query_log_bytes(container))
+        finally:
+            _cleanup_dlq_case(retry_proc, fleet, server, kafka_bootstrap,
+                              [*case.edge.topics, *family], retry_log)

@@ -1,11 +1,11 @@
-"""Unit tests for src/loader/parked_pair_index.py, against a fake Kafka
+"""Unit tests for src/neo4j_graph_loader/loader/parked_pair_index.py, against a fake Kafka
 client double (closest precedent: tests/test_dead_letter_replay.py's
 _FakeConsumer style) -- no real broker, no edge_execution.py hook (that
 integration is P5-S4 Story 3's second half, landed in Phase B once P5-S3's
 row-level DLQ writer has merged).
 
 Per-record design (not per-pair counter): see the module docstring in
-src/loader/parked_pair_index.py for the review finding (M2) that drove this
+src/neo4j_graph_loader/loader/parked_pair_index.py for the review finding (M2) that drove this
 shape -- a plain counter cannot give the required "retry path blocks only
 on an *earlier* outstanding record, live path blocks on *any*" semantics
 without either self-blocking (livelock) or losing idempotency across a
@@ -18,7 +18,7 @@ import threading
 
 import pytest
 
-from src.loader.parked_pair_index import ParkedPairIndex, ParkedPairIndexError, _pair_key, _record_wire_key
+from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex, ParkedPairIndexError, _pair_key, _record_wire_key
 
 
 class _FakeTopicLog:

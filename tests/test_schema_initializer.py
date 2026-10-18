@@ -7,12 +7,12 @@ import pytest
 from unittest.mock import patch, MagicMock
 from neo4j.exceptions import ServiceUnavailable, AuthError
 
-from src.orchestrator.schema_initializer import get_neo4j_driver, SchemaInitializationError
+from neo4j_graph_loader.orchestrator.schema_initializer import get_neo4j_driver, SchemaInitializationError
 
 
 class TestNeo4jConnection:
     
-    @patch("src.orchestrator.schema_initializer.GraphDatabase.driver")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.GraphDatabase.driver")
     def test_connect_success(self, mock_driver_factory):
         mock_driver = MagicMock()
         mock_driver_factory.return_value = mock_driver
@@ -27,8 +27,8 @@ class TestNeo4jConnection:
         )
         mock_driver.verify_connectivity.assert_called_once()
         
-    @patch("src.orchestrator.schema_initializer.time.sleep")
-    @patch("src.orchestrator.schema_initializer.GraphDatabase.driver")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.time.sleep")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.GraphDatabase.driver")
     def test_connect_retries_and_succeeds(self, mock_driver_factory, mock_sleep):
         mock_driver = MagicMock()
         
@@ -53,8 +53,8 @@ class TestNeo4jConnection:
         # driver should have been closed twice (on the two failures)
         assert mock_driver.close.call_count == 2
         
-    @patch("src.orchestrator.schema_initializer.time.sleep")
-    @patch("src.orchestrator.schema_initializer.GraphDatabase.driver")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.time.sleep")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.GraphDatabase.driver")
     def test_connect_exhausts_retries(self, mock_driver_factory, mock_sleep):
         mock_driver = MagicMock()
         mock_driver.verify_connectivity.side_effect = ServiceUnavailable("db dead")
@@ -67,8 +67,8 @@ class TestNeo4jConnection:
         assert mock_sleep.call_count == 2
         assert mock_driver.close.call_count == 3
         
-    @patch("src.orchestrator.schema_initializer.time.sleep")
-    @patch("src.orchestrator.schema_initializer.GraphDatabase.driver")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.time.sleep")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.GraphDatabase.driver")
     def test_connect_auth_error_no_retry(self, mock_driver_factory, mock_sleep):
         mock_driver = MagicMock()
         mock_driver.verify_connectivity.side_effect = AuthError("bad password")
@@ -81,8 +81,8 @@ class TestNeo4jConnection:
         mock_sleep.assert_not_called()
         mock_driver.close.assert_called_once()
         
-    @patch("src.orchestrator.schema_initializer.time.sleep")
-    @patch("src.orchestrator.schema_initializer.GraphDatabase.driver")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.time.sleep")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.GraphDatabase.driver")
     def test_connect_unexpected_error_no_retry(self, mock_driver_factory, mock_sleep):
         mock_driver = MagicMock()
         mock_driver.verify_connectivity.side_effect = ValueError("Something else broke")
@@ -95,12 +95,12 @@ class TestNeo4jConnection:
         mock_sleep.assert_not_called()
         mock_driver.close.assert_called_once()
 
-from src.orchestrator.schema_initializer import apply_schema
+from neo4j_graph_loader.orchestrator.schema_initializer import apply_schema
 from neo4j.exceptions import Neo4jError
 
 class TestSchemaApplication:
     
-    @patch("src.orchestrator.schema_initializer.generate_all_ddl")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.generate_all_ddl")
     def test_apply_schema_success(self, mock_generate):
         mock_generate.return_value = ["CREATE CONSTRAINT foo"]
         mock_driver = MagicMock()
@@ -114,8 +114,8 @@ class TestSchemaApplication:
         # session.run should be called twice: once for DDL, once for SHOW INDEXES
         assert mock_session.run.call_count == 2
         
-    @patch("src.orchestrator.schema_initializer.time.sleep")
-    @patch("src.orchestrator.schema_initializer.generate_all_ddl")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.time.sleep")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.generate_all_ddl")
     def test_apply_schema_waits_and_succeeds(self, mock_generate, mock_sleep):
         mock_generate.return_value = []
         mock_driver = MagicMock()
@@ -132,7 +132,7 @@ class TestSchemaApplication:
         mock_sleep.assert_called_once_with(1.0)
         assert mock_session.run.call_count == 2
         
-    @patch("src.orchestrator.schema_initializer.generate_all_ddl")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.generate_all_ddl")
     def test_apply_schema_index_failed(self, mock_generate):
         mock_generate.return_value = []
         mock_driver = MagicMock()
@@ -142,9 +142,9 @@ class TestSchemaApplication:
         with pytest.raises(SchemaInitializationError, match="Index creation failed for: \\['idx1'\\]"):
             apply_schema(mock_driver, MagicMock())
             
-    @patch("src.orchestrator.schema_initializer.time.monotonic")
-    @patch("src.orchestrator.schema_initializer.time.sleep")
-    @patch("src.orchestrator.schema_initializer.generate_all_ddl")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.time.monotonic")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.time.sleep")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.generate_all_ddl")
     def test_apply_schema_timeout(self, mock_generate, mock_sleep, mock_monotonic):
         mock_generate.return_value = []
         mock_driver = MagicMock()
@@ -157,7 +157,7 @@ class TestSchemaApplication:
         with pytest.raises(SchemaInitializationError, match="Timeout waiting for indexes"):
             apply_schema(mock_driver, MagicMock(), timeout_seconds=120.0)
             
-    @patch("src.orchestrator.schema_initializer.generate_all_ddl")
+    @patch("neo4j_graph_loader.orchestrator.schema_initializer.generate_all_ddl")
     def test_apply_schema_ddl_error(self, mock_generate):
         mock_generate.return_value = ["CREATE CONSTRAINT foo"]
         mock_driver = MagicMock()

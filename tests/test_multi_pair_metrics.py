@@ -12,17 +12,17 @@ from __future__ import annotations
 from prometheus_client import CollectorRegistry
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, GraphStore, likes, likes_schema_dict, record
-from src.loader.dead_letter import DeadLetterRecordSink
-from src.loader.edge_execution import LabelledEndpointSink, build_edge_execution
-from src.loader.edge_loader import PendingEdgeRecord
-from src.loader.edge_records import normalize_edge_record
-from src.loader.lease_client import BucketCellRouter, BucketLeaseClient
-from src.loader.retry_consumer import (
+from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+from neo4j_graph_loader.loader.edge_execution import LabelledEndpointSink, build_edge_execution
+from neo4j_graph_loader.loader.edge_loader import PendingEdgeRecord
+from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+from neo4j_graph_loader.loader.lease_client import BucketCellRouter, BucketLeaseClient
+from neo4j_graph_loader.loader.retry_consumer import (
     build_pair_retry_writers, build_retry_base_writer, build_retry_lease_coordinator, build_retry_writer,
 )
-from src.models.schema import GraphSchema
-from src.utils import metrics as metrics_module
-from src.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.models.schema import GraphSchema
+from neo4j_graph_loader.utils import metrics as metrics_module
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 from test_multi_pair_leases import _LeaseServer
 from test_multi_topic_metrics import _monitor
 
@@ -146,15 +146,15 @@ def test_retry_consumer_main_builds_pair_coordinators_that_leave_lease_wait_to_t
     from unittest.mock import MagicMock, patch
 
     from multi_pair_support import likes_schema
-    from src.loader.retry_consumer import PairSplitRetryWriter, main as retry_consumer_main
+    from neo4j_graph_loader.loader.retry_consumer import PairSplitRetryWriter, main as retry_consumer_main
     from tests.test_multi_topic_dlq import _main_patches
 
     schema = likes_schema(order_by=False, topic_conflict="arrival", dead_letter={"enabled": True})
     with ExitStack() as stack:
         rc_cls, _sink = _main_patches(stack, schema)
-        stack.enter_context(patch("src.loader.retry_consumer.ParkedPairIndex", return_value=MagicMock()))
-        stack.enter_context(patch("src.loader.lease_client.BucketLeaseClient"))
-        build = stack.enter_context(patch("src.loader.retry_consumer.build_retry_lease_coordinator"))
+        stack.enter_context(patch("neo4j_graph_loader.loader.retry_consumer.ParkedPairIndex", return_value=MagicMock()))
+        stack.enter_context(patch("neo4j_graph_loader.loader.lease_client.BucketLeaseClient"))
+        build = stack.enter_context(patch("neo4j_graph_loader.loader.retry_consumer.build_retry_lease_coordinator"))
         stack.enter_context(patch.dict("os.environ", {"GRAPH_LOADER_BUCKET_LEASE_ADDR": "lease:7700",
                                                       "GRAPH_LOADER_LEASE_BUCKETS": "16"}))
         assert retry_consumer_main(["--dlq-topics", "LIKES.dlq", "--lease-address", "lease:7700"]) == 0

@@ -1,4 +1,10 @@
-.PHONY: dev dev-down dev-logs lint test-unit build-images stress-100k stress-1m
+.PHONY: dev dev-down dev-logs lint test-unit build-images stress-100k stress-1m requirements check-requirements
+
+requirements:
+	python3 scripts/sync_requirements.py
+
+check-requirements:
+	python3 scripts/sync_requirements.py --check
 
 dev:
 	@bash scripts/start_dev.sh
@@ -19,7 +25,7 @@ test-unit:
 # export GRAPH_LOADER_{NODE,EDGE,CLOCK}_IMAGE to match.
 IMAGE_TAG ?= latest
 
-build-images:
+build-images: check-requirements
 	docker build -f Dockerfile.node_loader -t graph-loader-node:$(IMAGE_TAG) .
 	docker build -f Dockerfile.edge_loader -t graph-loader-edge:$(IMAGE_TAG) .
 	docker build -f Dockerfile.clock -t graph-loader-clock:$(IMAGE_TAG) .

@@ -11,7 +11,7 @@ import yaml
 from pydantic import ValidationError
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, likes, likes_edge, likes_schema, likes_schema_dict
-from src.models.schema import (
+from neo4j_graph_loader.models.schema import (
     EdgeConfig,
     EndpointPair,
     GraphSchema,
@@ -24,7 +24,7 @@ from src.models.schema import (
     precedence_edge_types,
     require_no_precedence_in_stream,
 )
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -331,7 +331,7 @@ def test_pairs_with_one_topic_each_need_no_rule() -> None:
 
 @pytest.mark.parametrize("rule", ["precedence", "arrival"])
 def test_a_rule_on_a_type_without_a_contended_pair_has_no_effect(rule: str, caplog, monkeypatch) -> None:
-    import src.models.schema as schema_module
+    import neo4j_graph_loader.models.schema as schema_module
 
     monkeypatch.setattr(schema_module, "_WARNED_ONCE", set())
     caplog.set_level(logging.WARNING)

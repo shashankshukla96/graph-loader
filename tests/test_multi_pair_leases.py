@@ -13,20 +13,20 @@ import pytest
 from prometheus_client import CollectorRegistry
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, GraphStore, likes, likes_schema
-from src import cli
-from src.loader.edge_execution import (
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.loader.edge_execution import (
     LaneExecutionResult,
     BucketLeaseExecutionCoordinator,
     LeaseDrainAbandoned,
     PairSplitLeaseCoordinator,
     build_edge_execution,
 )
-from src.loader.edge_loader import PendingEdgeRecord
-from src.loader.edge_records import normalize_edge_record
-from src.loader.lease_client import BucketCellRouter, BucketLeaseClient
-from src.loader.mix_and_batch import endpoint_bucket
-from src.orchestrator.lease_server import BucketLeaseServer
-from src.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.loader.edge_loader import PendingEdgeRecord
+from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+from neo4j_graph_loader.loader.lease_client import BucketCellRouter, BucketLeaseClient
+from neo4j_graph_loader.loader.mix_and_batch import endpoint_bucket
+from neo4j_graph_loader.orchestrator.lease_server import BucketLeaseServer
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 from multi_pair_support import record
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -237,8 +237,8 @@ def _sub(result: LaneExecutionResult) -> MagicMock:
 def test_a_real_error_beats_a_drain_abandon_whatever_the_pair_order(abandoned_pair: int, caplog) -> None:
     from confluent_kafka import TopicPartition
 
-    from src.loader.edge_loader import EdgeLoader
-    from src.models.schema import LoadingConfig
+    from neo4j_graph_loader.loader.edge_loader import EdgeLoader
+    from neo4j_graph_loader.models.schema import LoadingConfig
 
     edge = likes()
     real = RuntimeError("neo4j write failed")
@@ -280,7 +280,7 @@ def test_the_stop_drain_budget_is_shared_by_every_pair_of_the_type() -> None:
 
 
 def test_single_pair_lease_execution_is_todays_coordinator() -> None:
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     for edge in load_schema(ROOT / "examples/social/graph_schema.yaml").edges:
         writer, partitioner, batcher, coordinator = build_edge_execution(

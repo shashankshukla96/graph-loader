@@ -12,9 +12,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src import cli
-from src.orchestrator import docker_service
-from src.orchestrator.docker_service import DockerService, wait_until_stop_signal_ready
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.orchestrator import docker_service
+from neo4j_graph_loader.orchestrator.docker_service import DockerService, wait_until_stop_signal_ready
 
 DOCKER_STOP_TIMEOUT = 10.0
 
@@ -164,9 +164,9 @@ def test_every_launcher_records_its_containers_without_changing_the_docker_call(
 
 TITLES = ["UID", "PID", "PPID", "C", "STIME", "TTY", "TIME", "CMD"]
 INIT_ONLY = {"Titles": TITLES, "Processes": [["root", "10", "1", "0", "12:00", "?", "00:00:00",
-                                              "/sbin/docker-init -- python -m src.loader.node_loader"]]}
+                                              "/sbin/docker-init -- python -m neo4j_graph_loader.loader.node_loader"]]}
 INIT_AND_CHILD = {"Titles": TITLES, "Processes": INIT_ONLY["Processes"] + [
-    ["root", "11", "10", "0", "12:00", "?", "00:00:00", "python -m src.loader.node_loader"]]}
+    ["root", "11", "10", "0", "12:00", "?", "00:00:00", "python -m neo4j_graph_loader.loader.node_loader"]]}
 NO_INIT = {"Titles": TITLES, "Processes": [["root", "10", "1", "0", "12:00", "?", "00:00:00", "python -m x"]]}
 
 

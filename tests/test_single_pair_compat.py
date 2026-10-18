@@ -75,7 +75,7 @@ def _raw_records(schema, edge, count: int = 5) -> list[dict]:
 
 
 def _queries(edge) -> dict:
-    from src.loader import edge_execution, edge_loader
+    from neo4j_graph_loader.loader import edge_execution, edge_loader
 
     out = {}
     for explicit_locks, sort_rows in ((True, True), (False, True), (False, False)):
@@ -94,8 +94,8 @@ def _queries(edge) -> dict:
 
 
 def _normalized(schema, edge) -> dict:
-    from src.loader.edge_records import normalize_edge_record
-    from src.loader.planned_writer import compile_record_normalizer
+    from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+    from neo4j_graph_loader.loader.planned_writer import compile_record_normalizer
 
     raws = _raw_records(schema, edge)
     compiled = compile_record_normalizer(edge)
@@ -115,8 +115,8 @@ class _CapturingProducer:
 
 
 def _dead_letter(schema, edge) -> dict:
-    from src.loader.dead_letter import DeadLetterRecordSink, encode_envelope
-    from src.loader.edge_records import normalize_edge_record
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink, encode_envelope
+    from neo4j_graph_loader.loader.edge_records import normalize_edge_record
 
     producer = _CapturingProducer()
     sink = DeadLetterRecordSink(producer=producer, topic="compat.dlq", run_id="run-A", replica_id="0", kind="edge",
@@ -138,8 +138,8 @@ def _dead_letter(schema, edge) -> dict:
 
 
 def _index(schema, edge) -> dict:
-    from src.loader import parked_pair_index
-    from src.loader.edge_records import normalize_edge_record
+    from neo4j_graph_loader.loader import parked_pair_index
+    from neo4j_graph_loader.loader.edge_records import normalize_edge_record
 
     record = normalize_edge_record(_raw_records(schema, edge)[3], edge)
     index = parked_pair_index.ParkedPairIndex(topic="compat.dlq.parked-pairs", bootstrap_servers="kafka:1",
@@ -157,8 +157,8 @@ def _index(schema, edge) -> dict:
 
 
 def _router(schema, edge) -> dict:
-    from src.loader.edge_records import normalize_edge_record
-    from src.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
 
     keys = [(r.source_key, r.target_key) for r in (normalize_edge_record(raw, edge)
                                                     for raw in _raw_records(schema, edge))]
@@ -172,7 +172,7 @@ def _router(schema, edge) -> dict:
 
 
 def fingerprint(relative_path: str) -> dict:
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     schema = load_schema(ROOT / relative_path)
     out: dict = {}
@@ -206,7 +206,7 @@ def test_single_pair_types_keep_the_pre_v7_bytes(path, golden) -> None:
 
 
 def test_shipped_types_are_single_pair() -> None:
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     for path in SCHEMAS:
         for edge in load_schema(ROOT / path).edges:
@@ -227,8 +227,8 @@ def test_the_golden_is_not_vacuous(golden) -> None:
                for entry in order_by)
     assert all(len(entry["normalized"]["normalize_edge_record"]) == 5 for entry in edges)
     assert len(edges) >= 10
-    from src.models.schema import dead_letter_topic_name
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.models.schema import dead_letter_topic_name
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     fixture = load_schema(ROOT / "tests/golden/fixtures/single_topic_dlq.yaml")
     assert set(golden["tests/golden/fixtures/single_topic_dlq.yaml"]) == {edge.type for edge in fixture.edges}

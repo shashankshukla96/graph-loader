@@ -1,0 +1,1582 @@
+[
+  {
+    "image": {
+      "component": "cli",
+      "dockerfile": "Dockerfile",
+      "tag": "graph-loader-e03-cli:local-20261017-2342",
+      "command": [
+        "docker",
+        "build",
+        "-f",
+        "Dockerfile",
+        "-t",
+        "graph-loader-e03-cli:local-20261017-2342",
+        "."
+      ],
+      "exit_code": 0,
+      "seconds": 1.85,
+      "dockerfile_sha256": "bcf799901f654b86617356c24618b8afef347f490df43f862d7013ad9b1eb111",
+      "id": "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f"
+    },
+    "probe_command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--workdir",
+      "/tmp",
+      "--entrypoint",
+      "python",
+      "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+      "-I",
+      "-c",
+      "\nimport hashlib, importlib, importlib.metadata as metadata, json, logging, pathlib, socket, subprocess, sysconfig, threading\nbefore = logging.getLogger().level, list(logging.getLogger().handlers)\ndef forbidden(*a, **k): raise AssertionError('unexpected import side effect')\nsocket.socket.connect = socket.socket.connect_ex = socket.socket.bind = forbidden\nthreading.Thread.start = subprocess.Popen = forbidden\nsite = pathlib.Path(sysconfig.get_paths()['purelib']).resolve()\norigins = {}\nfor relative, digest in {'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': '07f94e5cc226dfb0ef51160314e107d6b28fee2611f8c3b5bdbaeef295a0c76e', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '9cec203f6c6505c6f71159f8b5f668ffba0b8f5cd8ec70e53db46db0d40e800b', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': 'f2b4fc6f559dcd383576fffdd8acb05bfde09f036fa8d1436d04eec5e55063b6', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': 'a9974b5115bf716702ff221b6bfe6baaa36644a1a73c6846f060b0a271100749', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}.items():\n name = relative.removesuffix('.py').replace('/', '.').removesuffix('.__init__')\n module = importlib.import_module(name)\n origin = pathlib.Path(module.__file__).resolve()\n assert origin.is_relative_to(site), (name,str(origin))\n assert hashlib.sha256(origin.read_bytes()).hexdigest() == digest, name\n origins[name] = str(origin)\nimport neo4j_graph_loader as package\nfrom neo4j_graph_loader.utils import metrics\nassert package.__version__ == metadata.version('neo4j-graph-loader') == metrics.PROCESS_VERSION\nassert metrics._process_metrics is None\nassert before == (logging.getLogger().level, logging.getLogger().handlers)\ntry: importlib.import_module('src')\nexcept ModuleNotFoundError: pass\nelse: raise AssertionError('src imported')\nprint(json.dumps({'version':package.__version__,'origins':origins,'resolution':sorted((d.metadata['Name'],d.version) for d in metadata.distributions())}))\n"
+    ],
+    "probe": {
+      "version": "0.1.0a1.dev0",
+      "origins": {
+        "neo4j_graph_loader._version": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/_version.py",
+        "neo4j_graph_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/__init__.py",
+        "neo4j_graph_loader.cli": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/cli.py",
+        "neo4j_graph_loader.utils.consumer_groups": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/consumer_groups.py",
+        "neo4j_graph_loader.utils.metrics": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/metrics.py",
+        "neo4j_graph_loader.utils.cypher_generator": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/cypher_generator.py",
+        "neo4j_graph_loader.utils.neo4j_session": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/neo4j_session.py",
+        "neo4j_graph_loader.utils": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/__init__.py",
+        "neo4j_graph_loader.utils.schema_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/schema_loader.py",
+        "neo4j_graph_loader.models": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/models/__init__.py",
+        "neo4j_graph_loader.models.schema": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/models/schema.py",
+        "neo4j_graph_loader.loader.mix_and_batch": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/mix_and_batch.py",
+        "neo4j_graph_loader.loader.slot_admission": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/slot_admission.py",
+        "neo4j_graph_loader.loader.planned_writer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/planned_writer.py",
+        "neo4j_graph_loader.loader.control": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/control.py",
+        "neo4j_graph_loader.loader.edge_execution": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_execution.py",
+        "neo4j_graph_loader.loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/__init__.py",
+        "neo4j_graph_loader.loader.fenced_tx": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/fenced_tx.py",
+        "neo4j_graph_loader.loader.lease_client": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/lease_client.py",
+        "neo4j_graph_loader.loader.edge_spill": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_spill.py",
+        "neo4j_graph_loader.loader.dead_letter_replay": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/dead_letter_replay.py",
+        "neo4j_graph_loader.loader.edge_planner": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_planner.py",
+        "neo4j_graph_loader.loader.write_timing_capture": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_timing_capture.py",
+        "neo4j_graph_loader.loader.node_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/node_loader.py",
+        "neo4j_graph_loader.loader.retry_consumer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/retry_consumer.py",
+        "neo4j_graph_loader.loader.edge_records": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_records.py",
+        "neo4j_graph_loader.loader.record_validation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/record_validation.py",
+        "neo4j_graph_loader.loader.edge_plan": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_plan.py",
+        "neo4j_graph_loader.loader.write_errors": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_errors.py",
+        "neo4j_graph_loader.loader.parked_pair_index": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/parked_pair_index.py",
+        "neo4j_graph_loader.loader.write_outage": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_outage.py",
+        "neo4j_graph_loader.loader.dead_letter": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/dead_letter.py",
+        "neo4j_graph_loader.loader.edge_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_loader.py",
+        "neo4j_graph_loader.orchestrator.planned_edges": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/planned_edges.py",
+        "neo4j_graph_loader.orchestrator.isolation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/isolation.py",
+        "neo4j_graph_loader.orchestrator.bulk_monitor": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/bulk_monitor.py",
+        "neo4j_graph_loader.orchestrator.docker_service": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/docker_service.py",
+        "neo4j_graph_loader.orchestrator.dependency_manager": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/dependency_manager.py",
+        "neo4j_graph_loader.orchestrator.planned_dispatcher": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/planned_dispatcher.py",
+        "neo4j_graph_loader.orchestrator.lease_server": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/lease_server.py",
+        "neo4j_graph_loader.orchestrator.relationship_bulk_monitor": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py",
+        "neo4j_graph_loader.orchestrator.auto_settings": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/auto_settings.py",
+        "neo4j_graph_loader.orchestrator": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/__init__.py",
+        "neo4j_graph_loader.orchestrator.schema_initializer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/schema_initializer.py",
+        "neo4j_graph_loader.orchestrator.fleet_contract": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/fleet_contract.py",
+        "neo4j_graph_loader.orchestrator.rotation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/rotation.py",
+        "neo4j_graph_loader.orchestrator.clock_runner": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/clock_runner.py",
+        "neo4j_graph_loader.orchestrator.coordination": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/coordination.py",
+        "neo4j_graph_loader.orchestrator.stream_groups": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/stream_groups.py"
+      },
+      "resolution": [
+        [
+          "PyYAML",
+          "6.0.3"
+        ],
+        [
+          "annotated-types",
+          "0.8.0"
+        ],
+        [
+          "certifi",
+          "2026.7.22"
+        ],
+        [
+          "charset-normalizer",
+          "3.5.2"
+        ],
+        [
+          "confluent-kafka",
+          "2.16.0"
+        ],
+        [
+          "docker",
+          "7.2.0"
+        ],
+        [
+          "idna",
+          "3.20"
+        ],
+        [
+          "neo4j",
+          "6.4.1"
+        ],
+        [
+          "neo4j-graph-loader",
+          "0.1.0a1.dev0"
+        ],
+        [
+          "neo4j-rust-ext",
+          "6.4.1.0"
+        ],
+        [
+          "numpy",
+          "2.5.4"
+        ],
+        [
+          "pip",
+          "25.0.1"
+        ],
+        [
+          "prometheus_client",
+          "0.26.0"
+        ],
+        [
+          "pydantic",
+          "2.14.1"
+        ],
+        [
+          "pydantic_core",
+          "2.50.1"
+        ],
+        [
+          "pytz",
+          "2026.5"
+        ],
+        [
+          "requests",
+          "2.34.2"
+        ],
+        [
+          "typing-inspection",
+          "0.4.4"
+        ],
+        [
+          "typing_extensions",
+          "4.16.0"
+        ],
+        [
+          "urllib3",
+          "2.8.0"
+        ]
+      ]
+    },
+    "probe_exit_code": 0,
+    "helps": [
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.cli",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: cli.py [-h] {start,stop,status,replay-dlq} ...\n\nNeo4j Graph Loader CLI\n\npositional arguments:\n  {start,stop,status,replay-dlq}\n    start               Start the ingestion pipeline\n    stop                Stop running ingestion containers\n    status              Check pipeline status and lags\n    replay-dlq          Read a DLQ topic and republish matching envelopes to\n                        their source topic\n\noptions:\n  -h, --help            show this help message and exit\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.node_loader",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: node_loader.py [-h] [--config CONFIG] --node-label NODE_LABEL\n                      [--max-messages MAX_MESSAGES] [--mode {bulk,stream}]\n                      [--topic TOPIC] [--run-id RUN_ID]\n                      [--replica-id REPLICA_ID]\n\nRun one schema-declared Kafka node loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --node-label NODE_LABEL\n  --max-messages MAX_MESSAGES\n  --mode {bulk,stream}\n  --topic TOPIC\n  --run-id RUN_ID\n  --replica-id REPLICA_ID\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.edge_loader",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: edge_loader.py [-h] [--config CONFIG] --edge-type EDGE_TYPE\n                      [--topic TOPIC] [--topics TOPICS] [--mode {bulk,stream}]\n                      [--replica-id REPLICA_ID]\n                      [--replica-count REPLICA_COUNT] [--run-id RUN_ID]\n                      [--slot-gating]\n                      [--coordination-topic COORDINATION_TOPIC]\n                      [--fleet-edge-types FLEET_EDGE_TYPES]\n                      [--max-messages MAX_MESSAGES]\n\nRun one schema-declared Kafka relationship loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --edge-type EDGE_TYPE\n  --topic TOPIC\n  --topics TOPICS       comma-separated topics (a relationship type may be fed\n                        by several); overrides the schema's list\n  --mode {bulk,stream}\n  --replica-id REPLICA_ID\n  --replica-count REPLICA_COUNT\n                        bulk only: statically assign partitions p % N ==\n                        replica id instead of joining the group\n  --run-id RUN_ID\n  --slot-gating\n  --coordination-topic COORDINATION_TOPIC\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --max-messages MAX_MESSAGES\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.retry_consumer",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: retry_consumer.py [-h] [--config CONFIG] [--run-id RUN_ID] --dlq-topics\n                         DLQ_TOPICS [--lease-address LEASE_ADDRESS]\n\nRun the fleet-wide DLQ retry consumer\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --dlq-topics DLQ_TOPICS\n                        comma-separated DLQ topics to subscribe to\n  --lease-address LEASE_ADDRESS\n                        host:port of the run's live bucket-lease server. Omit\n                        for a standalone run against a finished bulk run's DLQ\n                        backlog (Decisions \u00a71) -- writes then use the classic,\n                        non-leased Neo4j session path instead.\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.planned_writer",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: planned_writer.py [-h] [--config CONFIG] --plan PLAN --dispatcher\n                         DISPATCHER --writer-id WRITER_ID [--wait-ms WAIT_MS]\n                         [--no-prefetch]\n\nRun one planned bulk relationship writer\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --plan PLAN\n  --dispatcher DISPATCHER\n                        dispatcher host:port\n  --writer-id WRITER_ID\n  --wait-ms WAIT_MS\n  --no-prefetch\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.planned_dispatcher",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: planned_dispatcher.py [-h] --plan PLAN [--host HOST] [--port PORT]\n                             [--ready-labels READY_LABELS]\n                             [--hint-slack HINT_SLACK]\n\nRun the planned bulk relationship dispatcher\n\noptions:\n  -h, --help            show this help message and exit\n  --plan PLAN\n  --host HOST\n  --port PORT\n  --ready-labels READY_LABELS\n                        comma-separated labels already ready\n  --hint-slack HINT_SLACK\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.lease_server",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: lease_server.py [-h] [--host HOST] [--port PORT] [--buckets BUCKETS]\n                       [--scheme SCHEME]\n                       [--quiet-period-seconds QUIET_PERIOD_SECONDS]\n                       [--fence-seconds FENCE_SECONDS]\n\nRun the bulk relationship bucket-lease coordinator\n\noptions:\n  -h, --help            show this help message and exit\n  --host HOST\n  --port PORT\n  --buckets BUCKETS     expected per-label bucket count (checked on HELLO)\n  --scheme SCHEME       expected keyed-label scheme token, '-' for none\n                        (checked on HELLO)\n  --quiet-period-seconds QUIET_PERIOD_SECONDS\n                        P5-Q1 fencing amendment: refuse every grant for this\n                        many seconds after start (0 = none, the default -- a\n                        fresh run's first launch has no prior generation to\n                        wait out; the streaming supervisor passes Q > 0 only\n                        when relaunching after a restart)\n  --fence-seconds FENCE_SECONDS\n                        P5-Q1 fencing amendment / review finding B4-1: hold a\n                        disconnected owner's leases for this many seconds\n                        after the disconnect before freeing them (0 = today's\n                        behavior, free immediately on disconnect) -- normally\n                        T + margin, the same value used to derive --quiet-\n                        period-seconds on a restart, but passed on every\n                        launch including the first, since a mid-run disconnect\n                        is not restart-specific\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.clock_runner",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: clock_runner.py [-h] --config CONFIG --run-id RUN_ID --fleet-edge-types\n                       FLEET_EDGE_TYPES --coordination-topic\n                       COORDINATION_TOPIC\n\nRun one shared relationship rotation clock\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --coordination-topic COORDINATION_TOPIC\n",
+        "stderr": ""
+      }
+    ],
+    "config": {
+      "Entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.cli"
+      ],
+      "Env": [
+        "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "LANG=C.UTF-8",
+        "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+        "PYTHON_VERSION=3.12.15",
+        "PYTHON_SHA256=c2c4321961fab0fb999d66e0cecf521c2ab3994c7992873ea99e306c1094fd5a",
+        "PYTHONUNBUFFERED=1"
+      ],
+      "WorkingDir": "/app"
+    },
+    "default_entrypoint_help": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--workdir",
+        "/tmp",
+        "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: cli.py [-h] {start,stop,status,replay-dlq} ...\n\nNeo4j Graph Loader CLI\n\npositional arguments:\n  {start,stop,status,replay-dlq}\n    start               Start the ingestion pipeline\n    stop                Stop running ingestion containers\n    status              Check pipeline status and lags\n    replay-dlq          Read a DLQ topic and republish matching envelopes to\n                        their source topic\n\noptions:\n  -h, --help            show this help message and exit\n",
+      "stderr": ""
+    },
+    "pip_check": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--workdir",
+        "/tmp",
+        "--entrypoint",
+        "python",
+        "sha256:70f0d0a4a61cfe94ee6485497402cf8cd62a02faa43a594927c593eb98cb765f",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit_code": 0,
+      "stdout": "No broken requirements found.\n",
+      "stderr": ""
+    }
+  },
+  {
+    "image": {
+      "component": "node",
+      "dockerfile": "Dockerfile.node_loader",
+      "tag": "graph-loader-e03-node:local-20261017-2342",
+      "command": [
+        "docker",
+        "build",
+        "-f",
+        "Dockerfile.node_loader",
+        "-t",
+        "graph-loader-e03-node:local-20261017-2342",
+        "."
+      ],
+      "exit_code": 0,
+      "seconds": 0.35,
+      "dockerfile_sha256": "96cb25a2e87722c8afc2964899c2b592a9aafe77da4ec70bc71d27765cc1d564",
+      "id": "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2"
+    },
+    "probe_command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--workdir",
+      "/tmp",
+      "--entrypoint",
+      "python",
+      "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+      "-I",
+      "-c",
+      "\nimport hashlib, importlib, importlib.metadata as metadata, json, logging, pathlib, socket, subprocess, sysconfig, threading\nbefore = logging.getLogger().level, list(logging.getLogger().handlers)\ndef forbidden(*a, **k): raise AssertionError('unexpected import side effect')\nsocket.socket.connect = socket.socket.connect_ex = socket.socket.bind = forbidden\nthreading.Thread.start = subprocess.Popen = forbidden\nsite = pathlib.Path(sysconfig.get_paths()['purelib']).resolve()\norigins = {}\nfor relative, digest in {'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': '07f94e5cc226dfb0ef51160314e107d6b28fee2611f8c3b5bdbaeef295a0c76e', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '9cec203f6c6505c6f71159f8b5f668ffba0b8f5cd8ec70e53db46db0d40e800b', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': 'f2b4fc6f559dcd383576fffdd8acb05bfde09f036fa8d1436d04eec5e55063b6', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': 'a9974b5115bf716702ff221b6bfe6baaa36644a1a73c6846f060b0a271100749', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}.items():\n name = relative.removesuffix('.py').replace('/', '.').removesuffix('.__init__')\n module = importlib.import_module(name)\n origin = pathlib.Path(module.__file__).resolve()\n assert origin.is_relative_to(site), (name,str(origin))\n assert hashlib.sha256(origin.read_bytes()).hexdigest() == digest, name\n origins[name] = str(origin)\nimport neo4j_graph_loader as package\nfrom neo4j_graph_loader.utils import metrics\nassert package.__version__ == metadata.version('neo4j-graph-loader') == metrics.PROCESS_VERSION\nassert metrics._process_metrics is None\nassert before == (logging.getLogger().level, logging.getLogger().handlers)\ntry: importlib.import_module('src')\nexcept ModuleNotFoundError: pass\nelse: raise AssertionError('src imported')\nprint(json.dumps({'version':package.__version__,'origins':origins,'resolution':sorted((d.metadata['Name'],d.version) for d in metadata.distributions())}))\n"
+    ],
+    "probe": {
+      "version": "0.1.0a1.dev0",
+      "origins": {
+        "neo4j_graph_loader._version": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/_version.py",
+        "neo4j_graph_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/__init__.py",
+        "neo4j_graph_loader.cli": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/cli.py",
+        "neo4j_graph_loader.utils.consumer_groups": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/consumer_groups.py",
+        "neo4j_graph_loader.utils.metrics": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/metrics.py",
+        "neo4j_graph_loader.utils.cypher_generator": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/cypher_generator.py",
+        "neo4j_graph_loader.utils.neo4j_session": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/neo4j_session.py",
+        "neo4j_graph_loader.utils": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/__init__.py",
+        "neo4j_graph_loader.utils.schema_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/schema_loader.py",
+        "neo4j_graph_loader.models": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/models/__init__.py",
+        "neo4j_graph_loader.models.schema": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/models/schema.py",
+        "neo4j_graph_loader.loader.mix_and_batch": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/mix_and_batch.py",
+        "neo4j_graph_loader.loader.slot_admission": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/slot_admission.py",
+        "neo4j_graph_loader.loader.planned_writer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/planned_writer.py",
+        "neo4j_graph_loader.loader.control": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/control.py",
+        "neo4j_graph_loader.loader.edge_execution": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_execution.py",
+        "neo4j_graph_loader.loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/__init__.py",
+        "neo4j_graph_loader.loader.fenced_tx": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/fenced_tx.py",
+        "neo4j_graph_loader.loader.lease_client": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/lease_client.py",
+        "neo4j_graph_loader.loader.edge_spill": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_spill.py",
+        "neo4j_graph_loader.loader.dead_letter_replay": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/dead_letter_replay.py",
+        "neo4j_graph_loader.loader.edge_planner": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_planner.py",
+        "neo4j_graph_loader.loader.write_timing_capture": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_timing_capture.py",
+        "neo4j_graph_loader.loader.node_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/node_loader.py",
+        "neo4j_graph_loader.loader.retry_consumer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/retry_consumer.py",
+        "neo4j_graph_loader.loader.edge_records": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_records.py",
+        "neo4j_graph_loader.loader.record_validation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/record_validation.py",
+        "neo4j_graph_loader.loader.edge_plan": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_plan.py",
+        "neo4j_graph_loader.loader.write_errors": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_errors.py",
+        "neo4j_graph_loader.loader.parked_pair_index": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/parked_pair_index.py",
+        "neo4j_graph_loader.loader.write_outage": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_outage.py",
+        "neo4j_graph_loader.loader.dead_letter": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/dead_letter.py",
+        "neo4j_graph_loader.loader.edge_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_loader.py",
+        "neo4j_graph_loader.orchestrator.planned_edges": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/planned_edges.py",
+        "neo4j_graph_loader.orchestrator.isolation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/isolation.py",
+        "neo4j_graph_loader.orchestrator.bulk_monitor": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/bulk_monitor.py",
+        "neo4j_graph_loader.orchestrator.docker_service": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/docker_service.py",
+        "neo4j_graph_loader.orchestrator.dependency_manager": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/dependency_manager.py",
+        "neo4j_graph_loader.orchestrator.planned_dispatcher": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/planned_dispatcher.py",
+        "neo4j_graph_loader.orchestrator.lease_server": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/lease_server.py",
+        "neo4j_graph_loader.orchestrator.relationship_bulk_monitor": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py",
+        "neo4j_graph_loader.orchestrator.auto_settings": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/auto_settings.py",
+        "neo4j_graph_loader.orchestrator": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/__init__.py",
+        "neo4j_graph_loader.orchestrator.schema_initializer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/schema_initializer.py",
+        "neo4j_graph_loader.orchestrator.fleet_contract": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/fleet_contract.py",
+        "neo4j_graph_loader.orchestrator.rotation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/rotation.py",
+        "neo4j_graph_loader.orchestrator.clock_runner": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/clock_runner.py",
+        "neo4j_graph_loader.orchestrator.coordination": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/coordination.py",
+        "neo4j_graph_loader.orchestrator.stream_groups": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/stream_groups.py"
+      },
+      "resolution": [
+        [
+          "PyYAML",
+          "6.0.3"
+        ],
+        [
+          "annotated-types",
+          "0.8.0"
+        ],
+        [
+          "certifi",
+          "2026.7.22"
+        ],
+        [
+          "charset-normalizer",
+          "3.5.2"
+        ],
+        [
+          "confluent-kafka",
+          "2.16.0"
+        ],
+        [
+          "docker",
+          "7.2.0"
+        ],
+        [
+          "idna",
+          "3.20"
+        ],
+        [
+          "neo4j",
+          "6.4.1"
+        ],
+        [
+          "neo4j-graph-loader",
+          "0.1.0a1.dev0"
+        ],
+        [
+          "neo4j-rust-ext",
+          "6.4.1.0"
+        ],
+        [
+          "numpy",
+          "2.5.4"
+        ],
+        [
+          "pip",
+          "25.0.1"
+        ],
+        [
+          "prometheus_client",
+          "0.26.0"
+        ],
+        [
+          "pydantic",
+          "2.14.1"
+        ],
+        [
+          "pydantic_core",
+          "2.50.1"
+        ],
+        [
+          "pytz",
+          "2026.5"
+        ],
+        [
+          "requests",
+          "2.34.2"
+        ],
+        [
+          "typing-inspection",
+          "0.4.4"
+        ],
+        [
+          "typing_extensions",
+          "4.16.0"
+        ],
+        [
+          "urllib3",
+          "2.8.0"
+        ]
+      ]
+    },
+    "probe_exit_code": 0,
+    "helps": [
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.cli",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: cli.py [-h] {start,stop,status,replay-dlq} ...\n\nNeo4j Graph Loader CLI\n\npositional arguments:\n  {start,stop,status,replay-dlq}\n    start               Start the ingestion pipeline\n    stop                Stop running ingestion containers\n    status              Check pipeline status and lags\n    replay-dlq          Read a DLQ topic and republish matching envelopes to\n                        their source topic\n\noptions:\n  -h, --help            show this help message and exit\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.node_loader",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: node_loader.py [-h] [--config CONFIG] --node-label NODE_LABEL\n                      [--max-messages MAX_MESSAGES] [--mode {bulk,stream}]\n                      [--topic TOPIC] [--run-id RUN_ID]\n                      [--replica-id REPLICA_ID]\n\nRun one schema-declared Kafka node loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --node-label NODE_LABEL\n  --max-messages MAX_MESSAGES\n  --mode {bulk,stream}\n  --topic TOPIC\n  --run-id RUN_ID\n  --replica-id REPLICA_ID\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.edge_loader",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: edge_loader.py [-h] [--config CONFIG] --edge-type EDGE_TYPE\n                      [--topic TOPIC] [--topics TOPICS] [--mode {bulk,stream}]\n                      [--replica-id REPLICA_ID]\n                      [--replica-count REPLICA_COUNT] [--run-id RUN_ID]\n                      [--slot-gating]\n                      [--coordination-topic COORDINATION_TOPIC]\n                      [--fleet-edge-types FLEET_EDGE_TYPES]\n                      [--max-messages MAX_MESSAGES]\n\nRun one schema-declared Kafka relationship loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --edge-type EDGE_TYPE\n  --topic TOPIC\n  --topics TOPICS       comma-separated topics (a relationship type may be fed\n                        by several); overrides the schema's list\n  --mode {bulk,stream}\n  --replica-id REPLICA_ID\n  --replica-count REPLICA_COUNT\n                        bulk only: statically assign partitions p % N ==\n                        replica id instead of joining the group\n  --run-id RUN_ID\n  --slot-gating\n  --coordination-topic COORDINATION_TOPIC\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --max-messages MAX_MESSAGES\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.retry_consumer",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: retry_consumer.py [-h] [--config CONFIG] [--run-id RUN_ID] --dlq-topics\n                         DLQ_TOPICS [--lease-address LEASE_ADDRESS]\n\nRun the fleet-wide DLQ retry consumer\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --dlq-topics DLQ_TOPICS\n                        comma-separated DLQ topics to subscribe to\n  --lease-address LEASE_ADDRESS\n                        host:port of the run's live bucket-lease server. Omit\n                        for a standalone run against a finished bulk run's DLQ\n                        backlog (Decisions \u00a71) -- writes then use the classic,\n                        non-leased Neo4j session path instead.\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.planned_writer",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: planned_writer.py [-h] [--config CONFIG] --plan PLAN --dispatcher\n                         DISPATCHER --writer-id WRITER_ID [--wait-ms WAIT_MS]\n                         [--no-prefetch]\n\nRun one planned bulk relationship writer\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --plan PLAN\n  --dispatcher DISPATCHER\n                        dispatcher host:port\n  --writer-id WRITER_ID\n  --wait-ms WAIT_MS\n  --no-prefetch\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.planned_dispatcher",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: planned_dispatcher.py [-h] --plan PLAN [--host HOST] [--port PORT]\n                             [--ready-labels READY_LABELS]\n                             [--hint-slack HINT_SLACK]\n\nRun the planned bulk relationship dispatcher\n\noptions:\n  -h, --help            show this help message and exit\n  --plan PLAN\n  --host HOST\n  --port PORT\n  --ready-labels READY_LABELS\n                        comma-separated labels already ready\n  --hint-slack HINT_SLACK\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.lease_server",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: lease_server.py [-h] [--host HOST] [--port PORT] [--buckets BUCKETS]\n                       [--scheme SCHEME]\n                       [--quiet-period-seconds QUIET_PERIOD_SECONDS]\n                       [--fence-seconds FENCE_SECONDS]\n\nRun the bulk relationship bucket-lease coordinator\n\noptions:\n  -h, --help            show this help message and exit\n  --host HOST\n  --port PORT\n  --buckets BUCKETS     expected per-label bucket count (checked on HELLO)\n  --scheme SCHEME       expected keyed-label scheme token, '-' for none\n                        (checked on HELLO)\n  --quiet-period-seconds QUIET_PERIOD_SECONDS\n                        P5-Q1 fencing amendment: refuse every grant for this\n                        many seconds after start (0 = none, the default -- a\n                        fresh run's first launch has no prior generation to\n                        wait out; the streaming supervisor passes Q > 0 only\n                        when relaunching after a restart)\n  --fence-seconds FENCE_SECONDS\n                        P5-Q1 fencing amendment / review finding B4-1: hold a\n                        disconnected owner's leases for this many seconds\n                        after the disconnect before freeing them (0 = today's\n                        behavior, free immediately on disconnect) -- normally\n                        T + margin, the same value used to derive --quiet-\n                        period-seconds on a restart, but passed on every\n                        launch including the first, since a mid-run disconnect\n                        is not restart-specific\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.clock_runner",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: clock_runner.py [-h] --config CONFIG --run-id RUN_ID --fleet-edge-types\n                       FLEET_EDGE_TYPES --coordination-topic\n                       COORDINATION_TOPIC\n\nRun one shared relationship rotation clock\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --coordination-topic COORDINATION_TOPIC\n",
+        "stderr": ""
+      }
+    ],
+    "config": {
+      "Entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.loader.node_loader"
+      ],
+      "Env": [
+        "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "LANG=C.UTF-8",
+        "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+        "PYTHON_VERSION=3.12.15",
+        "PYTHON_SHA256=c2c4321961fab0fb999d66e0cecf521c2ab3994c7992873ea99e306c1094fd5a",
+        "PYTHONUNBUFFERED=1"
+      ],
+      "WorkingDir": "/app"
+    },
+    "default_entrypoint_help": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--workdir",
+        "/tmp",
+        "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: node_loader.py [-h] [--config CONFIG] --node-label NODE_LABEL\n                      [--max-messages MAX_MESSAGES] [--mode {bulk,stream}]\n                      [--topic TOPIC] [--run-id RUN_ID]\n                      [--replica-id REPLICA_ID]\n\nRun one schema-declared Kafka node loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --node-label NODE_LABEL\n  --max-messages MAX_MESSAGES\n  --mode {bulk,stream}\n  --topic TOPIC\n  --run-id RUN_ID\n  --replica-id REPLICA_ID\n",
+      "stderr": ""
+    },
+    "pip_check": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--workdir",
+        "/tmp",
+        "--entrypoint",
+        "python",
+        "sha256:74589fd928af851a5a582ef1a1fc0a3b34e4fa0185c48fc11e4ac8f3157f50f2",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit_code": 0,
+      "stdout": "No broken requirements found.\n",
+      "stderr": ""
+    }
+  },
+  {
+    "image": {
+      "component": "edge",
+      "dockerfile": "Dockerfile.edge_loader",
+      "tag": "graph-loader-e03-edge:local-20261017-2342",
+      "command": [
+        "docker",
+        "build",
+        "-f",
+        "Dockerfile.edge_loader",
+        "-t",
+        "graph-loader-e03-edge:local-20261017-2342",
+        "."
+      ],
+      "exit_code": 0,
+      "seconds": 0.35,
+      "dockerfile_sha256": "1ef530b0e29632f37cb2c3e2be49853b63a7d8c8b4a0cbacc335bacf87de979c",
+      "id": "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183"
+    },
+    "probe_command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--workdir",
+      "/tmp",
+      "--entrypoint",
+      "python",
+      "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+      "-I",
+      "-c",
+      "\nimport hashlib, importlib, importlib.metadata as metadata, json, logging, pathlib, socket, subprocess, sysconfig, threading\nbefore = logging.getLogger().level, list(logging.getLogger().handlers)\ndef forbidden(*a, **k): raise AssertionError('unexpected import side effect')\nsocket.socket.connect = socket.socket.connect_ex = socket.socket.bind = forbidden\nthreading.Thread.start = subprocess.Popen = forbidden\nsite = pathlib.Path(sysconfig.get_paths()['purelib']).resolve()\norigins = {}\nfor relative, digest in {'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': '07f94e5cc226dfb0ef51160314e107d6b28fee2611f8c3b5bdbaeef295a0c76e', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '9cec203f6c6505c6f71159f8b5f668ffba0b8f5cd8ec70e53db46db0d40e800b', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': 'f2b4fc6f559dcd383576fffdd8acb05bfde09f036fa8d1436d04eec5e55063b6', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': 'a9974b5115bf716702ff221b6bfe6baaa36644a1a73c6846f060b0a271100749', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}.items():\n name = relative.removesuffix('.py').replace('/', '.').removesuffix('.__init__')\n module = importlib.import_module(name)\n origin = pathlib.Path(module.__file__).resolve()\n assert origin.is_relative_to(site), (name,str(origin))\n assert hashlib.sha256(origin.read_bytes()).hexdigest() == digest, name\n origins[name] = str(origin)\nimport neo4j_graph_loader as package\nfrom neo4j_graph_loader.utils import metrics\nassert package.__version__ == metadata.version('neo4j-graph-loader') == metrics.PROCESS_VERSION\nassert metrics._process_metrics is None\nassert before == (logging.getLogger().level, logging.getLogger().handlers)\ntry: importlib.import_module('src')\nexcept ModuleNotFoundError: pass\nelse: raise AssertionError('src imported')\nprint(json.dumps({'version':package.__version__,'origins':origins,'resolution':sorted((d.metadata['Name'],d.version) for d in metadata.distributions())}))\n"
+    ],
+    "probe": {
+      "version": "0.1.0a1.dev0",
+      "origins": {
+        "neo4j_graph_loader._version": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/_version.py",
+        "neo4j_graph_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/__init__.py",
+        "neo4j_graph_loader.cli": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/cli.py",
+        "neo4j_graph_loader.utils.consumer_groups": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/consumer_groups.py",
+        "neo4j_graph_loader.utils.metrics": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/metrics.py",
+        "neo4j_graph_loader.utils.cypher_generator": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/cypher_generator.py",
+        "neo4j_graph_loader.utils.neo4j_session": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/neo4j_session.py",
+        "neo4j_graph_loader.utils": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/__init__.py",
+        "neo4j_graph_loader.utils.schema_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/schema_loader.py",
+        "neo4j_graph_loader.models": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/models/__init__.py",
+        "neo4j_graph_loader.models.schema": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/models/schema.py",
+        "neo4j_graph_loader.loader.mix_and_batch": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/mix_and_batch.py",
+        "neo4j_graph_loader.loader.slot_admission": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/slot_admission.py",
+        "neo4j_graph_loader.loader.planned_writer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/planned_writer.py",
+        "neo4j_graph_loader.loader.control": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/control.py",
+        "neo4j_graph_loader.loader.edge_execution": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_execution.py",
+        "neo4j_graph_loader.loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/__init__.py",
+        "neo4j_graph_loader.loader.fenced_tx": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/fenced_tx.py",
+        "neo4j_graph_loader.loader.lease_client": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/lease_client.py",
+        "neo4j_graph_loader.loader.edge_spill": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_spill.py",
+        "neo4j_graph_loader.loader.dead_letter_replay": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/dead_letter_replay.py",
+        "neo4j_graph_loader.loader.edge_planner": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_planner.py",
+        "neo4j_graph_loader.loader.write_timing_capture": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_timing_capture.py",
+        "neo4j_graph_loader.loader.node_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/node_loader.py",
+        "neo4j_graph_loader.loader.retry_consumer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/retry_consumer.py",
+        "neo4j_graph_loader.loader.edge_records": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_records.py",
+        "neo4j_graph_loader.loader.record_validation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/record_validation.py",
+        "neo4j_graph_loader.loader.edge_plan": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_plan.py",
+        "neo4j_graph_loader.loader.write_errors": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_errors.py",
+        "neo4j_graph_loader.loader.parked_pair_index": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/parked_pair_index.py",
+        "neo4j_graph_loader.loader.write_outage": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_outage.py",
+        "neo4j_graph_loader.loader.dead_letter": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/dead_letter.py",
+        "neo4j_graph_loader.loader.edge_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_loader.py",
+        "neo4j_graph_loader.orchestrator.planned_edges": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/planned_edges.py",
+        "neo4j_graph_loader.orchestrator.isolation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/isolation.py",
+        "neo4j_graph_loader.orchestrator.bulk_monitor": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/bulk_monitor.py",
+        "neo4j_graph_loader.orchestrator.docker_service": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/docker_service.py",
+        "neo4j_graph_loader.orchestrator.dependency_manager": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/dependency_manager.py",
+        "neo4j_graph_loader.orchestrator.planned_dispatcher": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/planned_dispatcher.py",
+        "neo4j_graph_loader.orchestrator.lease_server": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/lease_server.py",
+        "neo4j_graph_loader.orchestrator.relationship_bulk_monitor": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py",
+        "neo4j_graph_loader.orchestrator.auto_settings": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/auto_settings.py",
+        "neo4j_graph_loader.orchestrator": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/__init__.py",
+        "neo4j_graph_loader.orchestrator.schema_initializer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/schema_initializer.py",
+        "neo4j_graph_loader.orchestrator.fleet_contract": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/fleet_contract.py",
+        "neo4j_graph_loader.orchestrator.rotation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/rotation.py",
+        "neo4j_graph_loader.orchestrator.clock_runner": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/clock_runner.py",
+        "neo4j_graph_loader.orchestrator.coordination": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/coordination.py",
+        "neo4j_graph_loader.orchestrator.stream_groups": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/stream_groups.py"
+      },
+      "resolution": [
+        [
+          "PyYAML",
+          "6.0.3"
+        ],
+        [
+          "annotated-types",
+          "0.8.0"
+        ],
+        [
+          "certifi",
+          "2026.7.22"
+        ],
+        [
+          "charset-normalizer",
+          "3.5.2"
+        ],
+        [
+          "confluent-kafka",
+          "2.16.0"
+        ],
+        [
+          "docker",
+          "7.2.0"
+        ],
+        [
+          "idna",
+          "3.20"
+        ],
+        [
+          "neo4j",
+          "6.4.1"
+        ],
+        [
+          "neo4j-graph-loader",
+          "0.1.0a1.dev0"
+        ],
+        [
+          "neo4j-rust-ext",
+          "6.4.1.0"
+        ],
+        [
+          "numpy",
+          "2.5.4"
+        ],
+        [
+          "pip",
+          "25.0.1"
+        ],
+        [
+          "prometheus_client",
+          "0.26.0"
+        ],
+        [
+          "pydantic",
+          "2.14.1"
+        ],
+        [
+          "pydantic_core",
+          "2.50.1"
+        ],
+        [
+          "pytz",
+          "2026.5"
+        ],
+        [
+          "requests",
+          "2.34.2"
+        ],
+        [
+          "typing-inspection",
+          "0.4.4"
+        ],
+        [
+          "typing_extensions",
+          "4.16.0"
+        ],
+        [
+          "urllib3",
+          "2.8.0"
+        ]
+      ]
+    },
+    "probe_exit_code": 0,
+    "helps": [
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.cli",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: cli.py [-h] {start,stop,status,replay-dlq} ...\n\nNeo4j Graph Loader CLI\n\npositional arguments:\n  {start,stop,status,replay-dlq}\n    start               Start the ingestion pipeline\n    stop                Stop running ingestion containers\n    status              Check pipeline status and lags\n    replay-dlq          Read a DLQ topic and republish matching envelopes to\n                        their source topic\n\noptions:\n  -h, --help            show this help message and exit\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.node_loader",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: node_loader.py [-h] [--config CONFIG] --node-label NODE_LABEL\n                      [--max-messages MAX_MESSAGES] [--mode {bulk,stream}]\n                      [--topic TOPIC] [--run-id RUN_ID]\n                      [--replica-id REPLICA_ID]\n\nRun one schema-declared Kafka node loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --node-label NODE_LABEL\n  --max-messages MAX_MESSAGES\n  --mode {bulk,stream}\n  --topic TOPIC\n  --run-id RUN_ID\n  --replica-id REPLICA_ID\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.edge_loader",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: edge_loader.py [-h] [--config CONFIG] --edge-type EDGE_TYPE\n                      [--topic TOPIC] [--topics TOPICS] [--mode {bulk,stream}]\n                      [--replica-id REPLICA_ID]\n                      [--replica-count REPLICA_COUNT] [--run-id RUN_ID]\n                      [--slot-gating]\n                      [--coordination-topic COORDINATION_TOPIC]\n                      [--fleet-edge-types FLEET_EDGE_TYPES]\n                      [--max-messages MAX_MESSAGES]\n\nRun one schema-declared Kafka relationship loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --edge-type EDGE_TYPE\n  --topic TOPIC\n  --topics TOPICS       comma-separated topics (a relationship type may be fed\n                        by several); overrides the schema's list\n  --mode {bulk,stream}\n  --replica-id REPLICA_ID\n  --replica-count REPLICA_COUNT\n                        bulk only: statically assign partitions p % N ==\n                        replica id instead of joining the group\n  --run-id RUN_ID\n  --slot-gating\n  --coordination-topic COORDINATION_TOPIC\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --max-messages MAX_MESSAGES\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.retry_consumer",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: retry_consumer.py [-h] [--config CONFIG] [--run-id RUN_ID] --dlq-topics\n                         DLQ_TOPICS [--lease-address LEASE_ADDRESS]\n\nRun the fleet-wide DLQ retry consumer\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --dlq-topics DLQ_TOPICS\n                        comma-separated DLQ topics to subscribe to\n  --lease-address LEASE_ADDRESS\n                        host:port of the run's live bucket-lease server. Omit\n                        for a standalone run against a finished bulk run's DLQ\n                        backlog (Decisions \u00a71) -- writes then use the classic,\n                        non-leased Neo4j session path instead.\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.planned_writer",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: planned_writer.py [-h] [--config CONFIG] --plan PLAN --dispatcher\n                         DISPATCHER --writer-id WRITER_ID [--wait-ms WAIT_MS]\n                         [--no-prefetch]\n\nRun one planned bulk relationship writer\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --plan PLAN\n  --dispatcher DISPATCHER\n                        dispatcher host:port\n  --writer-id WRITER_ID\n  --wait-ms WAIT_MS\n  --no-prefetch\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.planned_dispatcher",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: planned_dispatcher.py [-h] --plan PLAN [--host HOST] [--port PORT]\n                             [--ready-labels READY_LABELS]\n                             [--hint-slack HINT_SLACK]\n\nRun the planned bulk relationship dispatcher\n\noptions:\n  -h, --help            show this help message and exit\n  --plan PLAN\n  --host HOST\n  --port PORT\n  --ready-labels READY_LABELS\n                        comma-separated labels already ready\n  --hint-slack HINT_SLACK\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.lease_server",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: lease_server.py [-h] [--host HOST] [--port PORT] [--buckets BUCKETS]\n                       [--scheme SCHEME]\n                       [--quiet-period-seconds QUIET_PERIOD_SECONDS]\n                       [--fence-seconds FENCE_SECONDS]\n\nRun the bulk relationship bucket-lease coordinator\n\noptions:\n  -h, --help            show this help message and exit\n  --host HOST\n  --port PORT\n  --buckets BUCKETS     expected per-label bucket count (checked on HELLO)\n  --scheme SCHEME       expected keyed-label scheme token, '-' for none\n                        (checked on HELLO)\n  --quiet-period-seconds QUIET_PERIOD_SECONDS\n                        P5-Q1 fencing amendment: refuse every grant for this\n                        many seconds after start (0 = none, the default -- a\n                        fresh run's first launch has no prior generation to\n                        wait out; the streaming supervisor passes Q > 0 only\n                        when relaunching after a restart)\n  --fence-seconds FENCE_SECONDS\n                        P5-Q1 fencing amendment / review finding B4-1: hold a\n                        disconnected owner's leases for this many seconds\n                        after the disconnect before freeing them (0 = today's\n                        behavior, free immediately on disconnect) -- normally\n                        T + margin, the same value used to derive --quiet-\n                        period-seconds on a restart, but passed on every\n                        launch including the first, since a mid-run disconnect\n                        is not restart-specific\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.clock_runner",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: clock_runner.py [-h] --config CONFIG --run-id RUN_ID --fleet-edge-types\n                       FLEET_EDGE_TYPES --coordination-topic\n                       COORDINATION_TOPIC\n\nRun one shared relationship rotation clock\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --coordination-topic COORDINATION_TOPIC\n",
+        "stderr": ""
+      }
+    ],
+    "config": {
+      "Entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.loader.edge_loader"
+      ],
+      "Env": [
+        "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "LANG=C.UTF-8",
+        "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+        "PYTHON_VERSION=3.12.15",
+        "PYTHON_SHA256=c2c4321961fab0fb999d66e0cecf521c2ab3994c7992873ea99e306c1094fd5a",
+        "PYTHONUNBUFFERED=1"
+      ],
+      "WorkingDir": "/app"
+    },
+    "default_entrypoint_help": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--workdir",
+        "/tmp",
+        "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: edge_loader.py [-h] [--config CONFIG] --edge-type EDGE_TYPE\n                      [--topic TOPIC] [--topics TOPICS] [--mode {bulk,stream}]\n                      [--replica-id REPLICA_ID]\n                      [--replica-count REPLICA_COUNT] [--run-id RUN_ID]\n                      [--slot-gating]\n                      [--coordination-topic COORDINATION_TOPIC]\n                      [--fleet-edge-types FLEET_EDGE_TYPES]\n                      [--max-messages MAX_MESSAGES]\n\nRun one schema-declared Kafka relationship loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --edge-type EDGE_TYPE\n  --topic TOPIC\n  --topics TOPICS       comma-separated topics (a relationship type may be fed\n                        by several); overrides the schema's list\n  --mode {bulk,stream}\n  --replica-id REPLICA_ID\n  --replica-count REPLICA_COUNT\n                        bulk only: statically assign partitions p % N ==\n                        replica id instead of joining the group\n  --run-id RUN_ID\n  --slot-gating\n  --coordination-topic COORDINATION_TOPIC\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --max-messages MAX_MESSAGES\n",
+      "stderr": ""
+    },
+    "pip_check": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--workdir",
+        "/tmp",
+        "--entrypoint",
+        "python",
+        "sha256:5ee08a7e5f83c8387803f9eee3787772f335981c4117ef51aa7b333ccb0ab183",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit_code": 0,
+      "stdout": "No broken requirements found.\n",
+      "stderr": ""
+    }
+  },
+  {
+    "image": {
+      "component": "clock",
+      "dockerfile": "Dockerfile.clock",
+      "tag": "graph-loader-e03-clock:local-20261017-2342",
+      "command": [
+        "docker",
+        "build",
+        "-f",
+        "Dockerfile.clock",
+        "-t",
+        "graph-loader-e03-clock:local-20261017-2342",
+        "."
+      ],
+      "exit_code": 0,
+      "seconds": 0.4,
+      "dockerfile_sha256": "6d425fb6c706a17409c4e4a32c270c55faf3d6ee905fdab3dea50b268d964a1b",
+      "id": "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6"
+    },
+    "probe_command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--workdir",
+      "/tmp",
+      "--entrypoint",
+      "python",
+      "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+      "-I",
+      "-c",
+      "\nimport hashlib, importlib, importlib.metadata as metadata, json, logging, pathlib, socket, subprocess, sysconfig, threading\nbefore = logging.getLogger().level, list(logging.getLogger().handlers)\ndef forbidden(*a, **k): raise AssertionError('unexpected import side effect')\nsocket.socket.connect = socket.socket.connect_ex = socket.socket.bind = forbidden\nthreading.Thread.start = subprocess.Popen = forbidden\nsite = pathlib.Path(sysconfig.get_paths()['purelib']).resolve()\norigins = {}\nfor relative, digest in {'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': '07f94e5cc226dfb0ef51160314e107d6b28fee2611f8c3b5bdbaeef295a0c76e', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '9cec203f6c6505c6f71159f8b5f668ffba0b8f5cd8ec70e53db46db0d40e800b', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': 'f2b4fc6f559dcd383576fffdd8acb05bfde09f036fa8d1436d04eec5e55063b6', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': 'a9974b5115bf716702ff221b6bfe6baaa36644a1a73c6846f060b0a271100749', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}.items():\n name = relative.removesuffix('.py').replace('/', '.').removesuffix('.__init__')\n module = importlib.import_module(name)\n origin = pathlib.Path(module.__file__).resolve()\n assert origin.is_relative_to(site), (name,str(origin))\n assert hashlib.sha256(origin.read_bytes()).hexdigest() == digest, name\n origins[name] = str(origin)\nimport neo4j_graph_loader as package\nfrom neo4j_graph_loader.utils import metrics\nassert package.__version__ == metadata.version('neo4j-graph-loader') == metrics.PROCESS_VERSION\nassert metrics._process_metrics is None\nassert before == (logging.getLogger().level, logging.getLogger().handlers)\ntry: importlib.import_module('src')\nexcept ModuleNotFoundError: pass\nelse: raise AssertionError('src imported')\nprint(json.dumps({'version':package.__version__,'origins':origins,'resolution':sorted((d.metadata['Name'],d.version) for d in metadata.distributions())}))\n"
+    ],
+    "probe": {
+      "version": "0.1.0a1.dev0",
+      "origins": {
+        "neo4j_graph_loader._version": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/_version.py",
+        "neo4j_graph_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/__init__.py",
+        "neo4j_graph_loader.cli": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/cli.py",
+        "neo4j_graph_loader.utils.consumer_groups": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/consumer_groups.py",
+        "neo4j_graph_loader.utils.metrics": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/metrics.py",
+        "neo4j_graph_loader.utils.cypher_generator": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/cypher_generator.py",
+        "neo4j_graph_loader.utils.neo4j_session": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/neo4j_session.py",
+        "neo4j_graph_loader.utils": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/__init__.py",
+        "neo4j_graph_loader.utils.schema_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/utils/schema_loader.py",
+        "neo4j_graph_loader.models": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/models/__init__.py",
+        "neo4j_graph_loader.models.schema": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/models/schema.py",
+        "neo4j_graph_loader.loader.mix_and_batch": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/mix_and_batch.py",
+        "neo4j_graph_loader.loader.slot_admission": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/slot_admission.py",
+        "neo4j_graph_loader.loader.planned_writer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/planned_writer.py",
+        "neo4j_graph_loader.loader.control": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/control.py",
+        "neo4j_graph_loader.loader.edge_execution": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_execution.py",
+        "neo4j_graph_loader.loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/__init__.py",
+        "neo4j_graph_loader.loader.fenced_tx": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/fenced_tx.py",
+        "neo4j_graph_loader.loader.lease_client": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/lease_client.py",
+        "neo4j_graph_loader.loader.edge_spill": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_spill.py",
+        "neo4j_graph_loader.loader.dead_letter_replay": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/dead_letter_replay.py",
+        "neo4j_graph_loader.loader.edge_planner": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_planner.py",
+        "neo4j_graph_loader.loader.write_timing_capture": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_timing_capture.py",
+        "neo4j_graph_loader.loader.node_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/node_loader.py",
+        "neo4j_graph_loader.loader.retry_consumer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/retry_consumer.py",
+        "neo4j_graph_loader.loader.edge_records": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_records.py",
+        "neo4j_graph_loader.loader.record_validation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/record_validation.py",
+        "neo4j_graph_loader.loader.edge_plan": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_plan.py",
+        "neo4j_graph_loader.loader.write_errors": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_errors.py",
+        "neo4j_graph_loader.loader.parked_pair_index": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/parked_pair_index.py",
+        "neo4j_graph_loader.loader.write_outage": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/write_outage.py",
+        "neo4j_graph_loader.loader.dead_letter": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/dead_letter.py",
+        "neo4j_graph_loader.loader.edge_loader": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_loader.py",
+        "neo4j_graph_loader.orchestrator.planned_edges": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/planned_edges.py",
+        "neo4j_graph_loader.orchestrator.isolation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/isolation.py",
+        "neo4j_graph_loader.orchestrator.bulk_monitor": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/bulk_monitor.py",
+        "neo4j_graph_loader.orchestrator.docker_service": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/docker_service.py",
+        "neo4j_graph_loader.orchestrator.dependency_manager": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/dependency_manager.py",
+        "neo4j_graph_loader.orchestrator.planned_dispatcher": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/planned_dispatcher.py",
+        "neo4j_graph_loader.orchestrator.lease_server": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/lease_server.py",
+        "neo4j_graph_loader.orchestrator.relationship_bulk_monitor": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py",
+        "neo4j_graph_loader.orchestrator.auto_settings": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/auto_settings.py",
+        "neo4j_graph_loader.orchestrator": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/__init__.py",
+        "neo4j_graph_loader.orchestrator.schema_initializer": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/schema_initializer.py",
+        "neo4j_graph_loader.orchestrator.fleet_contract": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/fleet_contract.py",
+        "neo4j_graph_loader.orchestrator.rotation": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/rotation.py",
+        "neo4j_graph_loader.orchestrator.clock_runner": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/clock_runner.py",
+        "neo4j_graph_loader.orchestrator.coordination": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/coordination.py",
+        "neo4j_graph_loader.orchestrator.stream_groups": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader/orchestrator/stream_groups.py"
+      },
+      "resolution": [
+        [
+          "PyYAML",
+          "6.0.3"
+        ],
+        [
+          "annotated-types",
+          "0.8.0"
+        ],
+        [
+          "certifi",
+          "2026.7.22"
+        ],
+        [
+          "charset-normalizer",
+          "3.5.2"
+        ],
+        [
+          "confluent-kafka",
+          "2.16.0"
+        ],
+        [
+          "docker",
+          "7.2.0"
+        ],
+        [
+          "idna",
+          "3.20"
+        ],
+        [
+          "neo4j",
+          "6.4.1"
+        ],
+        [
+          "neo4j-graph-loader",
+          "0.1.0a1.dev0"
+        ],
+        [
+          "neo4j-rust-ext",
+          "6.4.1.0"
+        ],
+        [
+          "numpy",
+          "2.5.4"
+        ],
+        [
+          "pip",
+          "25.0.1"
+        ],
+        [
+          "prometheus_client",
+          "0.26.0"
+        ],
+        [
+          "pydantic",
+          "2.14.1"
+        ],
+        [
+          "pydantic_core",
+          "2.50.1"
+        ],
+        [
+          "pytz",
+          "2026.5"
+        ],
+        [
+          "requests",
+          "2.34.2"
+        ],
+        [
+          "typing-inspection",
+          "0.4.4"
+        ],
+        [
+          "typing_extensions",
+          "4.16.0"
+        ],
+        [
+          "urllib3",
+          "2.8.0"
+        ]
+      ]
+    },
+    "probe_exit_code": 0,
+    "helps": [
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.cli",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: cli.py [-h] {start,stop,status,replay-dlq} ...\n\nNeo4j Graph Loader CLI\n\npositional arguments:\n  {start,stop,status,replay-dlq}\n    start               Start the ingestion pipeline\n    stop                Stop running ingestion containers\n    status              Check pipeline status and lags\n    replay-dlq          Read a DLQ topic and republish matching envelopes to\n                        their source topic\n\noptions:\n  -h, --help            show this help message and exit\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.node_loader",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: node_loader.py [-h] [--config CONFIG] --node-label NODE_LABEL\n                      [--max-messages MAX_MESSAGES] [--mode {bulk,stream}]\n                      [--topic TOPIC] [--run-id RUN_ID]\n                      [--replica-id REPLICA_ID]\n\nRun one schema-declared Kafka node loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --node-label NODE_LABEL\n  --max-messages MAX_MESSAGES\n  --mode {bulk,stream}\n  --topic TOPIC\n  --run-id RUN_ID\n  --replica-id REPLICA_ID\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.edge_loader",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: edge_loader.py [-h] [--config CONFIG] --edge-type EDGE_TYPE\n                      [--topic TOPIC] [--topics TOPICS] [--mode {bulk,stream}]\n                      [--replica-id REPLICA_ID]\n                      [--replica-count REPLICA_COUNT] [--run-id RUN_ID]\n                      [--slot-gating]\n                      [--coordination-topic COORDINATION_TOPIC]\n                      [--fleet-edge-types FLEET_EDGE_TYPES]\n                      [--max-messages MAX_MESSAGES]\n\nRun one schema-declared Kafka relationship loader\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --edge-type EDGE_TYPE\n  --topic TOPIC\n  --topics TOPICS       comma-separated topics (a relationship type may be fed\n                        by several); overrides the schema's list\n  --mode {bulk,stream}\n  --replica-id REPLICA_ID\n  --replica-count REPLICA_COUNT\n                        bulk only: statically assign partitions p % N ==\n                        replica id instead of joining the group\n  --run-id RUN_ID\n  --slot-gating\n  --coordination-topic COORDINATION_TOPIC\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --max-messages MAX_MESSAGES\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.retry_consumer",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: retry_consumer.py [-h] [--config CONFIG] [--run-id RUN_ID] --dlq-topics\n                         DLQ_TOPICS [--lease-address LEASE_ADDRESS]\n\nRun the fleet-wide DLQ retry consumer\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --dlq-topics DLQ_TOPICS\n                        comma-separated DLQ topics to subscribe to\n  --lease-address LEASE_ADDRESS\n                        host:port of the run's live bucket-lease server. Omit\n                        for a standalone run against a finished bulk run's DLQ\n                        backlog (Decisions \u00a71) -- writes then use the classic,\n                        non-leased Neo4j session path instead.\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.loader.planned_writer",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: planned_writer.py [-h] [--config CONFIG] --plan PLAN --dispatcher\n                         DISPATCHER --writer-id WRITER_ID [--wait-ms WAIT_MS]\n                         [--no-prefetch]\n\nRun one planned bulk relationship writer\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --plan PLAN\n  --dispatcher DISPATCHER\n                        dispatcher host:port\n  --writer-id WRITER_ID\n  --wait-ms WAIT_MS\n  --no-prefetch\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.planned_dispatcher",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: planned_dispatcher.py [-h] --plan PLAN [--host HOST] [--port PORT]\n                             [--ready-labels READY_LABELS]\n                             [--hint-slack HINT_SLACK]\n\nRun the planned bulk relationship dispatcher\n\noptions:\n  -h, --help            show this help message and exit\n  --plan PLAN\n  --host HOST\n  --port PORT\n  --ready-labels READY_LABELS\n                        comma-separated labels already ready\n  --hint-slack HINT_SLACK\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.lease_server",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: lease_server.py [-h] [--host HOST] [--port PORT] [--buckets BUCKETS]\n                       [--scheme SCHEME]\n                       [--quiet-period-seconds QUIET_PERIOD_SECONDS]\n                       [--fence-seconds FENCE_SECONDS]\n\nRun the bulk relationship bucket-lease coordinator\n\noptions:\n  -h, --help            show this help message and exit\n  --host HOST\n  --port PORT\n  --buckets BUCKETS     expected per-label bucket count (checked on HELLO)\n  --scheme SCHEME       expected keyed-label scheme token, '-' for none\n                        (checked on HELLO)\n  --quiet-period-seconds QUIET_PERIOD_SECONDS\n                        P5-Q1 fencing amendment: refuse every grant for this\n                        many seconds after start (0 = none, the default -- a\n                        fresh run's first launch has no prior generation to\n                        wait out; the streaming supervisor passes Q > 0 only\n                        when relaunching after a restart)\n  --fence-seconds FENCE_SECONDS\n                        P5-Q1 fencing amendment / review finding B4-1: hold a\n                        disconnected owner's leases for this many seconds\n                        after the disconnect before freeing them (0 = today's\n                        behavior, free immediately on disconnect) -- normally\n                        T + margin, the same value used to derive --quiet-\n                        period-seconds on a restart, but passed on every\n                        launch including the first, since a mid-run disconnect\n                        is not restart-specific\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--workdir",
+          "/tmp",
+          "--entrypoint",
+          "python",
+          "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+          "-I",
+          "-m",
+          "neo4j_graph_loader.orchestrator.clock_runner",
+          "--help"
+        ],
+        "exit_code": 0,
+        "stdout": "usage: clock_runner.py [-h] --config CONFIG --run-id RUN_ID --fleet-edge-types\n                       FLEET_EDGE_TYPES --coordination-topic\n                       COORDINATION_TOPIC\n\nRun one shared relationship rotation clock\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --coordination-topic COORDINATION_TOPIC\n",
+        "stderr": ""
+      }
+    ],
+    "config": {
+      "Entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.orchestrator.clock_runner"
+      ],
+      "Env": [
+        "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "LANG=C.UTF-8",
+        "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+        "PYTHON_VERSION=3.12.15",
+        "PYTHON_SHA256=c2c4321961fab0fb999d66e0cecf521c2ab3994c7992873ea99e306c1094fd5a",
+        "PYTHONUNBUFFERED=1"
+      ],
+      "WorkingDir": "/app"
+    },
+    "default_entrypoint_help": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--workdir",
+        "/tmp",
+        "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: clock_runner.py [-h] --config CONFIG --run-id RUN_ID --fleet-edge-types\n                       FLEET_EDGE_TYPES --coordination-topic\n                       COORDINATION_TOPIC\n\nRun one shared relationship rotation clock\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --run-id RUN_ID\n  --fleet-edge-types FLEET_EDGE_TYPES\n  --coordination-topic COORDINATION_TOPIC\n",
+      "stderr": ""
+    },
+    "pip_check": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--workdir",
+        "/tmp",
+        "--entrypoint",
+        "python",
+        "sha256:113091b00ffed55fad6a19e7590634be61927191ca16009d1b8dc79bc16332c6",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit_code": 0,
+      "stdout": "No broken requirements found.\n",
+      "stderr": ""
+    }
+  }
+]

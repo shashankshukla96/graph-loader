@@ -104,7 +104,7 @@ def _run_cli(environment, tmp_path, database: str, *extra: str, run_id: str | No
         "LOADER_NEO4J_URI": environment["loader_neo4j"], "GRAPH_LOADER_TIMING_DIR": str(tmp_path / database),
     }
     return subprocess.run(
-        [sys.executable, "-m", "src.cli", "start", "--mode", "bulk", "--config", str(config),
+        [sys.executable, "-m", "neo4j_graph_loader.cli", "start", "--mode", "bulk", "--config", str(config),
          "--network", environment["network"], "--skip-image-build", "--bulk-timeout-seconds", "300",
          *(["--run-id", run_id] if run_id else []), *extra],
         cwd=ROOT, env=env, capture_output=True, text=True, timeout=1200,

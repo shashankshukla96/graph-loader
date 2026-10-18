@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from src.loader.retry_consumer import RETRY_OUTCOME_UNRESOLVED, RETRY_OUTCOME_WRITTEN, _PendingRecord
+from neo4j_graph_loader.loader.retry_consumer import RETRY_OUTCOME_UNRESOLVED, RETRY_OUTCOME_WRITTEN, _PendingRecord
 from tests.test_retry_consumer import _Clock, _dlq_message, _envelope, _FakeConsumer, _make_consumer
 from tests.test_retry_pair_order_fuzz import RecordingWriter, RepublishingSink, SeqIndex, StatefulIndex
 

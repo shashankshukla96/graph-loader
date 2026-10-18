@@ -16,7 +16,7 @@ from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j import GraphDatabase
 
 from it_scratch_db import ensure_database, explicit_neo4j_auth
-from src.cli import _derive_relationship_phase_run_id, main
+from neo4j_graph_loader.cli import _derive_relationship_phase_run_id, main
 
 
 @pytest.mark.integration
@@ -68,7 +68,7 @@ def test_relationship_bulk_fleet_acceptance_contract(tmp_path: Path, it_database
         # must be unique per run: control events of an earlier run with the same id stay on the shared
         # control topic and fail the new run's assignment check.
         node_run = f"node-e2e-{suffix}"
-        with patch("src.cli.uuid.uuid4", side_effect=[SimpleNamespace(hex=node_run)]):
+        with patch("neo4j_graph_loader.cli.uuid.uuid4", side_effect=[SimpleNamespace(hex=node_run)]):
             assert main(["start", "--mode", "bulk", "--config", str(config_path), "--network", "graph-loader-net", "--bulk-timeout-seconds", "90", "--edge-classic"]) == 0
         with driver.session(database=it_database) as session:
             for kind in ("WORKS_AT", "BOUGHT", "VISITED"):

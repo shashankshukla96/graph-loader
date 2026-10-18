@@ -25,9 +25,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import src.loader.retry_consumer as retry_consumer_module
-from src.loader.edge_execution import IndexedMissingEndpointSink, LabelledEndpointSink
-from src.loader.retry_consumer import RETRY_OUTCOME_UNRESOLVED, RETRY_OUTCOME_WRITTEN, RetryConsumer
+import neo4j_graph_loader.loader.retry_consumer as retry_consumer_module
+from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink, LabelledEndpointSink
+from neo4j_graph_loader.loader.retry_consumer import RETRY_OUTCOME_UNRESOLVED, RETRY_OUTCOME_WRITTEN, RetryConsumer
 from tests.test_retry_consumer import _Clock, _dlq_message, _envelope, _FakeConsumer, _make_consumer
 from tests.test_retry_pair_order_fuzz import PAIRS, RepublishingSink, SeqIndex, StatefulIndex
 

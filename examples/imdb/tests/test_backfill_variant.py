@@ -6,7 +6,7 @@ import re
 
 import yaml
 
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 IMDB = Path(__file__).resolve().parents[1]
 

@@ -77,7 +77,7 @@ def _edge_records(schema, edge, count: int = 40) -> list[bytes]:
 def _plan_fingerprint(schema, workdir: Path, *, hub_degree: int = 0) -> dict:
     from types import SimpleNamespace
 
-    from src.loader.edge_planner import KafkaEdgePlanner, PlanSettings
+    from neo4j_graph_loader.loader.edge_planner import KafkaEdgePlanner, PlanSettings
     from test_edge_planner import FakeCluster, FakeProducer
 
     edges = list(schema.edges)
@@ -111,7 +111,7 @@ def _plan_fingerprint(schema, workdir: Path, *, hub_degree: int = 0) -> dict:
 
 
 def _names(entity_topic: str, dead_letter) -> list:
-    from src.models import schema as schema_module
+    from neo4j_graph_loader.models import schema as schema_module
 
     return [
         schema_module.dead_letter_topic_name(entity_topic, dead_letter),
@@ -121,7 +121,7 @@ def _names(entity_topic: str, dead_letter) -> list:
 
 
 def _launch_env(edge, mode: str, config_path: str) -> dict:
-    from src.orchestrator.docker_service import DockerService
+    from neo4j_graph_loader.orchestrator.docker_service import DockerService
 
     client = MagicMock()
     client.containers.run.return_value = MagicMock()
@@ -142,7 +142,7 @@ def _launch_env(edge, mode: str, config_path: str) -> dict:
 
 
 def _node_launch(node, mode: str, config_path: str) -> dict:
-    from src.orchestrator.docker_service import DockerService
+    from neo4j_graph_loader.orchestrator.docker_service import DockerService
 
     client = MagicMock()
     client.containers.run.return_value = MagicMock()
@@ -164,8 +164,8 @@ def _lag_series(edge) -> list:
     """Lag series the real monitor code creates for one single-topic type (labels and value), via a refresh."""
     from prometheus_client import CollectorRegistry
 
-    from src.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     from types import SimpleNamespace
 
@@ -192,7 +192,7 @@ def _lag_series(edge) -> list:
 
 
 def fingerprint(relative_path: str) -> dict:
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     schema = load_schema(ROOT / relative_path)
     out: dict = {"prefix": schema.loading.consumer_group_id, "nodes": {}, "edges": {}}
@@ -262,10 +262,10 @@ def test_bulk_launches_are_byte_identical_to_the_golden(path, golden) -> None:
 @pytest.mark.parametrize("path", SCHEMAS)
 def test_new_naming_api_agrees_with_the_old_topic_based_names(path, golden) -> None:
     """``edge_*_name(edge)`` (the multi-topic API) must give the single-topic names the golden recorded."""
-    from src.models.schema import (
+    from neo4j_graph_loader.models.schema import (
         edge_dead_letter_topic_name, edge_parked_pair_index_topic_name, edge_parked_topic_name,
     )
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     schema = load_schema(ROOT / path)
     for edge in schema.edges:

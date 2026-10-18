@@ -15,15 +15,15 @@ import pytest
 import yaml
 
 from multi_pair_support import likes_schema_dict
-from src.cli import AUTO_EDGE_PLAN, _resolve_node_replicas, handle_start
-from src.loader.edge_planner import self_referencing_rows
-from src.loader.edge_records import EdgeRecordValidationError, normalize_edge_record
-from src.models.schema import GraphSchema
-from src.loader.planned_writer import compile_record_normalizer
-from src.orchestrator import auto_settings
-from src.orchestrator.planned_edges import start_kafka_edge_planner
-from src.utils.cypher_generator import generate_node_ddl
-from src.utils.schema_loader import SchemaLoadError, load_schema
+from neo4j_graph_loader.cli import AUTO_EDGE_PLAN, _resolve_node_replicas, handle_start
+from neo4j_graph_loader.loader.edge_planner import self_referencing_rows
+from neo4j_graph_loader.loader.edge_records import EdgeRecordValidationError, normalize_edge_record
+from neo4j_graph_loader.models.schema import GraphSchema
+from neo4j_graph_loader.loader.planned_writer import compile_record_normalizer
+from neo4j_graph_loader.orchestrator import auto_settings
+from neo4j_graph_loader.orchestrator.planned_edges import start_kafka_edge_planner
+from neo4j_graph_loader.utils.cypher_generator import generate_node_ddl
+from neo4j_graph_loader.utils.schema_loader import SchemaLoadError, load_schema
 
 SOCIAL_PATH = Path(__file__).resolve().parents[1] / "examples" / "social" / "graph_schema.yaml"
 SOCIAL = load_schema(SOCIAL_PATH)
@@ -284,7 +284,7 @@ def test_start_kafka_edge_planner_derives_settings_and_points_the_phase_at_its_p
     created = {}
     rejections = tmp_path / "rej"
     rejections.mkdir()
-    monkeypatch.setattr("src.orchestrator.planned_edges.REJECTION_DIR", str(rejections))
+    monkeypatch.setattr("neo4j_graph_loader.orchestrator.planned_edges.REJECTION_DIR", str(rejections))
     (rejections / "r1-planner-0.jsonl").write_text("old\n")
     (rejections / "other-planner-0.jsonl").write_text("keep\n")
 
@@ -314,12 +314,14 @@ def test_start_kafka_edge_planner_derives_settings_and_points_the_phase_at_its_p
     assert (settings.buckets, settings.hub_degree, settings.chunk_rows) == (8, 0, 1029)  # isqrt(123456/1500)=9
     assert settings.topic == "graph-loader-edge-chunks-r1" and settings.workers == 2 and settings.partitions == 4
     assert args.edge_plan == str(tmp_path / "edge-plan.json") == str(created["path"])
-    assert created["plan_id"] == "r1" and not stale.exists() and isinstance(planner, FakePlanner)
+    assert created["plan_id"] == "r1" and stale.exists() and isinstance(planner, FakePlanner)
     assert created["plan_path"] == tmp_path / "edge-plan.json"
     assert settings.memory_mb == 512 and settings.spill_dir == str(tmp_path / "spill")
-    # the CLI wiring: the planner gets the one shared rejection directory; a rerun drops its stale files only
+    # Only the real planner may reset output after acquiring ownership; the
+    # orchestrator must preserve rejection evidence, including files of this run ID.
     assert created["rejection_dir"] == rejections
-    assert not (rejections / "r1-planner-0.jsonl").exists() and (rejections / "other-planner-0.jsonl").exists()
+    assert (rejections / "r1-planner-0.jsonl").read_text() == "old\n"
+    assert (rejections / "other-planner-0.jsonl").read_text() == "keep\n"
 
 
 @pytest.mark.parametrize("plan_buckets, expected, reason", [
@@ -328,7 +330,7 @@ def test_start_kafka_edge_planner_derives_settings_and_points_the_phase_at_its_p
 ])
 def test_start_kafka_edge_planner_logs_the_self_referencing_bucket_rule(tmp_path, monkeypatch, caplog,
                                                                         plan_buckets, expected, reason) -> None:
-    monkeypatch.setattr("src.orchestrator.planned_edges.REJECTION_DIR", str(tmp_path / "rej"))
+    monkeypatch.setattr("neo4j_graph_loader.orchestrator.planned_edges.REJECTION_DIR", str(tmp_path / "rej"))
     created = {}
 
     class FakePlanner:
@@ -344,7 +346,7 @@ def test_start_kafka_edge_planner_logs_the_self_referencing_bucket_rule(tmp_path
     args = argparse.Namespace(edge_plan=AUTO_EDGE_PLAN, plan_dir=str(tmp_path), plan_chunk_rows=None,
                               plan_buckets=plan_buckets, plan_hub_degree=None, plan_workers=2, plan_partitions=None,
                               plan_topic=None, plan_memory_mb=0, plan_spill_dir=None)
-    with caplog.at_level(logging.INFO, logger="src.orchestrator.planned_edges"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.orchestrator.planned_edges"):
         start_kafka_edge_planner(SOCIAL, args, run_id="r1", writers=10, bootstrap_servers="kafka:9",
                                  planner_factory=FakePlanner)
     settings = created["settings"]
@@ -358,19 +360,19 @@ def test_start_kafka_edge_planner_logs_the_self_referencing_bucket_rule(tmp_path
 def test_the_classic_and_planner_rejection_directories_are_one_constant() -> None:
     import inspect
 
-    from src.orchestrator import docker_service, planned_edges
+    from neo4j_graph_loader.orchestrator import docker_service, planned_edges
     assert planned_edges.REJECTION_DIR is docker_service.REJECTION_DIR
     for method in (docker_service.DockerService.run_edge_loader, docker_service.DockerService.run_node_loader):
         assert inspect.signature(method).parameters["rejection_dir"].default == docker_service.REJECTION_DIR
 
 
-@patch("src.cli.start_kafka_edge_planner")
-@patch("src.cli.run_planned_edge_phase")
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.start_kafka_edge_planner")
+@patch("neo4j_graph_loader.cli.run_planned_edge_phase")
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_with_edge_plan_alone_plans_from_kafka_and_cleans_up(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, planned, start_planner, tmp_path,
 ):
@@ -410,7 +412,7 @@ def test_handle_start_with_edge_plan_alone_plans_from_kafka_and_cleans_up(
     assert seen["plan"] == str(tmp_path / "edge-plan.json") and seen["writers"] == 8
     assert start_planner.seen == (seen["run"], 8)
     # N2: the planner can tell an operator stop from a failure (it logs the abort as a WARNING).
-    from src import cli as cli_module
+    from neo4j_graph_loader import cli as cli_module
     assert start_planner.stop_requested is cli_module._shutdown_requested
     fake_planner.close.assert_called_once_with(delete_topic=True)
     # A failing planner start fails the run before any loader launches.

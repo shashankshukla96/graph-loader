@@ -58,7 +58,7 @@ flagged to run in isolation.
 *Today:* the clock is **not** the stream default. Streaming uses a fleet of
 edge loaders under a bucket-lease coordinator (leases replace the rotating
 slots). The clock and rotation scheduling remain reachable only through the
-deprecated `--stream-clock-rotation` flag (`src/orchestrator/clock_runner.py`).
+deprecated `--stream-clock-rotation` flag (`src/neo4j_graph_loader/orchestrator/clock_runner.py`).
 Bulk classic still isolates self-references into a final phase unless
 `--bulk-edge-overlap shared` is used.
 
@@ -87,11 +87,11 @@ exported (`NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`,
 
 ```bash
 # one node label, stop after 10 messages
-python -m src.loader.node_loader --config config/graph_schema.yaml \
+python -m neo4j_graph_loader.loader.node_loader --config config/graph_schema.yaml \
   --node-label Person --max-messages 10
 
 # one relationship type, stop after 10 messages
-python -m src.loader.edge_loader --config config/graph_schema.yaml \
+python -m neo4j_graph_loader.loader.edge_loader --config config/graph_schema.yaml \
   --edge-type WORKS_AT --max-messages 10
 ```
 

@@ -6,12 +6,12 @@ import json
 import pytest
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, GraphStore, likes
-from src.loader.dead_letter import DeadLetterRecordSink
-from src.loader.edge_execution import LabelledEndpointSink, build_edge_execution
-from src.loader.edge_loader import PendingEdgeRecord
-from src.loader.edge_records import EdgeRecord, normalize_edge_record
-from src.loader.lease_client import BucketLeaseClient
-from src.loader.parked_pair_index import ParkedPairIndex, ParkedPairIndexError, _record_wire_key
+from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+from neo4j_graph_loader.loader.edge_execution import LabelledEndpointSink, build_edge_execution
+from neo4j_graph_loader.loader.edge_loader import PendingEdgeRecord
+from neo4j_graph_loader.loader.edge_records import EdgeRecord, normalize_edge_record
+from neo4j_graph_loader.loader.lease_client import BucketLeaseClient
+from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex, ParkedPairIndexError, _record_wire_key
 from test_multi_pair_leases import _LeaseServer
 from test_parked_pair_index import _FakeConsumer, _FakeProducer, _FakeTopicLog, _wait_caught_up
 from multi_pair_support import record

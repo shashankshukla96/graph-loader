@@ -1,8 +1,8 @@
 """Producer-side edge planning for the IMDb example (``--edge-plan``, default ``--plan-source files``).
 
-The planning itself is the library's (:mod:`src.loader.edge_planner`); this
+The planning itself is the library's (:mod:`neo4j_graph_loader.loader.edge_planner`); this
 module only turns the generated relationship TSVs into
-:class:`~src.loader.edge_planner.EdgeRecordSource` objects.  Each source
+:class:`~neo4j_graph_loader.loader.edge_planner.EdgeRecordSource` objects.  Each source
 parses its file with the per-type publisher's encoder
 (:class:`EdgeRowEncoder`, falling back to :func:`edge_payload`) and yields
 *prepared* rows ``(source key, target key, record JSON)``, so the planner
@@ -30,15 +30,16 @@ import math
 from pathlib import Path
 import sys
 
+# Repository path is for examples.imdb helpers; loader imports require pip install -e .
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.loader.edge_plan import DEFAULT_PLAN_BUCKETS, planned_bucket  # noqa: E402
-from src.loader.edge_planner import (  # noqa: E402
+from neo4j_graph_loader.loader.edge_plan import DEFAULT_PLAN_BUCKETS, planned_bucket  # noqa: E402
+from neo4j_graph_loader.loader.edge_planner import (  # noqa: E402
     PLAN_PRODUCER_CONFIG, EdgeRecordSource, ParallelEdgePlanner, PlanResult, PlanSettings, producer_edge_planner,
 )
-from src.models.schema import EdgeConfig  # noqa: E402
+from neo4j_graph_loader.models.schema import EdgeConfig  # noqa: E402
 
 # Full IMDb exports contain quoted fields longer than csv's 128 KiB default.
 csv.field_size_limit(sys.maxsize)

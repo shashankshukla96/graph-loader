@@ -16,16 +16,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 from confluent_kafka import OFFSET_BEGINNING, KafkaError, TopicPartition
 
-from src.loader.edge_execution import LaneExecutionResult
-from src.loader.edge_loader import (
+from neo4j_graph_loader.loader.edge_execution import LaneExecutionResult
+from neo4j_graph_loader.loader.edge_loader import (
     EdgeLoader,
     StaticAssignmentError,
     main as edge_loader_main,
     static_partition_assignment,
 )
-from src.models.schema import LoadingConfig
-from src.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.models.schema import LoadingConfig
+from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TOPIC = "works-at-events"
@@ -280,11 +280,11 @@ def _encoded(payload: dict):
 
 def _main_patches(schema, consumer, loader, producer=None):
     return (
-        patch("src.loader.edge_loader.Consumer", return_value=consumer),
-        patch("src.loader.edge_loader.Producer", return_value=producer or _producer()),
-        patch("src.loader.edge_loader.get_neo4j_driver", return_value=MagicMock()),
-        patch("src.loader.edge_loader.load_schema", return_value=schema),
-        patch("src.loader.edge_loader.EdgeLoader", return_value=loader),
+        patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer),
+        patch("neo4j_graph_loader.loader.edge_loader.Producer", return_value=producer or _producer()),
+        patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=MagicMock()),
+        patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema),
+        patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader),
     )
 
 
@@ -322,14 +322,14 @@ def test_main_without_replica_count_keeps_subscription(schema) -> None:
     ],
 ])
 def test_main_rejects_invalid_static_assignment_before_resources(argv) -> None:
-    with patch("src.loader.edge_loader.Consumer") as consumer_cls, pytest.raises(SystemExit):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer") as consumer_cls, pytest.raises(SystemExit):
         edge_loader_main(argv)
     consumer_cls.assert_not_called()
 
 
 def test_static_assignment_cannot_combine_with_slot_gating(works_at) -> None:
-    from src.models.schema import CoordinationConfig
-    from src.loader.slot_admission import SlotAdmission, SlotAwareAdmissionBuffer
+    from neo4j_graph_loader.models.schema import CoordinationConfig
+    from neo4j_graph_loader.loader.slot_admission import SlotAdmission, SlotAwareAdmissionBuffer
 
     consumer = _static_consumer()
     with pytest.raises(ValueError, match="slot gating"):
@@ -615,8 +615,8 @@ def test_revoke_during_final_drain_publishes_epoch_before_drain_ack(works_at) ->
 
 
 def test_slot_gated_revoke_still_fails_closed_while_running(works_at) -> None:
-    from src.models.schema import CoordinationConfig
-    from src.loader.slot_admission import SlotAdmission, SlotAwareAdmissionBuffer
+    from neo4j_graph_loader.models.schema import CoordinationConfig
+    from neo4j_graph_loader.loader.slot_admission import SlotAdmission, SlotAwareAdmissionBuffer
 
     consumer, writer = MagicMock(), MagicMock()
     loader = EdgeLoader(

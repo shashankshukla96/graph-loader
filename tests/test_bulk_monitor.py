@@ -9,7 +9,7 @@ import pytest
 from confluent_kafka import TopicPartition
 from docker.errors import NotFound
 
-from src.orchestrator.bulk_monitor import (
+from neo4j_graph_loader.orchestrator.bulk_monitor import (
     AssignmentCoverageError,
     BulkMonitor,
     BulkMonitorError,
@@ -17,8 +17,8 @@ from src.orchestrator.bulk_monitor import (
     OffsetResolutionError,
     QuiescentViolationError,
 )
-import src.orchestrator.bulk_monitor as bulk_monitor_module
-from src.utils.schema_loader import load_schema
+import neo4j_graph_loader.orchestrator.bulk_monitor as bulk_monitor_module
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

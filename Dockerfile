@@ -1,19 +1,17 @@
 FROM python:3.12-slim
 
-# Prevent Python from buffering stdout and stderr
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
-
 WORKDIR /app
 
-# Install dependencies first for layer caching
+# Generated from pyproject.toml; install runtime dependencies before source.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code and default configuration
+# Isolated setuptools reads the literal file version; no Git or path rescue.
+COPY pyproject.toml PACKAGE_README.md LICENSE MANIFEST.in ./
 COPY src/ src/
+RUN pip install --no-cache-dir --no-deps .
 COPY config/ config/
 COPY .env.example .env.example
 
-# Set the CLI as the default executable
-ENTRYPOINT ["python", "-m", "src.cli"]
+ENTRYPOINT ["python", "-m", "neo4j_graph_loader.cli"]

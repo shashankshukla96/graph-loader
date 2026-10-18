@@ -19,7 +19,7 @@ import re
 import pytest
 import yaml
 
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = [

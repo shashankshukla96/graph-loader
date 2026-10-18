@@ -1,0 +1,5 @@
+# E03 ships migrated Python runtime modules and reviewed build metadata only.
+global-exclude *
+include pyproject.toml PACKAGE_README.md LICENSE MANIFEST.in
+recursive-include src/neo4j_graph_loader *.py
+recursive-include src/neo4j_graph_loader.egg-info PKG-INFO SOURCES.txt dependency_links.txt top_level.txt requires.txt

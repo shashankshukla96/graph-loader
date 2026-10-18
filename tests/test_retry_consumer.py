@@ -1,4 +1,4 @@
-"""Unit tests for src/loader/retry_consumer.py, against fake Kafka
+"""Unit tests for src/neo4j_graph_loader/loader/retry_consumer.py, against fake Kafka
 consumer/writer/sink/parked-pair-index doubles -- no real Kafka or Neo4j,
 and no edge_execution.py hook (P5-S3's row-level DLQ writer hasn't merged
 into this branch yet; Phase B wires a real RetryWriter adapter around it).
@@ -15,20 +15,20 @@ from unittest.mock import MagicMock, patch
 from neo4j.exceptions import ClientError, ConnectionAcquisitionTimeoutError, ServiceUnavailable, TransientError
 import pytest
 
-from src.loader.dead_letter import (
+from neo4j_graph_loader.loader.dead_letter import (
     SCHEMA_VERSION,
     DeadLetterEnvelope,
     DeadLetterRecordSink,
     LoaderIdentity,
     encode_envelope,
 )
-from src.loader.parked_pair_index import (
+from neo4j_graph_loader.loader.parked_pair_index import (
     ParkedPairIndex,
     _OutstandingRecord,
     _pair_key,
     _record_wire_key,
 )
-from src.loader.retry_consumer import (
+from neo4j_graph_loader.loader.retry_consumer import (
     RETRY_OUTCOME_UNRESOLVED,
     RETRY_OUTCOME_WRITTEN,
     KafkaBacklogSource,
@@ -857,8 +857,8 @@ class _RecordingBaseWriter:
 def _leased_writer(
     base, lease_client, *, batch_size=500, worker_count=1, bucket_count=4, stop_event=None, clock=None,
 ):
-    from src.loader.edge_execution import BucketLeaseExecutionCoordinator
-    from src.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.edge_execution import BucketLeaseExecutionCoordinator
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
 
     coordinator = BucketLeaseExecutionCoordinator(
         RetryCoordinatorBridge(base), router=BucketCellRouter("Person", "Company", bucket_count, frozenset()),
@@ -934,7 +934,7 @@ def test_leased_retry_writer_empty_batch_never_touches_the_lease_client():
 def test_leased_retry_writer_stop_drain_abandons_when_leases_are_never_granted():
     """Shutdown mid-flush: a stop request bounds the wait for leases (nothing
     is written without one) and surfaces as a failure with no outcomes."""
-    from src.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
 
     stop = threading.Event()
     stop.set()
@@ -948,7 +948,7 @@ def test_leased_retry_writer_stop_drain_abandons_when_leases_are_never_granted()
 
 
 def test_adapter_chunks_a_standalone_batch_and_keeps_earlier_chunks_on_a_later_failure():
-    from src.loader.retry_consumer import ApocRetryWriterAdapter
+    from neo4j_graph_loader.loader.retry_consumer import ApocRetryWriterAdapter
 
     base = _RecordingBaseWriter(fail_on_call=3)
     adapter = ApocRetryWriterAdapter(base, chunk_size=2)
@@ -1156,7 +1156,7 @@ def test_main_rejects_blank_dlq_topics():
         retry_consumer_main(["--dlq-topics", "  ,  ", "--config", "config/graph_schema.yaml"])
 
 
-@patch("src.loader.retry_consumer.load_schema")
+@patch("neo4j_graph_loader.loader.retry_consumer.load_schema")
 def test_main_reports_failure_for_a_dlq_topic_with_no_matching_edge(mock_load_schema):
     mock_load_schema.return_value = MagicMock(edges=[])
     exit_code = retry_consumer_main(["--dlq-topics", "unknown.dlq"])
@@ -1174,8 +1174,8 @@ def _dlq_schema_for_main():
     the genuine pydantic model, not a MagicMock stand-in that could mask
     a real attribute-access bug.
     """
-    from src.models.schema import DeadLetterConfig
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     project_root = Path(__file__).resolve().parents[1]
     schema = load_schema(project_root / "config" / "graph_schema.yaml")
@@ -1199,27 +1199,27 @@ def _enter_shared_main_patches(stack, dlq_schema):
     consumer, driver = MagicMock(), MagicMock()
     retry_consumer_instance = MagicMock()
     retry_consumer_instance.run_forever.return_value = None
-    stack.enter_context(patch("src.loader.retry_consumer.load_schema", return_value=dlq_schema))
+    stack.enter_context(patch("neo4j_graph_loader.loader.retry_consumer.load_schema", return_value=dlq_schema))
     stack.enter_context(patch("confluent_kafka.Consumer", return_value=consumer))
     stack.enter_context(patch("neo4j.GraphDatabase.driver", return_value=driver))
     stack.enter_context(
-        patch("src.loader.retry_consumer.build_malformed_record_sink", return_value=(real_sink, None))
+        patch("neo4j_graph_loader.loader.retry_consumer.build_malformed_record_sink", return_value=(real_sink, None))
     )
     # BUG-2: the REAL ApocLockedEdgeWriter is constructed (via
     # build_retry_base_writer) -- no hand-built or spec'd stand-in.
     return stack.enter_context(
-        patch("src.loader.retry_consumer.RetryConsumer", return_value=retry_consumer_instance)
+        patch("neo4j_graph_loader.loader.retry_consumer.RetryConsumer", return_value=retry_consumer_instance)
     )
 
 
 def _assert_main_wired_writer_delegates(rc_cls, *, leased: bool) -> None:
     """BUG-1: the writer main() hands RetryConsumer must be a real RetryWriter
     that delegates retry_batch -> the base writer's retry_provenanced_batch."""
-    from src.loader.retry_consumer import ApocRetryWriterAdapter, RetryWriter
+    from neo4j_graph_loader.loader.retry_consumer import ApocRetryWriterAdapter, RetryWriter
 
     wired = rc_cls.call_args.kwargs["writer_by_edge_type"]["WORKS_AT"]
     assert isinstance(wired, RetryWriter)
-    from src.loader.edge_execution import ApocLockedEdgeWriter
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
 
     if leased:
         assert isinstance(wired, LeaseCoordinatedRetryWriter)
@@ -1250,7 +1250,7 @@ def test_main_standalone_mode_builds_no_parked_pair_index():
     dlq_schema = _dlq_schema_for_main()
     with ExitStack() as stack:
         rc_cls = _enter_shared_main_patches(stack, dlq_schema)
-        index_cls = stack.enter_context(patch("src.loader.retry_consumer.ParkedPairIndex"))
+        index_cls = stack.enter_context(patch("neo4j_graph_loader.loader.retry_consumer.ParkedPairIndex"))
         exit_code = retry_consumer_main(["--dlq-topics", "dlq-works-at"])
 
     assert exit_code == 0
@@ -1271,10 +1271,10 @@ def test_main_lease_mode_still_builds_a_parked_pair_index():
     with ExitStack() as stack:
         rc_cls = _enter_shared_main_patches(stack, dlq_schema)
         index_cls = stack.enter_context(
-            patch("src.loader.retry_consumer.ParkedPairIndex", return_value=fake_index)
+            patch("neo4j_graph_loader.loader.retry_consumer.ParkedPairIndex", return_value=fake_index)
         )
-        stack.enter_context(patch("src.loader.lease_client.BucketLeaseClient", return_value=fake_lease_client))
-        stack.enter_context(patch("src.loader.lease_client.BucketCellRouter", return_value=MagicMock()))
+        stack.enter_context(patch("neo4j_graph_loader.loader.lease_client.BucketLeaseClient", return_value=fake_lease_client))
+        stack.enter_context(patch("neo4j_graph_loader.loader.lease_client.BucketCellRouter", return_value=MagicMock()))
         stack.enter_context(patch.dict(os.environ, {
             "GRAPH_LOADER_BUCKET_LEASE_ADDR": "lease-host:7700", "GRAPH_LOADER_LEASE_BUCKETS": "16",
         }, clear=False))
@@ -1373,9 +1373,9 @@ def test_main_run_loop_failure_exits_nonzero_but_still_closes_everything() -> No
 def _real_wired_writer(driver, *, lease_client=None):
     """Build the writer exactly as main() does: real ApocLockedEdgeWriter
     -> build_retry_writer (adapter, or lease-coordinated when a client is given)."""
-    from src.loader.lease_client import BucketCellRouter
-    from src.loader.retry_consumer import build_retry_base_writer, build_retry_lease_coordinator, build_retry_writer
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.retry_consumer import build_retry_base_writer, build_retry_lease_coordinator, build_retry_writer
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     edge = next(e for e in load_schema("config/graph_schema.yaml").edges if e.type == "WORKS_AT")
     # The same factories main() calls -- NOT a hand-built writer (BUG-2).
@@ -1407,7 +1407,7 @@ def _rows_result(rows):
 
 @pytest.mark.parametrize("leased", [False, True])
 def test_real_wired_writer_satisfies_retry_writer_protocol(leased) -> None:
-    from src.loader.retry_consumer import RetryWriter
+    from neo4j_graph_loader.loader.retry_consumer import RetryWriter
 
     writer = _real_wired_writer(MagicMock(), lease_client=_FakeLeaseClient() if leased else None)
     assert isinstance(writer, RetryWriter)
@@ -1458,9 +1458,9 @@ def test_other_retry_consumer_seams_match_real_signatures() -> None:
     call RetryConsumer makes must bind against the real class's signature."""
     import inspect
 
-    from src.loader.dead_letter import DeadLetterRecordSink
-    from src.loader.parked_pair_index import ParkedPairIndex
-    from src.loader.retry_consumer import BacklogSource
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex
+    from neo4j_graph_loader.loader.retry_consumer import BacklogSource
 
     key = dict(original_topic="t", original_partition=0, original_offset=1)
     inspect.signature(ParkedPairIndex.contains).bind(None, "a", "b", **key)
@@ -1503,9 +1503,9 @@ def _strict_driver(queries):
 
 
 def test_retry_provenanced_batch_via_main_factory_runs_only_real_queries() -> None:
-    from src.loader.edge_execution import _endpoint_classification_query
-    from src.loader.retry_consumer import build_retry_base_writer
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.loader.edge_execution import _endpoint_classification_query
+    from neo4j_graph_loader.loader.retry_consumer import build_retry_base_writer
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     edge = next(e for e in load_schema("config/graph_schema.yaml").edges if e.type == "WORKS_AT")
     queries: list = []
@@ -1518,12 +1518,12 @@ def test_retry_provenanced_batch_via_main_factory_runs_only_real_queries() -> No
 
 
 def test_build_retry_base_writer_fails_fast_without_classification_query() -> None:
-    from src.loader.edge_execution import ApocLockedEdgeWriter
-    from src.loader.retry_consumer import build_retry_base_writer
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+    from neo4j_graph_loader.loader.retry_consumer import build_retry_base_writer
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     edge = next(e for e in load_schema("config/graph_schema.yaml").edges if e.type == "WORKS_AT")
-    with patch("src.loader.edge_execution._endpoint_classification_query", return_value=None):
+    with patch("neo4j_graph_loader.loader.edge_execution._endpoint_classification_query", return_value=None):
         with pytest.raises((ValueError, RuntimeError)):
             build_retry_base_writer(MagicMock(), edge, tx_timeout_seconds=30.0)
     # and the plain constructor (no sink) carries the query too
@@ -1842,7 +1842,7 @@ def test_poll_never_waits_out_a_poll_timeout_while_a_coalescing_batch_is_ready()
 
 
 def _PendingRecordForTest():
-    from src.loader.retry_consumer import _PendingRecord
+    from neo4j_graph_loader.loader.retry_consumer import _PendingRecord
 
     return _PendingRecord(envelope=_envelope(), topic="knows.dlq", partition=0, offset=0)
 
@@ -1867,8 +1867,8 @@ def test_lease_cell_is_routed_by_the_normalized_record_keys_not_the_wire_keys() 
     import datetime
     from types import SimpleNamespace
 
-    from src.loader.lease_client import BucketCellRouter
-    from src.loader.retry_consumer import _RetryItem, build_retry_writer
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.retry_consumer import _RetryItem, build_retry_writer
 
     envelope = _envelope(source_key="p1", target_key="2024-02-14")
     decoded = SimpleNamespace(source_key="p1", target_key=datetime.date(2024, 2, 14))
@@ -2063,15 +2063,15 @@ def test_partition_assignment_defensively_resumes_and_resets_the_pause_bookkeepi
 
 
 def test_a_lease_coordinated_writer_requires_normalized_key_routing() -> None:
-    from src.loader.retry_consumer import build_retry_writer
+    from neo4j_graph_loader.loader.retry_consumer import build_retry_writer
 
     with pytest.raises(RetryConsumerError, match="_record_from_envelope"):
         build_retry_writer(object(), coordinator=object())
 
 
 def test_standalone_adapter_shares_one_parked_pair_set_across_chunks_and_never_sorts_rows() -> None:
-    from src.loader.retry_consumer import ApocRetryWriterAdapter, build_retry_base_writer
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.loader.retry_consumer import ApocRetryWriterAdapter, build_retry_base_writer
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     base = _RecordingBaseWriter()
     ApocRetryWriterAdapter(base, chunk_size=2).retry_batch(
@@ -2088,12 +2088,12 @@ def test_lease_cell_is_routed_by_the_normalized_keys_of_a_real_writer_not_the_wi
     """A date target is a JSON string in the envelope but a ``date`` in the live edge loader."""
     import dataclasses
 
-    from src.loader.edge_execution import ApocLockedEdgeWriter
-    from src.loader.edge_loader import MissingRelationshipEndpointError
-    from src.loader.edge_records import normalize_edge_record
-    from src.loader.lease_client import BucketCellRouter
-    from src.loader.retry_consumer import _RetryItem, build_retry_writer
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+    from neo4j_graph_loader.loader.edge_loader import MissingRelationshipEndpointError
+    from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.retry_consumer import _RetryItem, build_retry_writer
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     edge = next(e for e in load_schema("examples/social/graph_schema.yaml").edges if e.type == "ACTIVE_ON")
     raw = {"source": {"person_id": 5}, "target": {"day": "2024-02-14"}, "properties": {"sessions": 3}}
@@ -2179,8 +2179,8 @@ def test_multi_worker_retry_flush_keeps_transactions_node_disjoint_and_pairs_fif
                 del active[me]
             return {i: (RETRY_OUTCOME_WRITTEN, "") for i in range(len(envelopes))}
 
-    from src.loader.edge_execution import BucketLeaseExecutionCoordinator
-    from src.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.edge_execution import BucketLeaseExecutionCoordinator
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
 
     coordinator = BucketLeaseExecutionCoordinator(
         RetryCoordinatorBridge(_Base()), router=BucketCellRouter("Person", "Company", 4, frozenset()),
@@ -2226,8 +2226,8 @@ _TIMED_OUT = _neo_error("Neo.ClientError.Transaction.TransactionTimedOut", "time
 
 
 def _infra_errors():
-    from src.loader.edge_execution import LeaseDrainAbandoned
-    from src.loader.lease_client import LeaseCoordinatorError
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.lease_client import LeaseCoordinatorError
 
     return [
         ServiceUnavailable("neo4j down"), TransientError("deadlock"), TimeoutError("lease"),
@@ -2394,15 +2394,15 @@ def test_a_mixed_row_and_connectivity_batch_counts_only_the_row_and_stops_at_the
     (_neo_error("Neo.TransientError.General.MemoryPoolOutOfMemoryError"), "server"),
 ])
 def test_write_error_classification_table(exc, expected) -> None:
-    from src.loader.retry_consumer import _classify_write_error
+    from neo4j_graph_loader.loader.retry_consumer import _classify_write_error
 
     assert _classify_write_error(exc) == expected
 
 
 def test_lease_errors_classify_as_connectivity() -> None:
-    from src.loader.edge_execution import LeaseDrainAbandoned
-    from src.loader.lease_client import LeaseCoordinatorError
-    from src.loader.retry_consumer import _classify_write_error
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.lease_client import LeaseCoordinatorError
+    from neo4j_graph_loader.loader.retry_consumer import _classify_write_error
 
     assert _classify_write_error(LeaseCoordinatorError("x")) == "connectivity"
     assert _classify_write_error(LeaseDrainAbandoned("x")) == "connectivity"
@@ -2515,7 +2515,7 @@ def test_read_only_database_does_not_park_good_rows_for_a_long_maintenance_windo
 
 
 def test_a_sustained_authentication_failure_logs_then_exits_non_zero(caplog) -> None:
-    from src.loader.retry_consumer import RetryConsumerFatalError
+    from neo4j_graph_loader.loader.retry_consumer import RetryConsumerFatalError
 
     wall = _Clock(start=10_000)
     consumer, sink = _FakeConsumer(), _FakeSink()
@@ -2547,7 +2547,7 @@ def test_a_recovered_write_resets_the_outage_clock() -> None:
 
 
 def test_an_exhausted_isolation_budget_leaves_the_rest_outstanding_without_crashing() -> None:
-    from src.loader.retry_consumer import _ISOLATION_CALL_BUDGET
+    from neo4j_graph_loader.loader.retry_consumer import _ISOLATION_CALL_BUDGET
 
     class _AllPoison:
         calls = 0
@@ -2756,7 +2756,7 @@ def test_a_later_tick_recovers_after_a_publish_failure() -> None:
 
 
 def test_leased_retry_writer_abandons_when_the_flush_budget_is_spent_before_a_lease_is_granted():
-    from src.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
 
     base = _RecordingBaseWriter()
     lease_client = _FakeLeaseClient(grants=False)
@@ -2786,10 +2786,10 @@ def test_the_consumer_passes_its_remaining_flush_budget_to_the_writer() -> None:
 def test_adapter_stops_starting_chunks_once_the_budget_is_spent(monkeypatch):
     from types import SimpleNamespace
 
-    from src.loader.retry_consumer import ApocRetryWriterAdapter, _classify_write_error
+    from neo4j_graph_loader.loader.retry_consumer import ApocRetryWriterAdapter, _classify_write_error
 
     now = [0.0]
-    monkeypatch.setattr("src.loader.retry_consumer.time", SimpleNamespace(monotonic=lambda: now[0]))
+    monkeypatch.setattr("neo4j_graph_loader.loader.retry_consumer.time", SimpleNamespace(monotonic=lambda: now[0]))
 
     class _Slow(_RecordingBaseWriter):
         def retry_provenanced_batch(self, envelopes, **kwargs):
@@ -2807,8 +2807,8 @@ def test_adapter_stops_starting_chunks_once_the_budget_is_spent(monkeypatch):
 
 @pytest.mark.parametrize("chunk_size", [None, 2])
 def test_adapter_starts_nothing_once_the_budget_is_already_spent(chunk_size):
-    from src.loader.edge_execution import LeaseDrainAbandoned
-    from src.loader.retry_consumer import ApocRetryWriterAdapter
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.retry_consumer import ApocRetryWriterAdapter
 
     base = _RecordingBaseWriter()
     adapter = ApocRetryWriterAdapter(base, chunk_size=chunk_size)  # None: the single-chunk path (F5)
@@ -2822,7 +2822,7 @@ def test_kafka_backlog_source_bounds_a_many_partition_call_by_one_overall_deadli
 
     now = [0.0]
     monkeypatch.setattr(
-        "src.loader.retry_consumer.time", SimpleNamespace(monotonic=lambda: now[0], time=lambda: now[0]),
+        "neo4j_graph_loader.loader.retry_consumer.time", SimpleNamespace(monotonic=lambda: now[0], time=lambda: now[0]),
     )
 
     class _SlowAdmin(_FakeAdminConsumer):
@@ -2948,7 +2948,7 @@ def test_assignment_resets_fetch_bookkeeping_for_partitions_with_nothing_outstan
 
 
 def test_a_partial_lease_abandon_keeps_the_committed_transaction_and_omits_the_rest():
-    from src.loader.retry_consumer import _classify_write_error
+    from neo4j_graph_loader.loader.retry_consumer import _classify_write_error
 
     clock = _Clock(start=100.0)
 
@@ -3001,7 +3001,7 @@ def test_an_outage_longer_than_85_minutes_neither_crashes_nor_parks_nor_storms()
     )
     _run(rc, wall, 3 * 3600)  # 3 h at 1 s ticks
     assert sink.calls == [] and len(writer.call_times) <= 3 * 3600 / 5 + 10
-    from src.loader.retry_consumer import _MAX_STREAK
+    from neo4j_graph_loader.loader.retry_consumer import _MAX_STREAK
 
     assert max(rc._no_progress_streak.values()) <= _MAX_STREAK and rc._stall["KNOWS"].flushes <= _MAX_STREAK
     writer.error = None
@@ -3086,7 +3086,7 @@ def test_split_maintenance_windows_never_park_a_row_one_attempt_from_parking(unk
 def test_a_security_error_after_a_long_non_fatal_outage_waits_the_full_fatal_window() -> None:
     """F2/P4: the fatal timer measures continuous fatal-class errors only; an
     11-minute ServiceUnavailable outage before them does not count."""
-    from src.loader.retry_consumer import _FATAL_OUTAGE_SECONDS, RetryConsumerFatalError
+    from neo4j_graph_loader.loader.retry_consumer import _FATAL_OUTAGE_SECONDS, RetryConsumerFatalError
 
     wall = _Clock(start=10_000)
     consumer = _FakeConsumer()
@@ -3101,7 +3101,7 @@ def test_a_security_error_after_a_long_non_fatal_outage_waits_the_full_fatal_win
 
 
 def test_the_fatal_timer_restarts_after_a_non_fatal_error_or_a_gap() -> None:
-    from src.loader.retry_consumer import RetryConsumerFatalError
+    from neo4j_graph_loader.loader.retry_consumer import RetryConsumerFatalError
 
     wall = _Clock(start=10_000)
     consumer = _FakeConsumer()
@@ -3238,7 +3238,7 @@ def test_isolation_budget_is_charged_per_attempted_sub_slice_not_per_split(monke
     """F5: a sub-slice is charged when it is actually written (and only if it
     still holds rows), not both halves up front at the split -- so a small
     budget still reaches the first failing row alone."""
-    monkeypatch.setattr("src.loader.retry_consumer._ISOLATION_CALL_BUDGET", 2)
+    monkeypatch.setattr("neo4j_graph_loader.loader.retry_consumer._ISOLATION_CALL_BUDGET", 2)
 
     class _AllPoison:
         def __init__(self) -> None:
@@ -3299,8 +3299,8 @@ def test_a_partial_result_carries_its_error_class_so_untried_rows_are_not_counte
     """A lease flush abandoned for its budget after one committed transaction:
     the rows without an outcome are classified as a drain abandon (never
     counted, never bisected), not as an unknown failure."""
-    from src.loader.edge_execution import LeaseDrainAbandoned
-    from src.loader.retry_consumer import _PartialOutcomes
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.retry_consumer import _PartialOutcomes
 
     class _Partial:
         def __init__(self) -> None:
@@ -3340,7 +3340,7 @@ def test_revoke_resets_the_streak_fatal_timer_and_stall_of_rows_it_no_longer_own
 
 
 def test_revoke_keeps_the_state_of_edge_types_whose_rows_it_did_not_take() -> None:
-    from src.loader.retry_consumer import RetryConsumer
+    from neo4j_graph_loader.loader.retry_consumer import RetryConsumer
 
     wall = _Clock(start=10_000)
     consumer = _FakeConsumer()
@@ -3410,12 +3410,12 @@ def test_a_lone_poison_row_with_an_unknown_error_counts_only_after_same_type_wri
 def test_main_wires_the_stall_gauge_at_zero_and_to_the_consumer():
     """D1: graph_loader_retry_stalled_seconds{kind=edge,name=<type>} reads a
     real 0 from start-up and follows the consumer's on_stall_seconds."""
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     dlq_schema = _dlq_schema_for_main()
     with ExitStack() as stack:
         rc_cls = _enter_shared_main_patches(stack, dlq_schema)
-        stack.enter_context(patch("src.loader.retry_consumer.ParkedPairIndex"))
+        stack.enter_context(patch("neo4j_graph_loader.loader.retry_consumer.ParkedPairIndex"))
         assert retry_consumer_main(["--dlq-topics", "dlq-works-at"]) == 0
     registry = metrics_module.process_metrics().registry
     labels = {"kind": "edge", "name": "WORKS_AT"}
@@ -3598,7 +3598,7 @@ def test_a_fatal_exit_first_commits_what_other_edge_types_resolved() -> None:
     """r5 should-fix 2 (pE case 2): the RetryConsumerFatalError of one edge
     type must not lose the commit of a row another type resolved earlier in
     the same tick."""
-    from src.loader.retry_consumer import RetryConsumer, RetryConsumerFatalError
+    from neo4j_graph_loader.loader.retry_consumer import RetryConsumer, RetryConsumerFatalError
 
     clock = [5_000.0]
     consumer = _FakeConsumer()
@@ -3622,7 +3622,7 @@ def test_a_fatal_exit_first_commits_what_other_edge_types_resolved() -> None:
 def test_an_outcome_that_never_touched_neo4j_does_not_reset_the_fatal_clock() -> None:
     """r5 should-fix 3: an invalid_on_retry row (decoded locally, never sent to
     Neo4j) must not keep an authentication failure from ever turning fatal."""
-    from src.loader.retry_consumer import RetryConsumerFatalError
+    from neo4j_graph_loader.loader.retry_consumer import RetryConsumerFatalError
 
     wall = _Clock(start=10_000)
     consumer = _FakeConsumer()
@@ -3639,7 +3639,7 @@ def test_an_outcome_that_never_touched_neo4j_does_not_reset_the_fatal_clock() ->
                 return _PartialOutcomesForTest(invalid, auth.with_traceback(None))
             raise auth.with_traceback(None)
 
-    from src.loader.retry_consumer import _PartialOutcomes as _PartialOutcomesForTest
+    from neo4j_graph_loader.loader.retry_consumer import _PartialOutcomes as _PartialOutcomesForTest
 
     rc, _fakes = _make_consumer(
         consumer=consumer, writer=_Writer(), sink=sink, max_retry_attempts=10_000, max_delay_seconds=2.0,

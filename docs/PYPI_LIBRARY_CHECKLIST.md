@@ -1,7 +1,7 @@
 # Library and PyPI publishing checklist
 
-Status: proposed work for review, not a release approval. Audited on 2026-10-11
-against `main` at `50187c8`. This document lives on
+Status: proposed work for review, not a release approval. Initially audited on 2026-10-11 against `main` at `50187c8`;
+prerequisite review updated on 2026-10-12. This document lives on
 `codex/pypi-library-checklist`; `main` remains unchanged.
 
 The loader works from a checkout, but it is not yet a supported, installable
@@ -12,43 +12,95 @@ paths, lifecycle, or imports usable by another application.
 
 | Area | What exists | What is missing |
 | --- | --- | --- |
-| Packaging | `pyproject.toml` configures pytest and Ruff | No `[build-system]`, `[project]`, package discovery, version, or console entry point |
-| Imports | Application code under the actual package `src`, with `from src...` imports | A distinctive public namespace; `src` is currently the import name, not a conventional source-layout directory |
+| Packaging | E03 development wheel/sdist contain all 49 migrated Python runtime modules; isolated rebuild/install/import checks pass | Public APIs, resources and console entry point remain E04–E05 |
+| Imports | Runtime and first-party executable targets use `neo4j_graph_loader`; old imports are rejected without aliases | E04 public exports and E07 installed regression runner |
 | Reusable code | `load_schema`, schema models, `PlanSettings`, `EdgeRecordSource`, `producer_edge_planner`, `plan_and_publish_edges` | Explicit public API, compatibility promises, and examples run from an installed wheel |
-| CLI | `python -m src.cli` and component module commands | An installed executable and a migration plan for existing commands |
+| CLI | `python -m neo4j_graph_loader.cli` and migrated component module commands | E05 installed executable/resources |
 | Deployment | Dockerfiles and `DockerService` image builders using `path="."`; runtime mounts and rejection paths | A deployment strategy that works without the checkout and outside its working directory |
-| Dependencies | Runtime, development/test, and IMDb requirements separated; Python 3.12 images | Distribution dependency metadata, extra boundaries, and tested support matrix |
+| Dependencies | pyproject-authoritative eight unchanged runtime bounds, generated Docker requirements/parity gate; clean base resolution and Rust/driver pairing pass | E08 minimum/current platform matrix; selected base remains mandatory with no extras |
 | License/docs | Apache-2.0 `LICENSE`, operational guides, unversioned changelog | Packaged license metadata and an installation/API guide for PyPI users |
-| Validation | Previous checkout run: 3,351 passed, 4 skipped, 49 deselected; lint and dependency checks passed | Wheel/sdist validation and installed-artifact integration tests; earlier tests excluded integration and smoke |
-| Integration fixtures | Multi-topic DLQ tests contain `_s4_arrival_dataset()` | That helper imports removed `plan/v7/slice-4/docker_proof/proof.py`; it must be migrated to maintained test fixtures before the affected integration test can run |
+| Validation | Fresh E03 suite: 3,387 passed, 4 inherited skips, 49 deselected, 19 inherited warnings; 55 focused passes; isolated artifacts and four image import/help probes pass | Installed-artifact service integration, platform matrix and A5 warning resolution |
+| Integration fixtures | Maintained arrival dataset and exact B3 real-service test passed without skips on 2026-10-16 | Installed release-image service/mode/failure matrix under V6 |
 | Publishing | GitHub repository exists | No release publisher or verified PyPI/TestPyPI project ownership |
 
 Every unchecked item below requires evidence before marking it complete. Names
-and API shapes are proposals, not implemented interfaces. Neither candidate-name
-availability nor account access has been checked.
+and approved API shapes describe future implementation, not installed interfaces. The proposed normalized
+name returned HTTP 404 from both indexes on 2026-10-16; this does not reserve it
+or establish ownership. Account access remains unverified. See the
+[D01–D07 decisions and remaining ownership gate](../plan/library-implementation/decision-brief.md).
+
+## 0. Establish the prerequisite baseline
+
+Complete this phase before the namespace migration. Scope/identity decisions
+can proceed alongside it; no packaging or publication gate is implied.
+
+- [x] **B1 — Prove planner isolation and recovery.** Regression-test concurrent
+  planners with identical IDs, exclusive output-path ownership, failure followed
+  by success at the same path, partial startup cleanup, validation before Kafka
+  side effects, and cleanup of only topics created by the failing call. A killed
+  owner can leave a `.lock` file: remove it only after confirming that run is
+  stopped. Unique spill directories must never be deleted by another run.
+- [x] **B2 — Establish a service-independent unit baseline.** Mock Neo4j and
+  Docker in the CLI snapshot failure test; run unit tests without a running
+  stack. Test public schema-read exceptions and logging-neutral imports.
+Evidence for B1/B2 (2026-10-15): 3,366 unit/example tests passed, 4 skipped,
+49 integration/smoke tests deselected; Ruff and `pip check` passed. The focused
+lifecycle/auto-settings/planner suite passed 406 tests. The existing 19
+multithreaded-fork deprecation warnings remain tracked by A5; these runs do not
+prove cross-platform support. No release gate is satisfied by this baseline.
+
+- [x] **B3 — Restore maintained integration fixtures.** Keep executable arrival
+  data under `tests/fixtures/`, test its ordering and overlap, and execute the
+  affected real-service DLQ test without any removed planning directory.
+
+Fresh B1–B3 evidence (2026-10-16): **3,374 unit/example tests passed**, four
+inherited skips explained, 49 integration/smoke cases deselected, 19 existing
+fork warnings; **417 focused regressions passed**. The exact B3 real-service
+case passed without a skip: 783 exact relationship values, all 4,059 DLQ
+envelopes committed, nothing parked and 561 completed LIKES writes with zero
+lock waiting. This includes bounded ownership/fixture-cleanup repairs found
+by independent review. See [identified baseline](../plan/library-implementation/evidence/E00.F1.S1.md),
+[B3 proof](../plan/library-implementation/evidence/E00.F2.S1.md) and
+[independent execution acceptance](../plan/library-implementation/reviews/execution-e00-e01-01.md).
+V6's installed release-image/mode matrix remains open; this source-checkout
+proof does not satisfy that later gate.
 
 ## 1. Agree the first release contract
 
-- [ ] **S1 — Choose package identity.** Select and check a PyPI distribution
+- [x] **S1 — Choose package identity.** Select and check a PyPI distribution
   name (candidate: `neo4j-graph-loader`), its normalized-name collisions, and an
   import package (candidate: `neo4j_graph_loader`). Record ownership and a
   public maintainer contact; do not copy the current machine-local Git email.
-- [ ] **S2 — Define what the library offers.** Recommended initial scope:
+- [x] **S2 — Define what the library offers.** Recommended initial scope:
   schema loading/validation and existing relationship planning APIs, alongside
   the installed loader CLI. Decide whether embedded node/edge ingestion or
-  fleet orchestration is public in v1. State that the producer planner publishes
+  fleet orchestration is public in v1. Resolve V7 here: choose supported retry
+  ordering guarantees before exposing ingestion APIs. State that the producer planner publishes
   chunks to Kafka; it is not currently an offline, broker-free planner.
-- [ ] **S3 — Choose release maturity and version policy.** Select an initial
+- [x] **S3 — Choose release maturity and version policy.** Select an initial
   PEP 440 version, preferably an alpha while the contract is settling. Record
   API/deprecation policy and compatibility expectations for schema YAML,
   plan JSON/chunk messages, DLQ envelopes, parked-pair identities, and consumer
   groups. Prerelease users need an explicit version or `pip install --pre`.
-- [ ] **S4 — Define supported environments.** Start with Python 3.12 and Linux
+- [x] **S4 — Define supported environments.** Start with Python 3.12 and Linux
   loading/orchestration unless additional platforms are tested. Declare
-  `requires-python` consistent with the tested range; do not implicitly promise
-  untested future interpreters. Test macOS/Windows separately if advertised,
+  the tested Python range in documentation/classifiers and set `requires-python`
+  for actual compatibility requirements. Do not add an upper bound merely because
+  newer interpreters are untested; justify any upper bound with incompatibility. Test macOS/Windows separately if advertised,
   including Docker Desktop networking and multiprocessing. Document required
   Kafka/Neo4j versions, Enterprise needs, and APOC's classic-mode scope.
+
+D01–D05 and D07 policy were explicitly approved on 2026-10-16; names, public
+maintainer/index owner/contact, API/ordering/cancellation contracts, alpha/
+format rules, support targets and mandatory dependencies are recorded in the
+[decision register](../plan/library-implementation/decisions.md). S4 records
+chosen proof targets, not executed support-matrix results. Prebuilt images are
+selected; delegated completion records `ghcr.io/shashankshukla96` with Shashank
+Shukla responsible for images/releases. All E01 decision stories are complete;
+[completion checkpoint review](../plan/library-implementation/reviews/e01-completion-checkpoints.md)
+checks the final records. Account access, public visibility/anonymous pull,
+actual artifacts/digests and publication remain later gates. Technical approvals
+need no repeat request.
 
 ## 2. Build an installable distribution
 
@@ -95,7 +147,9 @@ These tasks implement the standard metadata described in the
   modules. Define supported exceptions, returned results and input types.
   Keep scheduling workers, test hooks and CLI internals private.
 - [ ] **A2 — Define lifecycle and cleanup.** Document planner `start`/`finish`,
-  resource ownership, timeouts, cancellation and cleanup after failure. Offer
+  resource ownership, timeouts, cancellation and cleanup after failure. Include
+  B1 regression cases and distinguish caller-owned topics from topics created
+  by a convenience call. Offer
   context-managed lifecycle where useful. For any public loader/fleet API,
   specify who owns drivers, clients, workers, containers and shutdown.
 - [ ] **A3 — Separate CLI process control from library calls.** Audit signal
@@ -119,7 +173,7 @@ These tasks implement the standard metadata described in the
 
 ## 4. Resolve dependencies and Docker distribution
 
-- [ ] **D1 — Make package metadata authoritative.** Declare runtime dependencies
+- [x] **D1 — Make package metadata authoritative.** Declare runtime dependencies
   in `pyproject.toml`; generate/check existing requirements files against that
   source so container and library environments cannot drift. Development tools
   and IMDb dependencies must not become mandatory runtime dependencies.
@@ -185,16 +239,18 @@ for wheel/sdist production. Checkout tests do not prove either artifact works.
   classic if included: final graph, offsets, failure/restart behaviour, DLQ
   recovery and lock-wait checks. Record passes and skips; a skipped Docker run
   is not proof. Keep developer-stack tests confined to named scratch databases.
-  First migrate executable datasets/helpers out of removed planning directories:
-  replace `_s4_arrival_dataset()`'s dynamic import of
-  `plan/v7/slice-4/docker_proof/proof.py` in
-  `tests/integration/test_multi_topic_relationship.py`. Prove the affected
-  multi-topic DLQ integration test runs without restoring development records.
+  B3 moves executable datasets out of removed planning directories before
+  refactoring. Prove the affected multi-topic DLQ integration test runs using
+  `tests/fixtures/multi_topic_arrival.py` without restoring development records.
 - [ ] **V7 — Decide how retry ordering affects release scope.** Resolution
-  memory currently does not survive retry-consumer restart; `arrival` mode can
-  replay stale parked values. Fix and test durable resolution, or explicitly
-  restrict the first release's guarantees/support and document `order_by`
-  protection and its boundaries. No unqualified exactly-once/restart-safe claim.
+  memory is lost on restart, DLQ partition revocation and LRU eviction (100,000
+  entries); offsets from different source partitions/topics are not comparable.
+  `arrival` and other non-`order_by` retries can apply older values after newer
+  ones. Decide the release contract during S2/S3. Fix and test each supported
+  guarantee, or explicitly restrict support and document `order_by` protection
+  and its boundaries, including replicas, replay and topic recreation. Durable
+  memory alone does not resolve all ordering races. Cover restart, rebalance,
+  eviction and cross-topic cases; no unqualified exactly-once/restart-safe claim.
 
 ## 6. Prepare public documentation
 
@@ -225,12 +281,12 @@ the [official TestPyPI guide](https://packaging.python.org/en/latest/guides/usin
 - [ ] **T1 — Establish release ownership.** Verify PyPI and TestPyPI account
   access, email verification, required account security, chosen project name
   and authorized maintainers. Record who is responsible for each upload.
-- [ ] **T2 — Choose the publication mechanism.** Default for the existing
+- [x] **T2 — Choose the publication mechanism.** Default for the existing
   no-workflows policy: manual Twine uploads from a controlled release
   environment using appropriate API tokens kept outside the repository.
   Automated Trusted Publishing is an optional future choice; it requires a
   deliberate change to that policy, not a workflow silently added to `main`.
-- [ ] **T3 — If automation is selected, configure it fully.** Register the
+- **T3 — If automation is selected, configure it fully.** **N/A: manual publication approved on 2026-10-16.** Register the
   correct repository owner/name, workflow filename and protected environment
   with each index, including a pending publisher for a new project. Use a
   separate publish job with `id-token: write`, reviewed release triggers and
@@ -252,7 +308,7 @@ the [official TestPyPI guide](https://packaging.python.org/en/latest/guides/usin
 
 ## 8. First production release and maintenance
 
-- [ ] **R1 — Complete the release gate.** All S/P/A/D/V/U items and applicable
+- [ ] **R1 — Complete the release gate.** All B/S/P/A/D/V/U items and applicable
   T items have evidence; remaining exclusions/limits are stated explicitly.
   The user reviews the completed implementation and authorizes publication.
   This checklist's review alone does not authorize an upload.
@@ -275,14 +331,15 @@ the [official TestPyPI guide](https://packaging.python.org/en/latest/guides/usin
 
 ## Suggested implementation order and review decisions
 
-1. Agree S1–S4 and D2/D4: identity, public scope, support range, extras and
+1. Agree S1–S4 (including the V7 ordering decision) and D2/D4: identity, public scope, support range, extras and
    image distribution determine the rest of the work.
-2. Implement packaging, namespace migration and CLI/resource fixes (P1–P6).
-3. Stabilize the API and dependency/deployment contracts (A1–A6, D1–D6).
-4. Add installed-artifact checks, integration evidence and public docs
+2. Complete B1–B3 and record the pre-migration test baseline.
+3. Implement packaging, namespace migration and CLI/resource fixes (P1–P6).
+4. Stabilize the API and dependency/deployment contracts (A1–A6, D1–D6).
+5. Add installed-artifact checks, integration evidence and public docs
    (V1–V7, U1–U5).
-5. Rehearse on TestPyPI and review the concrete candidate (T1–T6).
-6. Publish only after the release gate and publication instruction (R1–R5).
+6. Rehearse on TestPyPI and review the concrete candidate (T1–T6).
+7. Publish only after the release gate and publication instruction (R1–R5).
 
 Reviewer decisions: package/import names; planner plus CLI versus a broader
 embedded API; alpha maturity; supported Python/platform range; Docker/Rust

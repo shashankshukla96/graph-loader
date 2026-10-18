@@ -22,8 +22,8 @@ from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j import GraphDatabase
 
 from it_scratch_db import ensure_database, explicit_neo4j_auth
-from src.cli import _derive_relationship_phase_run_id, build_parser, handle_start
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.cli import _derive_relationship_phase_run_id, build_parser, handle_start
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 ROOT = Path(__file__).resolve().parents[1]

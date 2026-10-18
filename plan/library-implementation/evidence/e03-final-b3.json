@@ -1,0 +1,51 @@
+{
+  "command": [
+    "/tmp/graph-loader-e03-work/dev/bin/python",
+    "-m",
+    "pytest",
+    "tests/integration/test_multi_topic_relationship.py::test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer",
+    "-m",
+    "integration",
+    "-v"
+  ],
+  "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+  "exit_code": 0,
+  "timeout": false,
+  "elapsed_seconds": 26.109,
+  "containers_before": {
+    "exit_code": 0,
+    "containers": []
+  },
+  "containers_after": {
+    "exit_code": 0,
+    "containers": []
+  },
+  "pytest_summary": "1 passed, no skip, 25.53 seconds",
+  "log_sha256": "6dfae20623fe372d0a5abe10707e34ba1b63142e7fe9680c1238e5642ba18c2e",
+  "supervisor_sha256": "01f26bbb5008f93242473b0273a2106ead23247dad052c1e358a4c6645528fc9",
+  "proof_summary_path": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-14/test_dead_letter_arrival_strea0/proof-summary.json",
+  "proof_summary": {
+    "input_rows": 3000,
+    "expected_pairs": 783,
+    "actual_pairs": 783,
+    "shared_pairs": 582,
+    "dlq_partitions": 4,
+    "dlq_records": 4154,
+    "retry_committed": 4154,
+    "dlq_high_watermarks": {
+      "LIKES.dlq:0": 1056,
+      "LIKES.dlq:1": 1020,
+      "LIKES.dlq:2": 984,
+      "LIKES.dlq:3": 1094
+    },
+    "parked_rows": 0,
+    "per_topic_dlq_absent": true,
+    "likes_write_entries": 594,
+    "lock_wait_ms": 0,
+    "lease_keyed_labels": [
+      "DlqCompany",
+      "DlqPerson"
+    ]
+  },
+  "proof_summary_sha256": "a21cf603f582abd34ee703d242f50833bd7ea98290fd6365c166b52b5e37a087"
+}

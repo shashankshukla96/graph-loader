@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-16",
+  "checked_at": "2026-10-16T17:19:04.256631+00:00",
+  "git_origin": "https://github.com/shashankshukla96/graph-loader.git",
+  "github": [
+    {
+      "url": "https://api.github.com/repos/shashankshukla96/graph-loader",
+      "status": 200,
+      "public_fields": {
+        "full_name": "shashankshukla96/graph-loader",
+        "html_url": "https://github.com/shashankshukla96/graph-loader",
+        "visibility": "public",
+        "owner_login": "shashankshukla96",
+        "owner_type": "User"
+      }
+    },
+    {
+      "url": "https://api.github.com/users/shashankshukla96",
+      "status": 200,
+      "public_fields": {
+        "login": "shashankshukla96",
+        "name": "Shashank Shukla",
+        "html_url": "https://github.com/shashankshukla96",
+        "type": "User"
+      }
+    }
+  ],
+  "recommendation": {
+    "registry": "ghcr.io",
+    "namespace": "shashankshukla96",
+    "image_owner": "Shashank Shukla",
+    "release_owner": "Shashank Shukla",
+    "images": [
+      "ghcr.io/shashankshukla96/graph-loader-cli",
+      "ghcr.io/shashankshukla96/graph-loader-node",
+      "ghcr.io/shashankshukla96/graph-loader-edge",
+      "ghcr.io/shashankshukla96/graph-loader-clock"
+    ],
+    "version_policy": "matching package PEP440 version as image tag; local image IDs before publication, actual registry digests after separately authorized E11 push and re-pull proof; no latest release identity; explicit compatible overrides",
+    "authorization_basis": "User approved maintainer/index identity, instructed use recommendation, then finish the rest with Agent review after every step; these are delegated choices, not user-supplied literal registry strings.",
+    "unverified_later_gates": [
+      "registry account access",
+      "push authorization and package creation",
+      "package visibility",
+      "actual candidate image IDs/digests",
+      "pull/install/service compatibility"
+    ],
+    "visibility_policy": "public release images with anonymous-pull verification; GHCR initially defaults packages private"
+  },
+  "sources": [
+    "https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry"
+  ]
+}

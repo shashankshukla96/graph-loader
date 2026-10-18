@@ -10,12 +10,12 @@ import pytest
 from confluent_kafka import TopicPartition
 from docker.errors import NotFound
 
-from src.orchestrator.bulk_monitor import AssignmentCoverageError, BulkTimeoutError, QuiescentViolationError
-from src.orchestrator.coordination import ClockLease, encode_clock_lease
-from src.orchestrator.dependency_manager import build_conflict_families
-from src.orchestrator.relationship_bulk_monitor import EdgeControlAck, RelationshipBulkMonitor
-from src.orchestrator.rotation import build_rotation_plan
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.orchestrator.bulk_monitor import AssignmentCoverageError, BulkTimeoutError, QuiescentViolationError
+from neo4j_graph_loader.orchestrator.coordination import ClockLease, encode_clock_lease
+from neo4j_graph_loader.orchestrator.dependency_manager import build_conflict_families
+from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import EdgeControlAck, RelationshipBulkMonitor
+from neo4j_graph_loader.orchestrator.rotation import build_rotation_plan
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -392,7 +392,7 @@ class _FakeClock:
 
 def test_supervise_stream_refreshes_consumer_lag_and_drains_to_zero():
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     clock = _FakeClock()
@@ -447,7 +447,7 @@ def test_consumer_lag_uses_low_watermark_not_zero_when_nothing_committed():
     the *low* watermark (Kafka's own convention) instead reports the true
     backlog: 10 records, not 1,000,010."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     monitor, admin, watermark, control, _ = _monitor(metrics=metrics)
@@ -478,7 +478,7 @@ def test_lag_refresh_rate_is_independent_of_the_supervision_tick_rate():
     ticks must produce ceil(elapsed / _LAG_REFRESH_INTERVAL_SECONDS)
     refreshes, never N."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     clock = _FakeClock()
@@ -516,7 +516,7 @@ def test_lag_refresh_rate_is_independent_of_the_supervision_tick_rate():
 
 
 def test_supervise_stream_lag_refresh_failure_never_breaks_supervision():
-    metrics_module_import = __import__("src.utils.metrics", fromlist=["GraphLoaderMetrics"])
+    metrics_module_import = __import__("neo4j_graph_loader.utils.metrics", fromlist=["GraphLoaderMetrics"])
     from prometheus_client import CollectorRegistry
 
     metrics = metrics_module_import.GraphLoaderMetrics(registry=CollectorRegistry())
@@ -625,7 +625,7 @@ def test_nonrotation_stream_supervisor_stays_live_without_clock_or_lag_completio
 # -- P5-S1 Story 5: supervised, restartable streaming lease server ---------
 
 def _lease_config(**overrides):
-    from src.models.schema import BucketLeaseStreamConfig
+    from neo4j_graph_loader.models.schema import BucketLeaseStreamConfig
     return BucketLeaseStreamConfig(**overrides)
 
 
@@ -809,7 +809,7 @@ def test_bulk_lease_path_has_no_restart_supervision():
     """Bulk ``--edge-leases`` monitors never get a tracked lease server, so the reset cannot affect them."""
     import inspect
 
-    from src import cli
+    from neo4j_graph_loader import cli
 
     source = inspect.getsource(cli._run_bulk_relationship_edge) + inspect.getsource(cli._run_relationship_bulk_stages)
     assert "tracked_lease_server" not in source
@@ -876,7 +876,7 @@ def test_wait_for_lease_server_ready_honors_shutdown():
 
 
 def test_wait_aborts_on_shutdown_request_before_the_stage_deadline():
-    from src.orchestrator.bulk_monitor import BulkShutdownRequested
+    from neo4j_graph_loader.orchestrator.bulk_monitor import BulkShutdownRequested
 
     now = [0.0]
     monitor, *_ = _monitor(clock=lambda: now[0])
@@ -894,7 +894,7 @@ def test_wait_aborts_on_shutdown_request_before_the_stage_deadline():
 
 
 def test_wait_without_abort_hook_still_times_out_normally():
-    from src.orchestrator.bulk_monitor import BulkShutdownRequested
+    from neo4j_graph_loader.orchestrator.bulk_monitor import BulkShutdownRequested
 
     now = [0.0]
     monitor, *_ = _monitor(clock=lambda: now[0])
@@ -918,7 +918,7 @@ def test_stream_supervisor_stops_the_fleet_when_a_retry_consumer_exits(status, e
     retry-consumer replica fails stream supervision with a clear
     stage=retry-consumer error naming the replica, exactly like an edge crash;
     the CLI then stops the fleet and returns 1."""
-    from src.orchestrator.bulk_monitor import LoaderCrashError
+    from neo4j_graph_loader.orchestrator.bulk_monitor import LoaderCrashError
 
     healthy, crashed = MagicMock(), MagicMock()
     healthy.attrs = {"State": {"Status": "running"}}
@@ -934,7 +934,7 @@ def test_stream_supervisor_stops_the_fleet_when_a_retry_consumer_exits(status, e
 
 
 def test_stream_supervisor_treats_a_removed_retry_consumer_as_a_crash():
-    from src.orchestrator.bulk_monitor import LoaderCrashError
+    from neo4j_graph_loader.orchestrator.bulk_monitor import LoaderCrashError
 
     gone = MagicMock()
     gone.reload.side_effect = NotFound("gone")

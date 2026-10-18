@@ -6,17 +6,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src import cli
-from src.orchestrator.docker_service import DockerService, _metrics_env_passthrough
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.orchestrator.docker_service import DockerService, _metrics_env_passthrough
 
 
 def _run_start(argv):
-    with patch("src.cli.DockerService") as docker, \
-            patch("src.cli.load_schema") as load_schema, \
-            patch("src.cli.get_neo4j_driver") as driver, \
-            patch("src.cli.apply_schema") as ddl, \
-            patch("src.cli._ensure_dead_letter_topics") as dlq, \
-            patch("src.cli.start_kafka_edge_planner") as planner:
+    with patch("neo4j_graph_loader.cli.DockerService") as docker, \
+            patch("neo4j_graph_loader.cli.load_schema") as load_schema, \
+            patch("neo4j_graph_loader.cli.get_neo4j_driver") as driver, \
+            patch("neo4j_graph_loader.cli.apply_schema") as ddl, \
+            patch("neo4j_graph_loader.cli._ensure_dead_letter_topics") as dlq, \
+            patch("neo4j_graph_loader.cli.start_kafka_edge_planner") as planner:
         rc = cli.main(["start", *argv])
     for m in (docker, load_schema, driver, ddl, dlq, planner):
         m.assert_not_called()
@@ -50,7 +50,7 @@ def test_early_validation_leaves_valid_and_other_mode_values_alone():
     (cli.handle_status, argparse.Namespace(config="x.yaml")),
 ])
 def test_stop_status_without_docker_exit_1(handler, args, caplog):
-    with patch("src.cli.DockerService", side_effect=Exception("Error while fetching server API version")):
+    with patch("neo4j_graph_loader.cli.DockerService", side_effect=Exception("Error while fetching server API version")):
         assert handler(args) == 1
     assert "stage=docker reason=unreachable" in caplog.text
 

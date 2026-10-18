@@ -30,19 +30,19 @@ from dotenv import load_dotenv
 import yaml
 
 # Permit the documented ``python examples/imdb/publish_and_load_nodes.py``
-# invocation without requiring callers to export PYTHONPATH first.
+# invocation for examples.imdb helpers. Install the loader with pip install -e . first.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.models.schema import EdgeConfig, PropertyConfig
-from src.loader.edge_planner import chunk_topic_config
+from neo4j_graph_loader.models.schema import EdgeConfig, PropertyConfig
+from neo4j_graph_loader.loader.edge_planner import chunk_topic_config
 from examples.imdb.planned_edges import (
     DEFAULT_PLAN_TOPIC, DEFAULT_PLAN_WRITERS, PlanSettings, imdb_edge_planner,
 )
-from src.orchestrator.auto_settings import default_plan_writers, derive_plan_parameters, probe_neo4j_cores
-from src.orchestrator.docker_service import DockerService
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.orchestrator.auto_settings import default_plan_writers, derive_plan_parameters, probe_neo4j_cores
+from neo4j_graph_loader.orchestrator.docker_service import DockerService
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 # Full IMDb exports contain quoted fields longer than csv's 128 KiB default.
 csv.field_size_limit(sys.maxsize)
@@ -881,7 +881,7 @@ def build_loader_images() -> float:
     return time.monotonic() - started
 
 
-from src.orchestrator.auto_settings import DEFAULT_NODE_REPLICAS_MIN_RECORDS  # noqa: E402  (library policy)
+from neo4j_graph_loader.orchestrator.auto_settings import DEFAULT_NODE_REPLICAS_MIN_RECORDS  # noqa: E402  (library policy)
 # With --edge-leases each edge outer flush is split into up to B*B bucket
 # cells, one Neo4j transaction per cell (capped by mix_and_batch.batch_size),
 # so lease mode uses a much larger default flush than lane mode.
@@ -924,11 +924,11 @@ def plan_node_replicas(
     containers, but each one costs a container launch, a consumer-group
     rebalance while it joins, and a Docker stop. ``min_records=0`` disables
     the policy.  This is the library's policy
-    (:func:`src.orchestrator.auto_settings.node_replicas_for`, which the
+    (:func:`neo4j_graph_loader.orchestrator.auto_settings.node_replicas_for`, which the
     loader also applies to any schema whose YAML omits ``replicas``) with
     ``consumer_workers`` as the per-label maximum.
     """
-    from src.orchestrator.auto_settings import node_replicas_for
+    from neo4j_graph_loader.orchestrator.auto_settings import node_replicas_for
 
     published = {topic: count for source, topic, count, _ in topic_results if source in NODE_SOURCES}
     return {
@@ -985,7 +985,7 @@ def read_planned_summary(directory: Path | None) -> dict | None:
 
 def kafka_plan_report(timing_directory: Path | None, writers: int) -> dict:
     """Report data for ``--plan-source kafka``: the plan the loader wrote from the edge topics."""
-    from src.loader.edge_plan import read_plan_file
+    from neo4j_graph_loader.loader.edge_plan import read_plan_file
 
     path = None if timing_directory is None else timing_directory / "edge-plan.json"
     if path is None or not path.is_file():
@@ -1807,7 +1807,7 @@ def _publish_and_load(
         environment = os.environ.copy()
         environment["KAFKA_BOOTSTRAP_SERVERS"] = args.kafka_bootstrap
         command = [
-            sys.executable, "-m", "src.cli", "start", "--mode", "bulk",
+            sys.executable, "-m", "neo4j_graph_loader.cli", "start", "--mode", "bulk",
             "--config", str(runtime_schema), "--network", args.network,
             "--bulk-timeout-seconds", str(args.bulk_timeout_seconds),
             "--skip-image-build",

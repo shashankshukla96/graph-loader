@@ -13,13 +13,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-from src.loader.dead_letter import DeadLetterRecordSink
-from src.loader.edge_execution import IndexedMissingEndpointSink
-from src.loader.edge_loader import EdgeLoader
-from src.loader.edge_records import EdgeRecord
-from src.loader.parked_pair_index import ParkedPairIndex
-from src.loader.retry_consumer import RETRY_OUTCOME_WRITTEN, main as retry_consumer_main
-from src.models.schema import GraphSchema
+from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+from neo4j_graph_loader.loader.edge_execution import IndexedMissingEndpointSink
+from neo4j_graph_loader.loader.edge_loader import EdgeLoader
+from neo4j_graph_loader.loader.edge_records import EdgeRecord
+from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex
+from neo4j_graph_loader.loader.retry_consumer import RETRY_OUTCOME_WRITTEN, main as retry_consumer_main
+from neo4j_graph_loader.models.schema import GraphSchema
 from tests.test_parked_pair_index import _FakeConsumer as _IndexConsumer
 from tests.test_parked_pair_index import _FakeProducer as _IndexProducer
 from tests.test_parked_pair_index import _FakeTopicLog
@@ -172,7 +172,7 @@ def test_a_pairs_records_within_one_topic_keep_offset_order_among_other_topic_re
 
 
 def test_type_wide_names_and_partition_sources() -> None:
-    from src.models.schema import (
+    from neo4j_graph_loader.models.schema import (
         edge_dead_letter_topic_name, edge_parked_pair_index_topic_name, edge_parked_topic_name,
     )
 
@@ -185,14 +185,14 @@ def test_type_wide_names_and_partition_sources() -> None:
 
 
 def _main_patches(stack, schema):
-    stack.enter_context(patch("src.loader.retry_consumer.load_schema", return_value=schema))
+    stack.enter_context(patch("neo4j_graph_loader.loader.retry_consumer.load_schema", return_value=schema))
     stack.enter_context(patch("confluent_kafka.Consumer", return_value=MagicMock()))
     stack.enter_context(patch("neo4j.GraphDatabase.driver", return_value=MagicMock()))
     build_sink = stack.enter_context(patch(
-        "src.loader.retry_consumer.build_malformed_record_sink",
+        "neo4j_graph_loader.loader.retry_consumer.build_malformed_record_sink",
         return_value=(MagicMock(spec=DeadLetterRecordSink), None),
     ))
-    rc_cls = stack.enter_context(patch("src.loader.retry_consumer.RetryConsumer"))
+    rc_cls = stack.enter_context(patch("neo4j_graph_loader.loader.retry_consumer.RetryConsumer"))
     rc_cls.return_value.run_forever.return_value = None
     return rc_cls, build_sink
 
@@ -203,9 +203,9 @@ def test_retry_consumer_main_subscribes_to_the_type_dlq_with_a_sequenced_index()
     fake_index = MagicMock()
     with ExitStack() as stack:
         rc_cls, build_sink = _main_patches(stack, schema)
-        index_cls = stack.enter_context(patch("src.loader.retry_consumer.ParkedPairIndex", return_value=fake_index))
-        stack.enter_context(patch("src.loader.lease_client.BucketLeaseClient"))
-        stack.enter_context(patch("src.loader.lease_client.BucketCellRouter"))
+        index_cls = stack.enter_context(patch("neo4j_graph_loader.loader.retry_consumer.ParkedPairIndex", return_value=fake_index))
+        stack.enter_context(patch("neo4j_graph_loader.loader.lease_client.BucketLeaseClient"))
+        stack.enter_context(patch("neo4j_graph_loader.loader.lease_client.BucketCellRouter"))
         stack.enter_context(patch.dict("os.environ", {"GRAPH_LOADER_BUCKET_LEASE_ADDR": "lease:7700", "GRAPH_LOADER_LEASE_BUCKETS": "16"}))
         assert retry_consumer_main(["--dlq-topics", "WORKS_AT.dlq", "--lease-address", "lease:7700"]) == 0
     kwargs = rc_cls.call_args.kwargs
@@ -221,7 +221,7 @@ def test_retry_consumer_main_subscribes_to_the_type_dlq_with_a_sequenced_index()
 def test_retry_consumer_main_runs_a_single_topic_type_next_to_a_multi_topic_one() -> None:
     schema = _schema(dead_letter=None, topic_conflict=None, order_by="since")
     knows = next(e for e in schema.edges if e.type != "WORKS_AT")
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     idx = schema.edges.index(knows)
     schema.edges[idx] = knows.model_copy(update={"dead_letter": DeadLetterConfig(enabled=True)})
@@ -245,7 +245,7 @@ class _BarrierIndex:
 
 
 def _barrier_loader(index, clock):
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
     from prometheus_client import CollectorRegistry
 
     edge = next(e for e in _schema().edges if e.type == "WORKS_AT")
@@ -394,7 +394,7 @@ def test_a_re_read_record_keeps_its_seq_once_the_view_has_caught_up() -> None:
 
 def test_order_by_multi_topic_type_uses_the_conditional_set_on_retry() -> None:
     """A parked/retried older record of topic a can never overwrite b's newer committed value."""
-    from src.loader.retry_consumer import build_retry_base_writer
+    from neo4j_graph_loader.loader.retry_consumer import build_retry_base_writer
 
     edge = next(e for e in _schema(topic_conflict=None, order_by="since").edges if e.type == "WORKS_AT")
     writer = build_retry_base_writer(MagicMock(), edge, tx_timeout_seconds=30, leased=True)
@@ -403,8 +403,8 @@ def test_order_by_multi_topic_type_uses_the_conditional_set_on_retry() -> None:
 
 def test_bulk_classic_two_topic_opt_in_routes_every_topics_rows_to_the_type_dlq() -> None:
     """Story 4.5: in bulk (classic) both topics' unresolved rows go to ``<type>.dlq`` and keep their topic."""
-    from src.loader.dead_letter import build_malformed_record_sink
-    from src.loader.edge_execution import build_edge_execution
+    from neo4j_graph_loader.loader.dead_letter import build_malformed_record_sink
+    from neo4j_graph_loader.loader.edge_execution import build_edge_execution
 
     edge = next(
         e for e in _schema(dead_letter={"enabled": True, "route_missing_endpoints_in_bulk": True}).edges
@@ -447,7 +447,7 @@ def test_bulk_classic_two_topic_opt_in_routes_every_topics_rows_to_the_type_dlq(
 
 from argparse import Namespace  # noqa: E402
 
-from src import cli  # noqa: E402
+from neo4j_graph_loader import cli  # noqa: E402
 
 _REAL_REQUIRE_NO_STALE = cli._require_no_stale_dead_letter_topics
 

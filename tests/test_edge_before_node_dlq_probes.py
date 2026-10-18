@@ -18,7 +18,7 @@ from tests.integration.test_edge_before_node_dlq import _retry_consumer_availabl
 
 
 def test_retry_consumer_available_true_for_the_real_module() -> None:
-    # BUG-1: the probe used to name src.orchestrator.retry_consumer (wrong).
+    # BUG-1: the probe used to name neo4j_graph_loader.orchestrator.retry_consumer (wrong).
     assert _retry_consumer_available() is True
 
 

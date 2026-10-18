@@ -20,11 +20,11 @@ from examples.imdb.planned_edges import TsvEdgeSource, imdb_edge_planner, imdb_e
 from examples.imdb.publish_and_load_nodes import (
     EDGE_SOURCES, edge_payload, ensure_plan_topic, planned_timing_key, read_write_timings, write_run_report,
 )
-from src.loader.edge_plan import (
+from neo4j_graph_loader.loader.edge_plan import (
     ResourceTable, assemble_plan, decode_chunk_message, planned_bucket, read_plan_file, plan_failure_marker,
 )
-from src.loader.edge_planner import PLAN_PRODUCER_CONFIG, PlanSettings
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_planner import PLAN_PRODUCER_CONFIG, PlanSettings
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 SCHEMA = load_schema(Path(__file__).resolve().parents[1] / "graph_schema.yaml")
 EDGES = {edge.type: edge for edge in SCHEMA.edges}
@@ -476,7 +476,7 @@ def test_kafka_plan_source_publishes_edge_topics_and_lets_the_loader_plan(tmp_pa
                              types={"ACTED_IN": ("Person", "Title", 0)}, specs=[],
                              settings={"buckets": 8, "planner_workers": 4},
                              stats={"source": "kafka", "rows": 0, "scan_records_per_second": 0})
-        from src.loader.edge_plan import write_plan_file
+        from neo4j_graph_loader.loader.edge_plan import write_plan_file
         write_plan_file(directory / "edge-plan.json", plan)
         return 0, {}, directory
 

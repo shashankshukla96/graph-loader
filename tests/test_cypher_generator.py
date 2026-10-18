@@ -8,8 +8,8 @@ from __future__ import annotations
 from pathlib import Path
 import pytest
 
-from src.utils.schema_loader import load_schema
-from src.utils.cypher_generator import generate_node_ddl
+from neo4j_graph_loader.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.cypher_generator import generate_node_ddl
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -64,11 +64,11 @@ class TestNodeDDLGenerator:
             
             assert name.islower(), f"Name '{name}' is not entirely lowercase"
 
-from src.utils.cypher_generator import generate_edge_ddl
+from neo4j_graph_loader.utils.cypher_generator import generate_edge_ddl
 
 class TestEdgeDDLGenerator:
     def _make_schema_with_edge_prop(self, index_type=None, constraint_type=None):
-        from src.models.schema import GraphSchema
+        from neo4j_graph_loader.models.schema import GraphSchema
         data = {
             "nodes": [{"label": "Person", "topic": "t1", "key_property": "id", "properties": {"id": {"type": "string", "required": True}}}],
             "edges": [{
@@ -112,10 +112,10 @@ class TestEdgeDDLGenerator:
         # Edge constraints should be skipped, so DDL list is empty
         assert len(ddl) == 0
 
-from src.utils.cypher_generator import generate_all_ddl
+from neo4j_graph_loader.utils.cypher_generator import generate_all_ddl
 
 def test_generate_all_ddl():
-    from src.models.schema import GraphSchema
+    from neo4j_graph_loader.models.schema import GraphSchema
     # Construct a schema that has both node constraints/indexes and edge indexes
     data = {
         "nodes": [{

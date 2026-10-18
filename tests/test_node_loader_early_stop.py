@@ -20,11 +20,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.loader import node_loader
-from src.loader.dead_letter import DeadLetterRecordSink, RejectionSink
-from src.loader.lease_client import LeaseCoordinatorError
-from src.loader.node_loader import NodeLoader, main as node_loader_main
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader import node_loader
+from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink, RejectionSink
+from neo4j_graph_loader.loader.lease_client import LeaseCoordinatorError
+from neo4j_graph_loader.loader.node_loader import NodeLoader, main as node_loader_main
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -52,7 +52,7 @@ def _control_types(producer: MagicMock) -> list[str]:
 # -- early handler (entrypoint only) -------------------------------------------------------------
 
 def test_importing_the_module_installs_no_handler() -> None:
-    """Only ``python -m src.loader.node_loader`` installs the early handler; importers are untouched."""
+    """Only ``python -m neo4j_graph_loader.loader.node_loader`` installs the early handler; importers are untouched."""
     assert signal.getsignal(signal.SIGTERM) is not node_loader._exit_stopped_while_importing
 
 
@@ -62,7 +62,7 @@ def _entrypoint_with_fake_kafka(tmp_path: Path, body: str) -> subprocess.Complet
     (fake / "__init__.py").write_text(textwrap.dedent(body), encoding="utf-8")
     env = {"PATH": os.environ.get("PATH", ""), "PYTHONPATH": os.pathsep.join([str(tmp_path), str(PROJECT_ROOT)])}
     return subprocess.run(
-        [sys.executable, "-m", "src.loader.node_loader", "--node-label", "Person"],
+        [sys.executable, "-m", "neo4j_graph_loader.loader.node_loader", "--node-label", "Person"],
         cwd=PROJECT_ROOT, env=env, capture_output=True, text=True, timeout=60,
     )
 
@@ -102,16 +102,16 @@ def _patched_main(schema, argv, *, stopped: bool, loader_cls=None, leased=None, 
     if stopped:
         stop.set()
     patches = [
-        patch("src.loader.node_loader.Consumer", return_value=consumer),
-        patch("src.loader.node_loader.Producer", return_value=producer),
-        patch("src.loader.node_loader.get_neo4j_driver",
+        patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer),
+        patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer),
+        patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver",
               **({"side_effect": driver_error} if driver_error else {"return_value": driver})),
-        patch("src.loader.node_loader.load_schema", return_value=schema),
+        patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema),
     ]
     if loader_cls is not None:
-        patches.append(patch("src.loader.node_loader.NodeLoader", loader_cls))
+        patches.append(patch("neo4j_graph_loader.loader.node_loader.NodeLoader", loader_cls))
     if leased is not None:
-        patches.append(patch("src.loader.node_loader.build_leased_node_writer", **leased))
+        patches.append(patch("neo4j_graph_loader.loader.node_loader.build_leased_node_writer", **leased))
     for item in patches:
         item.start()
     try:
@@ -145,10 +145,10 @@ def test_bulk_stop_before_or_after_main_has_the_same_outcome(schema) -> None:
     consumer = MagicMock()
     consumer.poll.side_effect = lambda _timeout: stop_on_first_poll.set()
     producer = _producer()
-    with patch("src.loader.node_loader.Consumer", return_value=consumer), \
-         patch("src.loader.node_loader.Producer", return_value=producer), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=MagicMock()), \
-         patch("src.loader.node_loader.load_schema", return_value=schema):
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=MagicMock()), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema):
         late_code = node_loader_main(["--node-label", "Person", "--mode", "bulk"], shutdown_requested=stop_on_first_poll)
     assert (early[0], _control_types(early[2])) == (late_code, _control_types(producer)) == (0, ["DRAIN_COMPLETE"])
 
@@ -208,10 +208,10 @@ def test_stream_real_startup_failure_during_a_stop_stays_an_error(schema, caplog
 
     stop = Event()
     holder["stop"] = stop
-    with patch("src.loader.node_loader.Consumer", return_value=MagicMock()), \
-         patch("src.loader.node_loader.Producer", return_value=_producer()), \
-         patch("src.loader.node_loader.get_neo4j_driver", side_effect=auth_failure), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=MagicMock()), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=_producer()), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", side_effect=auth_failure), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
          caplog.at_level(logging.WARNING):
         code = node_loader_main(["--node-label", "Person", "--mode", "stream"], shutdown_requested=stop)
     assert stop.is_set() and code == 1
@@ -267,11 +267,11 @@ def test_stream_startup_failure_without_a_stop_is_still_an_error(schema, caplog)
 def test_main_leaves_the_flag_only_handler_bound_to_the_shared_event(schema) -> None:
     """The handler main() (re)installs sets the same event the early handler set."""
     stop = Event()
-    with patch("src.loader.node_loader.Consumer", return_value=MagicMock(**{"poll.return_value": None})), \
-         patch("src.loader.node_loader.Producer", return_value=_producer()), \
-         patch("src.loader.node_loader.get_neo4j_driver", return_value=MagicMock()), \
-         patch("src.loader.node_loader.load_schema", return_value=schema), \
-         patch("src.loader.node_loader.NodeLoader") as loader_cls:
+    with patch("neo4j_graph_loader.loader.node_loader.Consumer", return_value=MagicMock(**{"poll.return_value": None})), \
+         patch("neo4j_graph_loader.loader.node_loader.Producer", return_value=_producer()), \
+         patch("neo4j_graph_loader.loader.node_loader.get_neo4j_driver", return_value=MagicMock()), \
+         patch("neo4j_graph_loader.loader.node_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.node_loader.NodeLoader") as loader_cls:
         loader_cls.return_value.run.side_effect = lambda **_kw: (signal.getsignal(signal.SIGTERM)(15, None), 0)[1]
         assert node_loader_main(["--node-label", "Person", "--mode", "bulk"], shutdown_requested=stop) == 0
     assert stop.is_set()

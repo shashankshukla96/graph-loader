@@ -2,9 +2,9 @@ import pytest
 from pathlib import Path
 
 from it_scratch_db import ensure_database, explicit_neo4j_auth
-from src.utils.schema_loader import load_schema
-from src.utils.cypher_generator import generate_all_ddl
-from src.orchestrator.schema_initializer import get_neo4j_driver, apply_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.cypher_generator import generate_all_ddl
+from neo4j_graph_loader.orchestrator.schema_initializer import get_neo4j_driver, apply_schema
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

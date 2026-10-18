@@ -31,7 +31,7 @@ from examples.imdb.publish_and_load_nodes import (
     typed_payload,
     write_run_report,
 )
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 def test_topic_preflight_rejects_retained_data_before_publication() -> None:

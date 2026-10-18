@@ -2,8 +2,8 @@
 tests/test_schema_validation.py
 ────────────────────────────────
 Unit tests for:
-  - src/models/schema.py  (Pydantic v2 models)
-  - src/utils/schema_loader.py  (YAML → GraphSchema pipeline)
+  - src/neo4j_graph_loader/models/schema.py  (Pydantic v2 models)
+  - src/neo4j_graph_loader/utils/schema_loader.py  (YAML → GraphSchema pipeline)
 
 All SchemaLoader tests use load_schema() exclusively.
 No test in TestSchemaLoader imports GraphSchema directly.
@@ -17,7 +17,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from src.models.schema import (
+from neo4j_graph_loader.models.schema import (
     BucketLeaseStreamConfig,
     ConstraintConfig,
     DeadLetterConfig,
@@ -34,8 +34,8 @@ from src.models.schema import (
     parked_pair_index_topic_name,
     parked_topic_name,
 )
-from src.loader.dead_letter import dead_letter_topic_name
-from src.utils.schema_loader import SchemaLoadError, load_schema
+from neo4j_graph_loader.loader.dead_letter import dead_letter_topic_name
+from neo4j_graph_loader.utils.schema_loader import SchemaLoadError, load_schema
 
 # ── Project root — anchors path-dependent tests to the repo root ──────────────
 # Follows the same convention as tests/test_dev_environment.py.
@@ -833,7 +833,7 @@ class TestSchemaLoader:
 
 
 def test_heartbeat_interval_defaults_fast_and_must_be_below_session_timeout():
-    from src.models.schema import LoadingConfig
+    from neo4j_graph_loader.models.schema import LoadingConfig
 
     assert LoadingConfig().heartbeat_interval_ms == 500
     assert LoadingConfig(heartbeat_interval_ms=3_000).heartbeat_interval_ms == 3_000

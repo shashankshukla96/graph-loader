@@ -208,7 +208,7 @@ effective outer batch sizes.
 
 ### Stopping a run
 
-`publish_and_load_nodes.py` forwards SIGINT/SIGTERM to the `python -m src.cli
+`publish_and_load_nodes.py` forwards SIGINT/SIGTERM to the `python -m neo4j_graph_loader.cli
 start` child it launches and waits for the CLI's own graceful stop (about
 5-10 s) before exiting with the child's exit code. A second signal is
 forwarded too; as the CLI documents, it changes nothing and does not force
@@ -218,7 +218,7 @@ killed.
 ### Bucket leases (node-disjoint relationship writes)
 
 `--edge-leases` starts a run-scoped lease coordinator container (the edge
-image running `src.orchestrator.lease_server`) and makes every relationship
+image running `neo4j_graph_loader.orchestrator.lease_server`) and makes every relationship
 transaction lease the nodes it touches: each node label has
 `--lease-buckets` (default 16) stable hash buckets, and labels whose node
 topic holds at most `--lease-keyed-max-nodes` (default 1,000) records -- IMDb
@@ -276,7 +276,7 @@ mode (see the [library usage guide](../../docs/USAGE.md)).
 Two plan sources produce the same plan:
 
 * `--plan-source files` (default, fastest for IMDb) plans in the publisher with
-  the library producer API (`src.loader.edge_planner`; this example only adds
+  the library producer API (`neo4j_graph_loader.loader.edge_planner`; this example only adds
   `TsvEdgeSource`, see `planned_edges.py`) and never publishes the per-type
   edge topics.
 * `--plan-source kafka` publishes the per-type edge topics exactly like the

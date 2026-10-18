@@ -132,7 +132,7 @@ Then, for each batch: `./scripts/cleanup_imdb_local_load.sh` (it refuses to run 
 ## 3. Part B: continuous streaming
 
 ```bash
-python -m src.cli start --mode stream --config my_graph.yaml --run-id my-fleet
+python -m neo4j_graph_loader.cli start --mode stream --config my_graph.yaml --run-id my-fleet
 ```
 
 `--mode stream` keeps node and relationship loaders running and consumes new records continuously. It never exits because lag reached zero. Planned mode and every bulk-only option do not apply.
@@ -148,7 +148,7 @@ The CLI stays in the foreground as the supervisor and launches, on the Docker ne
 | **Retry consumer** | `--retry-consumer-replicas` (default 1), one consumer group | Launched only when some relationship type has an enabled `dead_letter`. Reads every DLQ topic and retries parked-on-missing-endpoint rows with backoff. |
 | **Edge loaders** | `replicas` per relationship type | Consume the relationship topics; write through the lease server. |
 
-Because every writer (nodes, edges and the retry consumer) takes leases, concurrent transactions are node-disjoint and there are zero Neo4j lock waits, also across lease-server restarts and writer disconnects: every leased transaction carries a server-enforced timeout that ends it before its lease deadline, a disconnected writer's resources stay held for `T + margin`, and a restarted server grants nothing for a quiet period `Q = T + margin` ([USAGE.md section 12](USAGE.md#12-limitations)). The one condition: if you raise Neo4j's `db.transaction.monitor.check.interval` above its 2 s default, raise `loading.bucket_lease.restart_quiet_margin_ms` by the same amount. Stream mode (and bulk `--edge-leases`) requires `bucket_lease.tx_timeout_ms` of at least 6000. Each leased transaction's timeout is the time left until the lease deadline minus 4 s (3 s monitor slack plus 1 s BEGIN allowance). No statement of a leased transaction starts after its lease deadline. A COMMIT already in progress at that point still completes, and `restart_quiet_margin_ms` covers it. Streaming has no planned mode. The deprecated `--stream-clock-rotation` is a one-release escape hatch; do not use it for new deployments: it has no row-level DLQ, it is not zero-wait inside a slot, and it cannot run multi-pair types or ride out outages. A stream run with **no** relationship types launches the node loaders and exits `0` at once, leaving them running unsupervised (stop with `python -m src.cli stop` or the recovery recipe).
+Because every writer (nodes, edges and the retry consumer) takes leases, concurrent transactions are node-disjoint and there are zero Neo4j lock waits, also across lease-server restarts and writer disconnects: every leased transaction carries a server-enforced timeout that ends it before its lease deadline, a disconnected writer's resources stay held for `T + margin`, and a restarted server grants nothing for a quiet period `Q = T + margin` ([USAGE.md section 12](USAGE.md#12-limitations)). The one condition: if you raise Neo4j's `db.transaction.monitor.check.interval` above its 2 s default, raise `loading.bucket_lease.restart_quiet_margin_ms` by the same amount. Stream mode (and bulk `--edge-leases`) requires `bucket_lease.tx_timeout_ms` of at least 6000. Each leased transaction's timeout is the time left until the lease deadline minus 4 s (3 s monitor slack plus 1 s BEGIN allowance). No statement of a leased transaction starts after its lease deadline. A COMMIT already in progress at that point still completes, and `restart_quiet_margin_ms` covers it. Streaming has no planned mode. The deprecated `--stream-clock-rotation` is a one-release escape hatch; do not use it for new deployments: it has no row-level DLQ, it is not zero-wait inside a slot, and it cannot run multi-pair types or ride out outages. A stream run with **no** relationship types launches the node loaders and exits `0` at once, leaving them running unsupervised (stop with `python -m neo4j_graph_loader.cli stop` or the recovery recipe).
 
 Stop order on shutdown: edge loaders and the retry consumer first, then the node loaders (they drain only what they already hold), then the lease server.
 
@@ -241,10 +241,10 @@ These are minimum waits; scheduling adds slack. **Size `max_retry_attempts` and 
 **`replay-dlq`.** Missing-endpoint rows are retried automatically, so you rarely need it for them. You do need it for **parked** rows and for malformed records you have fixed upstream:
 
 ```bash
-python -m src.cli replay-dlq --config my_graph.yaml --edge-type WORKS_AT --dry-run
-python -m src.cli replay-dlq --config my_graph.yaml --edge-type WORKS_AT --reason-code missing_source --since 2026-10-01T00:00:00Z
-python -m src.cli replay-dlq --config my_graph.yaml --edge-type WORKS_AT --parked --dry-run
-python -m src.cli replay-dlq --config my_graph.yaml --edge-type WORKS_AT --parked --source-topic works-at-b
+python -m neo4j_graph_loader.cli replay-dlq --config my_graph.yaml --edge-type WORKS_AT --dry-run
+python -m neo4j_graph_loader.cli replay-dlq --config my_graph.yaml --edge-type WORKS_AT --reason-code missing_source --since 2026-10-01T00:00:00Z
+python -m neo4j_graph_loader.cli replay-dlq --config my_graph.yaml --edge-type WORKS_AT --parked --dry-run
+python -m neo4j_graph_loader.cli replay-dlq --config my_graph.yaml --edge-type WORKS_AT --parked --source-topic works-at-b
 ```
 
 * `--parked` reads `<DLQ>.parked` instead of the DLQ. It requires an enabled DLQ.
@@ -374,7 +374,7 @@ Replica counts take effect only at the next `start`; stop and restart (the stabl
 
 ### Handing over from a bulk load to a stream
 
-A common path is an initial bulk load, then a stream for what arrives afterwards. Node loaders in both modes use the same group `<consumer_group_id>-<Label>`, so if you keep `loading.consumer_group_id`, the stream's node loaders continue from the offsets the bulk run committed. **There is no automatic relationship hand-over.** Bulk lease/classic edge groups are run-scoped (`<prefix>-<type>-<R>.bulk.0.<h>`) and a planned bulk run commits no edge group at all, while the stream uses the stable groups `<prefix>-<type>`. Either accept one idempotent re-read of the relationship topics by the stream, or pre-seed the stable groups to the end with `kafka-consumer-groups --reset-offsets --to-latest` (stop-state groups only) after a successful bulk run and before producers resume. That pre-seeding is untested. Rows that a bulk run routed to a DLQ with `route_missing_endpoints_in_bulk` are never indexed in the parked-pair index, so for non-`order_by` types the stream's retry consumer commits past them (`duplicate_or_unindexed_skipped`) without writing them: drain them first with a standalone `python -m src.loader.retry_consumer --config ... --dlq-topics <topics>`. `precedence` types cannot be handed to a stream (refused), and the stream schema must satisfy the stream rules (a conflict rule of `order_by` or `arrival`).
+A common path is an initial bulk load, then a stream for what arrives afterwards. Node loaders in both modes use the same group `<consumer_group_id>-<Label>`, so if you keep `loading.consumer_group_id`, the stream's node loaders continue from the offsets the bulk run committed. **There is no automatic relationship hand-over.** Bulk lease/classic edge groups are run-scoped (`<prefix>-<type>-<R>.bulk.0.<h>`) and a planned bulk run commits no edge group at all, while the stream uses the stable groups `<prefix>-<type>`. Either accept one idempotent re-read of the relationship topics by the stream, or pre-seed the stable groups to the end with `kafka-consumer-groups --reset-offsets --to-latest` (stop-state groups only) after a successful bulk run and before producers resume. That pre-seeding is untested. Rows that a bulk run routed to a DLQ with `route_missing_endpoints_in_bulk` are never indexed in the parked-pair index, so for non-`order_by` types the stream's retry consumer commits past them (`duplicate_or_unindexed_skipped`) without writing them: drain them first with a standalone `python -m neo4j_graph_loader.loader.retry_consumer --config ... --dlq-topics <topics>`. `precedence` types cannot be handed to a stream (refused), and the stream schema must satisfy the stream rules (a conflict rule of `order_by` or `arrival`).
 
 ## 5. Migration notes: single-topic to multi-topic
 
@@ -461,7 +461,7 @@ done
 # (the producer sketch in BULK_LOAD.md section 4, with these records; hold the producer still afterwards)
 
 # --- Load batch 2 ------------------------------------------------------------------------------------
-python -m src.cli start --mode bulk --config my_graph.yaml --run-id inc-20261001-02 --skip-image-build
+python -m neo4j_graph_loader.cli start --mode bulk --config my_graph.yaml --run-id inc-20261001-02 --skip-image-build
 
 # --- Check ---------------------------------------------------------------------------------------------
 docker exec graph-loader-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" -d "$NEO4J_DATABASE" \
@@ -482,7 +482,7 @@ export NEO4J_DATABASE=mtstream
 python examples/multi_topic/multi_topic_graph.py publish --customers 1000 --only edges
 
 # 2. Start the fleet in the background (--run-id is optional; it names containers and lets the CLI migrate legacy offsets).
-python -m src.cli start --mode stream --config examples/multi_topic/graph_schema_dead_letter.yaml --run-id mt-dlq &
+python -m neo4j_graph_loader.cli start --mode stream --config examples/multi_topic/graph_schema_dead_letter.yaml --run-id mt-dlq &
 STREAM_PID=$!
 #    Expect: "ensured dead-letter topic RATED.dlq", "ensured parking-lot topic RATED.dlq.parked"
 #    (no parked-pairs topic: RATED has order_by). Every rating lands in RATED.dlq because no node exists yet.
@@ -495,12 +495,12 @@ python examples/multi_topic/multi_topic_graph.py verify  --customers 1000 --type
 docker exec graph-loader-kafka kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group multi-topic-dlq-example-RATED   # edge loaders
 docker exec graph-loader-kafka kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group multi-topic-dlq-example-retry-consumer     # retry consumer
 docker exec graph-loader-kafka kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group multi-topic-dlq-example-Customer      # a node group
-python -m src.cli replay-dlq --config examples/multi_topic/graph_schema_dead_letter.yaml --edge-type RATED --source-topic mt-rated-import --dry-run
-python -m src.cli replay-dlq --config examples/multi_topic/graph_schema_dead_letter.yaml --edge-type RATED --parked --dry-run
+python -m neo4j_graph_loader.cli replay-dlq --config examples/multi_topic/graph_schema_dead_letter.yaml --edge-type RATED --source-topic mt-rated-import --dry-run
+python -m neo4j_graph_loader.cli replay-dlq --config examples/multi_topic/graph_schema_dead_letter.yaml --edge-type RATED --parked --dry-run
 
 # 5. Stop gracefully, then restart: the stable groups resume from the committed offsets.
 kill -TERM $STREAM_PID; wait $STREAM_PID; echo "exit=$?"      # expect 0 within a few seconds
-python -m src.cli start --mode stream --config examples/multi_topic/graph_schema_dead_letter.yaml --run-id mt-dlq &
+python -m neo4j_graph_loader.cli start --mode stream --config examples/multi_topic/graph_schema_dead_letter.yaml --run-id mt-dlq &
 ```
 
 Things to confirm while it runs: the group names are `<consumer_group_id>-<type>` for the edge loaders and `<consumer_group_id>-retry-consumer` for the retry consumer; every group's lag returns to 0 once the nodes have arrived; the `--parked --dry-run` replay matches 0 records on a healthy run; and the SIGTERM exit code is `0`. Restarting without `--run-id` resumes the same stable groups from their committed offsets just the same (B10). Clean up with `python examples/multi_topic/multi_topic_graph.py reset`, and delete the DLQ topics (`RATED.dlq`, `RATED.dlq.parked`) and the groups if you will reload.

@@ -54,7 +54,7 @@ def _raw(schema, edge, index: int) -> dict:
 
 
 def _queries(edge) -> dict:
-    from src.loader import edge_execution
+    from neo4j_graph_loader.loader import edge_execution
 
     return {
         "apoc_locked": _sha(edge_execution.build_apoc_locked_upsert_query(edge)),
@@ -67,7 +67,7 @@ def _queries(edge) -> dict:
 
 
 def _names(edge) -> list:
-    from src.models.schema import (
+    from neo4j_graph_loader.models.schema import (
         edge_dead_letter_topic_name, edge_parked_pair_index_topic_name, edge_parked_topic_name,
     )
 
@@ -75,7 +75,7 @@ def _names(edge) -> list:
 
 
 def _sub_edges(edge) -> dict:
-    from src import cli
+    from neo4j_graph_loader import cli
 
     out = {}
     for topic in edge.topics:
@@ -96,8 +96,8 @@ class _CapturingProducer:
 
 
 def _dead_letter(schema, edge) -> dict:
-    from src.loader.dead_letter import DeadLetterRecordSink, encode_envelope
-    from src.loader.edge_records import normalize_edge_record
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink, encode_envelope
+    from neo4j_graph_loader.loader.edge_records import normalize_edge_record
 
     producer = _CapturingProducer()
     sink = DeadLetterRecordSink(producer=producer, topic=_names(edge)[0], run_id="run-A", replica_id="0",
@@ -116,8 +116,8 @@ def _dead_letter(schema, edge) -> dict:
 
 
 def _index(schema, edge) -> list:
-    from src.loader.edge_records import normalize_edge_record
-    from src.loader.parked_pair_index import ParkedPairIndex
+    from neo4j_graph_loader.loader.edge_records import normalize_edge_record
+    from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex
 
     record = normalize_edge_record(_raw(schema, edge, 4), edge)
     index = ParkedPairIndex(topic=_names(edge)[2], bootstrap_servers="kafka:1", writable=True,
@@ -133,7 +133,7 @@ def _index(schema, edge) -> list:
 def _plan(schema, workdir: Path, *, hub_degree: int = 0) -> dict:
     from types import SimpleNamespace
 
-    from src.loader.edge_planner import KafkaEdgePlanner, PlanSettings
+    from neo4j_graph_loader.loader.edge_planner import KafkaEdgePlanner, PlanSettings
     from test_edge_planner import FakeCluster, FakeProducer
 
     cluster = FakeCluster()
@@ -164,8 +164,8 @@ def _plan(schema, workdir: Path, *, hub_degree: int = 0) -> dict:
 
 
 def fingerprint() -> dict:
-    from src import cli
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader import cli
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     schema = load_schema(ROOT / FIXTURE)
     out: dict = {"edges": {}}

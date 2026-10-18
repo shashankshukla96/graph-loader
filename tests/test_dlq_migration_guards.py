@@ -16,10 +16,10 @@ from argparse import Namespace
 from unittest.mock import MagicMock, patch
 
 from multi_pair_support import BACKFILL, COMMENTS, POSTS, likes_schema, likes_schema_dict
-from src import cli
-from src.loader.parked_pair_index import ParkedPairIndex, index_leftovers, warn_index_leftovers
-from src.loader.retry_consumer import RetryConsumer, single_pair_key
-from src.models.schema import GraphSchema
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex, index_leftovers, warn_index_leftovers
+from neo4j_graph_loader.loader.retry_consumer import RetryConsumer, single_pair_key
+from neo4j_graph_loader.models.schema import GraphSchema
 from test_parked_pair_index import _FakeTopicLog, _wait_caught_up
 from tests.test_multi_topic_dlq import _AckingIndexProducer
 from tests.test_parked_pair_index import _FakeConsumer as _IndexConsumer
@@ -142,7 +142,7 @@ def test_loaders_and_the_retry_consumer_warn_once_the_index_is_rebuilt(caplog) -
 def test_the_warning_is_wired_after_each_index_start() -> None:
     import inspect
 
-    from src.loader import edge_loader, retry_consumer
+    from neo4j_graph_loader.loader import edge_loader, retry_consumer
 
     assert 'warn_index_leftovers(parked_pair_index, edge_config, stage="edge-loader")' in inspect.getsource(edge_loader)
     assert 'warn_index_leftovers(index, edge, stage="retry-consumer")' in inspect.getsource(retry_consumer.main)
@@ -272,7 +272,7 @@ def test_the_retry_consumer_groups_a_collapsed_types_labelled_and_legacy_copies_
 def test_retry_consumer_main_passes_each_single_pair_types_labels() -> None:
     from contextlib import ExitStack
 
-    from src.loader.retry_consumer import main as retry_consumer_main
+    from neo4j_graph_loader.loader.retry_consumer import main as retry_consumer_main
     from tests.test_multi_topic_dlq import _main_patches
 
     schema = likes_schema(order_by=True, dead_letter=_DL, topics=(POSTS, BACKFILL))

@@ -16,7 +16,7 @@ from confluent_kafka import TopicPartition
 from prometheus_client import CollectorRegistry
 from threading import Event
 
-from src.loader.edge_loader import (
+from neo4j_graph_loader.loader.edge_loader import (
     EdgeRecord,
     EdgeRecordValidationError,
     EdgeLoader,
@@ -29,14 +29,14 @@ from src.loader.edge_loader import (
     WorkerResult,
     PendingEdgeRecord,
 )
-from src.loader.edge_execution import LaneExecutionResult
-from src.loader.mix_and_batch import endpoint_buckets
-from src.loader.node_loader import RejectionSink
-from src.loader.slot_admission import LeaseStateError, SlotAdmission, SlotAwareAdmissionBuffer
-from src.models.schema import CoordinationConfig, EdgeConfig, LoadingConfig
-from src.orchestrator.coordination import ClockLease, encode_clock_lease
-from src.utils.metrics import GraphLoaderMetrics
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_execution import LaneExecutionResult
+from neo4j_graph_loader.loader.mix_and_batch import endpoint_buckets
+from neo4j_graph_loader.loader.node_loader import RejectionSink
+from neo4j_graph_loader.loader.slot_admission import LeaseStateError, SlotAdmission, SlotAwareAdmissionBuffer
+from neo4j_graph_loader.models.schema import CoordinationConfig, EdgeConfig, LoadingConfig
+from neo4j_graph_loader.orchestrator.coordination import ClockLease, encode_clock_lease
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -499,7 +499,7 @@ def test_gated_writer_executes_off_the_kafka_polling_thread(works_at, caplog) ->
     seen_threads: list[int] = []
     writer.write_batch.side_effect = lambda _records: seen_threads.append(threading.get_ident())
     loader = _gated_loader(consumer, writer, works_at, [_clock_lease_payload(1, "WORKS_AT"), None])
-    with caplog.at_level("INFO", logger="src.loader.edge_loader"):
+    with caplog.at_level("INFO", logger="neo4j_graph_loader.loader.edge_loader"):
         assert loader.run(max_messages=1) == 0
     assert seen_threads and seen_threads[0] != threading.get_ident()
     assert consumer.commit.call_count == 1
@@ -977,7 +977,7 @@ def test_legacy_file_sink_rejection_does_not_claim_dlq_routing(works_at, caplog)
 
 
 def test_edge_dead_letter_sink_receives_exact_raw_bytes_and_commits_only_after_publish(works_at) -> None:
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     sink = DeadLetterRecordSink(
@@ -1012,8 +1012,8 @@ def test_edge_dlq_routed_record_increments_dlq_counter_not_records_consumed(work
     DeadLetterProducer (matching tests/test_dead_letter.py's own
     _delivering_producer pattern), not a mocked one, so on_dlq_routed
     fires exactly the way it does in production - after a real ack."""
-    from src.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     try:
@@ -1057,7 +1057,7 @@ def test_edge_dlq_routed_record_increments_dlq_counter_not_records_consumed(work
 
 
 def test_edge_dead_letter_publish_failure_leaves_offset_uncommitted(works_at) -> None:
-    from src.loader.dead_letter import DeadLetterPublishError, DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterPublishError, DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     dlq_producer.publish.side_effect = DeadLetterPublishError("broker unreachable")
@@ -1076,7 +1076,7 @@ def test_edge_dead_letter_publish_failure_leaves_offset_uncommitted(works_at) ->
 
 
 def test_edge_mixed_batch_dlq_offset_resolves_independent_of_batch_flush_timing(works_at) -> None:
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     sink = DeadLetterRecordSink(
@@ -1121,7 +1121,7 @@ def test_edge_dead_letter_disabled_is_byte_identical_to_file_fallback(works_at, 
 
 
 def test_edge_dead_letter_redelivery_produces_a_second_envelope_at_least_once(works_at) -> None:
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     clock_values = iter([1_700_000_000_000, 1_700_000_000_999])
@@ -1210,7 +1210,7 @@ def test_edge_slot_gating_value_error_from_admission_machinery_propagates_not_dl
     propagate and fail the loader -- never be silently misclassified as a
     malformed record, DLQ'd, and committed as if the data itself were bad.
     """
-    import src.loader.edge_loader as edge_loader_module
+    import neo4j_graph_loader.loader.edge_loader as edge_loader_module
 
     sink = MagicMock()
     consumer, writer = MagicMock(), MagicMock()
@@ -1239,7 +1239,7 @@ def test_edge_revoke_settles_buffered_valid_record_and_already_dlqd_malformed_re
     """Classic mode: a revoke settles a buffered valid record alongside an
     already-DLQ'd malformed one, writing and committing through both.
     """
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     sink = DeadLetterRecordSink(
@@ -1275,7 +1275,7 @@ def test_edge_revoke_during_slot_gating_fails_closed_and_redelivers(works_at) ->
     commits, and both records replay (the malformed one DLQs a second
     time: documented at-least-once, matching P5-Q5's precedent).
     """
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     sink = DeadLetterRecordSink(
@@ -1311,7 +1311,7 @@ def test_edge_bucket_lease_coordinator_mode_dlqs_malformed_and_commits_both(work
     coordinator), the coordinator's execute_pending receives only the
     valid record, and the final commit covers both offsets.
     """
-    from src.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
 
     dlq_producer = MagicMock()
     sink = DeadLetterRecordSink(
@@ -1344,7 +1344,7 @@ def test_edge_bucket_lease_coordinator_mode_dlqs_malformed_and_commits_both(work
 def test_edge_rejection_sink_uses_edge_discriminator_and_fsync(tmp_path) -> None:
     path = tmp_path / "edge-rejections.jsonl"
     sink = RejectionSink(path)
-    with patch("src.loader.dead_letter.os.fsync") as fsync:
+    with patch("neo4j_graph_loader.loader.dead_letter.os.fsync") as fsync:
         sink.append(
             topic="works-at-events", partition=1, offset=3,
             edge_type="WORKS_AT", reason="invalid envelope",
@@ -1415,7 +1415,7 @@ def test_bulk_edge_batch_log_reports_write_duration(works_at) -> None:
     loader = EdgeLoader(consumer, writer, works_at, event_logger=event_logger)
     assert loader._buffer_message(_message(_payload(), offset=3))
 
-    with patch("src.loader.edge_loader.time.perf_counter", side_effect=[2.0, 2.027]):
+    with patch("neo4j_graph_loader.loader.edge_loader.time.perf_counter", side_effect=[2.0, 2.027]):
         assert loader._flush_batch()
 
     message, *values = event_logger.info.call_args.args
@@ -1580,10 +1580,10 @@ def test_edge_loader_fails_when_rejection_sink_is_not_durable(works_at) -> None:
 def test_edge_loader_main_uses_manual_commit_and_closes_resources(schema) -> None:
     consumer, driver, loader = MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer) as consumer_cls, \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer) as consumer_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--max-messages", "1", "--replica-id", "2"]) == 0
     config = consumer_cls.call_args.args[0]
     assert config["enable.auto.commit"] is False
@@ -1637,10 +1637,10 @@ def test_edge_loader_sigterm_mid_run_leaves_snapshot_with_accumulated_counters(s
 
     consumer.poll.side_effect = poll_side_effect
 
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.signal.signal", side_effect=capturing_signal):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.signal.signal", side_effect=capturing_signal):
         assert edge_loader_main(["--edge-type", "WORKS_AT"]) == 0
 
     assert snapshot_path.exists()
@@ -1657,8 +1657,8 @@ def test_edge_loader_main_passes_mode_and_dlq_sink_as_missing_endpoint_sink(sche
     missing_endpoint_sink -- without this, streaming row-level DLQ stays
     silently off no matter what Stories 3-4 built (reviewer's Story 4
     nice-to-have #1)."""
-    from src.loader.dead_letter import DeadLetterRecordSink
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     dlq_schema = schema.model_copy(deep=True)
     edge_index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
@@ -1670,13 +1670,13 @@ def test_edge_loader_main_passes_mode_and_dlq_sink_as_missing_endpoint_sink(sche
     consumer, driver, loader, dlq_producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
     fake_index = MagicMock()
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader), \
-         patch("src.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
-         patch("src.loader.edge_loader.build_edge_execution") as build_exec, \
-         patch("src.loader.edge_loader.ParkedPairIndex", return_value=fake_index) as index_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution") as build_exec, \
+         patch("neo4j_graph_loader.loader.edge_loader.ParkedPairIndex", return_value=fake_index) as index_cls:
         build_exec.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--mode", "stream", "--max-messages", "1",
@@ -1702,8 +1702,8 @@ def test_edge_loader_main_skips_parked_pair_index_for_order_by_edge_type(schema)
     """M16 corollary: an order_by-configured edge type must never get a
     ParkedPairIndex at all (Decisions §10 -- it uses a conditional SET
     instead), even though it is otherwise DLQ-enabled and streaming."""
-    from src.loader.dead_letter import DeadLetterRecordSink
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     dlq_schema = schema.model_copy(deep=True)
     edge_index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
@@ -1714,13 +1714,13 @@ def test_edge_loader_main_skips_parked_pair_index_for_order_by_edge_type(schema)
 
     consumer, driver, loader, dlq_producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader), \
-         patch("src.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
-         patch("src.loader.edge_loader.build_edge_execution") as build_exec, \
-         patch("src.loader.edge_loader.ParkedPairIndex") as index_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution") as build_exec, \
+         patch("neo4j_graph_loader.loader.edge_loader.ParkedPairIndex") as index_cls:
         build_exec.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--mode", "stream", "--max-messages", "1",
@@ -1735,8 +1735,8 @@ def test_edge_loader_main_skips_parked_pair_index_in_bulk_mode(schema) -> None:
 
     for an otherwise DLQ-enabled, non-order_by edge type -- bulk has no
     live retry consumer to protect against (Decisions §1)."""
-    from src.loader.dead_letter import DeadLetterRecordSink
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterRecordSink
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     dlq_schema = schema.model_copy(deep=True)
     edge_index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
@@ -1749,13 +1749,13 @@ def test_edge_loader_main_skips_parked_pair_index_in_bulk_mode(schema) -> None:
 
     consumer, driver, loader, dlq_producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader), \
-         patch("src.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
-         patch("src.loader.edge_loader.build_edge_execution") as build_exec, \
-         patch("src.loader.edge_loader.ParkedPairIndex") as index_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_malformed_record_sink", return_value=(real_sink, dlq_producer)), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution") as build_exec, \
+         patch("neo4j_graph_loader.loader.edge_loader.ParkedPairIndex") as index_cls:
         build_exec.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--mode", "bulk", "--max-messages", "1",
@@ -1771,11 +1771,11 @@ def test_edge_loader_main_rejection_sink_fallback_passes_no_missing_endpoint_sin
     MissingEndpointSink at all."""
     consumer, driver, loader = MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader), \
-         patch("src.loader.edge_loader.build_edge_execution") as build_exec:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader), \
+         patch("neo4j_graph_loader.loader.edge_loader.build_edge_execution") as build_exec:
         build_exec.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--max-messages", "1"]) == 0
 
@@ -1791,7 +1791,7 @@ def test_edge_loader_main_wires_dead_letter_sink_and_flushes_its_producer(schema
     fallback -- proving edge_config.dead_letter, run_id, entity_kind, and
     max_poll_interval_ms all actually reach main().
     """
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     dlq_schema = schema.model_copy(deep=True)
     edge_index = next(i for i, edge in enumerate(dlq_schema.edges) if edge.type == "WORKS_AT")
@@ -1801,12 +1801,12 @@ def test_edge_loader_main_wires_dead_letter_sink_and_flushes_its_producer(schema
 
     consumer, driver, loader, dlq_producer = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=dlq_schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls, \
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=dlq_schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls, \
          patch(
-             "src.loader.edge_loader.build_malformed_record_sink",
+             "neo4j_graph_loader.loader.edge_loader.build_malformed_record_sink",
              return_value=(MagicMock(), dlq_producer),
          ) as build_sink:
         assert edge_loader_main(["--edge-type", "WORKS_AT", "--max-messages", "1"]) == 0
@@ -1824,10 +1824,10 @@ def test_edge_loader_main_wires_dead_letter_sink_and_flushes_its_producer(schema
 def test_edge_loader_main_slot_gating_uses_distinct_coordination_consumer(schema) -> None:
     work_consumer, clock_consumer, driver, loader = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", side_effect=[work_consumer, clock_consumer]) as consumer_cls, \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", side_effect=[work_consumer, clock_consumer]) as consumer_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT",
             "--run-id", "run-42", "--replica-id", "2", "--max-messages", "1",
@@ -1847,9 +1847,9 @@ def test_edge_loader_main_slot_gating_uses_distinct_coordination_consumer(schema
 
 
 def test_edge_loader_main_rejects_self_reference_slot_fleet_before_kafka(schema) -> None:
-    with patch("src.loader.edge_loader.Consumer") as consumer_cls, \
-         patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls, \
-         patch("src.loader.edge_loader.load_schema", return_value=schema):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer") as consumer_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver") as driver_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema):
         assert edge_loader_main([
             "--edge-type", "KNOWS", "--slot-gating", "--coordination-topic", "graph.loader.coordination",
             "--fleet-edge-types", "KNOWS", "--run-id", "run-isolation",
@@ -1865,8 +1865,8 @@ def test_edge_loader_main_rejects_self_reference_slot_fleet_before_kafka(schema)
     ["--edge-type", "WORKS_AT", "--coordination-topic", "clock-topic"],
 ])
 def test_edge_loader_main_rejects_incomplete_slot_contract_before_resources(argv) -> None:
-    with patch("src.loader.edge_loader.Consumer") as consumer_cls, \
-         patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer") as consumer_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver") as driver_cls:
         with pytest.raises(SystemExit):
             edge_loader_main(argv)
     consumer_cls.assert_not_called()
@@ -1874,12 +1874,12 @@ def test_edge_loader_main_rejects_incomplete_slot_contract_before_resources(argv
 
 
 def test_edge_loader_main_rejects_equal_groups_before_resources(schema) -> None:
-    with patch.dict("src.loader.edge_loader.os.environ", {
+    with patch.dict("neo4j_graph_loader.loader.edge_loader.os.environ", {
         "KAFKA_GROUP_ID": "same-group", "KAFKA_COORDINATION_GROUP_ID": "same-group",
     }, clear=False), \
-         patch("src.loader.edge_loader.Consumer") as consumer_cls, \
-         patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls, \
-         patch("src.loader.edge_loader.load_schema", return_value=schema):
+         patch("neo4j_graph_loader.loader.edge_loader.Consumer") as consumer_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver") as driver_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema):
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1",
         ]) == 1
@@ -1890,13 +1890,13 @@ def test_edge_loader_main_rejects_equal_groups_before_resources(schema) -> None:
 def test_edge_loader_main_accepts_distinct_coordination_group_override(schema) -> None:
     work, clock, driver, loader = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch.dict("src.loader.edge_loader.os.environ", {
+    with patch.dict("neo4j_graph_loader.loader.edge_loader.os.environ", {
         "KAFKA_GROUP_ID": "work-override", "KAFKA_COORDINATION_GROUP_ID": "clock-override",
     }, clear=False), \
-         patch("src.loader.edge_loader.Consumer", side_effect=[work, clock]) as consumer_cls, \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
+         patch("neo4j_graph_loader.loader.edge_loader.Consumer", side_effect=[work, clock]) as consumer_cls, \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader):
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1",
         ]) == 0
@@ -1905,9 +1905,9 @@ def test_edge_loader_main_accepts_distinct_coordination_group_override(schema) -
 
 def test_edge_loader_main_coordination_construction_failure_closes_work_consumer(schema) -> None:
     work = MagicMock()
-    with patch("src.loader.edge_loader.Consumer", side_effect=[work, RuntimeError("clock unavailable")]), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", side_effect=[work, RuntimeError("clock unavailable")]), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver") as driver_cls:
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1",
         ]) == 1
@@ -1919,9 +1919,9 @@ def test_edge_loader_main_coordination_construction_failure_closes_work_consumer
 def test_edge_loader_main_coordination_subscription_failure_closes_both_consumers(schema) -> None:
     work, clock = MagicMock(), MagicMock()
     clock.subscribe.side_effect = RuntimeError("cannot subscribe")
-    with patch("src.loader.edge_loader.Consumer", side_effect=[work, clock]), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.get_neo4j_driver") as driver_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", side_effect=[work, clock]), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver") as driver_cls:
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1",
         ]) == 1
@@ -1937,10 +1937,10 @@ def test_edge_loader_main_close_failures_are_attributed_and_finish_cleanup(schem
     clock.close.side_effect = RuntimeError("clock close")
     work.close.side_effect = RuntimeError("work close")
     driver.close.side_effect = RuntimeError("driver close")
-    with patch("src.loader.edge_loader.Consumer", side_effect=[work, clock]), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", side_effect=[work, clock]), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader):
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1", "--replica-id", "7",
         ]) == 1
@@ -1967,10 +1967,10 @@ def test_edge_loader_main_keeps_sigterm_handler_even_when_close_fails(schema) ->
     loader.run.return_value = 0
     work.close.side_effect = RuntimeError("work close")
 
-    with patch("src.loader.edge_loader.Consumer", side_effect=[work, clock]), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader):
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", side_effect=[work, clock]), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader):
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--slot-gating", "--coordination-topic", "graph.loader.coordination", "--fleet-edge-types", "WORKS_AT", "--run-id", "run-1", "--replica-id", "7",
         ]) == 1
@@ -2138,11 +2138,11 @@ def test_edge_stream_mode_has_no_control_producer_side_effects(works_at) -> None
 def test_edge_loader_main_bulk_passes_and_flushes_control_producer(schema) -> None:
     consumer, producer, driver, loader = MagicMock(), _control_producer(), MagicMock(), MagicMock()
     loader.run.return_value = 0
-    with patch("src.loader.edge_loader.Consumer", return_value=consumer), \
-         patch("src.loader.edge_loader.Producer", return_value=producer), \
-         patch("src.loader.edge_loader.get_neo4j_driver", return_value=driver), \
-         patch("src.loader.edge_loader.load_schema", return_value=schema), \
-         patch("src.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
+    with patch("neo4j_graph_loader.loader.edge_loader.Consumer", return_value=consumer), \
+         patch("neo4j_graph_loader.loader.edge_loader.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.loader.edge_loader.get_neo4j_driver", return_value=driver), \
+         patch("neo4j_graph_loader.loader.edge_loader.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.edge_loader.EdgeLoader", return_value=loader) as loader_cls:
         assert edge_loader_main([
             "--edge-type", "WORKS_AT", "--mode", "bulk", "--run-id", "run-9", "--replica-id", "2"
         ]) == 0
@@ -2259,8 +2259,8 @@ def _row_level_loader(works_at, tx_run_side_effect, *, sink=None):
     """A real EdgeLoader wired through a real LaneExecutionCoordinator and a
     real ApocLockedEdgeWriter with row-level DLQ enabled, against a fake
     Neo4j driver whose transaction.run() replays tx_run_side_effect in order."""
-    from src.loader.edge_execution import ApocLockedEdgeWriter, LaneExecutionCoordinator
-    from src.loader.mix_and_batch import LaneBatcher, MixAndBatchPartitioner
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter, LaneExecutionCoordinator
+    from neo4j_graph_loader.loader.mix_and_batch import LaneBatcher, MixAndBatchPartitioner
 
     driver = MagicMock()
     session = driver.session.return_value.__enter__.return_value
@@ -2312,7 +2312,7 @@ def test_story6_dlq_produce_failure_resolves_no_offsets_then_succeeds_on_replay(
     identical attempt (simulating Kafka replay) with a non-failing
     producer succeeds and resolves all three -- idempotent MERGE makes
     replaying the already-written rows safe."""
-    from src.loader.dead_letter import DeadLetterPublishError
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterPublishError
 
     failing_sink = MagicMock()
     failing_sink.route_unresolved_endpoint.side_effect = DeadLetterPublishError("broker unreachable")
@@ -2395,8 +2395,8 @@ def _lease_backed_loader(works_at, tx_run_side_effect, *, sink=None, ping_result
     (streaming's default path, routes_records=True -- bypasses partitioner/
     lane_batcher entirely) and a real row-level ApocLockedEdgeWriter, against
     a fake Neo4j driver and a fake (always-granting) lease client."""
-    from src.loader.edge_execution import ApocLockedEdgeWriter, BucketLeaseExecutionCoordinator
-    from src.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter, BucketLeaseExecutionCoordinator
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
 
     driver = MagicMock()
     session = driver.session.return_value.__enter__.return_value
@@ -2432,7 +2432,7 @@ def test_story6_lease_loss_mid_transaction_resolves_no_offsets_and_never_touches
     resolve, nothing commits, the sink is never invoked, and (since
     on_dlq_routed only ever fires from inside DeadLetterProducer.publish)
     the underlying Kafka producer's produce() is never called either."""
-    from src.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
+    from neo4j_graph_loader.loader.dead_letter import DeadLetterProducer, DeadLetterRecordSink
 
     kafka_producer = MagicMock()
     sink = DeadLetterRecordSink(
@@ -2540,7 +2540,7 @@ def test_f1_stopping_loader_with_unobtainable_lease_abandons_batch_exits_zero_co
 
 def test_f1_gated_worker_path_abandons_drain_exits_zero_commits_nothing(works_at) -> None:
     """Slot-gated _worker_loop -> DRAIN_ABANDONED -> _resolve_worker_result -> exit 0."""
-    from src.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
 
     consumer, writer, coordinator, partitioner, batcher = MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
     consumer.poll.return_value = _message(_payload(), offset=3)
@@ -2557,7 +2557,7 @@ def test_f1_gated_worker_path_abandons_drain_exits_zero_commits_nothing(works_at
 
 
 def test_f1_worker_loop_reports_drain_abandoned_outcome(works_at) -> None:
-    from src.loader.edge_execution import LeaseDrainAbandoned
+    from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
 
     consumer, writer, coordinator, partitioner, batcher = MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
     pending = PendingEdgeRecord(_record(), "works-at-events", 0, 3)
@@ -2580,7 +2580,7 @@ def test_f1_partial_flush_with_one_abandoned_cell_commits_no_offsets(works_at, c
     """Some cells written, one cell's lease unobtainable: the whole batch stays
     uncommitted (replayed later), the loader still exits 0."""
     import logging
-    from src.loader.lease_client import BucketCellRouter
+    from neo4j_graph_loader.loader.lease_client import BucketCellRouter
 
     router = BucketCellRouter(works_at.nodes.source, works_at.nodes.target, 8)
     cells = {}

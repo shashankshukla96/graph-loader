@@ -6,18 +6,18 @@ this script must run from a worktree where P6-S2's own ``src/`` changes are
 mid-flight or not yet merged, so it never imports ``src`` and never
 requires ``prometheus_client`` to be installed. Because of that, the
 metric-name catalogue below is a **hardcoded copy** of
-``src/utils/metrics.py``'s ``EXPECTED_METRIC_FAMILIES`` (plus each family's
+``src/neo4j_graph_loader/utils/metrics.py``'s ``EXPECTED_METRIC_FAMILIES`` (plus each family's
 Prometheus metric *type*, needed to know which suffixed name(s) are
 actually queryable — see ``FAMILY_TYPES`` below) — the same reasoning that
 module gives for duplicating (rather than importing)
-``src.loader.dead_letter.FAILURE_CLASSES``. If P6-S2 renames, retypes or
+``neo4j_graph_loader.loader.dead_letter.FAILURE_CLASSES``. If P6-S2 renames, retypes or
 adds a metric, update this copy in the same pass that updates the
 monitoring config files that reference it (plan/v6/slice-3/stories.md's
 cross-cutting note: "do not merge this slice's Stories 1/2/4 against a
 stale reading of the catalogue"). ``tests/test_validate_monitoring.py``
 compares this copy against the real module whenever it is importable, so
 drift is caught automatically once P6-S2 merges (it skips cleanly today,
-since ``src/utils/metrics.py`` does not exist yet on this branch).
+since ``src/neo4j_graph_loader/utils/metrics.py`` does not exist yet on this branch).
 
 Checks:
   1. Every ``*.json`` under ``monitoring/grafana/dashboards/`` is valid
@@ -55,7 +55,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DASHBOARDS_DIR = REPO_ROOT / "monitoring" / "grafana" / "dashboards"
 ALERTS_GLOB = str(REPO_ROOT / "monitoring" / "prometheus" / "alerts" / "*.yml")
 
-# Hardcoded copy of feat/p6-s2-metrics:src/utils/metrics.py's
+# Hardcoded copy of feat/p6-s2-metrics:src/neo4j_graph_loader/utils/metrics.py's
 # EXPECTED_METRIC_FAMILIES (22 series as of P6-S2, 23 after P5-S4 Story 7
 # adds graph_loader_dlq_backlog per the P5-Q4 follow-up, 24 with P5-S4 round (25 with v7-S4 graph_loader_parked_pair_index_wait_seconds, 26 with the stream outage gauge graph_loader_write_outage_seconds)
 # 4's graph_loader_retry_stalled_seconds), paired with each

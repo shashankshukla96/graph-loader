@@ -14,3 +14,8 @@ venv/
 !/var/rejections/
 /var/rejections/*
 !/var/rejections/.gitkeep
+
+# Local service credentials. Keep the public example tracked.
+.env
+.env.*
+!.env.example

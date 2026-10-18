@@ -1,11 +1,12 @@
-# Runtime dependencies for the CLI and loader containers (Python 3.12).
+# Generated from pyproject.toml [project].dependencies; do not edit.
+# Regenerate: python scripts/sync_requirements.py
+# Check: python scripts/sync_requirements.py --check
+# neo4j-rust-ext selects its exactly matching driver; both remain below driver 7.
 neo4j>=5.20,<7
 confluent-kafka>=2.5,<3
 pydantic>=2.7,<3
 PyYAML>=6.0,<7
 docker>=7.1.0,<8
-# The extension selects an exactly matching Neo4j driver version.
-# Keep both dependencies below driver 7: transaction fencing relies on <7.
 neo4j-rust-ext>=5.20,<7
 numpy>=1.26,<3
 prometheus-client>=0.20,<1

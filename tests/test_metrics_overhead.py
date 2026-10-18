@@ -18,8 +18,8 @@ from unittest.mock import MagicMock
 import pytest
 from prometheus_client import CollectorRegistry
 
-from src.utils import metrics as metrics_module
-from src.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.utils import metrics as metrics_module
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
 N_CALLS = 20_000
 
@@ -97,8 +97,8 @@ def test_node_loader_metrics_calls_scale_with_batches_not_records():
     R*B (one per record). This is the test that would actually catch a
     future .observe()/.inc() call accidentally moved inside a per-record
     loop."""
-    from src.loader.node_loader import NodeLoader, NodeRecord, PendingRecord
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.loader.node_loader import NodeLoader, NodeRecord, PendingRecord
+    from neo4j_graph_loader.utils.schema_loader import load_schema
     from pathlib import Path
 
     schema = load_schema(Path(__file__).resolve().parent.parent / "config" / "graph_schema.yaml")
@@ -133,8 +133,8 @@ def test_edge_loader_metrics_calls_scale_with_batches_not_records():
     populated the normal way."""
     import json
     from confluent_kafka import TopicPartition
-    from src.loader.edge_loader import EdgeLoader
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.loader.edge_loader import EdgeLoader
+    from neo4j_graph_loader.utils.schema_loader import load_schema
     from pathlib import Path
 
     schema = load_schema(Path(__file__).resolve().parent.parent / "config" / "graph_schema.yaml")
@@ -182,9 +182,9 @@ def test_apoc_locked_edge_writer_deadlock_metric_never_scales_with_row_count():
     deadlock, never the number of rows in them."""
     from unittest.mock import MagicMock as _MM
     from neo4j.exceptions import TransientError
-    from src.loader.edge_execution import ApocLockedEdgeWriter
-    from src.loader.edge_loader import MissingRelationshipEndpointError
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+    from neo4j_graph_loader.loader.edge_loader import MissingRelationshipEndpointError
+    from neo4j_graph_loader.utils.schema_loader import load_schema
     from pathlib import Path
 
     schema = load_schema(Path(__file__).resolve().parent.parent / "config" / "graph_schema.yaml")

@@ -11,10 +11,10 @@ import json
 
 import pytest
 
-from src.loader.edge_execution import ApocLockedEdgeWriter
-from src.loader.edge_loader import MissingRelationshipEndpointError
-from src.loader.edge_plan import decode_chunk_message
-from src.loader.planned_writer import compile_record_normalizer
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+from neo4j_graph_loader.loader.edge_loader import MissingRelationshipEndpointError
+from neo4j_graph_loader.loader.edge_plan import decode_chunk_message
+from neo4j_graph_loader.loader.planned_writer import compile_record_normalizer
 from test_edge_planner import FakeCluster
 from test_planned_multi_topic import friend, multi_edge, plan_kafka, publish_topic
 

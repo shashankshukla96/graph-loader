@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 
 from examples.imdb.publish_and_load_nodes import EDGE_SOURCES, NODE_SOURCES, SCHEMA_PATH
 from examples.imdb.planned_edges import DEFAULT_PLAN_TOPIC
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 parser = argparse.ArgumentParser(description="Clear only IMDb Kafka inputs and node consumer groups")
 parser.add_argument("--dry-run", action="store_true", help="show what would be deleted")

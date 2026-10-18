@@ -11,7 +11,7 @@ import dataclasses
 import json
 import logging
 
-from src.loader.retry_consumer import RETRY_OUTCOME_WRITTEN, RetryConsumer
+from neo4j_graph_loader.loader.retry_consumer import RETRY_OUTCOME_WRITTEN, RetryConsumer
 from tests.test_retry_consumer import _OOM, _Clock, _envelope, _FakeConsumer, _RepublishingSink, _run
 
 PAIRS = {"posts": ("Person", "Post"), "comments": ("Person", "Comment")}

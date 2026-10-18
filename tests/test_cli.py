@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from src.cli import (
+from neo4j_graph_loader.cli import (
     _derive_relationship_phase_run_id,
     _run_isolated_relationship_bulk_phase,
     _run_isolated_relationship_stream_phase,
@@ -29,10 +29,10 @@ from src.cli import (
     handle_stop,
     main,
 )
-from src.models.schema import DeadLetterConfig
-from src.orchestrator.dependency_manager import RelationshipConflictPlan, RelationshipStage
-from src.orchestrator.schema_initializer import SchemaInitializationError
-from src.orchestrator.bulk_monitor import LoaderCrashError
+from neo4j_graph_loader.models.schema import DeadLetterConfig
+from neo4j_graph_loader.orchestrator.dependency_manager import RelationshipConflictPlan, RelationshipStage
+from neo4j_graph_loader.orchestrator.schema_initializer import SchemaInitializationError
+from neo4j_graph_loader.orchestrator.bulk_monitor import LoaderCrashError
 
 
 def test_parser_start_valid():
@@ -70,7 +70,7 @@ def test_parser_status():
     assert args.config == "custom.yaml"
 
 
-@patch("src.cli.handle_start")
+@patch("neo4j_graph_loader.cli.handle_start")
 def test_main_routes_to_start_handler(mock_handle_start):
     mock_handle_start.return_value = 0
     exit_code = main(["start", "--mode", "stream"])
@@ -80,7 +80,7 @@ def test_main_routes_to_start_handler(mock_handle_start):
     assert args.mode == "stream"
 
 
-@patch("src.cli.handle_stop")
+@patch("neo4j_graph_loader.cli.handle_stop")
 def test_main_routes_to_stop_handler(mock_handle_stop):
     mock_handle_stop.return_value = 0
     exit_code = main(["stop"])
@@ -88,7 +88,7 @@ def test_main_routes_to_stop_handler(mock_handle_stop):
     mock_handle_stop.assert_called_once()
 
 
-@patch("src.cli.handle_status")
+@patch("neo4j_graph_loader.cli.handle_status")
 def test_main_routes_to_status_handler(mock_handle_status):
     mock_handle_status.return_value = 0
     exit_code = main(["status"])
@@ -96,7 +96,7 @@ def test_main_routes_to_status_handler(mock_handle_status):
     mock_handle_status.assert_called_once()
 
 
-@patch("src.cli.DockerService")
+@patch("neo4j_graph_loader.cli.DockerService")
 def test_handle_stop_stub(mock_docker):
     args = argparse.Namespace(loader=None)
     mock_docker_instance = MagicMock()
@@ -105,7 +105,7 @@ def test_handle_stop_stub(mock_docker):
     mock_docker_instance.stop_node_loaders.assert_called_once_with(node_label=None)
 
 
-@patch("src.cli.DockerService")
+@patch("neo4j_graph_loader.cli.DockerService")
 def test_handle_status_stub(mock_docker):
     args = argparse.Namespace(config="config/graph_schema.yaml")
     mock_docker_instance = MagicMock()
@@ -127,8 +127,8 @@ def test_neo4j_username_uses_legacy_fallback(monkeypatch):
     assert get_neo4j_credentials()[1] == "legacy"
 
 
-@patch("src.cli.RelationshipBulkMonitor")
-@patch("src.cli.build_relationship_conflict_plan")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.build_relationship_conflict_plan")
 def test_relationship_stage_failure_blocks_later_stage(mock_plan, monitor_cls):
     works = SimpleNamespace(type="WORKS_AT", topic="works", topics=["works"], dead_letter_entity="works", is_multi_topic=False, replicas=1)
     bought = SimpleNamespace(type="BOUGHT", topic="bought", topics=["bought"], dead_letter_entity="bought", is_multi_topic=False, replicas=1)
@@ -147,8 +147,8 @@ def test_relationship_stage_failure_blocks_later_stage(mock_plan, monitor_cls):
     monitor.close.assert_called_once()
 
 
-@patch("src.cli.RelationshipBulkMonitor")
-@patch("src.cli.build_relationship_conflict_plan")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.build_relationship_conflict_plan")
 def test_relationship_independent_stage_launches_every_type_with_exact_scope(mock_plan, monitor_cls):
     first = SimpleNamespace(type="VISITED", topic="visits", topics=["visits"], dead_letter_entity="visits", is_multi_topic=False, replicas=1)
     second = SimpleNamespace(type="SUPPLIES", topic="supplies", topics=["supplies"], dead_letter_entity="supplies", is_multi_topic=False, replicas=1)
@@ -167,8 +167,8 @@ def test_relationship_independent_stage_launches_every_type_with_exact_scope(moc
     monitor.close.assert_called_once()
 
 
-@patch("src.cli.RelationshipBulkMonitor")
-@patch("src.cli.build_relationship_conflict_plan")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.build_relationship_conflict_plan")
 def test_relationship_duplicate_returned_container_is_rejected_and_stopped(mock_plan, monitor_cls):
     edge = SimpleNamespace(type="WORKS_AT", topic="works", topics=["works"], dead_letter_entity="works", is_multi_topic=False, replicas=2)
     schema = SimpleNamespace(edges=[edge], loading=SimpleNamespace(consumer_group_id="loader"))
@@ -181,8 +181,8 @@ def test_relationship_duplicate_returned_container_is_rejected_and_stopped(mock_
     assert container.stop.call_count >= 1
 
 
-@patch("src.cli.RelationshipBulkMonitor")
-@patch("src.cli.build_relationship_conflict_plan")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.build_relationship_conflict_plan")
 def test_relationship_second_conflict_stage_waits_for_first_zero_lag(mock_plan, monitor_cls):
     first = SimpleNamespace(type="WORKS_AT", topic="works", topics=["works"], dead_letter_entity="works", is_multi_topic=False, replicas=1)
     second = SimpleNamespace(type="BOUGHT", topic="bought", topics=["bought"], dead_letter_entity="bought", is_multi_topic=False, replicas=1)
@@ -210,7 +210,7 @@ def _rotating_edge(edge_type, topic, source, target, replicas=1):
     )
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_isolated_bulk_phase_uses_exact_clock_free_finite_lifecycle(monitor_cls, tmp_path, monkeypatch):
     monkeypatch.setenv("GRAPH_LOADER_TIMING_DIR", str(tmp_path))
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person", replicas=2)
@@ -250,7 +250,7 @@ def test_isolated_bulk_phase_uses_exact_clock_free_finite_lifecycle(monitor_cls,
     assert timing["elapsed_seconds"] >= 0
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_isolated_bulk_phase_rejects_duplicate_response_and_stops_only_returned(monitor_cls, caplog):
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person", replicas=2)
     duplicated = MagicMock()
@@ -269,7 +269,7 @@ def test_isolated_bulk_phase_rejects_duplicate_response_and_stops_only_returned(
     docker.run_global_batch_clock.assert_not_called()
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_isolated_bulk_phase_monitor_failure_stops_exact_loader_and_closes_monitor(monitor_cls, caplog):
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
     container = MagicMock()
@@ -291,7 +291,7 @@ def test_isolated_bulk_phase_monitor_failure_stops_exact_loader_and_closes_monit
     docker.run_global_batch_clock.assert_not_called()
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_isolated_bulk_phase_drain_failure_names_exact_replica_and_stops_no_unrelated_container(monitor_cls, caplog):
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
     container, unrelated = MagicMock(), MagicMock()
@@ -365,8 +365,8 @@ def test_relationship_phase_run_ids_are_deterministic_bounded_and_distinct():
     assert first != _derive_relationship_phase_run_id(parent, phase_kind="shared", phase_index=0, edge_type="shared")
 
 
-@patch("src.cli._run_isolated_relationship_bulk_phase")
-@patch("src.cli._run_completion_driven_bulk_edges")
+@patch("neo4j_graph_loader.cli._run_isolated_relationship_bulk_phase")
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges")
 def test_bulk_orchestration_runs_shared_before_each_isolated_phase(shared_fleet, isolated_phase):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
@@ -385,8 +385,8 @@ def test_bulk_orchestration_runs_shared_before_each_isolated_phase(shared_fleet,
     assert isolated_phase.call_args.kwargs["run_id"] != shared_fleet.call_args.kwargs["parent_run_id"]
 
 
-@patch("src.cli._run_isolated_relationship_bulk_phase")
-@patch("src.cli._run_completion_driven_bulk_edges")
+@patch("neo4j_graph_loader.cli._run_isolated_relationship_bulk_phase")
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges")
 def test_bulk_orchestration_shared_failure_blocks_isolated_with_full_phase_attribution(shared_fleet, isolated_phase, caplog):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
@@ -400,7 +400,7 @@ def test_bulk_orchestration_shared_failure_blocks_isolated_with_full_phase_attri
     assert "parent_run_id=parent-run shared relationship phase failed" in caplog.text
 
 
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_bulk_scheduler_starts_next_conflict_as_soon_as_labels_are_released(run_edge):
     first = _rotating_edge("A", "a", "Person", "Title")
     blocked = _rotating_edge("B", "b", "Person", "Genre")
@@ -436,7 +436,7 @@ def test_bulk_scheduler_starts_next_conflict_as_soon_as_labels_are_released(run_
     assert result == [0]
 
 
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_bulk_scheduler_failure_blocks_conflicting_pending_edge(run_edge):
     first = _rotating_edge("A", "a", "Person", "Title")
     blocked = _rotating_edge("B", "b", "Person", "Genre")
@@ -450,7 +450,7 @@ def test_bulk_scheduler_failure_blocks_conflicting_pending_edge(run_edge):
     assert [call.args[0].type for call in run_edge.call_args_list] == ["A"]
 
 
-@patch("src.cli._run_bulk_relationship_edge", return_value=0)
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge", return_value=0)
 def test_bulk_scheduler_records_each_edge_lifecycle(run_edge, tmp_path, monkeypatch):
     monkeypatch.setenv("GRAPH_LOADER_TIMING_DIR", str(tmp_path))
     edge = _rotating_edge("WORKS_AT", "works", "Person", "Company")
@@ -468,7 +468,7 @@ def test_bulk_scheduler_records_each_edge_lifecycle(run_edge, tmp_path, monkeypa
     assert timing["started_utc"] <= timing["completed_utc"]
 
 
-@patch("src.cli._run_bulk_relationship_edge", return_value=0)
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge", return_value=0)
 def test_bulk_scheduler_waits_for_both_node_labels(run_edge):
     edge = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     ready: set[str] = set()
@@ -543,7 +543,7 @@ def test_parser_bulk_edge_overlap_defaults_and_choices(capsys):
             build_parser().parse_args(["start", "--mode", "bulk", *bad])
 
 
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_bulk_scheduler_shared_overlap_starts_conflicting_types_concurrently(run_edge):
     edges = (
         _rotating_edge("A", "a", "Person", "Title"),
@@ -558,7 +558,7 @@ def test_bulk_scheduler_shared_overlap_starts_conflicting_types_concurrently(run
     assert result == [0]
 
 
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_bulk_scheduler_labels_overlap_explicitly_still_serializes_conflicts(run_edge):
     edges = (_rotating_edge("A", "a", "Person", "Title"), _rotating_edge("B", "b", "Person", "Genre"))
     thread, started, release, result = _gated_scheduler(run_edge, edges, _bulk_args(bulk_edge_overlap="labels"))
@@ -572,7 +572,7 @@ def test_bulk_scheduler_labels_overlap_explicitly_still_serializes_conflicts(run
     assert result == [0]
 
 
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_bulk_scheduler_cap_bounds_running_types_and_prefers_heavier_edges(run_edge):
     edges = tuple(_rotating_edge(name, name.lower(), "Person", "Title") for name in ("A", "B", "C", "D"))
     thread, started, release, result = _gated_scheduler(
@@ -593,7 +593,7 @@ def test_bulk_scheduler_cap_bounds_running_types_and_prefers_heavier_edges(run_e
     assert [call.args[0].type for call in run_edge.call_args_list] == ["C", "D", "A", "B"]
 
 
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_bulk_scheduler_shared_overlap_still_waits_for_endpoint_labels(run_edge):
     edges = (_rotating_edge("A", "a", "Person", "Title"), _rotating_edge("B", "b", "Person", "Genre"))
     ready: set[str] = {"Person", "Title"}
@@ -615,8 +615,8 @@ def test_bulk_scheduler_shared_overlap_still_waits_for_endpoint_labels(run_edge)
     assert result == [0]
 
 
-@patch("src.cli._stop_exact_containers", return_value=[])
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._stop_exact_containers", return_value=[])
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_bulk_scheduler_shared_overlap_failure_cancels_running_and_pending(run_edge, stop):
     edges = (
         _rotating_edge("A", "a", "Person", "Title"),
@@ -649,7 +649,7 @@ def test_bulk_scheduler_shared_overlap_failure_cancels_running_and_pending(run_e
 @pytest.mark.parametrize("overrides", [
     {"bulk_edge_overlap": "none"}, {"max_concurrent_bulk_edges": -1}, {"max_concurrent_bulk_edges": True},
 ])
-@patch("src.cli._run_bulk_relationship_edge", return_value=0)
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge", return_value=0)
 def test_bulk_scheduler_rejects_invalid_overlap_policy_before_launch(run_edge, overrides):
     assert _run_completion_driven_bulk_edges(
         (_rotating_edge("A", "a", "Person", "Title"),), MagicMock(), _bulk_args(**overrides),
@@ -658,7 +658,7 @@ def test_bulk_scheduler_rejects_invalid_overlap_policy_before_launch(run_edge, o
     run_edge.assert_not_called()
 
 
-@patch("src.cli._run_isolated_relationship_stream_phase")
+@patch("neo4j_graph_loader.cli._run_isolated_relationship_stream_phase")
 def test_stream_orchestration_allows_one_isolated_edge_without_shared_clock(isolated_stream):
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
     schema = SimpleNamespace(edges=[knows], loading=SimpleNamespace(consumer_group_id="loader"))
@@ -673,8 +673,8 @@ def test_stream_orchestration_allows_one_isolated_edge_without_shared_clock(isol
     docker.run_global_batch_clock.assert_not_called()
 
 
-@patch("src.cli.signal.signal", return_value=object())
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.signal.signal", return_value=object())
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_isolated_stream_phase_uses_no_slot_clock_free_nonterminal_supervision(monitor_cls, _signal):
     knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
     container, unrelated = MagicMock(), MagicMock()
@@ -734,11 +734,11 @@ def test_selected_rotating_fleet_rejects_self_reference_before_docker_launch():
     docker.run_global_batch_clock.assert_not_called()
 
 
-@patch("src.cli._run_lease_relationship_fleet")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_lease_relationship_fleet")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_stream_generates_relationship_parent_run_id_when_omitted(
     mock_load, mock_driver_factory, mock_apply_schema, mock_docker, lease_fleet,
 ):
@@ -760,7 +760,7 @@ def test_handle_start_stream_generates_relationship_parent_run_id_when_omitted(
     assert lease_fleet.call_args.args[:3] == (mock_load.return_value, mock_docker.return_value, args)
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_rotating_fleet_launches_every_eligible_type_before_clock_and_monitor(monitor_cls):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     bought = _rotating_edge("BOUGHT", "bought", "Person", "Product", replicas=2)
@@ -803,7 +803,7 @@ def test_rotating_fleet_launches_every_eligible_type_before_clock_and_monitor(mo
     assert clock.stop.call_count >= 1
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_rotating_fleet_clock_launch_failure_does_not_launch_edges(monitor_cls):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     schema = SimpleNamespace(
@@ -880,7 +880,7 @@ def test_rotating_fleet_generic_clock_launch_failure_names_clock_stage_and_run(c
     assert "reason=launch failed: clock unavailable" in caplog.text
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_rotating_fleet_cleanup_failure_names_exact_edge_and_replica(monitor_cls, caplog):
     class FailingEdgeContainer:
         name = "opaque-container"
@@ -913,8 +913,8 @@ def test_rotating_fleet_cleanup_failure_names_exact_edge_and_replica(monitor_cls
     assert "edge=WORKS_AT replica=0: stop denied" in caplog.text
 
 
-@patch("src.cli.signal.signal", return_value=object())
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.signal.signal", return_value=object())
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_stream_fleet_supervises_without_bulk_completion_or_zero_lag(monitor_cls, _signal):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     schema = SimpleNamespace(
@@ -957,7 +957,7 @@ def _lease_fleet_schema(edges):
     )
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_lease_fleet_launches_every_type_including_self_reference_concurrently(monitor_cls):
     """AC: a mix of a conflicting-label type, a non-conflicting type, and a
     self-referencing type, run with --mode stream and no extra flags,
@@ -1011,7 +1011,7 @@ def _rotating_edge_with_dead_letter(edge_type, topic, source, target, dead_lette
     )
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_lease_fleet_launches_retry_consumer_after_lease_server_before_edge_loaders(monitor_cls):
     """A schema with at least one DLQ-and-retry-enabled edge type launches
     exactly one retry-consumer replica (Decisions §4's launch order: lease
@@ -1053,13 +1053,13 @@ def test_lease_fleet_launches_retry_consumer_after_lease_server_before_edge_load
     assert retry.stop.call_count >= 1  # stopped in the shutdown pass
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_lease_fleet_supervises_retry_consumers_and_a_retry_crash_stops_the_fleet_rc_1(monitor_cls, caplog):
     """Owner decision D2: the retry containers are handed to stream
     supervision; when supervision reports one exited, every container the
     fleet started is stopped and the run returns 1 with a stage= ERROR naming
     the retry consumer."""
-    from src.orchestrator.bulk_monitor import LoaderCrashError
+    from neo4j_graph_loader.orchestrator.bulk_monitor import LoaderCrashError
 
     works = _rotating_edge_with_dead_letter(
         "WORKS_AT", "works", "Person", "Company", DeadLetterConfig(enabled=True),
@@ -1089,7 +1089,7 @@ def test_lease_fleet_supervises_retry_consumers_and_a_retry_crash_stops_the_flee
     assert "stage=retry-consumer run_id=run-lease replica=0 retry consumer exited" in caplog.text
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_lease_fleet_launches_zero_retry_consumers_when_no_edge_type_has_dlq_enabled(monitor_cls):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     schema = _lease_fleet_schema([works])
@@ -1132,7 +1132,7 @@ def test_lease_fleet_stops_edges_before_the_current_lease_server(monkeypatch):
         config="config.yaml", network="test-net", lease_buckets=16,
         lease_outer_batch_size=32_000, lease_keyed_max_nodes=1_000,
     )
-    with patch("src.cli.RelationshipBulkMonitor") as monitor_cls:
+    with patch("neo4j_graph_loader.cli.RelationshipBulkMonitor") as monitor_cls:
         monitor = MagicMock(); monitor_cls.return_value = monitor
         # The supervisor relaunched the lease server during the run -- the
         # object shutdown must target is the *current* one, not the
@@ -1169,7 +1169,7 @@ def test_lease_fleet_rejects_edge_leases_flag_combined_with_stream():
     it from the new leases-by-default streaming path."""
     schema = _lease_fleet_schema([_rotating_edge("WORKS_AT", "works", "Person", "Company")])
     args = argparse.Namespace(mode="stream", edge_leases=True)
-    from src.cli import _validate_edge_lease_settings
+    from neo4j_graph_loader.cli import _validate_edge_lease_settings
 
     with pytest.raises(ValueError, match="--edge-leases requires --mode bulk"):
         _validate_edge_lease_settings(schema, args)
@@ -1179,12 +1179,12 @@ def test_stream_clock_rotation_deprecated_flag_uses_old_dispatch(caplog):
     """AC regression pin: --mode stream --stream-clock-rotation reproduces
     today's dispatch (through _run_relationship_orchestration), byte for
     byte, logging the deprecation exactly once."""
-    with patch("src.cli._run_relationship_orchestration", return_value=0) as orchestration, \
-         patch("src.cli._run_lease_relationship_fleet") as lease_fleet, \
-         patch("src.cli.DockerService") as mock_docker, \
-         patch("src.cli.apply_schema"), \
-         patch("src.cli.get_neo4j_driver") as mock_driver, \
-         patch("src.cli.load_schema") as mock_load:
+    with patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0) as orchestration, \
+         patch("neo4j_graph_loader.cli._run_lease_relationship_fleet") as lease_fleet, \
+         patch("neo4j_graph_loader.cli.DockerService") as mock_docker, \
+         patch("neo4j_graph_loader.cli.apply_schema"), \
+         patch("neo4j_graph_loader.cli.get_neo4j_driver") as mock_driver, \
+         patch("neo4j_graph_loader.cli.load_schema") as mock_load:
         knows = _rotating_edge("KNOWS", "knows", "Person", "Person")
         mock_load.return_value = SimpleNamespace(nodes=(), edges=[knows])
         mock_driver.return_value = MagicMock()
@@ -1203,9 +1203,9 @@ def test_stream_clock_rotation_deprecated_flag_uses_old_dispatch(caplog):
         assert len(deprecation_lines) == 1
 
 
-@patch("src.cli.DockerService")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_invalid_run_id_rejects_before_docker_launch(mock_load, mock_driver, mock_docker):
     mock_load.return_value = SimpleNamespace(nodes=(), edges=())
     args = argparse.Namespace(mode="stream", config="config.yaml", network="test-net", run_id="not valid!", skip_image_build=True)
@@ -1215,8 +1215,8 @@ def test_handle_start_invalid_run_id_rejects_before_docker_launch(mock_load, moc
     mock_driver.assert_not_called()
 
 
-@patch("src.cli.signal.signal", return_value=object())
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.signal.signal", return_value=object())
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_stream_supervisor_failure_stops_exact_clock_before_edge(monitor_cls, _signal):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     schema = SimpleNamespace(
@@ -1241,10 +1241,10 @@ def test_stream_supervisor_failure_stops_exact_clock_before_edge(monitor_cls, _s
     assert events[:2] == ["clock", "edge"]
 
 
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_success(mock_load, mock_get_driver, mock_apply_schema, mock_docker):
     args = argparse.Namespace(mode="stream", config="config.yaml", network="test_net")
     mock_driver = MagicMock()
@@ -1296,10 +1296,10 @@ def _stream_two_label_schema():
 
 
 @pytest.mark.parametrize("fleet_result", [0, 1])
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_stream_relationship_stop_stops_node_containers_whatever_the_result(
     mock_load, mock_get_driver, mock_apply_schema, mock_docker, fleet_result,
 ):
@@ -1316,7 +1316,7 @@ def test_stream_relationship_stop_stops_node_containers_whatever_the_result(
     mock_docker.return_value = docker
     args = argparse.Namespace(mode="stream", config="config.yaml", network="test-net")
 
-    with patch("src.cli._run_lease_relationship_fleet", return_value=fleet_result):
+    with patch("neo4j_graph_loader.cli._run_lease_relationship_fleet", return_value=fleet_result):
         assert handle_start(args) == fleet_result
     person_container.stop.assert_called_once()
     company_container.stop.assert_called_once()
@@ -1341,10 +1341,10 @@ def _assert_port_closed(port: int) -> None:
             pass
 
 
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_stream_leaves_cli_metrics_port_closed_after_return(
     mock_load, mock_get_driver, mock_apply_schema, mock_docker, monkeypatch,
 ):
@@ -1367,10 +1367,10 @@ def test_handle_start_stream_leaves_cli_metrics_port_closed_after_return(
     _assert_port_closed(port)
 
 
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_bulk_leaves_cli_metrics_port_closed_after_return(
     mock_load, mock_get_driver, mock_apply_schema, mock_docker, monkeypatch,
 ):
@@ -1395,11 +1395,11 @@ def test_handle_start_bulk_leaves_cli_metrics_port_closed_after_return(
     _assert_port_closed(port)
 
 
-@patch("src.cli._run_lease_relationship_fleet", return_value=0)
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_lease_relationship_fleet", return_value=0)
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_fleet_stream_with_edges_leaves_cli_metrics_port_closed(
     mock_load, mock_driver_factory, mock_apply_schema, mock_docker, lease_fleet, monkeypatch,
 ):
@@ -1422,7 +1422,7 @@ def test_handle_start_fleet_stream_with_edges_leaves_cli_metrics_port_closed(
     _assert_port_closed(port)
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_schema_load_failure_still_leaves_cli_metrics_port_closed(mock_load, monkeypatch):
     """Early-return coverage: the metrics server is started and its cleanup
     registered before schema load even runs, so a schema-load failure (the
@@ -1437,20 +1437,20 @@ def test_handle_start_schema_load_failure_still_leaves_cli_metrics_port_closed(m
     _assert_port_closed(port)
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_cli_metrics_disabled_binds_nothing(mock_load, monkeypatch):
     monkeypatch.setenv("GRAPH_LOADER_METRICS_ENABLED", "0")
     mock_load.side_effect = Exception("boom")
     args = argparse.Namespace(mode="stream", config="bad.yaml", network="test_net")
 
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     with patch.object(metrics_module, "start_http_server") as start_http:
         assert handle_start(args) == 1
         start_http.assert_not_called()
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_cli_metrics_binds_127_0_0_1_by_default(mock_load, monkeypatch):
     monkeypatch.delenv("GRAPH_LOADER_METRICS_ENABLED", raising=False)
     monkeypatch.delenv("GRAPH_LOADER_METRICS_PORT", raising=False)
@@ -1458,7 +1458,7 @@ def test_handle_start_cli_metrics_binds_127_0_0_1_by_default(mock_load, monkeypa
     mock_load.side_effect = Exception("boom")
     args = argparse.Namespace(mode="stream", config="bad.yaml", network="test_net")
 
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     captured = {}
 
@@ -1473,7 +1473,7 @@ def test_handle_start_cli_metrics_binds_127_0_0_1_by_default(mock_load, monkeypa
     assert captured["addr"] == "127.0.0.1"
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_cli_metrics_bind_addr_override_is_honored_and_logged(mock_load, monkeypatch, caplog):
     """P6-S5, found during P6-S3 (not P6-S5's own Story 6, a separate,
     still-open item - see plan/v6/slice-5/stories.md):
@@ -1488,7 +1488,7 @@ def test_handle_start_cli_metrics_bind_addr_override_is_honored_and_logged(mock_
     mock_load.side_effect = Exception("boom")
     args = argparse.Namespace(mode="stream", config="bad.yaml", network="test_net")
 
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     captured = {}
 
@@ -1508,7 +1508,7 @@ def test_handle_start_cli_metrics_bind_addr_override_is_honored_and_logged(mock_
     )
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_cli_metrics_bind_addr_empty_string_treated_as_unset(mock_load, monkeypatch, caplog):
     """Review finding on the bind-address opt-in: an exported-but-empty
     GRAPH_LOADER_METRICS_BIND_ADDR="" must not silently become "bind
@@ -1521,7 +1521,7 @@ def test_handle_start_cli_metrics_bind_addr_empty_string_treated_as_unset(mock_l
     mock_load.side_effect = Exception("boom")
     args = argparse.Namespace(mode="stream", config="bad.yaml", network="test_net")
 
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     captured = {}
 
@@ -1538,7 +1538,7 @@ def test_handle_start_cli_metrics_bind_addr_empty_string_treated_as_unset(mock_l
     assert not any("reason=cli_metrics_bind_addr_overridden" in record.message for record in caplog.records)
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_cli_metrics_falls_back_to_ephemeral_port_and_logs_it(mock_load, monkeypatch, caplog):
     monkeypatch.delenv("GRAPH_LOADER_METRICS_ENABLED", raising=False)
     blocker_port = _free_metrics_port()
@@ -1565,7 +1565,7 @@ def test_handle_start_cli_metrics_falls_back_to_ephemeral_port_and_logs_it(mock_
         blocker.close()
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_writes_cli_snapshot_when_timing_dir_set(mock_load, monkeypatch, tmp_path):
     """P6-S2 Story 9/10: the CLI's own snapshot (metrics-cli.prom) is the
     one snapshot path that bypasses GRAPH_LOADER_METRICS_SNAPSHOT_PATH -
@@ -1583,7 +1583,7 @@ def test_handle_start_writes_cli_snapshot_when_timing_dir_set(mock_load, monkeyp
     assert 'graph_loader_process_up{kind="cli",name="-"} 1.0' in snapshot_path.read_text()
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_no_cli_snapshot_when_timing_dir_unset(mock_load, monkeypatch, tmp_path):
     monkeypatch.delenv("GRAPH_LOADER_METRICS_ENABLED", raising=False)
     monkeypatch.delenv("GRAPH_LOADER_TIMING_DIR", raising=False)
@@ -1594,8 +1594,9 @@ def test_handle_start_no_cli_snapshot_when_timing_dir_unset(mock_load, monkeypat
     assert not (tmp_path / "metrics-cli.prom").exists()
 
 
-@patch("src.cli.load_schema")
-def test_handle_start_cli_snapshot_write_failure_does_not_change_exit_code(mock_load, monkeypatch, tmp_path):
+@patch("neo4j_graph_loader.cli.get_neo4j_driver", side_effect=SchemaInitializationError("offline test"))
+@patch("neo4j_graph_loader.cli.load_schema")
+def test_handle_start_cli_snapshot_write_failure_does_not_change_exit_code(mock_load, mock_driver, monkeypatch, tmp_path):
     """A read-only (or otherwise unwritable) GRAPH_LOADER_TIMING_DIR must
     not change handle_start's exit code - matching every other
     best-effort GRAPH_LOADER_TIMING_DIR writer's existing contract."""
@@ -1610,16 +1611,17 @@ def test_handle_start_cli_snapshot_write_failure_does_not_change_exit_code(mock_
     # (to a nonexistent directory) must not raise or change that.
     exit_code = handle_start(args)
     assert isinstance(exit_code, int)
+    mock_driver.assert_called_once()
     assert not unwritable.exists()
 
 
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges")
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges")
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_starts_edge_after_its_node_labels_drain(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler, orchestration,
 ):
@@ -1706,13 +1708,13 @@ def _two_label_bulk_start(mock_load, mock_driver, mock_docker, edges, **arg_over
     return args, containers
 
 
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges")
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges")
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_label_drain_failure_cancels_scheduler_and_stops_every_container(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler, orchestration,
 ):
@@ -1746,13 +1748,13 @@ def test_bulk_label_drain_failure_cancels_scheduler_and_stops_every_container(
     monitor.close.assert_called_once()
 
 
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_label_stop_uses_long_grace_and_run_removes_node_containers(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, _scheduler, _orchestration,
 ):
@@ -1778,13 +1780,13 @@ def test_bulk_label_stop_uses_long_grace_and_run_removes_node_containers(
             container.remove.assert_called_once_with(force=True)
 
 
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_failure_logs_crashed_loader_tail_before_removal(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, _scheduler, _orchestration, caplog,
 ):
@@ -1812,13 +1814,13 @@ def test_bulk_failure_logs_crashed_loader_tail_before_removal(
     containers["Person"][0].logs.assert_not_called()
 
 
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges")
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges")
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_label_readiness_aborts_when_edge_scheduler_fails(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler, orchestration,
 ):
@@ -1844,13 +1846,13 @@ def test_bulk_label_readiness_aborts_when_edge_scheduler_fails(
     assert all(container.stop.called for replicas in containers.values() for container in replicas)
 
 
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_node_stop_failure_names_exact_replica(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler, orchestration,
 ):
@@ -1878,13 +1880,13 @@ def test_bulk_node_stop_failure_names_exact_replica(
 
 
 @pytest.mark.parametrize("overlap, expect_co_scheduled", [("shared", True), ("labels", False)])
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_shared_overlap_co_schedules_self_references_with_shared_edges(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler, orchestration,
     overlap, expect_co_scheduled,
@@ -1911,7 +1913,7 @@ def _apoc_edge(edge_type, topic, source, target, *, mode="python_apoc"):
     return edge
 
 
-@patch("src.cli._run_bulk_relationship_edge")
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge")
 def test_bulk_scheduler_shared_starts_self_reference_once_its_label_is_ready(run_edge):
     edges = (_rotating_edge("WORKS_AT", "works", "Person", "Company"), _apoc_edge("KNOWS", "knows", "Person", "Person"))
     ready: set[str] = {"Company"}
@@ -1936,7 +1938,7 @@ def test_bulk_scheduler_shared_starts_self_reference_once_its_label_is_ready(run
 
 
 @pytest.mark.parametrize("overlap, mode", [("labels", "python_apoc"), ("shared", "native_disjoint")])
-@patch("src.cli._run_bulk_relationship_edge", return_value=0)
+@patch("neo4j_graph_loader.cli._run_bulk_relationship_edge", return_value=0)
 def test_bulk_scheduler_rejects_self_reference_outside_apoc_shared_overlap(run_edge, overlap, mode):
     edges = (_apoc_edge("KNOWS", "knows", "Person", "Person", mode=mode),)
     assert _run_completion_driven_bulk_edges(
@@ -1946,7 +1948,7 @@ def test_bulk_scheduler_rejects_self_reference_outside_apoc_shared_overlap(run_e
     run_edge.assert_not_called()
 
 
-@patch("src.cli._run_isolated_relationship_bulk_phase", return_value=0)
+@patch("neo4j_graph_loader.cli._run_isolated_relationship_bulk_phase", return_value=0)
 def test_orchestration_skips_isolated_phase_of_co_scheduled_self_reference(isolated):
     knows = _apoc_edge("KNOWS", "knows", "Person", "Person")
     likes = _apoc_edge("LIKES", "likes", "Person", "Person", mode="native_disjoint")
@@ -1959,9 +1961,9 @@ def test_orchestration_skips_isolated_phase_of_co_scheduled_self_reference(isola
     assert [call.args[0].type for call in isolated.call_args_list] == ["LIKES"]
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_co_scheduled_self_reference_edge_runs_bulk_lifecycle(monitor_cls):
-    from src.cli import _run_bulk_relationship_edge
+    from neo4j_graph_loader.cli import _run_bulk_relationship_edge
 
     knows = _apoc_edge("KNOWS", "knows", "Person", "Person")
     docker = MagicMock()
@@ -1986,7 +1988,7 @@ def test_co_scheduled_self_reference_edge_runs_bulk_lifecycle(monitor_cls):
 
 def test_stop_exact_containers_stops_one_labels_replicas_in_parallel():
     from threading import Barrier
-    from src.cli import _stop_exact_containers
+    from neo4j_graph_loader.cli import _stop_exact_containers
 
     barrier = Barrier(4, timeout=3)
     containers = [MagicMock(name=f"c{index}") for index in range(4)]
@@ -1999,7 +2001,7 @@ def test_stop_exact_containers_stops_one_labels_replicas_in_parallel():
 
 def test_stop_exact_containers_parallel_failures_keep_retry_and_attribution():
     from docker.errors import NotFound
-    from src.cli import _stop_exact_containers
+    from neo4j_graph_loader.cli import _stop_exact_containers
 
     gone, stuck, fine = MagicMock(name="gone"), MagicMock(name="stuck"), MagicMock(name="fine")
     gone.stop.side_effect = RuntimeError("already removed")
@@ -2012,10 +2014,10 @@ def test_stop_exact_containers_parallel_failures_keep_retry_and_attribution():
 
 
 
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_uses_prebuilt_image_when_requested(mock_load, mock_get_driver, mock_apply_schema, mock_docker):
     args = argparse.Namespace(mode="stream", config="config.yaml", network="test_net", skip_image_build=True)
     mock_schema = MagicMock()
@@ -2030,7 +2032,7 @@ def test_handle_start_uses_prebuilt_image_when_requested(mock_load, mock_get_dri
     mock_docker_instance.run_node_loader.assert_called_once()
 
 
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_schema_load_failure(mock_load):
     args = argparse.Namespace(mode="bulk", config="config.yaml")
     mock_load.side_effect = Exception("File not found")
@@ -2040,9 +2042,9 @@ def test_handle_start_schema_load_failure(mock_load):
     assert exit_code == 1
 
 
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_init_failure(mock_load, mock_get_driver, mock_apply_schema):
     args = argparse.Namespace(mode="bulk", config="config.yaml")
     mock_get_driver.side_effect = SchemaInitializationError("DB offline")
@@ -2054,10 +2056,10 @@ def test_handle_start_init_failure(mock_load, mock_get_driver, mock_apply_schema
     mock_apply_schema.assert_not_called()
 
 
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_docker_launch_failure(mock_load, mock_get_driver, mock_apply_schema, mock_docker):
     args = argparse.Namespace(mode="stream", config="config.yaml", network="test_net")
     mock_schema = MagicMock()
@@ -2079,11 +2081,11 @@ def test_handle_start_docker_launch_failure(mock_load, mock_get_driver, mock_app
     mock_container.stop.assert_called_once()
 
 
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_launches_labels_concurrently_and_stops_all_on_any_failure(
     mock_load, _driver, _apply, mock_docker, monitor_cls,
 ):
@@ -2146,8 +2148,8 @@ def test_parser_deprecated_edge_lease_flags_merge_to_identical_behavior(caplog):
     Both flags of a pair default to ``None`` at parse time (review finding
     S1-1): the merge is the only place either one's final value is
     decided."""
-    import src.cli as cli_module
-    from src.cli import _merge_deprecated_lease_flags
+    import neo4j_graph_loader.cli as cli_module
+    from neo4j_graph_loader.cli import _merge_deprecated_lease_flags
 
     # "Logged once per process" state lives at module scope; reset it so
     # this test is independent of whatever ran earlier in the same process.
@@ -2185,7 +2187,7 @@ def test_parser_deprecated_edge_lease_flags_merge_to_identical_behavior(caplog):
 def test_parser_neither_lease_flag_given_resolves_to_defaults():
     args = build_parser().parse_args(["start", "--mode", "bulk", "--edge-leases"])
     assert (args.lease_buckets, args.lease_outer_batch_size, args.lease_keyed_max_nodes) == (None, None, None)
-    from src.cli import _merge_deprecated_lease_flags
+    from neo4j_graph_loader.cli import _merge_deprecated_lease_flags
 
     _merge_deprecated_lease_flags(args)
     assert (args.lease_buckets, args.lease_outer_batch_size, args.lease_keyed_max_nodes) == (16, 32_000, 1_000)
@@ -2194,7 +2196,7 @@ def test_parser_neither_lease_flag_given_resolves_to_defaults():
 def test_parser_conflicting_current_and_deprecated_lease_flags_raise():
     """S1-1: a silent "one wins" would let an operator's typo go unnoticed,
     so a differing pair must be a hard configuration error."""
-    from src.cli import _merge_deprecated_lease_flags
+    from neo4j_graph_loader.cli import _merge_deprecated_lease_flags
 
     args = build_parser().parse_args([
         "start", "--mode", "bulk", "--edge-leases",
@@ -2229,14 +2231,14 @@ def _lease_bulk_start(mock_load, mock_driver, mock_docker, edges, **overrides):
     return args, containers, lease
 
 
-@patch("src.cli._node_topic_record_counts", return_value={"person": 50_000, "company": 40})
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._node_topic_record_counts", return_value={"person": 50_000, "company": 40})
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_edge_leases_launch_coordinator_and_stop_it_after_the_run(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler, orchestration, counts,
     tmp_path, monkeypatch, caplog,
@@ -2251,7 +2253,7 @@ def test_bulk_edge_leases_launch_coordinator_and_stop_it_after_the_run(
     docker.run_bucket_lease_server.side_effect = lambda **kwargs: order.append("lease") or lease
     scheduler.side_effect = lambda *a, **k: order.append("edges") or 0
     lease.stop.side_effect = lambda **kwargs: order.append("stop")
-    with caplog.at_level("INFO", logger="src.cli"):
+    with caplog.at_level("INFO", logger="neo4j_graph_loader.cli"):
         assert handle_start(args) == 0
     launch = docker.run_bucket_lease_server.call_args.kwargs
     assert launch["bucket_count"] == 16 and launch["network"] == "test-net"
@@ -2269,14 +2271,14 @@ def test_bulk_edge_leases_launch_coordinator_and_stop_it_after_the_run(
                         "outer_batch_size": 32000}
 
 
-@patch("src.cli._node_topic_record_counts", return_value={"person": 50_000, "company": 40})
-@patch("src.cli._run_relationship_orchestration", return_value=0)
-@patch("src.cli._run_completion_driven_bulk_edges", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._node_topic_record_counts", return_value={"person": 50_000, "company": 40})
+@patch("neo4j_graph_loader.cli._run_relationship_orchestration", return_value=0)
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_deprecated_lease_flag_reaches_docker_service_through_handle_start(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler, orchestration, counts,
 ):
@@ -2300,12 +2302,12 @@ def test_deprecated_lease_flag_reaches_docker_service_through_handle_start(
     assert args.lease_buckets == 8
 
 
-@patch("src.cli._run_completion_driven_bulk_edges", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_edge_lease_launch_failure_stops_nodes_and_fails(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler,
 ):
@@ -2319,12 +2321,12 @@ def test_bulk_edge_lease_launch_failure_stops_nodes_and_fails(
     assert all(container.stop.called for replicas in containers.values() for container in replicas)
 
 
-@patch("src.cli._run_completion_driven_bulk_edges", return_value=0)
-@patch("src.cli.BulkMonitor")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli._run_completion_driven_bulk_edges", return_value=0)
+@patch("neo4j_graph_loader.cli.BulkMonitor")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_bulk_edge_lease_address_failure_removes_coordinator(
     mock_load, mock_driver, _apply, mock_docker, monitor_cls, scheduler,
 ):
@@ -2343,10 +2345,10 @@ def test_bulk_edge_lease_address_failure_removes_coordinator(
     ({"lease_outer_batch_size": 0}, "python_apoc"),
     ({"lease_keyed_max_nodes": -1}, "python_apoc"),
 ])
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
 def test_edge_lease_preconditions_fail_before_touching_neo4j(
     mock_load, mock_driver, apply, mock_docker, overrides, edge_mode,
 ):
@@ -2359,7 +2361,7 @@ def test_edge_lease_preconditions_fail_before_touching_neo4j(
     mock_docker.return_value.run_node_loader.assert_not_called()
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_bulk_edge_launch_passes_lease_settings(monitor_cls):
     works = _rotating_edge("WORKS_AT", "works", "Person", "Company")
     docker = MagicMock()
@@ -2387,7 +2389,7 @@ def test_keyed_lease_labels_use_small_endpoint_topics(monkeypatch):
         seen["topics"] = list(topics)
         return {"title": 2_000_000, "genre": 28, "empty": 0}
 
-    monkeypatch.setattr("src.cli._node_topic_record_counts", counts)
+    monkeypatch.setattr("neo4j_graph_loader.cli._node_topic_record_counts", counts)
     args = argparse.Namespace(lease_keyed_max_nodes=1_000)
     assert _select_keyed_lease_labels(schema, args) == ("Genre",)
     assert seen["topics"] == ["empty", "genre", "title"]
@@ -2396,5 +2398,5 @@ def test_keyed_lease_labels_use_small_endpoint_topics(monkeypatch):
     def broken(_bootstrap, _topics):
         raise RuntimeError("kafka down")
 
-    monkeypatch.setattr("src.cli._node_topic_record_counts", broken)
+    monkeypatch.setattr("neo4j_graph_loader.cli._node_topic_record_counts", broken)
     assert _select_keyed_lease_labels(schema, args) == ()

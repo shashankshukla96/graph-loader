@@ -81,7 +81,7 @@ def test_nonpositive_hub_edges_raises() -> None:
 def test_schema_dict_is_load_schema_compatible(tmp_path) -> None:
     import yaml
 
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     for topology in ("target_hub", "source_hub", "multi_type_hub"):
         path = tmp_path / f"{topology}.yaml"
@@ -123,7 +123,7 @@ def test_repeat_fraction_out_of_range_raises() -> None:
 def test_kafka_key_uses_the_leaf_endpoint_for_every_topology(tmp_path) -> None:
     import yaml
 
-    from src.utils.schema_loader import load_schema
+    from neo4j_graph_loader.utils.schema_loader import load_schema
 
     for topology, edge_type in (("target_hub", "POINTS_AT"), ("source_hub", "POINTS_FROM")):
         path = tmp_path / f"{topology}.yaml"

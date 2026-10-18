@@ -10,7 +10,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from src.models.schema import (
+from neo4j_graph_loader.models.schema import (
     BucketLeaseStreamConfig,
     CoordinationConfig,
     EdgeConfig,
@@ -30,7 +30,7 @@ from src.models.schema import (
     require_no_precedence_in_stream,
     schema_data_topics,
 )
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -253,24 +253,24 @@ def test_single_topic_with_precedence_is_ignored() -> None:
 
 
 def test_arrival_warns_once_per_type_and_order_by_does_not(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level(logging.WARNING, logger="src.models.schema"):
+    with caplog.at_level(logging.WARNING, logger="neo4j_graph_loader.models.schema"):
         schema = GraphSchema.model_validate(_schema(_edge_for(2, False, "arrival")))
     warnings = [r.getMessage() for r in caplog.records if "arrival" in r.getMessage()]
     assert len(warnings) == 1 and "KNOWS" in warnings[0] and "t0" in warnings[0]
     assert arrival_conflict_warnings(schema) == warnings
     caplog.clear()
-    with caplog.at_level(logging.WARNING, logger="src.models.schema"):
+    with caplog.at_level(logging.WARNING, logger="neo4j_graph_loader.models.schema"):
         ok = GraphSchema.model_validate(_schema(_edge_for(2, True, None)))
     assert not caplog.records
     assert arrival_conflict_warnings(ok) == []
 
 
 def test_order_by_string_property_warns_lexicographic(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level(logging.WARNING, logger="src.models.schema"):
+    with caplog.at_level(logging.WARNING, logger="neo4j_graph_loader.models.schema"):
         EdgeConfig(**_edge(order_by="note"))
     assert any("lexicographically" in r.getMessage() and "ISO-8601" in r.getMessage() for r in caplog.records)
     caplog.clear()
-    with caplog.at_level(logging.WARNING, logger="src.models.schema"):
+    with caplog.at_level(logging.WARNING, logger="neo4j_graph_loader.models.schema"):
         EdgeConfig(**_edge(order_by="since"))
     assert not caplog.records
 

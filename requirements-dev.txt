@@ -1,6 +1,7 @@
 # Complete development/test environment, including the IMDb example tests.
 # Loader images install only requirements.txt.
 -r requirements.txt
+-r requirements-build.txt
 -r examples/imdb/requirements.txt
 pytest>=8.0,<10
 testcontainers[neo4j,kafka]>=4.8,<5

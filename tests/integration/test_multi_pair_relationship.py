@@ -39,15 +39,15 @@ from confluent_kafka import Consumer, Producer, TopicPartition
 from confluent_kafka.admin import AdminClient, NewTopic
 from neo4j import GraphDatabase
 
-from src import cli
-from src.loader.control import CONTROL_TOPIC
-from src.loader.dead_letter import build_malformed_record_sink, decode_envelope
-from src.loader.edge_execution import build_edge_execution, streaming_lease_client_factory
-from src.loader.edge_loader import EdgeLoader, apply_edge_outer_batch_override
-from src.loader.lease_client import LEASE_ADDRESS_ENV, LEASE_BUCKETS_ENV, LEASE_KEYED_LABELS_ENV
-from src.loader.parked_pair_index import ParkedPairIndex
-from src.models.schema import edge_dead_letter_topic_name, edge_parked_pair_index_topic_name, edge_parked_topic_name
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.loader.control import CONTROL_TOPIC
+from neo4j_graph_loader.loader.dead_letter import build_malformed_record_sink, decode_envelope
+from neo4j_graph_loader.loader.edge_execution import build_edge_execution, streaming_lease_client_factory
+from neo4j_graph_loader.loader.edge_loader import EdgeLoader, apply_edge_outer_batch_override
+from neo4j_graph_loader.loader.lease_client import LEASE_ADDRESS_ENV, LEASE_BUCKETS_ENV, LEASE_KEYED_LABELS_ENV
+from neo4j_graph_loader.loader.parked_pair_index import ParkedPairIndex
+from neo4j_graph_loader.models.schema import edge_dead_letter_topic_name, edge_parked_pair_index_topic_name, edge_parked_topic_name
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from tests.integration import test_multi_topic_relationship as _multi_topic
 from tests.integration.test_multi_topic_relationship import Fleet, LeaseServer, assert_zero_waits, likes_write_waits
 from tests.stress import lock_wait, planned_harness
@@ -517,7 +517,7 @@ def test_dead_letter_comment_nodes_seeded_late_retried_per_pair(neo4j_logged, ka
                    "GRAPH_LOADER_METRICS_ENABLED": "0", "KAFKA_GROUP_ID": f"retry-{case.run_id}"}
             env.pop("NEO4J_DATABASE", None)
             retry_proc = subprocess.Popen(
-                [sys.executable, "-m", "src.loader.retry_consumer", "--config", str(case.path), "--run-id",
+                [sys.executable, "-m", "neo4j_graph_loader.loader.retry_consumer", "--config", str(case.path), "--run-id",
                  case.run_id, "--dlq-topics", dlq, "--lease-address", server.address],
                 env=env, cwd=str(Path(__file__).resolve().parents[2]),
                 stdout=open(tmp_path / "retry-consumer.log", "w"), stderr=subprocess.STDOUT,

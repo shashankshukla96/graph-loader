@@ -13,7 +13,7 @@ import json
 
 import pytest
 
-from src.loader.retry_consumer import RETRY_OUTCOME_UNRESOLVED, RETRY_OUTCOME_WRITTEN
+from neo4j_graph_loader.loader.retry_consumer import RETRY_OUTCOME_UNRESOLVED, RETRY_OUTCOME_WRITTEN
 from tests.test_retry_consumer import _Clock, _dlq_message, _envelope, _FakeConsumer, _make_consumer
 
 
@@ -255,7 +255,7 @@ def test_beyond_the_overflow_budget_blocked_rows_are_published_again() -> None:
 
 
 def test_overflow_budget_setting_is_validated_and_defaults_to_ten_caps() -> None:
-    from src.models.schema import RetryConsumerConfig
+    from neo4j_graph_loader.models.schema import RetryConsumerConfig
 
     assert RetryConsumerConfig().max_overflow_held_per_partition is None
     assert RetryConsumerConfig(max_overflow_held_per_partition=0).max_overflow_held_per_partition == 0

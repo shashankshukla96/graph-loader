@@ -66,7 +66,7 @@ def explicit_neo4j_auth(
     (``opted_in_by`` names the opt-in variable, set): then a missing password is a setup error and
     the test fails, so an opted-in run is never reported green by a silent skip.
 
-    The user is ``NEO4J_USERNAME``, else ``NEO4J_USER``, else ``neo4j`` (as ``src.cli``).
+    The user is ``NEO4J_USERNAME``, else ``NEO4J_USER``, else ``neo4j`` (as ``neo4j_graph_loader.cli``).
     """
     password = os.environ.get(password_var, "")
     uri = os.environ.get(uri_var, default_uri)

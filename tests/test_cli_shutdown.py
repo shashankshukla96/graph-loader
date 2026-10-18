@@ -21,12 +21,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src import cli
-from src.cli import build_parser, handle_start
-from src.orchestrator.bulk_monitor import BulkMonitorError, BulkShutdownRequested
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.cli import build_parser, handle_start
+from neo4j_graph_loader.orchestrator.bulk_monitor import BulkMonitorError, BulkShutdownRequested
 
 from test_planned_edges_cli import FakeControl, SCHEMA as PLANNED_SCHEMA, make_plan
-from src.loader.edge_plan import write_plan_file
+from neo4j_graph_loader.loader.edge_plan import write_plan_file
 
 
 class NotPrompt(BaseException):
@@ -155,11 +155,11 @@ def harness(monkeypatch, tmp_path):
     fleet = Fleet()
     state = SimpleNamespace(fleet=fleet, docker=None, schema=None)
     patches = [
-        patch("src.cli.get_neo4j_driver", return_value=MagicMock()),
-        patch("src.cli.apply_schema"),
-        patch("src.cli._ensure_control_topic"),
-        patch("src.cli._ensure_dead_letter_topics"),
-        patch("src.cli._ensure_retry_topics"),
+        patch("neo4j_graph_loader.cli.get_neo4j_driver", return_value=MagicMock()),
+        patch("neo4j_graph_loader.cli.apply_schema"),
+        patch("neo4j_graph_loader.cli._ensure_control_topic"),
+        patch("neo4j_graph_loader.cli._ensure_dead_letter_topics"),
+        patch("neo4j_graph_loader.cli._ensure_retry_topics"),
     ]
     for p in patches:
         p.start()
@@ -168,7 +168,7 @@ def harness(monkeypatch, tmp_path):
         state.docker = docker or _fake_docker(fleet)
         state.schema = schema
         before = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
-        with patch("src.cli.load_schema", return_value=schema), patch("src.cli.DockerService", return_value=state.docker):
+        with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), patch("neo4j_graph_loader.cli.DockerService", return_value=state.docker):
             try:
                 result = handle_start(args)
             finally:
@@ -225,7 +225,7 @@ def test_handlers_are_installed_for_bulk_and_restored(harness):
             seen["term"] = signal.getsignal(signal.SIGTERM)
             seen["int"] = signal.getsignal(signal.SIGINT)
 
-    with patch("src.cli.BulkMonitor", Monitor):
+    with patch("neo4j_graph_loader.cli.BulkMonitor", Monitor):
         assert harness.run(_schema(), _bulk_args()) == 0
     assert seen["term"] not in (signal.SIG_DFL, signal.default_int_handler)
     assert seen["int"] is not signal.default_int_handler
@@ -241,7 +241,7 @@ def test_double_sigint_and_sigterm_are_idempotent(harness):
             _spin_until(self.abort_requested, "coverage wait")
             raise BulkShutdownRequested("stop")
 
-    with patch("src.cli.BulkMonitor", Monitor):
+    with patch("neo4j_graph_loader.cli.BulkMonitor", Monitor):
         assert harness.run(_schema(), _bulk_args()) == 1
     harness.fleet.assert_no_orphans()
 
@@ -268,7 +268,7 @@ def test_isolation_failure_stops_the_node_containers_it_started(harness):
 
 
 def test_an_exception_escaping_stream_orchestration_still_stops_node_containers(harness):
-    with patch("src.cli._run_lease_relationship_fleet", side_effect=RuntimeError("boom")):
+    with patch("neo4j_graph_loader.cli._run_lease_relationship_fleet", side_effect=RuntimeError("boom")):
         with pytest.raises(RuntimeError, match="boom"):
             harness.run(_schema(edges=[_edge("WORKS_AT", "Person", "Company")]), _stream_args())
     harness.fleet.assert_no_orphans()
@@ -299,7 +299,7 @@ def _launch_phase(harness, mode):
     docker = _fake_docker(harness.fleet, on_node_launch=on_launch)
     schema = _schema(edges=[_edge("WORKS_AT", "Person", "Company")])
     args = _bulk_args() if mode == "bulk" else _stream_args()
-    with patch("src.cli._run_lease_relationship_fleet") as fleet_run, patch("src.cli.BulkMonitor") as monitor_cls:
+    with patch("neo4j_graph_loader.cli._run_lease_relationship_fleet") as fleet_run, patch("neo4j_graph_loader.cli.BulkMonitor") as monitor_cls:
         assert harness.run(schema, args, docker=docker) == 1
         fleet_run.assert_not_called()
         monitor_cls.assert_not_called()
@@ -319,7 +319,7 @@ def _node_drain_phase(harness, shared):
 
     edges = [_edge("WORKS_AT", "Person", "Company")] if shared else []
     args = _bulk_args(bulk_edge_overlap="shared") if shared else _bulk_args()
-    with patch("src.cli.BulkMonitor", Monitor):
+    with patch("neo4j_graph_loader.cli.BulkMonitor", Monitor):
         assert harness.run(_schema(edges=edges), args) == 1
 
 
@@ -331,7 +331,7 @@ def _plan_wait_phase(harness):
             raise BulkMonitorError("aborted")
 
     args = _planned_args(harness.tmp_path)  # the plan file never appears
-    with patch("src.cli.BulkMonitor", Monitor):
+    with patch("neo4j_graph_loader.cli.BulkMonitor", Monitor):
         assert harness.run(PLANNED_SCHEMA, args) == 1
     harness.state.docker.run_planned_dispatcher.assert_not_called()
 
@@ -357,7 +357,7 @@ def _dispatcher_phase(harness):
             _spin_until(should_abort, "dispatcher phase")
             raise BulkMonitorError("aborted")
 
-    with patch("src.cli.BulkMonitor", Monitor), patch("src.cli.run_planned_edge_phase", planned_phase):
+    with patch("neo4j_graph_loader.cli.BulkMonitor", Monitor), patch("neo4j_graph_loader.cli.run_planned_edge_phase", planned_phase):
         assert harness.run(PLANNED_SCHEMA, _planned_args(harness.tmp_path)) == 1
     assert control.aborted, "the dispatcher must be told to abort"
     assert len(harness.fleet.names("dispatcher")) == 1 and len(harness.fleet.names("writer")) == 2
@@ -390,7 +390,7 @@ def _dispatcher_after_readiness_phase(harness):
     args = _planned_args(harness.tmp_path)
     args.bulk_timeout_seconds = 300.0  # the progress deadline must not be what ends the run
     started = time.monotonic()
-    with patch("src.cli.BulkMonitor", Monitor), patch("src.cli.run_planned_edge_phase", planned_phase):
+    with patch("neo4j_graph_loader.cli.BulkMonitor", Monitor), patch("neo4j_graph_loader.cli.run_planned_edge_phase", planned_phase):
         assert harness.run(PLANNED_SCHEMA, args) == 1
     assert time.monotonic() - started < 30
     assert control.aborted, "the dispatcher must be told to abort"
@@ -413,7 +413,7 @@ def _stream_supervision_phase(harness):
             pass
 
     schema = _schema(edges=[_edge("WORKS_AT", "Person", "Company")])
-    with patch("src.cli.RelationshipBulkMonitor", Monitor):
+    with patch("neo4j_graph_loader.cli.RelationshipBulkMonitor", Monitor):
         assert harness.run(schema, _stream_args()) == 0
     assert harness.fleet.names("lease-server") and harness.fleet.names("edge-")
 
@@ -455,7 +455,7 @@ def test_sigterm_driven_stream_run_leaves_a_parseable_cli_metrics_snapshot(harne
     monkeypatch.setenv("GRAPH_LOADER_METRICS_PORT", str(port))
     monkeypatch.setenv("GRAPH_LOADER_TIMING_DIR", str(tmp_path))
 
-    with patch("src.cli._run_lease_relationship_fleet", side_effect=lambda *a, **k: (_signal_and_wait(), 0)[1]):
+    with patch("neo4j_graph_loader.cli._run_lease_relationship_fleet", side_effect=lambda *a, **k: (_signal_and_wait(), 0)[1]):
         assert harness.run(_schema(edges=[_edge("WORKS_AT", "Person", "Company")]), _stream_args()) == 0
 
     snapshot = tmp_path / "metrics-cli.prom"

@@ -29,17 +29,17 @@ import uuid
 
 import pytest
 
-from src.loader.dead_letter import (
+from neo4j_graph_loader.loader.dead_letter import (
     DeadLetterProducer,
     DeadLetterRecordSink,
     dead_letter_topic_name,
     decode_envelope,
     ensure_dead_letter_topic,
 )
-from src.loader.edge_execution import ApocLockedEdgeWriter
-from src.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError, PendingEdgeRecord
-from src.models.schema import DeadLetterConfig
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+from neo4j_graph_loader.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError, PendingEdgeRecord
+from neo4j_graph_loader.models.schema import DeadLetterConfig
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 def _retry_consumer_available() -> bool:
@@ -50,7 +50,7 @@ def _retry_consumer_available() -> bool:
     skip can never turn into a collection/test error.
     """
     try:
-        return importlib.util.find_spec("src.loader.retry_consumer") is not None
+        return importlib.util.find_spec("neo4j_graph_loader.loader.retry_consumer") is not None
     except Exception:
         return False
 
@@ -144,7 +144,7 @@ def test_edge_before_node_is_dlqd_row_level_and_retried_once_the_node_arrives(
     assert date.fromisoformat(decoded_value["properties"]["since"]) == date(2024, 1, 1)
 
     if not _retry_consumer_available():
-        pytest.skip("src.loader.retry_consumer is not importable in this checkout")
+        pytest.skip("neo4j_graph_loader.loader.retry_consumer is not importable in this checkout")
 
     # The node arrives late. Drive the REAL retry path -- the exact writer
     # main() builds (adapter over the real ApocLockedEdgeWriter), a real Kafka
@@ -156,7 +156,7 @@ def test_edge_before_node_is_dlqd_row_level_and_retried_once_the_node_arrives(
     # for the query-logged suite).
     from confluent_kafka import Consumer as KafkaConsumer
 
-    from src.loader.retry_consumer import RetryConsumer, build_retry_writer
+    from neo4j_graph_loader.loader.retry_consumer import RetryConsumer, build_retry_writer
 
     with neo4j_driver.session() as session:
         session.run("MERGE (p:Person {personId: $key})", key=missing_person_key).consume()

@@ -11,14 +11,14 @@ import time
 
 import pytest
 
-from src.loader.lease_client import (
+from neo4j_graph_loader.loader.lease_client import (
     BUCKET_LEASE_ADDRESS_ENV, BucketLeaseClient, DEFAULT_BUCKET_LEASE_BUCKETS,
     DEFAULT_LEASE_BUCKETS, LEASE_ADDRESS_ENV, LeaseCoordinatorError, lease_scheme_token,
     parse_keyed_labels, parse_lease_address, parse_lease_bucket_count,
     resolve_bucket_lease_address,
 )
-from src.orchestrator import lease_server
-from src.orchestrator.lease_server import (
+from neo4j_graph_loader.orchestrator import lease_server
+from neo4j_graph_loader.orchestrator.lease_server import (
     BucketLeaseServer, DEFAULT_BUCKET_LEASE_PORT, DEFAULT_LEASE_PORT, LeaseProtocolError, LeaseTable,
 )
 
@@ -240,7 +240,7 @@ def test_any_waits_for_release_then_times_out(running) -> None:
 
 def test_lease_grants_total_counts_immediate_and_waited_grants(running) -> None:
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     server = running(metrics=metrics)
@@ -282,7 +282,7 @@ def test_lease_grants_total_counts_immediate_and_waited_grants(running) -> None:
 
 def test_lease_wait_timeouts_total_and_waiters_gauge_return_to_zero(running) -> None:
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     server = running(metrics=metrics)
@@ -316,7 +316,7 @@ def test_lease_held_resources_tracks_grant_extend_and_release(running) -> None:
     this test proves what the gauge actually does: track grant, EXT, and
     release exactly, which is the property Story 7's AC actually needs."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     server = running(metrics=metrics, bucket_count=4)
@@ -337,7 +337,7 @@ def test_lease_held_resources_updates_on_extend_not_only_grant_and_release(runni
     too - grant()/release() alone would under-report between an
     extension and the next grant/release."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     server = running(metrics=metrics, bucket_count=4)
@@ -359,7 +359,7 @@ def test_lease_held_resources_updates_on_extend_not_only_grant_and_release(runni
 
 def test_lease_denials_total_increments_on_acq_and_any_denial(running) -> None:
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     server = running(metrics=metrics)
@@ -856,7 +856,7 @@ def test_serve_logs_final_stats(caplog) -> None:
         stop.set()
         return await task
 
-    with caplog.at_level("INFO", logger="src.orchestrator.lease_server"):
+    with caplog.at_level("INFO", logger="neo4j_graph_loader.orchestrator.lease_server"):
         stats = asyncio.run(run())
     assert stats.grants == 0
     assert any("stage=lease-server-stats" in record.getMessage() for record in caplog.records)
@@ -949,7 +949,7 @@ def test_resolve_bucket_lease_address_prefers_current_name() -> None:
 
 
 def test_resolve_bucket_lease_address_deprecation_log_once_per_process(caplog) -> None:
-    import src.loader.lease_client as lease_client_module
+    import neo4j_graph_loader.loader.lease_client as lease_client_module
 
     lease_client_module._bucket_lease_addr_fallback_logged = False
     with caplog.at_level("WARNING"):
@@ -974,7 +974,7 @@ def test_no_old_lease_setting_names_used_internally_in_src() -> None:
     ``bucket_lease_*``/``BUCKET_LEASE`` identifiers, not the deprecated
     aliases -- only the alias *definitions* themselves may still mention the
     old names."""
-    root = Path(__file__).resolve().parents[1] / "src"
+    root = Path(__file__).resolve().parents[1] / "src" / "neo4j_graph_loader"
     old_names = re.compile(
         r"\bDEFAULT_LEASE_PORT\b|\bDEFAULT_LEASE_BUCKETS\b|\bDEFAULT_LEASE_OUTER_BATCH_SIZE\b|"
         r"\bDEFAULT_LEASE_KEYED_MAX_NODES\b"
@@ -999,7 +999,7 @@ def test_lease_address_env_string_only_referenced_where_expected() -> None:
     referenced in lease_client.py (definition + fallback resolution) and
     docker_service.py (the dual-set), never re-implemented ad hoc
     elsewhere."""
-    root = Path(__file__).resolve().parents[1] / "src"
+    root = Path(__file__).resolve().parents[1] / "src" / "neo4j_graph_loader"
     allowed_files = {"loader/lease_client.py", "orchestrator/docker_service.py"}
     violations = []
     for path in root.rglob("*.py"):
@@ -1235,7 +1235,7 @@ def test_lease_server_metrics_populate_for_a_contended_and_a_disjoint_run(runnin
     anywhere in this slice -- kind="lease-server" already covers both
     bulk and streaming, unconditionally."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     server = running(metrics=metrics)
@@ -1272,7 +1272,7 @@ def test_lease_server_counters_reset_to_zero_on_a_fresh_generation() -> None:
     dashboard subtracting two raw scrapes would not (documented in
     docs/USAGE.md)."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     old_generation_metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     old_server = BucketLeaseServer(metrics=old_generation_metrics)
@@ -1314,7 +1314,7 @@ def test_sigterm_storm_to_the_lease_server_process_still_exits_zero() -> None:
             port = probe.getsockname()[1]
         env = dict(os.environ, GRAPH_LOADER_METRICS_ENABLED="0")
         proc = subprocess.Popen(
-            [sys.executable, "-m", "src.orchestrator.lease_server", "--host", "127.0.0.1", "--port", str(port)],
+            [sys.executable, "-m", "neo4j_graph_loader.orchestrator.lease_server", "--host", "127.0.0.1", "--port", str(port)],
             cwd=Path(__file__).resolve().parents[1], env=env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )

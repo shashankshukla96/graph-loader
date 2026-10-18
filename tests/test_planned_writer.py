@@ -13,18 +13,18 @@ from unittest.mock import MagicMock
 import pytest
 from neo4j.exceptions import TransientError
 
-from src.loader.edge_execution import ApocLockedEdgeWriter, build_apoc_locked_upsert_query
-from src.loader.edge_loader import EdgeRecordValidationError, MissingRelationshipEndpointError, normalize_edge_record
-from src.loader.edge_plan import (
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter, build_apoc_locked_upsert_query
+from neo4j_graph_loader.loader.edge_loader import EdgeRecordValidationError, MissingRelationshipEndpointError, normalize_edge_record
+from neo4j_graph_loader.loader.edge_plan import (
     ChunkSpec, EdgePlanError, ResourceTable, assemble_plan, encode_chunk_message, resource_pair,
 )
-from src.loader.planned_writer import (
+from neo4j_graph_loader.loader.planned_writer import (
     ChunkDecoder, ChunkFetcher, DispatcherClient, DispatcherError, PlannedEdgeWriterWorker, compile_record_normalizer,
     planned_consumer_config,
 )
-from src.orchestrator.planned_dispatcher import PlannedDispatcher
-from src.orchestrator.planned_edges import verify_ledger
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.orchestrator.planned_dispatcher import PlannedDispatcher
+from neo4j_graph_loader.orchestrator.planned_edges import verify_ledger
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 SCHEMA = load_schema(Path(__file__).resolve().parents[1] / "examples" / "imdb" / "graph_schema.yaml")
 EDGES = {edge.type: edge for edge in SCHEMA.edges}
@@ -343,7 +343,7 @@ def test_worker_increments_records_consumed_per_chunk_edge_type() -> None:
     type, not a single fixed process-wide name (Story 6's own distinction
     from node/edge loaders' fixed-at-startup `name`)."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     plan = _two_type_plan([
         ("ACTED_IN", _rows_in_one_cell(2)),
@@ -388,7 +388,7 @@ def test_worker_metrics_calls_scale_with_chunks_not_rows() -> None:
     the metrics call count must equal the chunk count (2), not the total
     row count."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     rows_per_chunk = 300
     plan, _ = make_plan([_rows_in_one_cell(2), _rows_in_one_cell(1, start=500)])
@@ -430,7 +430,7 @@ def _count_labels_calls_for_worker(metric) -> dict:
 
 def test_planned_writer_metrics_failure_never_blocks_a_successful_chunk() -> None:
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     plan, _ = make_plan([_rows_in_one_cell(2)])
     rows = {0: [{"r": 1}, {"r": 2}]}
@@ -460,12 +460,12 @@ def test_main_constructs_apoc_writer_and_worker_with_planned_writer_kind_and_pro
     deleted from main(). Drives the real main() with every I/O dependency
     faked, and a recording mock in place of both ApocLockedEdgeWriter and
     PlannedEdgeWriterWorker."""
-    import src.cli as cli_module
-    import src.loader.edge_execution as edge_execution_module
-    import src.loader.planned_writer as planned_writer_module
-    import src.orchestrator.schema_initializer as schema_initializer_module
-    import src.utils.schema_loader as schema_loader_module
-    from src.utils import metrics as metrics_module
+    import neo4j_graph_loader.cli as cli_module
+    import neo4j_graph_loader.loader.edge_execution as edge_execution_module
+    import neo4j_graph_loader.loader.planned_writer as planned_writer_module
+    import neo4j_graph_loader.orchestrator.schema_initializer as schema_initializer_module
+    import neo4j_graph_loader.utils.schema_loader as schema_loader_module
+    from neo4j_graph_loader.utils import metrics as metrics_module
     import confluent_kafka
 
     plan, _ = make_plan([_rows_in_one_cell(2)])  # plan.types == {"ACTED_IN": ...}
@@ -522,11 +522,11 @@ def test_close_failure_still_keeps_sigterm_handler(monkeypatch) -> None:
     future refactor that drops that line should fail a test, not just be
     caught by code review."""
     import signal
-    import src.cli as cli_module
-    import src.loader.edge_execution as edge_execution_module
-    import src.loader.planned_writer as planned_writer_module
-    import src.orchestrator.schema_initializer as schema_initializer_module
-    import src.utils.schema_loader as schema_loader_module
+    import neo4j_graph_loader.cli as cli_module
+    import neo4j_graph_loader.loader.edge_execution as edge_execution_module
+    import neo4j_graph_loader.loader.planned_writer as planned_writer_module
+    import neo4j_graph_loader.orchestrator.schema_initializer as schema_initializer_module
+    import neo4j_graph_loader.utils.schema_loader as schema_loader_module
     import confluent_kafka
 
     plan, _ = make_plan([_rows_in_one_cell(2)])
@@ -568,10 +568,10 @@ def test_main_sigterm_mid_run_leaves_snapshot_with_accumulated_counters(monkeypa
     (Consumer, DispatcherClient, ChunkFetcher, ApocLockedEdgeWriter) is
     faked."""
     import signal
-    import src.loader.edge_execution as edge_execution_module
-    import src.loader.planned_writer as planned_writer_module
-    import src.orchestrator.schema_initializer as schema_initializer_module
-    import src.utils.schema_loader as schema_loader_module
+    import neo4j_graph_loader.loader.edge_execution as edge_execution_module
+    import neo4j_graph_loader.loader.planned_writer as planned_writer_module
+    import neo4j_graph_loader.orchestrator.schema_initializer as schema_initializer_module
+    import neo4j_graph_loader.utils.schema_loader as schema_loader_module
     import confluent_kafka
 
     monkeypatch.delenv("GRAPH_LOADER_METRICS_ENABLED", raising=False)
@@ -668,7 +668,7 @@ def test_worker_stops_between_chunks_on_shutdown_request() -> None:
 
 def test_orchestrator_stop_abort_between_chunks_exits_zero_without_fail() -> None:
     """D5: an operator-stop ABORT answered to NEXT is a clean stop; any other abort stays a failure."""
-    from src.loader.planned_writer import DispatcherClient, STOP_REASON
+    from neo4j_graph_loader.loader.planned_writer import DispatcherClient, STOP_REASON
 
     plan, _ = make_plan([_rows_in_one_cell(2)])
 

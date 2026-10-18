@@ -10,9 +10,9 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from src import cli
-from src.cli import AUTO_EDGE_PLAN, build_parser
-from src.models.schema import GraphSchema
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.cli import AUTO_EDGE_PLAN, build_parser
+from neo4j_graph_loader.models.schema import GraphSchema
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN_OPTIONS = ("plan_writers", "plan_workers", "plan_buckets", "plan_hub_degree", "plan_chunk_rows",
@@ -55,7 +55,7 @@ def test_parser_has_edge_classic_flag() -> None:
 
 def test_default_is_planned_with_auto_settings_and_logs_it(caplog) -> None:
     args = _args()
-    with caplog.at_level(logging.INFO, logger="src.cli"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.cli"):
         cli._resolve_bulk_edge_mode(_schema(), args)
     assert args.edge_plan == AUTO_EDGE_PLAN and _modes(args) == (True, False, False)
     assert "stage=launch edge_mode=planned reason=default" in caplog.text
@@ -74,7 +74,7 @@ def test_default_is_planned_with_auto_settings_and_logs_it(caplog) -> None:
 ])
 def test_dead_letter_schema_defaults_to_lease(dead_letter, caplog) -> None:
     args = _args()
-    with caplog.at_level(logging.INFO, logger="src.cli"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.cli"):
         cli._resolve_bulk_edge_mode(_schema(dead_letter), args)
     assert _modes(args) == (False, True, False)
     assert "stage=launch edge_mode=lease reason=dead_letter" in caplog.text
@@ -82,7 +82,7 @@ def test_dead_letter_schema_defaults_to_lease(dead_letter, caplog) -> None:
 
 def test_disabled_dead_letter_block_does_not_force_lease(caplog) -> None:
     args = _args()
-    with caplog.at_level(logging.INFO, logger="src.cli"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.cli"):
         cli._resolve_bulk_edge_mode(_schema({"enabled": False}), args)
     assert _modes(args) == (True, False, False)
     assert "edge_mode=planned reason=default" in caplog.text
@@ -95,7 +95,7 @@ def test_disabled_dead_letter_block_does_not_force_lease(caplog) -> None:
 ])
 def test_explicit_flags_win_even_for_a_dead_letter_schema(flag, expected, label, caplog) -> None:
     args = _args(flag)
-    with caplog.at_level(logging.INFO, logger="src.cli"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.cli"):
         cli._resolve_bulk_edge_mode(_schema({"enabled": True}), args)
     assert _modes(args) == expected
     assert f"edge_mode={label} reason=flag" in caplog.text
@@ -137,7 +137,7 @@ def test_stream_mode_is_unchanged() -> None:
 @pytest.mark.parametrize("mode_flags,label", [((), "planned"), (("--edge-plan",), "planned"), (("--edge-leases",), "lease")])
 def test_classic_tuning_flags_warn_and_are_ignored_outside_classic(mode_flags, label, caplog) -> None:
     args = _args(*mode_flags, "--bulk-edge-overlap", "shared", "--max-concurrent-bulk-edges", "2")
-    with caplog.at_level(logging.INFO, logger="src.cli"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.cli"):
         cli._resolve_bulk_edge_mode(_schema(), args)
     assert "tune classic only; ignored (add --edge-classic to use classic)" in caplog.text
     assert f"edge_mode={label}" in caplog.text
@@ -147,7 +147,7 @@ def test_classic_tuning_flags_warn_and_are_ignored_outside_classic(mode_flags, l
 
 def test_classic_tuning_flags_are_honoured_with_edge_classic(caplog) -> None:
     args = _args("--edge-classic", "--bulk-edge-overlap", "shared", "--max-concurrent-bulk-edges", "2")
-    with caplog.at_level(logging.INFO, logger="src.cli"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.cli"):
         cli._resolve_bulk_edge_mode(_schema(), args)
     assert "ignored" not in caplog.text
     assert (args.bulk_edge_overlap, args.max_concurrent_bulk_edges) == ("shared", 2)
@@ -166,14 +166,14 @@ def test_native_disjoint_is_refused_without_edge_classic(dead_letter) -> None:
 
 def test_native_disjoint_runs_with_explicit_edge_classic(caplog) -> None:
     args = _args("--edge-classic")
-    with caplog.at_level(logging.INFO, logger="src.cli"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.cli"):
         cli._resolve_bulk_edge_mode(_native_schema(), args)
     assert args.edge_classic and "edge_mode=classic reason=flag" in caplog.text
 
 
 def test_schema_without_edges_selects_nothing(caplog) -> None:
     args = _args()
-    with caplog.at_level(logging.INFO, logger="src.cli"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.cli"):
         cli._resolve_bulk_edge_mode(SimpleNamespace(edges=[]), args)
     assert _modes(args) == (False, False, False)
     assert "edge_mode" not in caplog.text

@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-from src import cli
-from src.models.schema import GraphSchema
+from neo4j_graph_loader import cli
+from neo4j_graph_loader.models.schema import GraphSchema
 
 ROOT = Path(__file__).resolve().parents[1]
 TOPICS = ["works-at-a", "works-at-b", "works-at-c"]
@@ -363,7 +363,7 @@ def test_precedence_substages_never_provision_a_per_topic_dlq() -> None:
 
 def test_sub_stage_edges_keep_the_parents_dlq_parking_lot_and_index_names() -> None:
     """v7-S4 review S6: a one-topic copy must not resolve `<topic>.dlq`."""
-    from src.models.schema import (
+    from neo4j_graph_loader.models.schema import (
         edge_dead_letter_topic_name, edge_parked_pair_index_topic_name, edge_parked_topic_name,
     )
 

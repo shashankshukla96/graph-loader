@@ -2,7 +2,7 @@
 import logging
 from unittest.mock import patch
 
-from src.loader.write_timing_capture import configure_write_timing_capture
+from neo4j_graph_loader.loader.write_timing_capture import configure_write_timing_capture
 
 
 def test_write_timing_capture_keeps_only_successful_batch_lines(tmp_path):

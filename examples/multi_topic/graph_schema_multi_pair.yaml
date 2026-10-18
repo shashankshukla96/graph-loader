@@ -3,7 +3,7 @@
 # loader that guessed the pair from the record could not be right.
 #
 #   python examples/multi_topic/multi_topic_graph.py publish --variant multi-pair --customers 2000
-#   python -m src.cli start --mode bulk --config examples/multi_topic/graph_schema_multi_pair.yaml
+#   python -m neo4j_graph_loader.cli start --mode bulk --config examples/multi_topic/graph_schema_multi_pair.yaml
 #   python examples/multi_topic/multi_topic_graph.py verify --variant multi-pair --customers 2000
 loading:
   consumer_group_id: graph-loader-mt-pairs

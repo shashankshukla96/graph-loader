@@ -13,8 +13,8 @@ from unittest.mock import MagicMock
 import pytest
 from prometheus_client import CollectorRegistry
 
-from src.loader import dead_letter
-from src.utils import metrics
+from neo4j_graph_loader.loader import dead_letter
+from neo4j_graph_loader.utils import metrics
 
 # tests/conftest.py's autouse `_reset_metrics_globals` fixture already
 # resets `metrics._process_metrics` and the DLQ-listener target/attribute
@@ -39,7 +39,7 @@ def test_import_performs_no_graph_loader_registry():
         [
             sys.executable,
             "-c",
-            "import src.utils.metrics as m; "
+            "import neo4j_graph_loader.utils.metrics as m; "
             "assert m._process_metrics is None; "
             "print('ok')",
         ],
@@ -327,7 +327,7 @@ def test_cardinality_guard_no_unsafe_labels_call_under_src():
 # P6-S2 review finding R1 (blocking): the `.labels(...)` scan above cannot
 # see a value that flows through `start_metrics_server`/
 # `initialize_zero_series`'s own `kind=`/`name=` parameters before reaching
-# a `.labels(...)` call inside `src/utils/metrics.py` itself — those two
+# a `.labels(...)` call inside `src/neo4j_graph_loader/utils/metrics.py` itself — those two
 # bare names are allowlisted there by design (metrics.py's own code passes
 # `kind=kind, name=name` internally). Without this second scan,
 # `start_metrics_server(m, kind="cli", name=run_id)` would pass the first

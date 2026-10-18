@@ -4,8 +4,8 @@ import urllib.request
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from src.orchestrator.clock_runner import main
-from src.utils import metrics as metrics_module
+from neo4j_graph_loader.orchestrator.clock_runner import main
+from neo4j_graph_loader.utils import metrics as metrics_module
 
 
 def _bind_metrics_to_an_ephemeral_port(monkeypatch):
@@ -35,16 +35,16 @@ def _schema(topic="clock-topic"):
 
 
 def test_clock_runner_rejects_noncanonical_fleet_before_schema_or_kafka():
-    with patch("src.orchestrator.clock_runner.load_schema") as load, \
-         patch("src.orchestrator.clock_runner.Producer") as producer:
+    with patch("neo4j_graph_loader.orchestrator.clock_runner.load_schema") as load, \
+         patch("neo4j_graph_loader.orchestrator.clock_runner.Producer") as producer:
         assert main(["--config", "schema.yaml", "--run-id", "run", "--fleet-edge-types", "WORKS_AT,BOUGHT", "--coordination-topic", "clock-topic"]) == 1
     load.assert_not_called()
     producer.assert_not_called()
 
 
 def test_clock_runner_rejects_topic_split_before_kafka():
-    with patch("src.orchestrator.clock_runner.load_schema", return_value=_schema()) as load, \
-         patch("src.orchestrator.clock_runner.Producer") as producer:
+    with patch("neo4j_graph_loader.orchestrator.clock_runner.load_schema", return_value=_schema()) as load, \
+         patch("neo4j_graph_loader.orchestrator.clock_runner.Producer") as producer:
         assert main(["--config", "schema.yaml", "--run-id", "run", "--fleet-edge-types", "WORKS_AT", "--coordination-topic", "other-topic"]) == 1
     load.assert_called_once_with("schema.yaml")
     producer.assert_not_called()
@@ -57,8 +57,8 @@ def test_clock_runner_rejects_self_reference_fleet_before_kafka():
         nodes=SimpleNamespace(source="Person", target="Person", is_self_referencing=True),
     )
     schema.edges = (*schema.edges, knows)
-    with patch("src.orchestrator.clock_runner.load_schema", return_value=schema), \
-         patch("src.orchestrator.clock_runner.Producer") as producer:
+    with patch("neo4j_graph_loader.orchestrator.clock_runner.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.orchestrator.clock_runner.Producer") as producer:
         assert main(["--config", "schema.yaml", "--run-id", "run", "--fleet-edge-types", "KNOWS", "--coordination-topic", "clock-topic"]) == 1
     producer.assert_not_called()
 
@@ -66,10 +66,10 @@ def test_clock_runner_rejects_self_reference_fleet_before_kafka():
 def test_clock_runner_passes_exact_rotation_plan_to_global_clock():
     producer, global_clock = MagicMock(), MagicMock()
     global_clock.run.return_value = 0
-    with patch("src.orchestrator.clock_runner.load_schema", return_value=_schema()), \
-         patch("src.orchestrator.clock_runner.Producer", return_value=producer), \
-         patch("src.orchestrator.clock_runner.GlobalBatchClock", return_value=global_clock) as clock_cls, \
-         patch("src.orchestrator.clock_runner.signal.signal", return_value=object()):
+    with patch("neo4j_graph_loader.orchestrator.clock_runner.load_schema", return_value=_schema()), \
+         patch("neo4j_graph_loader.orchestrator.clock_runner.Producer", return_value=producer), \
+         patch("neo4j_graph_loader.orchestrator.clock_runner.GlobalBatchClock", return_value=global_clock) as clock_cls, \
+         patch("neo4j_graph_loader.orchestrator.clock_runner.signal.signal", return_value=object()):
         assert main(["--config", "schema.yaml", "--run-id", "run", "--fleet-edge-types", "WORKS_AT", "--coordination-topic", "clock-topic"]) == 0
     assert clock_cls.call_args.kwargs["run_id"] == "run"
     assert [edge.type for edge in clock_cls.call_args.kwargs["edges"]] == ["WORKS_AT"]
@@ -120,11 +120,11 @@ def test_clock_serves_process_up_but_no_write_duration_series(monkeypatch):
 
     global_clock.run.side_effect = blocking_run
     try:
-        with patch("src.orchestrator.clock_runner.load_schema", return_value=_schema()), \
-             patch("src.orchestrator.clock_runner.Producer", return_value=producer), \
-             patch("src.orchestrator.clock_runner.GlobalBatchClock", return_value=global_clock), \
-             patch("src.orchestrator.clock_runner.signal.signal", return_value=object()), \
-             patch("src.utils.metrics.start_http_server", side_effect=capturing_start_http_server):
+        with patch("neo4j_graph_loader.orchestrator.clock_runner.load_schema", return_value=_schema()), \
+             patch("neo4j_graph_loader.orchestrator.clock_runner.Producer", return_value=producer), \
+             patch("neo4j_graph_loader.orchestrator.clock_runner.GlobalBatchClock", return_value=global_clock), \
+             patch("neo4j_graph_loader.orchestrator.clock_runner.signal.signal", return_value=object()), \
+             patch("neo4j_graph_loader.utils.metrics.start_http_server", side_effect=capturing_start_http_server):
             assert main([
                 "--config", "schema.yaml", "--run-id", "run",
                 "--fleet-edge-types", "WORKS_AT", "--coordination-topic", "clock-topic",
@@ -170,10 +170,10 @@ def test_clock_sigterm_mid_run_leaves_snapshot(tmp_path, monkeypatch):
 
     global_clock.run.side_effect = blocking_run
     try:
-        with patch("src.orchestrator.clock_runner.load_schema", return_value=_schema()), \
-             patch("src.orchestrator.clock_runner.Producer", return_value=producer), \
-             patch("src.orchestrator.clock_runner.GlobalBatchClock", return_value=global_clock), \
-             patch("src.orchestrator.clock_runner.signal.signal", side_effect=capturing_signal):
+        with patch("neo4j_graph_loader.orchestrator.clock_runner.load_schema", return_value=_schema()), \
+             patch("neo4j_graph_loader.orchestrator.clock_runner.Producer", return_value=producer), \
+             patch("neo4j_graph_loader.orchestrator.clock_runner.GlobalBatchClock", return_value=global_clock), \
+             patch("neo4j_graph_loader.orchestrator.clock_runner.signal.signal", side_effect=capturing_signal):
             assert main([
                 "--config", "schema.yaml", "--run-id", "run",
                 "--fleet-edge-types", "WORKS_AT", "--coordination-topic", "clock-topic",
@@ -221,9 +221,9 @@ def test_clock_runner_handler_installed_before_load_schema_and_producer(tmp_path
 
     global_clock.run.side_effect = run_observes_shutdown
     try:
-        with patch("src.orchestrator.clock_runner.load_schema", side_effect=load_schema_fires_signal_first), \
-             patch("src.orchestrator.clock_runner.Producer", return_value=producer), \
-             patch("src.orchestrator.clock_runner.GlobalBatchClock", return_value=global_clock):
+        with patch("neo4j_graph_loader.orchestrator.clock_runner.load_schema", side_effect=load_schema_fires_signal_first), \
+             patch("neo4j_graph_loader.orchestrator.clock_runner.Producer", return_value=producer), \
+             patch("neo4j_graph_loader.orchestrator.clock_runner.GlobalBatchClock", return_value=global_clock):
             assert main([
                 "--config", "schema.yaml", "--run-id", "run",
                 "--fleet-edge-types", "WORKS_AT", "--coordination-topic", "clock-topic",

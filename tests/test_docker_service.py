@@ -4,8 +4,8 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from src.orchestrator.docker_service import DockerService
-from src.utils.schema_loader import SchemaLoadError
+from neo4j_graph_loader.orchestrator.docker_service import DockerService
+from neo4j_graph_loader.utils.schema_loader import SchemaLoadError
 
 class TestDockerService(unittest.TestCase):
     def setUp(self):
@@ -379,7 +379,7 @@ class TestDockerService(unittest.TestCase):
                 config_path="config.yaml", rejection_dir=rejection_dir, run_id="run-A",
             )
             stream_command = self.mock_client.containers.run.call_args.kwargs["command"]
-            with patch("src.orchestrator.docker_service.load_schema", return_value=schema):
+            with patch("neo4j_graph_loader.orchestrator.docker_service.load_schema", return_value=schema):
                 self.service.run_edge_loader(
                     edge_type="WORKS_AT", topic="works-at-events", mode="bulk", replicas=2,
                     config_path="config.yaml", rejection_dir=rejection_dir, run_id="run-A",
@@ -433,7 +433,7 @@ class TestDockerService(unittest.TestCase):
                 source="Person", target="Company", is_self_referencing=False,
             )),
         ))
-        with patch("src.orchestrator.docker_service.load_schema", return_value=schema):
+        with patch("neo4j_graph_loader.orchestrator.docker_service.load_schema", return_value=schema):
             with tempfile.TemporaryDirectory() as rejection_dir:
                 self.service.run_edge_loader(
                     edge_type="WORKS_AT", topic="works-at-events", mode="bulk",
@@ -491,7 +491,7 @@ class TestDockerService(unittest.TestCase):
         ))
         with tempfile.TemporaryDirectory() as temporary:
             rejection_dir = str(Path(temporary) / "not-created")
-            with patch("src.orchestrator.docker_service.load_schema", return_value=schema):
+            with patch("neo4j_graph_loader.orchestrator.docker_service.load_schema", return_value=schema):
                 with self.assertRaisesRegex(
                     ValueError,
                     r"stage=launch run_id=run-A edge=KNOWS.*every eligible schema edge",
@@ -508,7 +508,7 @@ class TestDockerService(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             rejection_dir = str(Path(temporary) / "not-created")
             with patch(
-                "src.orchestrator.docker_service.load_schema",
+                "neo4j_graph_loader.orchestrator.docker_service.load_schema",
                 side_effect=SchemaLoadError("invalid schema"),
             ):
                 with self.assertRaisesRegex(
@@ -657,11 +657,11 @@ class TestBucketLeaseWiring(unittest.TestCase):
         assert container is self.mock_client.containers.run.return_value
         call = self.mock_client.containers.run.call_args.kwargs
         assert call["image"] == "graph-loader-edge:latest"
-        assert call["entrypoint"] == ["python", "-m", "src.orchestrator.lease_server"]
+        assert call["entrypoint"] == ["python", "-m", "neo4j_graph_loader.orchestrator.lease_server"]
         assert call["command"] == [
             "--host", "0.0.0.0", "--port", "7700", "--buckets", "16", "--scheme", "Genre,Region",
         ]
-        from src.orchestrator.docker_service import _dns_safe_run_token
+        from neo4j_graph_loader.orchestrator.docker_service import _dns_safe_run_token
         assert call["name"] == f"graph-loader-lease-{_dns_safe_run_token('run-A')}"
         # Story 10 E2E finding: this name is DNS-resolved by other
         # containers (bucket_lease_address(prefer_name=True)), so it must
@@ -746,8 +746,8 @@ class TestBucketLeaseWiring(unittest.TestCase):
             assert env["GRAPH_LOADER_EDGE_EXPLICIT_LOCKS"] == "0"
 
     def test_edge_loader_forwards_lease_merge_rows_to_stream_only(self):
-        from src.loader.edge_execution import LEASE_MERGE_ROWS_ENV
-        from src.orchestrator import docker_service as docker_service_module
+        from neo4j_graph_loader.loader.edge_execution import LEASE_MERGE_ROWS_ENV
+        from neo4j_graph_loader.orchestrator import docker_service as docker_service_module
 
         # The launcher's constant is the name the container's lease coordinator reads.
         assert docker_service_module.LEASE_MERGE_ROWS_ENV == LEASE_MERGE_ROWS_ENV == "GRAPH_LOADER_LEASE_MERGE_ROWS"
@@ -810,7 +810,7 @@ class TestRetryConsumerWiring(unittest.TestCase):
         assert containers == [self.mock_client.containers.run.return_value]
         call = self.mock_client.containers.run.call_args.kwargs
         assert call["image"] == "graph-loader-edge:latest"
-        assert call["entrypoint"] == ["python", "-m", "src.loader.retry_consumer"]
+        assert call["entrypoint"] == ["python", "-m", "neo4j_graph_loader.loader.retry_consumer"]
         assert call["command"] == [
             "--config", "/app/runtime_schema.yaml", "--run-id", "run-A",
             "--dlq-topics", "works-at-events.dlq,knows-events.dlq",

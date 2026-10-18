@@ -8,10 +8,10 @@ import time
 
 import pytest
 
-from src.loader.edge_plan import ChunkSpec, ResourceTable, assemble_plan, resource_pair, write_plan_file
-from src.loader.planned_writer import DispatcherClient, DispatcherError
-from src.orchestrator import planned_dispatcher as planned_dispatcher_module
-from src.orchestrator.planned_dispatcher import END, DispatchError, DispatchState, PlannedDispatcher
+from neo4j_graph_loader.loader.edge_plan import ChunkSpec, ResourceTable, assemble_plan, resource_pair, write_plan_file
+from neo4j_graph_loader.loader.planned_writer import DispatcherClient, DispatcherError
+from neo4j_graph_loader.orchestrator import planned_dispatcher as planned_dispatcher_module
+from neo4j_graph_loader.orchestrator.planned_dispatcher import END, DispatchError, DispatchState, PlannedDispatcher
 
 DIGEST = "a" * 64
 
@@ -58,7 +58,7 @@ def test_grants_are_resource_disjoint_ranked_and_end_after_last_done() -> None:
 
 def test_dispatch_state_gauges_reflect_grant_and_done_mutations() -> None:
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     plan = make_plan([("T", 0, 0, [10]), ("T", 0, 1, [10]), ("T", 1, 1, [10])])
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
@@ -103,7 +103,7 @@ def test_dispatch_state_gauges_reflect_grant_and_done_mutations() -> None:
 
 def test_plan_active_writers_never_exceeds_launched_writer_count() -> None:
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     plan = make_plan([("T", 0, 0, [10]), ("T", 0, 1, [10]), ("T", 1, 1, [10])])
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
@@ -336,7 +336,7 @@ def test_plan_resource_wait_seconds_observes_once_per_wait_resolution(server) ->
     """One observation per wait *resolution* (Story 6), not accumulated
     into a running total the way total_wait_ms already is."""
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     plan = make_plan([("T", 0, 0, [3, 4])])
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())

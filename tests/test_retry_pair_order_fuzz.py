@@ -18,7 +18,7 @@ import random
 import pytest
 from neo4j.exceptions import ServiceUnavailable
 
-from src.loader.retry_consumer import RETRY_OUTCOME_UNRESOLVED, RETRY_OUTCOME_WRITTEN, RetryConsumer, _PartialOutcomes
+from neo4j_graph_loader.loader.retry_consumer import RETRY_OUTCOME_UNRESOLVED, RETRY_OUTCOME_WRITTEN, RetryConsumer, _PartialOutcomes
 from tests.test_retry_consumer import (
     _Clock, _dlq_message, _envelope, _FakeConsumer, _FakeDlqMessage, _make_consumer, _neo_error,
 )
@@ -366,7 +366,7 @@ def test_without_the_read_time_rewrite_legacy_keys_reach_the_writer_but_order_st
     violation: a pair's order rests on the parked-pair index, not on the key form. So the fuzz proves the
     rewrite is applied and keeps the consumer live; it does not show that order depends on it. The
     order-sensitive control of the two-pair fuzz is the one without the order key (above)."""
-    import src.loader.retry_consumer as retry_consumer_module
+    import neo4j_graph_loader.loader.retry_consumer as retry_consumer_module
 
     monkeypatch.setattr(retry_consumer_module, "canonical_pair_key", lambda envelope, labels: envelope)
     results = [run(seed, multi_pair=True)[0] for seed in range(80)]
@@ -413,7 +413,7 @@ def test_a_collapsed_type_reads_its_own_labelled_keys_back_and_parks_the_removed
 
 
 def test_the_collapsed_fuzz_is_sensitive_without_the_read_time_rewrite(monkeypatch) -> None:
-    import src.loader.retry_consumer as retry_consumer_module
+    import neo4j_graph_loader.loader.retry_consumer as retry_consumer_module
 
     monkeypatch.setattr(retry_consumer_module, "single_pair_key", lambda envelope, labels: envelope)
     assert sum(1 for seed in range(40) if run(seed, collapsed=True, steps=400)[0]) >= 30
@@ -424,7 +424,7 @@ def test_the_collapsed_fuzz_is_sensitive_without_the_read_time_rewrite(monkeypat
 
 def _dead_pair_copies(stats) -> tuple[int, int, int]:
     """(DLQ copies of p0's records, p0's distinct records, p0 records parked)."""
-    from src.loader.dead_letter import decode_envelope
+    from neo4j_graph_loader.loader.dead_letter import decode_envelope
 
     def is_p0(envelope):
         return "p0" in json.loads(envelope.key_bytes)

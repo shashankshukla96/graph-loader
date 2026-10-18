@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.orchestrator.fleet_contract import parse_fleet_edge_types, select_fleet_edges, select_shared_fleet_edges
+from neo4j_graph_loader.orchestrator.fleet_contract import parse_fleet_edge_types, select_fleet_edges, select_shared_fleet_edges
 
 
 def _edge(edge_type, source, target):

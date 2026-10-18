@@ -13,10 +13,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from examples.multi_topic import multi_topic_graph as mt  # noqa: E402
-from src.loader.edge_planner import KafkaEdgePlanner, PlanSettings  # noqa: E402
-from src.loader.edge_records import normalize_edge_record  # noqa: E402
-from src.models.schema import require_no_precedence_in_stream  # noqa: E402
-from src.utils.schema_loader import load_schema  # noqa: E402
+from neo4j_graph_loader.loader.edge_planner import KafkaEdgePlanner, PlanSettings  # noqa: E402
+from neo4j_graph_loader.loader.edge_records import normalize_edge_record  # noqa: E402
+from neo4j_graph_loader.models.schema import require_no_precedence_in_stream  # noqa: E402
+from neo4j_graph_loader.utils.schema_loader import load_schema  # noqa: E402
 from test_edge_planner import FakeCluster, FakeProducer, chains  # noqa: E402
 
 
@@ -126,7 +126,7 @@ def test_compare_reports_missing_wrong_and_duplicate_entities() -> None:
 
 
 def test_dead_letter_variant_has_one_dlq_for_the_two_topic_type_and_runs_in_stream() -> None:
-    from src.models.schema import edge_dead_letter_topic_name, edge_parked_pair_index_topic_name, edge_parked_topic_name
+    from neo4j_graph_loader.models.schema import edge_dead_letter_topic_name, edge_parked_pair_index_topic_name, edge_parked_topic_name
 
     variant = load_schema(Path(mt.SCHEMA_PATH).with_name("graph_schema_dead_letter.yaml"))
     require_no_precedence_in_stream(variant, "stream")

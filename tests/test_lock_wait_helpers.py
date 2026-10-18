@@ -13,9 +13,9 @@ from unittest.mock import MagicMock
 import pytest
 from neo4j.exceptions import TransientError
 
-from src.loader.edge_execution import ApocLockedEdgeWriter
-from src.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.edge_execution import ApocLockedEdgeWriter
+from neo4j_graph_loader.loader.edge_loader import EdgeRecord, MissingRelationshipEndpointError
+from neo4j_graph_loader.utils.schema_loader import load_schema
 from tests.stress import lock_wait
 
 
@@ -123,7 +123,7 @@ def test_since_out_of_range_raises() -> None:
 def test_count_retry_log_lines_counts_real_retries_from_the_real_writer(caplog) -> None:
     deadlock = TransientError("Neo.TransientError.Transaction.DeadlockDetected")
     writer = _transient_writer([deadlock, deadlock, _ok()], attempts=3)
-    with caplog.at_level("WARNING", logger="src.loader.edge_execution"):
+    with caplog.at_level("WARNING", logger="neo4j_graph_loader.loader.edge_execution"):
         writer.write_batch([EdgeRecord("p-1", "c-1", {"since": None})])
     assert lock_wait.count_retry_log_lines(caplog) == 2
     assert lock_wait.count_retry_log_lines(caplog, edge_type="WORKS_AT") == 2
@@ -132,7 +132,7 @@ def test_count_retry_log_lines_counts_real_retries_from_the_real_writer(caplog) 
 
 def test_count_retry_log_lines_zero_when_no_retry_happened(caplog) -> None:
     writer = _transient_writer([_ok()], attempts=3)
-    with caplog.at_level("WARNING", logger="src.loader.edge_execution"):
+    with caplog.at_level("WARNING", logger="neo4j_graph_loader.loader.edge_execution"):
         writer.write_batch([EdgeRecord("p-1", "c-1", {"since": None})])
     assert lock_wait.count_retry_log_lines(caplog) == 0
 

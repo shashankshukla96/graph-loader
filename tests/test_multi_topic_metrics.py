@@ -11,8 +11,8 @@ from unittest.mock import MagicMock
 from confluent_kafka import TopicPartition
 from prometheus_client import CollectorRegistry
 
-from src.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
-from src.utils.metrics import GraphLoaderMetrics
+from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
+from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 from tests.test_metrics import EXPECTED_CATALOGUE
 
 TYPES = ("LIKES", "FOLLOWS", "RATED")

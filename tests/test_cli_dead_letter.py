@@ -5,8 +5,8 @@ import argparse
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from src.cli import _ensure_dead_letter_topics, _ensure_retry_topics, handle_start
-from src.models.schema import DeadLetterConfig
+from neo4j_graph_loader.cli import _ensure_dead_letter_topics, _ensure_retry_topics, handle_start
+from neo4j_graph_loader.models.schema import DeadLetterConfig
 
 
 def _node(label: str, topic: str, dead_letter=None):
@@ -17,7 +17,7 @@ def _edge(edge_type: str, topic: str, dead_letter=None, order_by=None):
     return SimpleNamespace(type=edge_type, topic=topic, topics=[topic], dead_letter_entity=topic, is_multi_topic=False, replicas=1, dead_letter=dead_letter, order_by=order_by)
 
 
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_dead_letter_topics_calls_once_per_distinct_resolved_topic(mock_ensure) -> None:
     schema = SimpleNamespace(
         nodes=[
@@ -42,7 +42,7 @@ def test_ensure_dead_letter_topics_calls_once_per_distinct_resolved_topic(mock_e
         assert call.args[0] == "kafka:9092"
 
 
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_dead_letter_topics_makes_zero_calls_when_none_configured(mock_ensure) -> None:
     schema = SimpleNamespace(
         nodes=[_node("Person", "person-events"), _node("Company", "company-events")],
@@ -54,7 +54,7 @@ def test_ensure_dead_letter_topics_makes_zero_calls_when_none_configured(mock_en
     mock_ensure.assert_not_called()
 
 
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_dead_letter_topics_tolerates_missing_attribute_on_loose_test_doubles(mock_ensure) -> None:
     """Defensive getattr fallback: a schema double without .dead_letter is a no-op, not a crash."""
     schema = SimpleNamespace(
@@ -67,7 +67,7 @@ def test_ensure_dead_letter_topics_tolerates_missing_attribute_on_loose_test_dou
     mock_ensure.assert_not_called()
 
 
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_dead_letter_topics_skips_edges_when_include_edges_is_false(mock_ensure) -> None:
     """Planned mode (include_edges=not planned) never provisions edge DLQ
 
@@ -85,7 +85,7 @@ def test_ensure_dead_letter_topics_skips_edges_when_include_edges_is_false(mock_
     mock_ensure.assert_called_once_with("kafka:9092", "person-events.dlq", source_topics=["person-events"])
 
 
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_dead_letter_topics_dedups_if_two_entities_would_resolve_to_the_same_topic(mock_ensure) -> None:
     """Defensive: even if two entities somehow shared a resolved DLQ topic
     (Story 2's schema validation already forbids this at load_schema()
@@ -108,8 +108,8 @@ def test_ensure_dead_letter_topics_dedups_if_two_entities_would_resolve_to_the_s
 # ── P5-S4 Story 6: retry consumer's own durable topics ──────────────────────
 
 
-@patch("src.cli.ensure_parked_pair_index_topic")
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_parked_pair_index_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_retry_topics_provisions_parking_lot_and_parked_pairs(mock_ensure_dlq, mock_ensure_pairs) -> None:
     schema = SimpleNamespace(
         nodes=[],
@@ -126,8 +126,8 @@ def test_ensure_retry_topics_provisions_parking_lot_and_parked_pairs(mock_ensure
     )
 
 
-@patch("src.cli.ensure_parked_pair_index_topic")
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_parked_pair_index_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_retry_topics_still_provisions_the_parking_lot_for_an_order_by_edge_type(
     mock_ensure_dlq, mock_ensure_pairs,
 ) -> None:
@@ -152,8 +152,8 @@ def test_ensure_retry_topics_still_provisions_the_parking_lot_for_an_order_by_ed
     mock_ensure_pairs.assert_not_called()
 
 
-@patch("src.cli.ensure_parked_pair_index_topic")
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_parked_pair_index_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_retry_topics_skips_a_dlq_disabled_edge_type(mock_ensure_dlq, mock_ensure_pairs) -> None:
     schema = SimpleNamespace(nodes=[], edges=[_edge("WORKS_AT", "works-at-events", None)])
 
@@ -163,8 +163,8 @@ def test_ensure_retry_topics_skips_a_dlq_disabled_edge_type(mock_ensure_dlq, moc
     mock_ensure_pairs.assert_not_called()
 
 
-@patch("src.cli.ensure_parked_pair_index_topic")
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli.ensure_parked_pair_index_topic")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_ensure_retry_topics_tolerates_missing_attributes_on_loose_test_doubles(mock_ensure_dlq, mock_ensure_pairs) -> None:
     schema = SimpleNamespace(nodes=[], edges=[SimpleNamespace(type="WORKS_AT", topic="works-at-events", topics=["works-at-events"], dead_letter_entity="works-at-events", is_multi_topic=False)])
 
@@ -174,12 +174,12 @@ def test_ensure_retry_topics_tolerates_missing_attributes_on_loose_test_doubles(
     mock_ensure_pairs.assert_not_called()
 
 
-@patch("src.cli._ensure_control_topic")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli._ensure_control_topic")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_handle_start_aborts_before_any_side_effect_when_dlq_setup_fails(
     mock_ensure, mock_load, mock_get_driver, mock_apply_schema, mock_docker, mock_control_topic,
 ) -> None:
@@ -209,12 +209,12 @@ def test_handle_start_aborts_before_any_side_effect_when_dlq_setup_fails(
     assert launch_calls == []
 
 
-@patch("src.cli._ensure_control_topic")
-@patch("src.cli.DockerService")
-@patch("src.cli.apply_schema")
-@patch("src.cli.get_neo4j_driver")
-@patch("src.cli.load_schema")
-@patch("src.cli.ensure_dead_letter_topic")
+@patch("neo4j_graph_loader.cli._ensure_control_topic")
+@patch("neo4j_graph_loader.cli.DockerService")
+@patch("neo4j_graph_loader.cli.apply_schema")
+@patch("neo4j_graph_loader.cli.get_neo4j_driver")
+@patch("neo4j_graph_loader.cli.load_schema")
+@patch("neo4j_graph_loader.cli.ensure_dead_letter_topic")
 def test_handle_start_creates_dlq_topics_before_launching_containers(
     mock_ensure, mock_load, mock_get_driver, mock_apply_schema, mock_docker, mock_control_topic,
 ) -> None:

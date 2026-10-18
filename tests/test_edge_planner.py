@@ -11,16 +11,16 @@ from types import SimpleNamespace
 from confluent_kafka import KafkaError
 import pytest
 
-from src.loader.edge_plan import (
+from neo4j_graph_loader.loader.edge_plan import (
     EdgePlanError, ResourceTable, decode_chunk_message, decode_key, encode_key, key_token, plan_failure_marker,
     read_plan_file,
 )
-from src.loader.edge_planner import (
+from neo4j_graph_loader.loader.edge_planner import (
     EdgePlanInputError, IterableEdgeSource, KafkaEdgePlanner, ParallelEdgePlanner, PlanSettings,
     PlannerWorkerState, capture_edge_boundary, kafka_read_tasks, plan_and_publish_edges, producer_edge_planner,
 )
-from src.loader.planned_writer import ChunkDecoder
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.loader.planned_writer import ChunkDecoder
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 SOCIAL = load_schema(Path(__file__).resolve().parents[1] / "examples" / "social" / "graph_schema.yaml")
 EDGES = {edge.type: edge for edge in SOCIAL.edges}
@@ -670,7 +670,7 @@ def test_progress_heartbeat_increments_planner_counters_by_delta() -> None:
     increments."""
     from types import SimpleNamespace
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     planner = ParallelEdgePlanner([], PlanSettings(topic="t"), "k", types={}, metrics=metrics)
@@ -699,9 +699,9 @@ def test_progress_heartbeat_increments_planner_counters_by_delta() -> None:
 
 def test_progress_heartbeat_stays_at_zero_when_no_progress_yet() -> None:
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
-    from src.utils import metrics as metrics_module
+    from neo4j_graph_loader.utils import metrics as metrics_module
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     metrics_module.initialize_zero_series(metrics, kind="cli", name="-")
@@ -722,7 +722,7 @@ def test_close_reads_final_progress_after_heartbeat_stops(tmp_path) -> None:
     forever, and a very short plan would read 0 permanently."""
     from unittest.mock import MagicMock
     from prometheus_client import CollectorRegistry
-    from src.utils.metrics import GraphLoaderMetrics
+    from neo4j_graph_loader.utils.metrics import GraphLoaderMetrics
 
     metrics = GraphLoaderMetrics(registry=CollectorRegistry())
     planner = ParallelEdgePlanner(

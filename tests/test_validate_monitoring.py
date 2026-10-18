@@ -294,8 +294,8 @@ class TestRealMonitoringFiles:
 
 class TestCatalogueDriftAgainstRealMetricsModule:
     """Reviewer finding S5-SF3: nothing previously detected the hardcoded
-    catalogue drifting from src/utils/metrics.py. P6-S2 has since merged
-    (src/utils/metrics.py exists on this branch as of that merge), so
+    catalogue drifting from src/neo4j_graph_loader/utils/metrics.py. P6-S2 has since merged
+    (src/neo4j_graph_loader/utils/metrics.py exists on this branch as of that merge), so
     this now runs for real rather than skipping; importorskip is kept
     (rather than a plain import) so this file still degrades to a clean
     skip, instead of an unrelated collection error, in any future
@@ -304,7 +304,7 @@ class TestCatalogueDriftAgainstRealMetricsModule:
     """
 
     def test_families_and_types_match_real_module(self, vm):
-        metrics = pytest.importorskip("src.utils.metrics")
+        metrics = pytest.importorskip("neo4j_graph_loader.utils.metrics")
         assert vm.EXPECTED_METRIC_FAMILIES == metrics.EXPECTED_METRIC_FAMILIES
         # Reviewer follow-up: also compare the metric *type* half, not
         # just the family-name set, so a future Counter<->Gauge retype

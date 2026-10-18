@@ -1,5 +1,9 @@
 # Neo4j Distributed Graph Loader
 
+Install the development checkout with `python -m pip install -r requirements-dev.txt`
+and `python -m pip install -e .` before running the commands below. See the
+[namespace migration and development guide](docs/DISTRIBUTION_DEVELOPMENT.md).
+
 graph-loader loads data from Kafka topics into a Neo4j graph. You describe the
 graph model in a YAML schema (node labels, relationship types, property types,
 keys, one topic per label and per type) and publish JSON records to those
@@ -31,6 +35,7 @@ are required.
 | [Changelog](CHANGELOG.md) | See what changed and what to do when upgrading (read the upgrade notes). |
 | [Examples](examples/README.md) | [IMDb](examples/imdb/README.md) (a real 23M-record benchmark), [social](examples/social/README.md) (synthetic, exact verification), [multi_topic](examples/multi_topic/README.md) (several topics or label pairs per type). |
 | [History](docs/HISTORY.md) | Project origins and design evolution. |
+| [Distribution development](docs/DISTRIBUTION_DEVELOPMENT.md) | Install/build/check the E03 migrated runtime modules; public API wrappers and the console executable remain E04–E05 work. |
 
 ## Quick start (about 5 minutes)
 
@@ -137,7 +142,7 @@ launches the node loaders, plans and writes the relationships, and
 exits `0` only when the result is proven:
 
 ```bash
-python -m src.cli start --mode bulk --config my_graph.yaml
+python -m neo4j_graph_loader.cli start --mode bulk --config my_graph.yaml
 ```
 
 Watch for `stage=launch edge_mode=planned reason=default`, one
@@ -202,8 +207,8 @@ topics. Nothing else changes: `examples/imdb`, `examples/social` and
 
 | You want | Run | Details |
 | --- | --- | --- |
-| An initial load of a finite data set | `python -m src.cli start --mode bulk --config my_graph.yaml` | [BULK_LOAD](docs/BULK_LOAD.md). Planned mode is the default; a schema that enables relationship `dead_letter` gets the lease mode (also lock-free); `--edge-classic` selects the per-type APOC-locked loaders, the one mode that can wait on locks. |
-| Continuous loading as records arrive | `python -m src.cli start --mode stream --config my_graph.yaml` | [INCREMENTAL_LOAD](docs/INCREMENTAL_LOAD.md). Runs until SIGINT/SIGTERM; restart resumes the stable consumer groups. |
+| An initial load of a finite data set | `python -m neo4j_graph_loader.cli start --mode bulk --config my_graph.yaml` | [BULK_LOAD](docs/BULK_LOAD.md). Planned mode is the default; a schema that enables relationship `dead_letter` gets the lease mode (also lock-free); `--edge-classic` selects the per-type APOC-locked loaders, the one mode that can wait on locks. |
+| Continuous loading as records arrive | `python -m neo4j_graph_loader.cli start --mode stream --config my_graph.yaml` | [INCREMENTAL_LOAD](docs/INCREMENTAL_LOAD.md). Runs until SIGINT/SIGTERM; restart resumes the stable consumer groups. |
 | Repeated finite batches | `start --mode bulk` per batch | [INCREMENTAL_LOAD](docs/INCREMENTAL_LOAD.md). |
 
 Everything in planned mode (writers, buckets, chunk size, planner processes and
@@ -219,7 +224,7 @@ is given (use it with images from `make build-images`).
 
 ```bash
 python examples/social/social_graph.py publish --persons 20000       # per the contract above
-python -m src.cli start --mode bulk --config examples/social/graph_schema.yaml
+python -m neo4j_graph_loader.cli start --mode bulk --config examples/social/graph_schema.yaml
 python examples/social/social_graph.py verify --persons 20000        # exact graph comparison
 ```
 
@@ -241,5 +246,5 @@ topics, with `order_by` or `precedence` conflict rules).
   [USAGE section 13](docs/USAGE.md#13-development-and-validation).
 * Lint: `make lint`. Images: `make build-images`. Monitoring stack:
   `make monitoring-up` (see [MONITORING](docs/MONITORING.md)).
-* Debug a single topic with `python -m src.loader.node_loader` /
-  `python -m src.loader.edge_loader` ([HISTORY](docs/HISTORY.md#direct-single-topic-runs)).
+* Debug a single topic with `python -m neo4j_graph_loader.loader.node_loader` /
+  `python -m neo4j_graph_loader.loader.edge_loader` ([HISTORY](docs/HISTORY.md#direct-single-topic-runs)).

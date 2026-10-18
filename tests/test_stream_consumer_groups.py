@@ -16,12 +16,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from confluent_kafka import TopicPartition
 
-from src.orchestrator.docker_service import DockerService
-from src.orchestrator.stream_groups import (
+from neo4j_graph_loader.orchestrator.docker_service import DockerService
+from neo4j_graph_loader.orchestrator.stream_groups import (
     StreamGroup, StreamGroupError, migrate_legacy_offsets, prepare_stream_groups,
 )
-from src.utils import consumer_groups
-from src.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils import consumer_groups
+from neo4j_graph_loader.utils.schema_loader import load_schema
 
 
 # -- helpers --------------------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ def _launch_group(*, mode: str, run_id: str | None, edge_type: str = "WORKS_AT",
 
 
 def _monitor(edges, run_id: str, *, mode: str | None = None, prefix: str = "loader"):
-    from src.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
+    from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
 
     admin = MagicMock()
     admin.list_topics.return_value = SimpleNamespace(topics={
@@ -115,7 +115,7 @@ def test_stream_slot_gated_launch_keeps_a_run_scoped_clock_group() -> None:
     client.containers.run.return_value = MagicMock()
     schema = SimpleNamespace(edges=(SimpleNamespace(type="WORKS_AT", nodes=SimpleNamespace(
         source="Person", target="Company", is_self_referencing=False)),))
-    with patch("src.orchestrator.docker_service.load_schema", return_value=schema), \
+    with patch("neo4j_graph_loader.orchestrator.docker_service.load_schema", return_value=schema), \
             tempfile.TemporaryDirectory() as rejection_dir:
         DockerService(client=client).run_edge_loader(
             edge_type="WORKS_AT", topic="works", mode="stream", config_path="c.yaml", rejection_dir=rejection_dir,
@@ -143,7 +143,7 @@ def test_stream_monitor_lag_reads_the_stable_group() -> None:
 
 
 def test_monitor_rejects_an_unknown_mode() -> None:
-    from src.orchestrator.bulk_monitor import BulkMonitorError
+    from neo4j_graph_loader.orchestrator.bulk_monitor import BulkMonitorError
 
     with pytest.raises(BulkMonitorError):
         _monitor([SimpleNamespace(type="WORKS_AT", topics=["works"])], "run-A", mode="rotating")
@@ -166,7 +166,7 @@ def test_bulk_monitor_default_stays_run_scoped() -> None:
 
 def test_bulk_shared_and_lease_stage_groups() -> None:
     """Completion-driven shared and ``--edge-leases`` stages: ``<prefix>-<type>-<R>.bulk.0.<h>``."""
-    from src.cli import _derive_relationship_phase_run_id
+    from neo4j_graph_loader.cli import _derive_relationship_phase_run_id
 
     run_id = _derive_relationship_phase_run_id(BULK_PARENT, phase_kind="bulk", phase_index=0, edge_type="WORKS_AT")
     assert run_id == _phase_id(BULK_PARENT, "bulk", 0, "WORKS_AT")
@@ -177,7 +177,7 @@ def test_bulk_shared_and_lease_stage_groups() -> None:
 
 
 def test_bulk_isolated_phase_groups() -> None:
-    from src.cli import _derive_relationship_phase_run_id
+    from neo4j_graph_loader.cli import _derive_relationship_phase_run_id
 
     run_id = _derive_relationship_phase_run_id(BULK_PARENT, phase_kind="isolated", phase_index=1, edge_type="KNOWS")
     assert run_id == _phase_id(BULK_PARENT, "isolated", 1, "KNOWS")
@@ -185,7 +185,7 @@ def test_bulk_isolated_phase_groups() -> None:
 
 
 def test_bulk_precedence_substage_groups_and_rerun_check() -> None:
-    from src.cli import _check_precedence_rerun, _derive_relationship_phase_run_id, _precedence_substage_plan
+    from neo4j_graph_loader.cli import _check_precedence_rerun, _derive_relationship_phase_run_id, _precedence_substage_plan
 
     schema = load_schema("examples/multi_topic/graph_schema.yaml")
     edge = next(e for e in schema.edges if e.conflict_rule == "precedence")
@@ -196,14 +196,14 @@ def test_bulk_precedence_substage_groups_and_rerun_check() -> None:
         assert _launch_group(mode="bulk", run_id=sub_run_id, edge_type=edge.type, topics=sub_edge.topics,
                              prefix="p") == [f"p-{edge.type}-{sub_run_id}"]
     seen = []
-    with patch("src.cli._group_commits", side_effect=lambda group, keys: (seen.append(group), {})[1]):
+    with patch("neo4j_graph_loader.cli._group_commits", side_effect=lambda group, keys: (seen.append(group), {})[1]):
         _check_precedence_rerun(edge, plan, {}, "p")
     assert seen == [f"p-{edge.type}-{sub_run_id}" for _, _, sub_run_id, _ in plan]
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_bulk_relationship_edge_launches_and_monitors_run_scoped(monitor_cls) -> None:
-    from src.cli import _run_bulk_relationship_edge
+    from neo4j_graph_loader.cli import _run_bulk_relationship_edge
 
     edge = SimpleNamespace(
         type="WORKS_AT", topic="works", topics=["works"], replicas=1, is_multi_pair=False, conflict_rule="single",
@@ -214,7 +214,7 @@ def test_bulk_relationship_edge_launches_and_monitors_run_scoped(monitor_cls) ->
     client.containers.run.return_value = MagicMock()
     args = argparse.Namespace(config="config.yaml", network="net", bulk_timeout_seconds=1)
     with tempfile.TemporaryDirectory() as rejection_dir, \
-            patch("src.orchestrator.docker_service.REJECTION_DIR", rejection_dir):
+            patch("neo4j_graph_loader.orchestrator.docker_service.REJECTION_DIR", rejection_dir):
         service = DockerService(client=client)
         original = service.run_edge_loader
         service.run_edge_loader = lambda **kw: original(**{**kw, "rejection_dir": rejection_dir})
@@ -289,7 +289,7 @@ STABLE = StreamGroup("loader-WORKS_AT", ("works",), "loader-WORKS_AT-run-A")
 
 def test_migration_copies_legacy_offsets_into_an_uncommitted_stable_group(caplog) -> None:
     admin = FakeAdmin({"works": 3}, commits={"loader-WORKS_AT-run-A": {("works", 0): 10, ("works", 2): 4}})
-    with caplog.at_level(logging.INFO, logger="src.orchestrator.stream_groups"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.orchestrator.stream_groups"):
         assert migrate_legacy_offsets(admin, STABLE, explicit_run_id="run-A") is True
     assert admin.altered == [("loader-WORKS_AT", {("works", 0): 10, ("works", 2): 4})]
     warning = [r for r in caplog.records if r.levelno == logging.WARNING]
@@ -309,7 +309,7 @@ def test_migration_never_overwrites_a_stable_group_with_commits() -> None:
 def test_migration_without_run_id_does_not_guess(caplog) -> None:
     admin = FakeAdmin({"works": 1}, commits={"loader-WORKS_AT-run-A": {("works", 0): 10}})
     group = StreamGroup("loader-WORKS_AT", ("works",), None)
-    with caplog.at_level(logging.INFO, logger="src.orchestrator.stream_groups"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.orchestrator.stream_groups"):
         assert migrate_legacy_offsets(admin, group, explicit_run_id=None) is False
     assert admin.altered == []
     info = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
@@ -367,7 +367,7 @@ def _schema(path: str):
 
 
 def test_cli_stream_groups_for_the_lease_fleet_with_and_without_run_id() -> None:
-    from src.cli import _stream_consumer_groups
+    from neo4j_graph_loader.cli import _stream_consumer_groups
 
     schema = _schema("examples/multi_topic/graph_schema_dead_letter.yaml")
     args = argparse.Namespace(stream_clock_rotation=False)
@@ -383,7 +383,7 @@ def test_cli_stream_groups_for_the_lease_fleet_with_and_without_run_id() -> None
 
 
 def test_cli_stream_groups_for_the_deprecated_clock_path_use_its_phase_ids() -> None:
-    from src.cli import _derive_relationship_phase_run_id, _stream_consumer_groups
+    from neo4j_graph_loader.cli import _derive_relationship_phase_run_id, _stream_consumer_groups
 
     schema = _schema("tests/golden/fixtures/single_topic_dlq.yaml")
     groups = _stream_consumer_groups(schema, argparse.Namespace(stream_clock_rotation=True), explicit_run_id="R")
@@ -397,7 +397,7 @@ def test_cli_stream_groups_for_the_deprecated_clock_path_use_its_phase_ids() -> 
 
 
 def test_cli_refuses_a_type_named_like_a_node_label() -> None:
-    from src.cli import _stream_consumer_groups
+    from neo4j_graph_loader.cli import _stream_consumer_groups
 
     schema = SimpleNamespace(
         loading=SimpleNamespace(consumer_group_id="p"),
@@ -410,11 +410,11 @@ def test_cli_refuses_a_type_named_like_a_node_label() -> None:
 
 @pytest.mark.real_stream_groups
 def test_cli_prepare_passes_the_session_timeout_and_the_groups() -> None:
-    from src.cli import _prepare_stream_consumer_groups
+    from neo4j_graph_loader.cli import _prepare_stream_consumer_groups
 
     schema = _schema("examples/social/graph_schema.yaml")
     admin = FakeAdmin({edge.topics[0]: 1 for edge in schema.edges})
-    with patch("src.cli.prepare_stream_groups") as prepare:
+    with patch("neo4j_graph_loader.cli.prepare_stream_groups") as prepare:
         _prepare_stream_consumer_groups(schema, argparse.Namespace(), explicit_run_id="R",
                                         bootstrap_servers="kafka:9092", admin_factory=lambda: admin)
     kwargs = prepare.call_args.kwargs
@@ -424,7 +424,7 @@ def test_cli_prepare_passes_the_session_timeout_and_the_groups() -> None:
     assert [g.group for g in prepare.call_args.args[1]] == [
         f"{schema.loading.consumer_group_id}-{edge.type}" for edge in schema.edges
     ]
-    with patch("src.cli.prepare_stream_groups") as prepare:
+    with patch("neo4j_graph_loader.cli.prepare_stream_groups") as prepare:
         _prepare_stream_consumer_groups(schema, argparse.Namespace(stream_group_member_wait_seconds=400.0),
                                         explicit_run_id=None, bootstrap_servers="kafka:9092",
                                         admin_factory=lambda: admin)
@@ -437,7 +437,7 @@ def test_cli_prepare_passes_the_session_timeout_and_the_groups() -> None:
 
 
 def test_member_wait_flag_parses_positive_seconds() -> None:
-    from src.cli import build_parser
+    from neo4j_graph_loader.cli import build_parser
 
     assert build_parser().parse_args(["start", "--mode", "stream", "--stream-group-member-wait-seconds", "360"]) \
         .stream_group_member_wait_seconds == 360.0
@@ -449,7 +449,7 @@ def test_member_wait_flag_parses_positive_seconds() -> None:
 
 @pytest.mark.real_stream_groups
 def test_bulk_handle_start_never_prepares_stream_groups() -> None:
-    from src.cli import handle_start
+    from neo4j_graph_loader.cli import handle_start
 
     edge = SimpleNamespace(
         type="WORKS_AT", topic="works", topics=["works"], dead_letter_entity="works", is_multi_topic=False,
@@ -463,13 +463,13 @@ def test_bulk_handle_start_never_prepares_stream_groups() -> None:
     docker.run_node_loader.return_value = [MagicMock()]
     args = argparse.Namespace(mode="bulk", config="c.yaml", network="net", skip_image_build=True,
                               bulk_timeout_seconds=1, edge_leases=False, edge_classic=True)
-    with patch("src.cli._prepare_stream_consumer_groups", prepare), \
-            patch("src.cli.load_schema", return_value=schema), patch("src.cli.apply_schema"), \
-            patch("src.cli.get_neo4j_driver"), patch("src.cli.DockerService", return_value=docker), \
-            patch("src.cli._resolve_bulk_edge_mode"), patch("src.cli._require_supported_topic_conflicts"), \
-            patch("src.cli._ensure_dead_letter_topics"), \
-            patch("src.cli._resolve_node_replicas", return_value={"Person": 1}), \
-            patch("src.cli.BulkMonitor", side_effect=RuntimeError("stop the bulk run here")) as bulk_monitor:
+    with patch("neo4j_graph_loader.cli._prepare_stream_consumer_groups", prepare), \
+            patch("neo4j_graph_loader.cli.load_schema", return_value=schema), patch("neo4j_graph_loader.cli.apply_schema"), \
+            patch("neo4j_graph_loader.cli.get_neo4j_driver"), patch("neo4j_graph_loader.cli.DockerService", return_value=docker), \
+            patch("neo4j_graph_loader.cli._resolve_bulk_edge_mode"), patch("neo4j_graph_loader.cli._require_supported_topic_conflicts"), \
+            patch("neo4j_graph_loader.cli._ensure_dead_letter_topics"), \
+            patch("neo4j_graph_loader.cli._resolve_node_replicas", return_value={"Person": 1}), \
+            patch("neo4j_graph_loader.cli.BulkMonitor", side_effect=RuntimeError("stop the bulk run here")) as bulk_monitor:
         handle_start(args)  # fails at the (mocked) monitor; what matters is what ran before
     assert bulk_monitor.called  # the run got past the point where stream mode prepares its groups
     prepare.assert_not_called()
@@ -479,7 +479,7 @@ def test_committed_offsets_refuses_partition_errors() -> None:
     """A stable group whose commits come back with errors must not look uncommitted (and be overwritten)."""
     from confluent_kafka import KafkaError
 
-    from src.orchestrator.stream_groups import committed_offsets
+    from neo4j_graph_loader.orchestrator.stream_groups import committed_offsets
 
     admin = FakeAdmin({"works": 2}, commits={"loader-WORKS_AT": {("works", 1): 7}},
                       errors={"loader-WORKS_AT": {("works", 0): KafkaError(KafkaError.UNKNOWN_TOPIC_OR_PART)}})
@@ -498,7 +498,7 @@ def test_migration_copies_only_offsets_inside_the_current_range(caplog) -> None:
         commits={"loader-WORKS_AT-run-A": {("works", 0): 5, ("works", 1): 2, ("works", 2): 900}},
         watermarks={("works", 0): (0, 10), ("works", 1): (4, 10), ("works", 2): (0, 50)},
     )
-    with caplog.at_level(logging.INFO, logger="src.orchestrator.stream_groups"):
+    with caplog.at_level(logging.INFO, logger="neo4j_graph_loader.orchestrator.stream_groups"):
         assert migrate_legacy_offsets(admin, STABLE, explicit_run_id="run-A") is True
     assert admin.altered == [("loader-WORKS_AT", {("works", 0): 5})]
     out_of_range = [r.getMessage() for r in caplog.records if "legacy_offsets_out_of_range" in r.getMessage()]
@@ -518,7 +518,7 @@ def test_migration_with_every_legacy_offset_out_of_range_copies_nothing() -> Non
 def test_topic_metadata_is_retried() -> None:
     from confluent_kafka import KafkaError, KafkaException
 
-    from src.orchestrator.stream_groups import _partitions
+    from neo4j_graph_loader.orchestrator.stream_groups import _partitions
 
     admin = FakeAdmin({"works": 2})
     real = admin.list_topics
@@ -530,13 +530,13 @@ def test_topic_metadata_is_retried() -> None:
             raise KafkaException(KafkaError(KafkaError.NOT_COORDINATOR, "nc"))
         return real(timeout)
     admin.list_topics = flaky
-    with patch("src.orchestrator.stream_groups.time.sleep"):
+    with patch("neo4j_graph_loader.orchestrator.stream_groups.time.sleep"):
         assert _partitions(admin, ["works"]) == [("works", 0), ("works", 1)]
     assert len(calls) == 2
 
 
 def test_a_stop_during_the_member_wait_is_reported_as_a_stop() -> None:
-    from src.orchestrator.stream_groups import StreamGroupWaitStopped
+    from neo4j_graph_loader.orchestrator.stream_groups import StreamGroupWaitStopped
 
     admin = FakeAdmin({"works": 1}, members={"loader-WORKS_AT": [SimpleNamespace(client_id="c", host="h")]})
     with pytest.raises(StreamGroupWaitStopped, match="stop requested"):
@@ -554,10 +554,10 @@ def test_the_refusal_names_the_longer_wait_option() -> None:
 
 
 def test_handle_start_reports_a_stop_during_the_member_wait_as_a_warning(caplog) -> None:
-    from src.orchestrator.stream_groups import StreamGroupWaitStopped
+    from neo4j_graph_loader.orchestrator.stream_groups import StreamGroupWaitStopped
 
     prepare = MagicMock(side_effect=StreamGroupWaitStopped("stop requested while waiting"))
-    with patch("src.cli._prepare_stream_consumer_groups", prepare), caplog.at_level(logging.WARNING):
+    with patch("neo4j_graph_loader.cli._prepare_stream_consumer_groups", prepare), caplog.at_level(logging.WARNING):
         result, order, docker = _stream_handle_start(prepare)
     assert result == 1 and order == []
     assert any("stage=shutdown" in r.getMessage() and r.levelno == logging.WARNING for r in caplog.records)
@@ -568,7 +568,7 @@ def test_handle_start_reports_a_stop_during_the_member_wait_as_a_warning(caplog)
 
 def _member_monitor(counts: dict, *, retry=0):
     edge = SimpleNamespace(type="WORKS_AT", topics=["works"])
-    from src.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
+    from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
 
     admin = MagicMock()
     admin.list_topics.return_value = SimpleNamespace(topics={"works": SimpleNamespace(error=None, partitions={0: None})})
@@ -595,7 +595,7 @@ def _member_monitor(counts: dict, *, retry=0):
 
 
 def test_stream_monitor_fails_the_fleet_on_foreign_members(caplog) -> None:
-    from src.orchestrator.bulk_monitor import BulkMonitorError
+    from neo4j_graph_loader.orchestrator.bulk_monitor import BulkMonitorError
 
     counts = {"loader-WORKS_AT": 3, "loader-retry-consumer": 1}
     monitor, now = _member_monitor(counts, retry=1)
@@ -643,10 +643,10 @@ def test_bulk_monitor_has_no_member_guard() -> None:
         monitor.close()
 
 
-@patch("src.cli.RelationshipBulkMonitor")
+@patch("neo4j_graph_loader.cli.RelationshipBulkMonitor")
 def test_lease_fleet_wires_stable_groups_into_the_retry_consumer_and_the_monitor(monitor_cls) -> None:
-    from src.cli import _run_lease_relationship_fleet
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.cli import _run_lease_relationship_fleet
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     edge = SimpleNamespace(
         type="WORKS_AT", topic="works", topics=["works"], dead_letter_entity="works", is_multi_topic=False,
@@ -672,8 +672,8 @@ def test_lease_fleet_wires_stable_groups_into_the_retry_consumer_and_the_monitor
 
 
 def _stream_handle_start(prepare, *, run_id=None):
-    from src.cli import handle_start
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.cli import handle_start
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     edge = SimpleNamespace(
         type="WORKS_AT", topic="works", topics=["works"], dead_letter_entity="works", is_multi_topic=False,
@@ -688,19 +688,19 @@ def _stream_handle_start(prepare, *, run_id=None):
     prepare.side_effect = prepare.side_effect or (lambda *a, **kw: order.append("groups"))
     args = argparse.Namespace(mode="stream", config="c.yaml", network="net", skip_image_build=True,
                               stream_clock_rotation=False, run_id=run_id)
-    with patch("src.cli.load_schema", return_value=schema), patch("src.cli.apply_schema"), \
-            patch("src.cli.get_neo4j_driver"), patch("src.cli.DockerService", return_value=docker), \
-            patch("src.cli._resolve_node_replicas", return_value={"Person": 1}), \
-            patch("src.cli._start_stream_lease_for_nodes", return_value=(MagicMock(), {})), \
-            patch("src.cli._ensure_dead_letter_topics"), patch("src.cli._ensure_retry_topics"), \
-            patch("src.cli._run_lease_relationship_fleet", return_value=0):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), patch("neo4j_graph_loader.cli.apply_schema"), \
+            patch("neo4j_graph_loader.cli.get_neo4j_driver"), patch("neo4j_graph_loader.cli.DockerService", return_value=docker), \
+            patch("neo4j_graph_loader.cli._resolve_node_replicas", return_value={"Person": 1}), \
+            patch("neo4j_graph_loader.cli._start_stream_lease_for_nodes", return_value=(MagicMock(), {})), \
+            patch("neo4j_graph_loader.cli._ensure_dead_letter_topics"), patch("neo4j_graph_loader.cli._ensure_retry_topics"), \
+            patch("neo4j_graph_loader.cli._run_lease_relationship_fleet", return_value=0):
         result = handle_start(args)
     return result, order, docker
 
 
 def test_handle_start_prepares_stream_groups_before_any_launch() -> None:
     prepare = MagicMock()
-    with patch("src.cli._prepare_stream_consumer_groups", prepare):
+    with patch("neo4j_graph_loader.cli._prepare_stream_consumer_groups", prepare):
         result, order, _docker = _stream_handle_start(prepare, run_id="run-A")
     assert result == 0
     assert order == ["groups", "nodes"]
@@ -709,7 +709,7 @@ def test_handle_start_prepares_stream_groups_before_any_launch() -> None:
 
 def test_handle_start_refuses_when_stream_groups_are_busy() -> None:
     prepare = MagicMock(side_effect=StreamGroupError("busy"))
-    with patch("src.cli._prepare_stream_consumer_groups", prepare):
+    with patch("neo4j_graph_loader.cli._prepare_stream_consumer_groups", prepare):
         result, order, docker = _stream_handle_start(prepare)
     assert result == 1
     assert order == []
@@ -721,7 +721,7 @@ def test_group_requests_retry_a_retriable_kafka_error() -> None:
     """A broker that just started answers NOT_COORDINATOR until __consumer_offsets is loaded."""
     from confluent_kafka import KafkaError, KafkaException
 
-    from src.orchestrator.stream_groups import _with_retries
+    from neo4j_graph_loader.orchestrator.stream_groups import _with_retries
 
     calls = []
 

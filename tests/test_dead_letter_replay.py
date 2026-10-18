@@ -8,14 +8,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from confluent_kafka import TopicPartition
 
-from src.cli import build_parser, handle_replay_dlq
-from src.loader.dead_letter import (
+from neo4j_graph_loader.cli import build_parser, handle_replay_dlq
+from neo4j_graph_loader.loader.dead_letter import (
     SCHEMA_VERSION,
     DeadLetterEnvelope,
     LoaderIdentity,
     encode_envelope,
 )
-from src.loader.dead_letter_replay import (
+from neo4j_graph_loader.loader.dead_letter_replay import (
     DeadLetterReplayError,
     ReplayFilter,
     ReplaySummary,
@@ -573,12 +573,12 @@ def test_replay_dlq_parser_requires_exactly_one_entity_selector() -> None:
 
 
 def test_handle_replay_dlq_resolves_node_topic_and_defaults(monkeypatch) -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(node_dead_letter=DeadLetterConfig(enabled=True))
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=3, replayed=3, dry_run=False))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         args = build_parser().parse_args(["replay-dlq", "--node-label", "Person"])
         assert handle_replay_dlq(args) == 0
 
@@ -589,12 +589,12 @@ def test_handle_replay_dlq_resolves_node_topic_and_defaults(monkeypatch) -> None
 
 
 def test_handle_replay_dlq_resolves_edge_topic_and_target_topic_override() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(edge_dead_letter=DeadLetterConfig(enabled=True, topic="dlq-works-at"))
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=0, replayed=0, dry_run=True))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         args = build_parser().parse_args([
             "replay-dlq", "--edge-type", "WORKS_AT", "--target-topic", "staging-works-at", "--dry-run",
         ])
@@ -608,7 +608,7 @@ def test_handle_replay_dlq_resolves_edge_topic_and_target_topic_override() -> No
 
 def test_handle_replay_dlq_rejects_entity_without_dead_letter_enabled() -> None:
     schema = _cli_schema(node_dead_letter=None)
-    with patch("src.cli.load_schema", return_value=schema):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema):
         args = build_parser().parse_args(["replay-dlq", "--node-label", "Person"])
         assert handle_replay_dlq(args) == 1
 
@@ -619,12 +619,12 @@ def test_handle_replay_dlq_resolves_topic_even_when_dead_letter_disabled() -> No
     able to replay a backlog left in its DLQ topic from before the flip
     (docs/USAGE.md section 10 promises the switch is reversible).
     """
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(node_dead_letter=DeadLetterConfig(enabled=False, topic="person-events.dlq"))
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=0, replayed=0, dry_run=True))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         args = build_parser().parse_args(["replay-dlq", "--node-label", "Person", "--dry-run"])
         assert handle_replay_dlq(args) == 0
 
@@ -634,8 +634,8 @@ def test_handle_replay_dlq_resolves_topic_even_when_dead_letter_disabled() -> No
 def test_handle_replay_dlq_accepts_dlq_topic_override_with_no_schema_block() -> None:
     schema = _cli_schema(node_dead_letter=None)
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=0, replayed=0, dry_run=True))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         args = build_parser().parse_args([
             "replay-dlq", "--node-label", "Person", "--dlq-topic", "orphaned.dlq", "--dry-run",
         ])
@@ -648,12 +648,12 @@ def test_handle_replay_dlq_parked_resolves_parking_lot_topic() -> None:
     """P5-S4 Story 8: --parked resolves parked_topic_name(...) instead of
     the ordinary DLQ topic, and a replayed parked record still republishes
     onto the original entity topic (fresh attempt_count=0 re-entry)."""
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(edge_dead_letter=DeadLetterConfig(enabled=True))
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=1, replayed=1, dry_run=False))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         args = build_parser().parse_args(["replay-dlq", "--edge-type", "WORKS_AT", "--parked"])
         assert handle_replay_dlq(args) == 0
 
@@ -663,12 +663,12 @@ def test_handle_replay_dlq_parked_resolves_parking_lot_topic() -> None:
 
 
 def test_handle_replay_dlq_parked_respects_explicit_parked_topic_override() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(edge_dead_letter=DeadLetterConfig(enabled=True, parked_topic="custom.parked"))
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=0, replayed=0, dry_run=True))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         args = build_parser().parse_args(["replay-dlq", "--edge-type", "WORKS_AT", "--parked", "--dry-run"])
         assert handle_replay_dlq(args) == 0
 
@@ -676,12 +676,12 @@ def test_handle_replay_dlq_parked_respects_explicit_parked_topic_override() -> N
 
 
 def test_handle_replay_dlq_parked_is_ignored_when_dlq_topic_override_given() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(edge_dead_letter=DeadLetterConfig(enabled=True))
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=0, replayed=0, dry_run=True))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         args = build_parser().parse_args([
             "replay-dlq", "--edge-type", "WORKS_AT", "--parked", "--dlq-topic", "orphaned.dlq", "--dry-run",
         ])
@@ -691,19 +691,19 @@ def test_handle_replay_dlq_parked_is_ignored_when_dlq_topic_override_given() -> 
 
 
 def test_handle_replay_dlq_parked_rejects_dead_letter_disabled() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(edge_dead_letter=DeadLetterConfig(enabled=False, topic="works-at-events.dlq"))
-    with patch("src.cli.load_schema", return_value=schema):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema):
         args = build_parser().parse_args(["replay-dlq", "--edge-type", "WORKS_AT", "--parked"])
         assert handle_replay_dlq(args) == 1
 
 
 def test_handle_replay_dlq_rejects_until_earlier_than_since() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(node_dead_letter=DeadLetterConfig(enabled=True))
-    with patch("src.cli.load_schema", return_value=schema):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema):
         args = build_parser().parse_args([
             "replay-dlq", "--node-label", "Person",
             "--since", "2024-06-01T00:00:00Z", "--until", "2024-01-01T00:00:00Z",
@@ -712,21 +712,21 @@ def test_handle_replay_dlq_rejects_until_earlier_than_since() -> None:
 
 
 def test_handle_replay_dlq_rejects_unknown_entity() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(node_dead_letter=DeadLetterConfig(enabled=True))
-    with patch("src.cli.load_schema", return_value=schema):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema):
         args = build_parser().parse_args(["replay-dlq", "--node-label", "NoSuchLabel"])
         assert handle_replay_dlq(args) == 1
 
 
 def test_handle_replay_dlq_passes_reason_code_and_time_filters() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(node_dead_letter=DeadLetterConfig(enabled=True))
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=0, replayed=0, dry_run=True))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         args = build_parser().parse_args([
             "replay-dlq", "--node-label", "Person", "--reason-code", "invalid_json",
             "--since", "2024-01-01T00:00:00Z", "--until", "2024-06-01T00:00:00Z",
@@ -742,29 +742,29 @@ def test_handle_replay_dlq_passes_reason_code_and_time_filters() -> None:
 
 
 def test_handle_replay_dlq_rejects_invalid_since_timestamp() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(node_dead_letter=DeadLetterConfig(enabled=True))
-    with patch("src.cli.load_schema", return_value=schema):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema):
         args = build_parser().parse_args(["replay-dlq", "--node-label", "Person", "--since", "not-a-date"])
         assert handle_replay_dlq(args) == 1
 
 
 def test_handle_replay_dlq_rejects_nonpositive_limit() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(node_dead_letter=DeadLetterConfig(enabled=True))
-    with patch("src.cli.load_schema", return_value=schema):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema):
         args = build_parser().parse_args(["replay-dlq", "--node-label", "Person", "--limit", "0"])
         assert handle_replay_dlq(args) == 1
 
 
 def test_handle_replay_dlq_propagates_replay_error_as_exit_1() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(node_dead_letter=DeadLetterConfig(enabled=True))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", side_effect=DeadLetterReplayError("boom")):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", side_effect=DeadLetterReplayError("boom")):
         args = build_parser().parse_args(["replay-dlq", "--node-label", "Person"])
         assert handle_replay_dlq(args) == 1
 
@@ -884,7 +884,7 @@ def test_run_replay_needs_a_target() -> None:
 def _multi_topic_schema(**edge_overrides):
     import yaml
 
-    from src.models.schema import GraphSchema
+    from neo4j_graph_loader.models.schema import GraphSchema
 
     data = yaml.safe_load((PROJECT_ROOT / "config" / "graph_schema.yaml").read_text())
     for edge in data["edges"]:
@@ -903,8 +903,8 @@ def _multi_topic_schema(**edge_overrides):
 
 def _replay_cli(schema, *argv):
     mock_run_replay = MagicMock(return_value=ReplaySummary(matched=0, replayed=0, dry_run=True))
-    with patch("src.cli.load_schema", return_value=schema), \
-         patch("src.loader.dead_letter_replay.run_replay", mock_run_replay):
+    with patch("neo4j_graph_loader.cli.load_schema", return_value=schema), \
+         patch("neo4j_graph_loader.loader.dead_letter_replay.run_replay", mock_run_replay):
         rc = handle_replay_dlq(build_parser().parse_args(["replay-dlq", "--edge-type", "WORKS_AT", *argv]))
     return rc, mock_run_replay
 
@@ -960,7 +960,7 @@ def test_cli_warns_when_replaying_into_an_arrival_type(caplog) -> None:
 
 
 def test_cli_single_topic_source_topic_filter() -> None:
-    from src.models.schema import DeadLetterConfig
+    from neo4j_graph_loader.models.schema import DeadLetterConfig
 
     schema = _cli_schema(edge_dead_letter=DeadLetterConfig(enabled=True))
     rc, run = _replay_cli(schema, "--source-topic", "works-at-events")
