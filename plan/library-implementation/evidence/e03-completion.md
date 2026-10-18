@@ -83,3 +83,19 @@ its bookkeeping changes HEAD/tracked/diff identities. Keep this tested snapshot
 and compare actual per-file contents after committing; never claim its combined
 HEAD-based hash is unchanged by a commit. Postcommit comparison is recorded
 separately after the final review and inspected staging.
+
+## Local implementation commit and postcommit comparison
+
+Implementation commit **`bf5471e9243dbda90cdf066a5d811486119dba7c`** on the
+existing branch includes E03 plus its intentionally preserved required E00–E02
+foundation. [Postcommit manifest/comparison](e03-postcommit.json) confirms all
+**245 existing safe source inputs** retain the exact tested content, sizes and
+executable modes; the environment is unchanged. The 48 missing legacy-path
+rows naturally leave the Git index after the move. Combined HEAD-based identity
+changes are expected. The accompanying documentation-only evidence commit
+contains this postcommit record; it changes no tested source/build input.
+
+Final local link validation checks **516 relative links**, zero broken. The
+pre-final count of 477 is retained in its historical check record; added review
+and completion links explain the increase. No extra test rerun is claimed
+from committing identical tested source contents.
