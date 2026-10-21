@@ -1,0 +1,319 @@
+{
+  "date": "2026-10-20",
+  "reviewed_head": "786260bec3cceb8ed14990896380640cb52115d2",
+  "implementation_commit": "55dd4938188768090c10d851f8f7330706975ea5",
+  "verdict": "CHANGES REQUESTED: E04-R1 remains open; E05 blocked",
+  "product_source_changed": false,
+  "source_sha256": "7b7a0ed8ab192b813bf50a05e4e7425ae9e1f4b452d9919b27e663c9caa86946",
+  "environment_sha256": "9e5780f8fd795e55c49853009e4dd5e738ed8f30acd9c3c5beceb4ccb0bb17ee",
+  "input_count": 259,
+  "before_after_source_environment_equal": true,
+  "all_259_delivered_inputs_match_current": true,
+  "full_suite": {
+    "command": [
+      "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e04-review-dev-iuaxin4x/env/bin/python",
+      "-m",
+      "pytest",
+      "tests",
+      "examples/imdb/tests",
+      "-m",
+      "not integration and not smoke",
+      "-q",
+      "-rs"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 195.27,
+    "summary": ".................................................................. [ 63%]\n........................................................................ [ 65%]\n........................................................................ [ 67%]\n........................................................................ [ 69%]\n........................................................................ [ 71%]\n........................................................................ [ 73%]\n........................................................................ [ 75%]\n........................................................................ [ 77%]\n........................................................................ [ 79%]\n........................................................................ [ 81%]\n......s................................................................. [ 83%]\n........................................................................ [ 86%]\n........................................................................ [ 88%]\n........................................................................ [ 90%]\n........................................................................ [ 92%]\n........................................................................ [ 94%]\n........................................................................ [ 96%]\n........................................................................ [ 98%]\n............................................................             [100%]\n=============================== warnings summary ===============================\nexamples/imdb/tests/test_build_subset.py: 15 warnings\nexamples/imdb/tests/test_planned_edges.py: 4 warnings\n  /Users/shashank/.pyenv/versions/3.12.14/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=8787) is multi-threaded, use of fork() may lead to deadlocks in the child.\n    self.pid = os.fork()\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nSKIPPED [1] tests/test_makefile_env_precedence.py:91: the readonly SHELLOPTS failure is bash-specific\nSKIPPED [1] tests/test_multi_pair_leases.py:306: not a git checkout\nSKIPPED [1] tests/test_multi_pair_orchestration.py:209: not a git checkout\nSKIPPED [1] tests/test_schema_multi_pair.py:118: the multi-pair example is multi-pair on purpose\n3512 passed, 4 skipped, 49 deselected, 19 warnings in 189.14s (0:03:09)\n",
+    "passed": 3512,
+    "skipped": 4,
+    "deselected": 49,
+    "warnings": 19,
+    "pytest_seconds": 189.14
+  },
+  "dlq": {
+    "command": [
+      "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e04-review-dev-iuaxin4x/env/bin/python",
+      "-m",
+      "pytest",
+      "tests/integration/test_multi_topic_relationship.py::test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer",
+      "-m",
+      "integration",
+      "-v",
+      "--basetemp",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/pytest-dlq"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 26.305,
+    "containers_before": {
+      "exit_code": 0,
+      "containers": []
+    },
+    "containers_after": {
+      "exit_code": 0,
+      "containers": []
+    },
+    "proof": {
+      "input_rows": 3000,
+      "expected_pairs": 783,
+      "actual_pairs": 783,
+      "shared_pairs": 582,
+      "dlq_partitions": 4,
+      "dlq_records": 3806,
+      "retry_committed": 3806,
+      "dlq_high_watermarks": {
+        "LIKES.dlq:0": 971,
+        "LIKES.dlq:1": 926,
+        "LIKES.dlq:2": 902,
+        "LIKES.dlq:3": 1007
+      },
+      "parked_rows": 0,
+      "per_topic_dlq_absent": true,
+      "likes_write_entries": 686,
+      "lock_wait_ms": 0,
+      "lease_keyed_labels": [
+        "DlqCompany",
+        "DlqPerson"
+      ]
+    },
+    "pytest_summary": "============================== 1 passed in 23.46s =============================="
+  },
+  "artifacts": {
+    "original": [
+      {
+        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "size": 437531,
+        "sha256": "df75124fb586b7c08f125a165474e289909180a490f69d9db20d48a4db29576f"
+      },
+      {
+        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/artifacts/neo4j_graph_loader-0.1.0a1.dev0.tar.gz",
+        "size": 412621,
+        "sha256": "b4a1ca81c5a4586920dc690ac549914785ad2a0dad51e93daeee6963c9ceab70"
+      }
+    ],
+    "rebuilt": [
+      {
+        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/rebuilt/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "size": 437531,
+        "sha256": "df75124fb586b7c08f125a165474e289909180a490f69d9db20d48a4db29576f"
+      },
+      {
+        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/artifacts/neo4j_graph_loader-0.1.0a1.dev0.tar.gz",
+        "size": 412621,
+        "sha256": "b4a1ca81c5a4586920dc690ac549914785ad2a0dad51e93daeee6963c9ceab70"
+      }
+    ],
+    "module_count": 52,
+    "isolated_build_rebuild_twine_pass": true,
+    "two_clean_noneditable_public_import_help_examples_and_pip_check_pass": true,
+    "all_wheel_member_bytes_equal": true
+  },
+  "images": {
+    "mode": "fresh probes of retained immutable E04 IDs; no image rebuild claimed",
+    "components": [
+      {
+        "name": "cli",
+        "id": "sha256:ed13d74ff98b86cc05e8ff1803ce2f5048f0e1d86fce8e6f77f75f80bcf16a0e",
+        "passed_commands": 13
+      },
+      {
+        "name": "node",
+        "id": "sha256:e2ce0493f6b93e5ce793c205a72ace5eb170976c71e0d31dcb7601c1385fb946",
+        "passed_commands": 13
+      },
+      {
+        "name": "edge",
+        "id": "sha256:099c318e9994cbf762c5ac1f9ebb1e2975402cb9a429c9cf7cae3ef8a4c1f347",
+        "passed_commands": 13
+      },
+      {
+        "name": "clock",
+        "id": "sha256:9e909ade689dbe3e96ac1527f2d6219c6b2d37c8331034dfe780810d8c89f992",
+        "passed_commands": 13
+      }
+    ],
+    "passed_commands": 52,
+    "source_module_count": 52
+  },
+  "static": [
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e04-review-dev-iuaxin4x/env/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "src",
+        "tests",
+        "examples",
+        "scripts/sync_requirements.py",
+        "plan/library-implementation/tools/run_e04_fault.py",
+        "plan/library-implementation/tools/verify_e03_artifacts.py"
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e04-review-dev-iuaxin4x/env/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit_code": 0,
+      "stdout": "No broken requirements found.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e04-review-dev-iuaxin4x/env/bin/python",
+        "scripts/sync_requirements.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": "Runtime requirements match project.dependencies\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "finding": {
+    "id": "E04-R1",
+    "priority": "P1",
+    "file": "src/neo4j_graph_loader/loader/edge_planner.py",
+    "lines": "1587-1592",
+    "summary": "Received worker source errors are deferred behind later blocked workers, preventing default failure cleanup and masking diagnostics with a timeout.",
+    "origin": "Gather-all predates E04; newly exposed E04 public failure diagnostics/cleanup acceptance remains unmet.",
+    "independently_reproduced_by_primary_agent": true,
+    "additional_bounded_probes": {
+      "default": {
+        "mode": "default",
+        "supervisor_expired": true,
+        "exit_code": -9,
+        "supervisor_seconds": 2.00732916700008,
+        "log": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/source-error-repro/default.log",
+        "blocked_source_entered_before_recovery": true,
+        "lock_before_supervisor_recovery": true,
+        "marker_before_supervisor_recovery": false,
+        "log_tail": "^^^^^^^^^^^^^^^^^^\\n  File \\\"/Users/shashank/Desktop/Code/Graph/graph-loader/src/neo4j_graph_loader/loader/edge_planner.py\\\", line 782, in scan_lane\\n    results.extend(self.scan(task) for task in tasks if not isinstance(task, KafkaReadTask))\\n  File \\\"/Users/shashank/Desktop/Code/Graph/graph-loader/src/neo4j_graph_loader/loader/edge_planner.py\\\", line 782, in <genexpr>\\n    results.extend(self.scan(task) for task in tasks if not isinstance(task, KafkaReadTask))\\n                   ^^^^^^^^^^^^^^^\\n  File \\\"/Users/shashank/Desktop/Code/Graph/graph-loader/src/neo4j_graph_loader/loader/edge_planner.py\\\", line 761, in scan\\n    rows = task.scan(self._adder(edge.nodes.source, edge.nodes.target, groups, task.multipart),\\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/Users/shashank/Desktop/Code/Graph/graph-loader/src/neo4j_graph_loader/loader/edge_planner.py\\\", line 497, in scan\\n    for rows, item in enumerate(self.source.records(edge), start=1):\\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/Users/shashank/Desktop/Code/Graph/graph-loader/tests/fixtures/e04_faults.py\\\", line 85, in records\\n    raise LookupError('ordinary child source failure')\\nLookupError: ordinary child source failure\\n\"}\n"
+      },
+      "timeout": {
+        "mode": "timeout",
+        "supervisor_expired": false,
+        "exit_code": 0,
+        "supervisor_seconds": 0.9709739580000587,
+        "log": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/source-error-repro/timeout.log",
+        "blocked_source_entered_before_recovery": true,
+        "lock_before_supervisor_recovery": false,
+        "marker_before_supervisor_recovery": true,
+        "log_tail": "n tasks if not isinstance(task, KafkaReadTask))\\n                   ^^^^^^^^^^^^^^^\\n  File \\\"/Users/shashank/Desktop/Code/Graph/graph-loader/src/neo4j_graph_loader/loader/edge_planner.py\\\", line 761, in scan\\n    rows = task.scan(self._adder(edge.nodes.source, edge.nodes.target, groups, task.multipart),\\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/Users/shashank/Desktop/Code/Graph/graph-loader/src/neo4j_graph_loader/loader/edge_planner.py\\\", line 497, in scan\\n    for rows, item in enumerate(self.source.records(edge), start=1):\\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/Users/shashank/Desktop/Code/Graph/graph-loader/tests/fixtures/e04_faults.py\\\", line 85, in records\\n    raise LookupError('ordinary child source failure')\\nLookupError: ordinary child source failure\\n\"}\n{\"error\": \"EdgePlanTimeoutError\", \"message\": \"edge planning operation deadline expired\", \"cause\": \"None\", \"elapsed_seconds\": 0.8183825420001085, \"blocked_source_entered\": true, \"cleanup_incomplete\": false, \"closed\": true, \"source_file\": \"/Users/shashank/Desktop/Code/Graph/graph-loader/src/neo4j_graph_loader/loader/edge_planner.py\", \"failed_marker\": \"EdgePlanTimeoutError: edge planning operation deadline expired\\n\"}\n"
+      }
+    }
+  },
+  "independent_reviews": [
+    "../reviews/e04-transport-revalidation-20261020.md",
+    "../reviews/e04-lifecycle-revalidation-20261020.md"
+  ],
+  "scope_limits": [
+    "No E05 implementation/handoff approval; source repair not performed during requested validation.",
+    "Four inherited skips,49deselections and19fork warnings remain explicit.",
+    "Native macOSarm64 and retained Linuxarm64 smoke checks do not establish E08/E09 support matrix.",
+    "No remoteIMDb access, GitHubpush, publication or tag."
+  ],
+  "raw_records": [
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/before.json",
+      "size": 66621,
+      "sha256": "c6f4b2ce51ba28c613b86396bd49f21ac6326df199ff44f547d1ec8433b917e0"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/after.json",
+      "size": 66621,
+      "sha256": "c6f4b2ce51ba28c613b86396bd49f21ac6326df199ff44f547d1ec8433b917e0"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/full-tests.log",
+      "size": 5096,
+      "sha256": "9e650123a31d2ad65b77d7471d94d1bb742564a8f312c20e615e8cd4f3531eac"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/full-results.json",
+      "size": 2855,
+      "sha256": "4386446ca1abb9704913904e055b7d1168c0063f4c799aec0a28ee6123864974"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/setup-results.json",
+      "size": 737,
+      "sha256": "e8782197eace6fc55a030b09c045cfb17104955aa77f5f45aa326753b8d28325"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/artifact-commands.json",
+      "size": 4134,
+      "sha256": "69ccab899c19e53297355e8dc9e89811acc399ad5af22af7f0cba8ba10ed97e7"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/artifacts-results.json",
+      "size": 85312,
+      "sha256": "b63846deea06e418804a5c8e9ce9402db2a6b62933a097e29f94e1aa7a3d5668"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/image-results.json",
+      "size": 133151,
+      "sha256": "797cf85452034d87e88043b00550c4c70a3a9016a3fbb3a5adf6210a9994c561"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/dlq-run/result.json",
+      "size": 719,
+      "sha256": "2c49e7ff88e0d4bd1b96bfd3949d60211a7e3df1ad463d8519cd9ea65675770d"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/dlq-run/pytest.log",
+      "size": 612,
+      "sha256": "e08f7896d896c4d301740e3d2dda0ce3dd367ff553a10f0cac660c37505247d4"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/pytest-dlq/test_dead_letter_arrival_strea0/proof-summary.json",
+      "size": 465,
+      "sha256": "edc27b79f9fbadaf51657d15af76c6e10de68f5035244e88ddd45dd4be88f2d6"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/source-error-repro/default.json",
+      "size": 384,
+      "sha256": "761810c1112ccad86d8e9821aa2674f8b23f4e57de43438f6c89a8f99aa5dc8e"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/source-error-repro/default.log",
+      "size": 1900,
+      "sha256": "52b8dcf21b93863b976481b45d47d82eb859229331eb3383c3bc294d3884e7dd"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/source-error-repro/probe.py",
+      "size": 3249,
+      "sha256": "ccf21f85d0b735cf37b82c24e1a2d98d2335777ee3275f37f5130679b9e1f932"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/source-error-repro/supervisor.log",
+      "size": 734,
+      "sha256": "e93b04a44f68bf781c1e37cb1d99e114b5560b2bf01b10d8373899958ca57702"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/source-error-repro/timeout.json",
+      "size": 386,
+      "sha256": "c243b8f28f6c127b90ae86a83cb101b49780883aa1ba1ce605e4687637e013db"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-revalidation-20261020-w62ij3nv/source-error-repro/timeout.log",
+      "size": 2319,
+      "sha256": "45a3744c98da144c0469f00195270dcdaa56aeca79cc30478d1509eb57f0993b"
+    }
+  ]
+}

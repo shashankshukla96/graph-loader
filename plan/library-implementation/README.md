@@ -1,6 +1,6 @@
 # Library implementation plan
 
-Prepared 2026-10-15; reviewed 2026-10-16. **All 13 epic decompositions are approved by the [fresh independent audit](reviews/fresh-audit-02.md). E00 execution is complete and independently accepted in the [execution review](reviews/execution-e00-e01-01.md). E01 decisions/stories are complete and independently reviewed following explicit approvals and delegated registry/ownership completion; E02 is complete and independently accepted by per-story and fresh adversarial reviews. E03 is complete and independently accepted by the [fresh final review](reviews/e03-final-adversarial.md). E04 is complete and independently accepted by the [fresh adversarial review](reviews/e04-final-adversarial-review.md). E05–E12 have not started.**
+Prepared 2026-10-15; current implementation revalidation 2026-10-20. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E03 remain accepted. E04 was delivered and previously reviewed, but [current revalidation](reviews/e04-completion-verification-20261020.md) reproduced P1 E04-R1; E04 acceptance and S3/S4 are changes requested. E05–E12 have not started; E05 is blocked until the finding is fixed and independently re-reviewed. Historical reviews/results are preserved.**
 
 This decomposes the [library/PyPI checklist](../../docs/PYPI_LIBRARY_CHECKLIST.md)
 into **13 phase epics, 26 features and 54 stories**. It is a planning deliverable;

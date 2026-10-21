@@ -1,5 +1,12 @@
 # E05 next-agent handoff — installed command, resources and writable state
 
+**Blocked by current E04 revalidation (2026-10-20):**
+[E04-R1](reviews/e04-completion-verification-20261020.md) reproduces an observed
+source failure waiting behind another blocked worker and losing its diagnostics
+to a timeout. E04 S3/S4 require correction, regression tests and independent
+re-review before this handoff can proceed. Earlier delivery/approval below is
+historical and does not waive the new finding. Do not start E05 yet.
+
 Prepared 2026-10-20. Execute **E05 only after E04 final independent acceptance
 and local delivery are recorded** in the [change tracker](CHANGE_TRACKER.md)
 and [E04 final evidence](evidence/e04-final-validation.md). E04 local delivery is
