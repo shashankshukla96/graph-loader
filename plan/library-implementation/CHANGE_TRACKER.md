@@ -17,6 +17,7 @@ No entry authorizes a GitHub push, image/package upload or publication.
 | 2026-10-17 | E03 atomic namespace migration | `bf5471e9243dbda90cdf066a5d811486119dba7c` | Moved all runtime modules to `neo4j_graph_loader`; migrated imports, patch/subprocess/pickle targets, examples/docs and four Docker entry paths; adopted editable development installs and complete restricted package discovery; added namespace tests and artifact verification. No generic `src` shim. | [E03 completion](evidence/e03-completion.md), [independent final review](reviews/e03-final-adversarial.md), [resolution history](reviews/e03-resolutions.md). Full suite 3,387 passed; exact B3 passed; artifacts/images verified. |
 | 2026-10-17 | E03 postcommit evidence | `ffb862537b83ef7be053fb96e05d12fcbcfdd355` | Recorded content/size/mode equality of the 245 existing tested source inputs after the implementation commit. Documentation/evidence only; no new runtime behavior. | [Postcommit comparison](evidence/e03-postcommit.json). |
 | 2026-10-18 | E03 verification / E04 handoff | `06ae36c05d724c47f99fa0d4d98dbf1f76aa9902` | Added fresh E03 verification and independent review, refreshed the executable E04 handoff, introduced this tracker and linked current status. Documentation/evidence only; no E04 implementation or runtime change. | [Current verification](reviews/e03-completion-verification-20261018.md), [independent source acceptance](reviews/e03-revalidation-independent-20261018.md), [handoff/tracker acceptance](reviews/e04-handoff-tracker-review-20261018.md). |
+| 2026-10-20 | E04 public API and bounded planner lifecycle | `55dd4938188768090c10d851f8f7330706975ea5` | Delivered all six ordered stories: explicit schema/planning API, ownership, closed framed IPC, operation cancellation/deadline, aggregate cleanup with retention diagnostics and independent metrics/import effects. | [Final3512-pass/B3/artifact/image proof](evidence/e04-final-validation.md), [per-story resolutions](reviews/e04-resolutions.md), [fresh final acceptance](reviews/e04-final-adversarial-review.md), [259-input postcommit equality](evidence/e04-postcommit.json). |
 
 **Commit boundaries matter:** E00, E01 and E02 were completed in a dirty checkout
 and first committed together with E03 in `bf5471e`. The repeated hash above is
@@ -25,7 +26,7 @@ epics; do not invent them. The entry/mechanical manifests distinguish inherited
 prerequisites from the migration itself. Historical validation dates can precede
 the date those contents were committed.
 
-## E04 accepted — 2026-10-20; local delivery pending
+## E04 delivered locally — 2026-10-20
 
 Entry HEAD `98cd267db5c70d3517a89ec68c1a4cedf2c254fd`, clean checkout.
 All six E04 stories completed in approved order; [execution plan](execution-e04.md),
@@ -34,8 +35,11 @@ All six E04 stories completed in approved order; [execution plan](execution-e04.
 [final independent acceptance](reviews/e04-final-adversarial-review.md).
 Fresh3,512 tests passed, four inherited skips,49 deselections,19 known warnings;
 exact B3 passed without skip; rebuilt artifacts/two clean installs/four immutable
-image matrices passed. The actual local implementation hash will be recorded in
-a following tracker/evidence commit after creation, without a recursive own hash.
+image matrices passed. Implementation/delivery commit: `55dd4938188768090c10d851f8f7330706975ea5`. The
+[postcommit proof](evidence/e04-postcommit.json) verifies all259 delivery inputs
+against both committed blobs and current contents/size/mode; environment identity
+is unchanged. This following tracker/evidence commit changes documentation only
+and does not recursively embed its own enclosing hash.
 E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) prepared.
 
 ## Current validation and delivery
@@ -43,6 +47,7 @@ E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) pre
 | Date | Reviewed source commit | Work | Delivery commit / state |
 | --- | --- | --- | --- |
 | 2026-10-18 | `ffb862537b83ef7be053fb96e05d12fcbcfdd355` | [Fresh E03 completion verification](reviews/e03-completion-verification-20261018.md): 3,387 test passes, exact no-skip DLQ proof, rebuilt artifacts/two clean installs and four new-image matrices. [Independent source review](reviews/e03-revalidation-independent-20261018.md) accepts E03; [handoff/tracker review](reviews/e04-handoff-tracker-review-20261018.md) approved after H1 was fixed and rechecked. Added this tracker and refreshed [E04 handoff](handoff-e04.md); no product/E04 implementation. | Delivered locally in `06ae36c05d724c47f99fa0d4d98dbf1f76aa9902`; source reviewed at `ffb8625` is unchanged. This tracker-only follow-up records the actual new hash. |
+| 2026-10-20 | `55dd4938188768090c10d851f8f7330706975ea5` | [E04 final validation](evidence/e04-final-validation.md):3,512 passes, exact no-skip B3, rebuilt artifacts/two clean installs/four immutable image matrices and [independent final acceptance](reviews/e04-final-adversarial-review.md). | Local implementation delivered at that SHA; [postcommit equality](evidence/e04-postcommit.json) verifies259 inputs, with this documentation-only follow-up recording the hash. |
 
 E00–E04 are recorded complete and independently accepted in the canonical plan.
 E05–E12 remain unstarted; plan approval is not implementation. A new failed gate

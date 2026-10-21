@@ -2,8 +2,10 @@
 
 Prepared 2026-10-20. Execute **E05 only after E04 final independent acceptance
 and local delivery are recorded** in the [change tracker](CHANGE_TRACKER.md)
-and [E04 final evidence](evidence/e04-final-validation.md). This handoff does not
-start E05. No upload, push, tag, publication or workflow is authorized.
+and [E04 final evidence](evidence/e04-final-validation.md). E04 local delivery is
+`55dd4938188768090c10d851f8f7330706975ea5`; [postcommit equality](evidence/e04-postcommit.json)
+verifies the259 inputs. The tracker follow-up records this actual hash. This
+handoff does not start E05. No upload, push, tag, publication or workflow is authorized.
 
 ## Preserve the actual state
 

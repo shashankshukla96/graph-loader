@@ -251,7 +251,7 @@
     },
     "local_links": {
       "files": 87,
-      "checked": 454,
+      "checked": 464,
       "missing": 0
     },
     "whitespace": {
@@ -272,5 +272,8 @@
   },
   "reviewed_source_sha256": "1d04f2e6ffa3ee09bcfec4d8e82a2621131cee1717c60f7fce54fd44e690b05c",
   "delivery_source_sha256": "cefa79c72880b3b4c7ba06931b3d5b38bf3141839a9d06e65336dac3f28a4e85",
-  "delivery_source_evidence": "e04-delivery-source.json"
+  "delivery_source_evidence": "e04-delivery-source.json",
+  "implementation_commit": "55dd4938188768090c10d851f8f7330706975ea5",
+  "postcommit_proof": "e04-postcommit.json",
+  "independent_postcommit_review": "Accepted:259 actual committed/current input identities, unchanged environment, six documentation/evidence-only followup files,464 local links and staged whitespace."
 }
