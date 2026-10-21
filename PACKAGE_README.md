@@ -7,9 +7,12 @@ metrics. It must not be uploaded to a package index.
 After installation, existing module commands use the distinctive namespace, for
 example `python -m neo4j_graph_loader.cli --help` and
 `python -m neo4j_graph_loader.loader.node_loader --help`. The old `src.*` imports
-and commands are removed without compatibility aliases. Existing module APIs
-are internal during this migration; the selected public API, installed
-`graph-loader` console command and packaged default resources are later work.
+and commands are removed without compatibility aliases. The supported public modules are `neo4j_graph_loader.schema` and
+`neo4j_graph_loader.planning`; see the source repository
+[public API guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/LIBRARY_API.md)
+for source shapes, Kafka requirements, ownership and cancellation limits.
+Other module APIs remain internal. The installed `graph-loader` console
+command and packaged default resources are E05 work.
 Supply explicit external schema/configuration files. Full CLI orchestration
 still expects the repository as its image build context and a local Docker
 service; checkout-free image delivery is also later work.

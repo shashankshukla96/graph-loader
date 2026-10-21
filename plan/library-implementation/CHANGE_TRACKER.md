@@ -25,15 +25,28 @@ epics; do not invent them. The entry/mechanical manifests distinguish inherited
 prerequisites from the migration itself. Historical validation dates can precede
 the date those contents were committed.
 
+## E04 accepted — 2026-10-20; local delivery pending
+
+Entry HEAD `98cd267db5c70d3517a89ec68c1a4cedf2c254fd`, clean checkout.
+All six E04 stories completed in approved order; [execution plan](execution-e04.md),
+[entry manifest](evidence/e04-entry.json), [final evidence](evidence/e04-final-validation.md),
+[resolution index](reviews/e04-resolutions.md) and
+[final independent acceptance](reviews/e04-final-adversarial-review.md).
+Fresh3,512 tests passed, four inherited skips,49 deselections,19 known warnings;
+exact B3 passed without skip; rebuilt artifacts/two clean installs/four immutable
+image matrices passed. The actual local implementation hash will be recorded in
+a following tracker/evidence commit after creation, without a recursive own hash.
+E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) prepared.
+
 ## Current validation and delivery
 
 | Date | Reviewed source commit | Work | Delivery commit / state |
 | --- | --- | --- | --- |
 | 2026-10-18 | `ffb862537b83ef7be053fb96e05d12fcbcfdd355` | [Fresh E03 completion verification](reviews/e03-completion-verification-20261018.md): 3,387 test passes, exact no-skip DLQ proof, rebuilt artifacts/two clean installs and four new-image matrices. [Independent source review](reviews/e03-revalidation-independent-20261018.md) accepts E03; [handoff/tracker review](reviews/e04-handoff-tracker-review-20261018.md) approved after H1 was fixed and rechecked. Added this tracker and refreshed [E04 handoff](handoff-e04.md); no product/E04 implementation. | Delivered locally in `06ae36c05d724c47f99fa0d4d98dbf1f76aa9902`; source reviewed at `ffb8625` is unchanged. This tracker-only follow-up records the actual new hash. |
 
-E00–E03 are recorded complete in the canonical plan. E04–E12 remain unstarted;
-plan approval is not implementation. A new failed gate must be recorded rather
-than hidden by an older pass. This verification does not itself start E04.
+E00–E04 are recorded complete and independently accepted in the canonical plan.
+E05–E12 remain unstarted; plan approval is not implementation. A new failed gate
+must be recorded rather than hidden by an older pass.
 
 ## Update this tracker with every change
 

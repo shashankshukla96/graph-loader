@@ -16,7 +16,8 @@ def test_process_worker_close_with_terminate_does_not_wait_for_the_scan() -> Non
     worker.close(terminate=True)
     worker.process.terminate.assert_called_once()
     # The first join is the short post-terminate one, not the 30 s graceful one.
-    assert worker.process.join.call_args_list[0].kwargs == {"timeout": 5}
+    assert 0 <= worker.process.join.call_args_list[0].kwargs["timeout"] <= 5
+    assert all(call.kwargs["timeout"] <= 10 for call in worker.process.join.call_args_list)
 
 
 def test_kafka_planner_close_aborts_an_unfinished_plan_and_removes_its_files(tmp_path) -> None:

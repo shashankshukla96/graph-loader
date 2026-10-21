@@ -35,7 +35,8 @@ are required.
 | [Changelog](CHANGELOG.md) | See what changed and what to do when upgrading (read the upgrade notes). |
 | [Examples](examples/README.md) | [IMDb](examples/imdb/README.md) (a real 23M-record benchmark), [social](examples/social/README.md) (synthetic, exact verification), [multi_topic](examples/multi_topic/README.md) (several topics or label pairs per type). |
 | [History](docs/HISTORY.md) | Project origins and design evolution. |
-| [Distribution development](docs/DISTRIBUTION_DEVELOPMENT.md) | Install/build/check the E03 migrated runtime modules; public API wrappers and the console executable remain E04–E05 work. |
+| [Public library API](docs/LIBRARY_API.md) | Schema and producer planning, Kafka requirements, ownership, cancellation and cleanup. |
+| [Distribution development](docs/DISTRIBUTION_DEVELOPMENT.md) | Install/build/check the runtime; the console executable remains E05 work. |
 
 ## Quick start (about 5 minutes)
 

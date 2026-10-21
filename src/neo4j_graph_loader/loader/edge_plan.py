@@ -70,6 +70,14 @@ class EdgePlanError(ValueError):
     """A plan, plan file, or chunk message is invalid or inconsistent."""
 
 
+class EdgePlanCancelledError(EdgePlanError):
+    """The parent observed the caller-owned cancellation signal."""
+
+
+class EdgePlanTimeoutError(EdgePlanError):
+    """The one operation-wide coordinator deadline expired."""
+
+
 # -- resource mapping ----------------------------------------------------------
 
 

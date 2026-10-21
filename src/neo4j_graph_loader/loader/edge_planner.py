@@ -23,7 +23,7 @@ Rows come from *tasks*, each one ordered stream of rows of one edge type:
   skip the per-type topics altogether (:func:`plan_and_publish_edges`).
 
 ``W`` persistent worker processes run three rounds (the parent only
-exchanges small messages with them):
+exchanges bounded frames with them):
 
 1. **scan** -- read and validate rows once, and append each row to its
    ``(source bucket, target bucket)`` cell in compact column buffers; endpoint
@@ -82,6 +82,7 @@ import multiprocessing
 import os
 from pathlib import Path
 import shutil
+import socket
 import tempfile
 import threading
 import time
@@ -95,13 +96,14 @@ import numpy as np
 from neo4j_graph_loader.loader.edge_plan import (
     DEFAULT_CHUNK_ROWS, DEFAULT_COST_FIXED_SECONDS, DEFAULT_COST_ROW_SECONDS, DEFAULT_HUB_DEGREE,
     DEFAULT_MAX_CHUNK_BYTES, DEFAULT_MAX_MESSAGE_BYTES, DEFAULT_PLAN_BUCKETS, MAX_CHUNK_ROWS, MAX_PLAN_BUCKETS,
-    ChunkSpec, EdgePlan, EdgePlanError, ResourceTable, assemble_plan, decode_token, encode_chunk_message_parts,
+    ChunkSpec, EdgePlan, EdgePlanCancelledError, EdgePlanError, EdgePlanTimeoutError, ResourceTable, assemble_plan, decode_token, encode_chunk_message_parts,
     key_token, plan_failure_marker, plan_progress_path, resource_pair, write_plan_file,
 )
 from neo4j_graph_loader.loader.edge_spill import (
     WINDOW_ENTRY_BYTES, GroupStore, KeyWindows, SpillFile, contiguous_body, counter_bits_for, gather_body,
     list_body, record_offsets, route, unit_chunks, window_slices,
 )
+from neo4j_graph_loader.loader._planner_transport import FrameProtocolError, FrameStream, WaitControl
 from neo4j_graph_loader.models.schema import EdgeConfig
 from neo4j_graph_loader.utils import metrics as metrics_module
 
@@ -113,6 +115,7 @@ DEFAULT_PLAN_PARTITIONS = 4
 DEFAULT_READ_TIMEOUT_SECONDS = 120.0
 _CONSUME_BATCH = 10_000
 _ORDER_BITS = 32
+_CLEANUP_SECONDS = 10.0
 # A Kafka task's order is ``(topic index << _PARTITION_BITS) | first partition``.
 _PARTITION_BITS = 20
 DEFAULT_PLAN_MEMORY_MB = 1024
@@ -479,7 +482,8 @@ class SourceTask:
         # v7-S7: sources of different label pairs may share an order (they never share a unit).
         return f"{self.edge_type}#{self.order}" if not self.pair else f"{self.edge_type}#{self.order}.p{self.pair}"
 
-    def scan(self, add, consumer_factory=None, clock=None, *, progress: Callable[[int], None] | None = None) -> int:
+    def scan(self, add, consumer_factory=None, clock=None, *, progress: Callable[[int], None] | None = None,
+             check: Callable | None = None) -> int:
         from neo4j_graph_loader.loader.planned_writer import _FAIL, _fast_value, compile_record_normalizer
 
         edge = self.edge
@@ -488,7 +492,11 @@ class SourceTask:
         target_value = _fast_value(edge.target_key_config.type)
         decode, dumps = _JSON.decode, json.dumps
         rows = 0
+        if check is not None:
+            check()
         for rows, item in enumerate(self.source.records(edge), start=1):
+            if check is not None:
+                check()
             try:
                 if type(item) is tuple:
                     if len(item) != 3:
@@ -748,8 +756,11 @@ class PlannerWorkerState:
         started = time.monotonic()
         edge = task.edge
         groups: dict = {}
+        if not hasattr(self, "check"):
+            self.check = None
         rows = task.scan(self._adder(edge.nodes.source, edge.nodes.target, groups, task.multipart),
-                         self.consumer_factory, progress=self._report_rows)
+                         self.consumer_factory, progress=self._report_rows,
+                         **({"check": self.check} if isinstance(task, SourceTask) else {}))
         return self._record(task, groups, rows, time.monotonic() - started)
 
     def scan_lane(self, tasks) -> dict:
@@ -1052,20 +1063,26 @@ def _default_producer_factory(bootstrap_servers: str, producer_config: dict):
     return factory
 
 
-def _planner_worker_main(connection, worker: dict, bootstrap_servers: str, producer_config: dict,
-                         producer_class=None, consumer_factory=None, progress=None) -> None:
-    """Serve planner commands from the parent until ``stop`` or EOF."""
-    state = PlannerWorkerState(consumer_factory=consumer_factory, progress=progress, **worker)
-    if producer_class is None:
-        producer_factory = _default_producer_factory(bootstrap_servers, producer_config)
-    else:
-        def producer_factory():
-            return producer_class({**PLAN_PRODUCER_CONFIG, **producer_config, "bootstrap.servers": bootstrap_servers})
+def _planner_worker_main(sock, worker: dict, bootstrap_servers: str, producer_config: dict,
+                         producer_class=None, consumer_factory=None, progress=None, parent_duplicate=None) -> None:
+    """Child-only initial source unpickling, then closed-codec command/result frames."""
+    if parent_duplicate is not None:
+        parent_duplicate.close()
+    connection = FrameStream(sock)
+    state = None
     try:
+        state = PlannerWorkerState(consumer_factory=consumer_factory, progress=progress, **worker)
+        if producer_class is None:
+            producer_factory = _default_producer_factory(bootstrap_servers, producer_config)
+        else:
+            def producer_factory():
+                return producer_class({**PLAN_PRODUCER_CONFIG, **producer_config, "bootstrap.servers": bootstrap_servers})
+        initial = True
         while True:
             try:
-                command, payload = connection.recv()
-            except (EOFError, OSError):
+                command, payload = connection.recv(initial=initial)
+                initial = False
+            except (FrameProtocolError, OSError):
                 return
             if command == "stop":
                 try:
@@ -1076,60 +1093,146 @@ def _planner_worker_main(connection, worker: dict, bootstrap_servers: str, produ
             try:
                 result = _run_command(state, command, payload, producer_factory)
                 connection.send(("ok", result))
-            except BaseException as exc:  # report every failure to the parent
+            except BaseException as exc:
                 detail = "" if isinstance(exc, EdgePlanInputError) else "\n" + traceback.format_exc()
                 connection.send(("error", f"{type(exc).__name__}: {exc}{detail}"))
     finally:
-        state.close()
+        try:
+            if state is not None:
+                state.close()
+        finally:
+            connection.close()
 
 
 class _ProcessWorker:
+    _is_process_worker = True
     def __init__(self, context, worker: dict, bootstrap_servers: str, producer_config: dict,
                  producer_class, consumer_factory) -> None:
-        parent, child = context.Pipe()
-        self.progress = context.RawArray("q", 3)
-        self.process = context.Process(
-            target=_planner_worker_main,
-            args=(child, worker, bootstrap_servers, producer_config, producer_class, consumer_factory, self.progress),
-            daemon=True,
-        )
-        self.process.start()
-        child.close()
-        self.connection = parent
-        self._stop_sent = False
+        parent, child = socket.socketpair()
+        try:
+            self.progress = context.RawArray("q", 3)
+            self.process = context.Process(
+                target=_planner_worker_main,
+                args=(child, worker, bootstrap_servers, producer_config, producer_class, consumer_factory,
+                      self.progress, parent), daemon=True,
+            )
+            self.connection = FrameStream(parent)
+            self._child = child
+            self._stop_sent = False
+            self._submitted = False
+        except BaseException:
+            parent.close(); child.close()
+            raise
+
+    def start(self) -> None:
+        # The planner owns this handle before start, including partial startup.
+        try:
+            self.process.start()
+        except BaseException:
+            self.close_endpoints()
+            raise
+        finally:
+            if self._child is not None:
+                self._child.close()
+                self._child = None
+
+    def close_endpoints(self) -> None:
+        try:
+            self.connection.close()
+        finally:
+            child = getattr(self, "_child", None)
+            if child is not None:
+                child.close()
+                self._child = None
 
     def send(self, command: str, payload) -> None:
-        self.connection.send((command, payload))
+        if not self._submitted:
+            if command != "scan":
+                raise FrameProtocolError("first worker command must submit the scan")
+            self.connection.send_initial((command, payload))
+            self._submitted = True
+        else:
+            self.connection.send((command, payload))
 
     def recv(self):
         try:
             return self.connection.recv()
-        except EOFError:
-            return "error", f"planner process exited unexpectedly (exit code {self.process.exitcode})"
+        except (FrameProtocolError, OSError) as exc:
+            return "error", f"planner process exited unexpectedly (exit code {self.process.exitcode}): {exc}"
 
-    def request_stop(self) -> None:
+    def request_stop(self, *, deadline=None, clock=None) -> None:
         if self._stop_sent:
             return
         self._stop_sent = True
+        clock = clock or time.monotonic
+        deadline = clock() + 0.1 if deadline is None else deadline
         try:
-            self.connection.send(("stop", None))
-        except (OSError, ValueError):
+            self.connection.send(("stop", None), check=WaitControl(deadline=deadline, clock=clock).check)
+        except (OSError, ValueError, TimeoutError):
             pass
 
     def close(self, terminate: bool = False) -> None:
-        """Stop the worker; ``terminate`` kills a busy scan at once instead of waiting for it."""
-        if terminate and self.process.is_alive():
-            self.process.terminate()
-            self.process.join(timeout=5)
-        self.request_stop()
-        self.process.join(timeout=30)
-        if self.process.is_alive():
-            self.process.terminate()
-            self.process.join(timeout=5)
+        clock = time.monotonic
+        unresolved = _cleanup_process_workers([self], terminate, clock() + _CLEANUP_SECONDS, clock)
+        if unresolved:
+            raise EdgePlanError(f"worker cleanup incomplete: {[w.process.pid for w in unresolved]}")
+
+
+def _process_alive(worker) -> bool:
+    if worker.process.pid is None:
+        return False
+    try:
+        return worker.process.is_alive()
+    except Exception as exc:
+        logger.warning("stage=edge-plan reason=worker_liveness_unknown pid=%s error=%s", worker.process.pid, exc)
+        return True
+
+
+def _cleanup_process_workers(workers, terminate, deadline, clock):
+    """One shared phase schedule; no join or stop gets a fresh per-worker budget."""
+    started = clock()
+    active = [worker for worker in workers if worker.process.pid is not None]
+
+    def attempt(worker, name, *args, **kwargs):
         try:
-            self.connection.close()
-        except OSError:
-            pass
+            getattr(worker.process, name)(*args, **kwargs)
+        except Exception as exc:
+            logger.warning("stage=edge-plan reason=worker_cleanup_call_failed pid=%s action=%s error=%s",
+                           worker.process.pid, name, exc)
+
+    uncertain = []
+    if terminate:
+        for worker in active:
+            if _process_alive(worker): attempt(worker, "terminate")
+    else:
+        stop_deadline = min(deadline, started + 0.1)
+        for worker in active:
+            try:
+                worker.request_stop(deadline=stop_deadline, clock=clock)
+            except Exception as exc:
+                logger.warning("stage=edge-plan reason=worker_stop_failed pid=%s error=%s", worker.process.pid, exc)
+    for worker in workers:
+        try:
+            worker.close_endpoints()
+        except Exception as exc:
+            uncertain.append(worker)
+            logger.error("stage=edge-plan reason=endpoint_cleanup_failed pid=%s error=%s", worker.process.pid, exc)
+    if not terminate:
+        grace = min(deadline, started + 1.0)
+        for worker in active:
+            attempt(worker, "join", timeout=max(0., grace - clock()))
+        survivors = [worker for worker in active if _process_alive(worker)]
+        for worker in survivors: attempt(worker, "terminate")
+    else:
+        survivors = active
+    term_deadline = min(deadline, started + 3.0)
+    for worker in survivors:
+        attempt(worker, "join", timeout=max(0., term_deadline - clock()))
+    survivors = [worker for worker in survivors if _process_alive(worker)]
+    for worker in survivors: attempt(worker, "kill")
+    for worker in survivors:
+        attempt(worker, "join", timeout=max(0., deadline - clock()))
+    return list(dict.fromkeys(uncertain + [worker for worker in survivors if _process_alive(worker)]))
 
 
 class _InlineWorker:
@@ -1140,11 +1243,16 @@ class _InlineWorker:
         self.state = PlannerWorkerState(consumer_factory=consumer_factory, progress=self.progress, **worker)
         self.producer_factory = producer_factory
         self._reply = None
+        self.state.check = None
 
     def send(self, command: str, payload) -> None:
+        self._failure = None
         try:
             self._reply = ("ok", _run_command(self.state, command, payload, self.producer_factory))
+        except (EdgePlanCancelledError, EdgePlanTimeoutError):
+            raise
         except Exception as exc:
+            self._failure = exc
             self._reply = ("error", f"{type(exc).__name__}: {exc}")
 
     def recv(self):
@@ -1230,11 +1338,11 @@ class _Heartbeat:
         while not self._stop.wait(self.interval):
             self.beat()
 
-    def stop(self, *, remove: bool) -> None:
+    def stop(self, *, remove: bool, timeout: float = 5) -> None:
         self._stop.set()
         if self._thread.is_alive():
-            self._thread.join(timeout=5)
-        if remove:
+            self._thread.join(timeout=timeout)
+        if remove and not self._thread.is_alive():
             self.path.unlink(missing_ok=True)
 
 
@@ -1257,7 +1365,25 @@ class ParallelEdgePlanner:
                  after_scan: Callable[[], None] | None = None, extra_stats: Mapping | None = None,
                  plan_path: Path | str | None = None,
                  metrics: "metrics_module.GraphLoaderMetrics | None" = None,
-                 rejection_dir: Path | str | None = None) -> None:
+                 rejection_dir: Path | str | None = None,
+                 cancel_event=None, timeout_seconds: float | None = None) -> None:
+        if timeout_seconds is not None:
+            try:
+                valid = not isinstance(timeout_seconds, bool) and math.isfinite(timeout_seconds) and timeout_seconds > 0
+            except (TypeError, OverflowError):
+                valid = False
+            if not valid:
+                raise ValueError("timeout_seconds must be positive and finite")
+        if cancel_event is not None and not callable(getattr(cancel_event, "is_set", None)):
+            raise ValueError("cancel_event must supply a nonblocking is_set()")
+        self.cancel_event = cancel_event
+        self.timeout_seconds = None if timeout_seconds is None else float(timeout_seconds)
+        self._clock = time.monotonic
+        self._cleanup_clock = time.monotonic
+        self._cleanup_started = None
+        self._cleanup_incomplete = False
+        self._cleanup_diagnostics = []
+        self._deadline = self._operation_started = None
         self.settings = settings.validate()
         # With a directory, malformed Kafka records are rejected to
         # ``<dir>/<plan id>-planner-<worker>.jsonl`` and skipped instead of failing the plan.
@@ -1290,10 +1416,26 @@ class ParallelEdgePlanner:
         self._workers: list = []
         self._started: float | None = None
         self._heartbeat: _Heartbeat | None = None
-        self._metrics = metrics if metrics is not None else metrics_module.process_metrics()
+        self._metrics = metrics if metrics is not None else metrics_module.GraphLoaderMetrics()
         self._last_progress_totals = [0, 0, 0]
         self._phase = "starting"
         self._lock = threading.Lock()
+
+    def _begin_operation(self) -> None:
+        if self._operation_started is None:
+            self._operation_started = self._clock()
+            if self.timeout_seconds is not None:
+                self._deadline = self._operation_started + self.timeout_seconds
+
+    def _check(self) -> float:
+        if self.cancel_event is not None and self.cancel_event.is_set():
+            raise EdgePlanCancelledError("edge planning cancelled by caller")
+        if self._deadline is None:
+            return 0.1
+        remaining = self._deadline - self._clock()
+        if remaining <= 0:
+            raise EdgePlanTimeoutError("edge planning operation deadline expired")
+        return min(0.1, remaining)
 
     def _claim_plan_path(self, path: Path) -> None:
         """Own the output until close; never reset files belonging to a live planner.
@@ -1373,6 +1515,7 @@ class ParallelEdgePlanner:
             if self.plan_path is not None:
                 self._claim_plan_path(self.plan_path)
             try:
+                self._check()
                 self._started = time.monotonic()
                 spill_root = self._spill_root()
                 spill_root.mkdir(parents=True, exist_ok=True)
@@ -1405,11 +1548,20 @@ class ParallelEdgePlanner:
                             self.bootstrap_servers, self.producer_config,
                         )
                         handle = _InlineWorker(worker, factory, self.consumer_factory)
+                        handle.state.check = self._check
+                        self._begin_operation()
                     else:
                         handle = _ProcessWorker(context, worker, self.bootstrap_servers, self.producer_config,
                                                 self.producer_class, self.consumer_factory)
                     self._workers.append(handle)
+                    if not inline:
+                        handle.start()
                     handle.send("scan", lane)
+                if not inline:
+                    self._begin_operation()
+                    for handle in self._workers:
+                        handle.connection.check = self._check
+                self._check()
                 self._phase = "scan"
                 self._start_heartbeat()
             except BaseException as exc:
@@ -1419,23 +1571,33 @@ class ParallelEdgePlanner:
                             f"{type(exc).__name__}: {exc}\n", encoding="utf-8")
                     except OSError:
                         pass
-                self.close(terminate=True)
+                try:
+                    self.close(terminate=True)
+                except Exception as cleanup:
+                    exc.add_note(str(cleanup))
                 raise
 
     def _gather(self) -> list:
-        results, errors = [], []
+        results, errors, causes = [], [], []
+        self._check()
         for index, worker in enumerate(self._workers):
+            self._check()
             status, payload = worker.recv()
+            self._check()
             if status != "ok":
                 errors.append(f"planner worker {index} failed: {payload}")
+                causes.append(getattr(worker, "_failure", None) or RuntimeError(str(payload)))
             results.append(payload)
         if errors:
-            raise RuntimeError(errors[0] if len(errors) == 1 else "; ".join(errors))
+            raise RuntimeError(errors[0] if len(errors) == 1 else "; ".join(errors)) from causes[0]
         return results
 
     def _broadcast(self, command: str, payloads) -> list:
+        self._check()
         for worker, payload in zip(self._workers, payloads):
+            self._check()
             worker.send(command, payload)
+            self._check()
         return self._gather()
 
     def finish(self, plan_path: Path | str) -> PlanResult:
@@ -1446,18 +1608,29 @@ class ParallelEdgePlanner:
         if self.plan_path is not None and self.plan_path.resolve() != plan_path:
             raise EdgePlanError("finish path must match the planner's configured plan path")
         marker = plan_failure_marker(plan_path)
+        failed = False
+        failure = None
         try:
             self._claim_plan_path(plan_path)
+            self._check()
             return self._finish(plan_path)
         except BaseException as exc:
+            failed = True
+            failure = exc
             try:
                 if self._plan_lock_path is not None:
-                    marker.write_text(f"{type(exc).__name__}: {exc}\n", encoding="utf-8")
+                    with marker.open("a", encoding="utf-8") as handle:
+                        handle.write(f"{type(exc).__name__}: {exc}\n")
             except OSError:
                 pass
             raise
         finally:
-            self.close()
+            try:
+                self.close(terminate=failed)
+            except Exception as cleanup:
+                if failure is None:
+                    raise
+                failure.add_note(str(cleanup))
 
     def _hubs(self, workers: int) -> dict[str, list[object]]:
         """Exact hub selection: counter slots bound degrees; candidates are summed by token."""
@@ -1467,7 +1640,9 @@ class ParallelEdgePlanner:
         self._phase = "hubs"
         total = None
         for counter in self._broadcast("counter", [None] * workers):
+            self._check()
             total = counter.astype(np.uint64) if total is None else total + counter
+        self._check()
         candidates = total >= hub_degree
         if not candidates.any():
             return {}
@@ -1495,6 +1670,7 @@ class ParallelEdgePlanner:
         rows_by_pair: dict[tuple[str, int], int] = {}
         lane_stats = []
         for lane in scans:
+            self._check()
             lane_rows = 0
             for name, edge_type, rows, _seconds in lane["tasks"]:
                 rows_by_type[edge_type] += rows
@@ -1517,12 +1693,15 @@ class ParallelEdgePlanner:
             self.plan_id, len(self._workers), len(self.tasks), rows_read, scan_seconds,
             rows_read / scan_seconds if scan_seconds > 0 else 0.0,
         )
+        self._check()
         if self.after_scan is not None:
             self.after_scan()
+        self._check()
         workers = len(self._workers)
         hubs = self._hubs(workers)
         labels = {label for value in self.types.values() for label in _type_labels(value)}
         table = ResourceTable(labels, settings.buckets, hubs)
+        self._check()
         hubs_done = time.monotonic()
         self._phase = "emit"
         emit_payload = {
@@ -1535,6 +1714,7 @@ class ParallelEdgePlanner:
         type_seconds: dict[str, float] = {}
         names = {task.name: task.edge_type for task in self.tasks}
         for index, (lane_specs, timings, stats) in enumerate(emitted):
+            self._check()
             specs.extend(lane_specs)
             lane_stats[index].update(stats)
             for name, seconds in timings.items():
@@ -1543,6 +1723,7 @@ class ParallelEdgePlanner:
         emit_done = time.monotonic()
         self._phase = "assemble"
         sizes = [spec.bytes for spec in specs]
+        self._check()
         plan = assemble_plan(
             plan_id=self.plan_id, topic=settings.topic, partitions=settings.partitions, resources=table,
             types={name: _assembled_type(name, value, rows_by_type, rows_by_pair) for name, value in self.types.items()},
@@ -1562,7 +1743,9 @@ class ParallelEdgePlanner:
                 **self.extra_stats,
             },
         )
+        self._check()
         digest = write_plan_file(plan_path, plan)
+        self._check()
         finished = time.monotonic()
         logger.info(
             "stage=edge-plan-ready plan_id=%s chunks=%s rows=%s resources=%s hubs=%s scan_s=%.3f hub_s=%.3f "
@@ -1576,34 +1759,69 @@ class ParallelEdgePlanner:
                           finished - self._started, type_seconds, rows_read, lane_stats)
 
     def close(self, *, terminate: bool = False) -> None:
-        """Release the workers, spill files and heartbeat; this planner cannot be restarted."""
+        """Close once under one aggregate budget, retaining any potentially live owner."""
+        if self._cleanup_started is not None:
+            return
+        clock = self._cleanup_clock
+        self._cleanup_started = clock()
+        deadline = self._cleanup_started + _CLEANUP_SECONDS
         self._closed = True
+        self._cleanup_incomplete = True  # Fail closed until every owned cleanup action succeeds.
+        errors = []
+        heartbeat_alive = False
         if self._heartbeat is not None:
-            self._heartbeat.stop(remove=True)
-            self._heartbeat = None
-        # P6-S2 review finding S8-3: one final read after the heartbeat
-        # thread has been joined (never concurrently with a beat - avoids
-        # double-counting the same delta), before self._workers is cleared
-        # below - otherwise up to one heartbeat interval (1s) of trailing
-        # rows/chunks is never counted, and a plan that finishes in under a
-        # second would read 0 forever. Guarded: an unexpected error reading
-        # a dead spawn worker's RawArray must never block the
-        # request_stop()/close() cleanup loop right below (same principle
-        # as safe_emit - metrics must never block cleanup).
-        try:
-            self._progress()
-        except Exception as exc:
-            logger.warning("stage=edge-plan reason=final_progress_read_failed error=%s", exc)
-        workers, self._workers = self._workers, []
-        for worker in workers:
-            worker.request_stop()
-        for worker in workers:
-            worker.close(terminate=terminate)
-        if self.spill_dir is not None:
-            shutil.rmtree(self.spill_dir, ignore_errors=True)
-        if self._plan_lock_path is not None:
-            self._plan_lock_path.unlink(missing_ok=True)
-            self._plan_lock_path = None
+            try:
+                self._heartbeat.stop(remove=True, timeout=min(.5, max(0., deadline - clock())))
+            except Exception as exc:
+                errors.append(f"heartbeat cleanup: {type(exc).__name__}: {exc}")
+            heartbeat_alive = self._heartbeat._thread.is_alive()
+            if not heartbeat_alive:
+                self._heartbeat = None
+        if not heartbeat_alive:
+            try:
+                self._progress()
+            except Exception as exc:
+                logger.warning("stage=edge-plan reason=final_progress_read_failed error=%s", exc)
+        workers = self._workers
+        process_workers = [w for w in workers if getattr(w, "_is_process_worker", False) is True]
+        other_workers = [w for w in workers if getattr(w, "_is_process_worker", False) is not True]
+        for worker in other_workers:
+            try:
+                worker.request_stop()
+            except Exception as exc:
+                errors.append(f"inline stop: {type(exc).__name__}: {exc}")
+        unresolved = _cleanup_process_workers(process_workers, terminate, deadline, clock)
+        for worker in other_workers:
+            try:
+                worker.close(terminate=terminate)
+            except Exception as exc:
+                unresolved.append(worker)
+                errors.append(f"inline cleanup: {type(exc).__name__}: {exc}")
+        self._workers = unresolved
+        if not (unresolved or heartbeat_alive or errors):
+            try:
+                if self.spill_dir is not None:
+                    shutil.rmtree(self.spill_dir)
+                if self._plan_lock_path is not None:
+                    self._plan_lock_path.unlink(missing_ok=True)
+                    self._plan_lock_path = None
+            except OSError as exc:
+                errors.append(f"owned file cleanup: {type(exc).__name__}: {exc}")
+        self._cleanup_incomplete = bool(unresolved or heartbeat_alive or errors)
+        if self._cleanup_incomplete:
+            pids = [getattr(getattr(w, "process", None), "pid", "inline") for w in unresolved]
+            diagnostic = (f"planner cleanup incomplete; live/unknown workers={pids}; "
+                          f"heartbeat_alive={heartbeat_alive}; retained spill={self.spill_dir} lock={self._plan_lock_path}; "
+                          f"errors={errors}")
+            self._cleanup_diagnostics.append(diagnostic)
+            logger.error("stage=edge-plan reason=cleanup_incomplete %s", diagnostic)
+            if self._plan_lock_path is not None:
+                try:
+                    with plan_failure_marker(self.plan_path).open("a", encoding="utf-8") as handle:
+                        handle.write(diagnostic + "\n")
+                except OSError:
+                    pass
+            raise EdgePlanError(diagnostic)
 
 
 # -- Kafka input: boundary, tasks, run topic ---------------------------------------
@@ -2011,7 +2229,8 @@ def source_tasks(schema, sources: Sequence[EdgeRecordSource] | Mapping[str, Iter
 
 
 def producer_edge_planner(schema, sources, settings: PlanSettings, bootstrap_servers: str, *,
-                          plan_id: str | None = None, context=None, **options) -> ParallelEdgePlanner:
+                          plan_id: str | None = None, context=None, cancel_event=None,
+                          timeout_seconds: float | None = None, **options) -> ParallelEdgePlanner:
     """Return a :class:`ParallelEdgePlanner` over producer-supplied rows of every schema edge type.
 
     Call ``start()`` early (e.g. before publishing nodes) and ``finish(plan_path)`` later.  Pass
@@ -2022,13 +2241,15 @@ def producer_edge_planner(schema, sources, settings: PlanSettings, bootstrap_ser
     return ParallelEdgePlanner(
         tasks, settings, bootstrap_servers, plan_id=plan_id, context=context,
         types=plan_types(schema.edges),
-        extra_stats={"source": "producer"}, **options,
+        extra_stats={"source": "producer"}, cancel_event=cancel_event,
+        timeout_seconds=timeout_seconds, **options,
     )
 
 
 def plan_and_publish_edges(schema, sources, *, bootstrap_servers: str, plan_path: Path | str,
                            settings: PlanSettings, plan_id: str | None = None, create_topic: bool = True,
-                           context=None, admin_factory=None, **options) -> PlanResult:
+                           context=None, admin_factory=None, cancel_event=None,
+                           timeout_seconds: float | None = None, **options) -> PlanResult:
     """Plan producer-supplied relationship rows, publish the chunks, and write the plan file.
 
     ``sources`` is a mapping ``edge type -> iterable of rows`` (planned in
@@ -2042,7 +2263,8 @@ def plan_and_publish_edges(schema, sources, *, bootstrap_servers: str, plan_path
         context = "inline"
     # Bind and validate settings/sources before any Kafka side effect.
     planner = producer_edge_planner(schema, sources, settings, bootstrap_servers, plan_id=plan_id,
-                                    context=context, plan_path=plan_path, **options)
+                                    context=context, plan_path=plan_path, cancel_event=cancel_event,
+                                    timeout_seconds=timeout_seconds, **options)
     topic_created = False
     try:
         planner._claim_plan_path(Path(plan_path))
@@ -2052,11 +2274,13 @@ def plan_and_publish_edges(schema, sources, *, bootstrap_servers: str, plan_path
             topic_created = True
         return planner.finish(plan_path)
     except BaseException:
-        if topic_created:
+        if topic_created and not planner._cleanup_incomplete:
             try:
                 delete_chunk_topic(bootstrap_servers, settings.topic, admin_factory=admin_factory)
             except Exception as exc:
                 logger.warning("stage=edge-plan could not delete failed producer topic %s: %s", settings.topic, exc)
+        if topic_created and planner._cleanup_incomplete:
+            logger.error("stage=edge-plan retained owned topic %s for unresolved workers", settings.topic)
         raise
     finally:
         planner.close()

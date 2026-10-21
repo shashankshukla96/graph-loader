@@ -1,0 +1,276 @@
+{
+  "date": "2026-10-20",
+  "entry_head": "98cd267db5c70d3517a89ec68c1a4cedf2c254fd",
+  "source_sha256": "1d04f2e6ffa3ee09bcfec4d8e82a2621131cee1717c60f7fce54fd44e690b05c",
+  "environment_sha256": "921610492c278551bfe4b511a52ec637cf7799b784fdf6ee832a91482d97f349",
+  "full_suite_source": "fc8209594b422e25b9a2f49b69c5ca1be3388bee4a3a49230ac552a87fd93b9a",
+  "post_freeze_changes": [
+    "docs/LIBRARY_API.md"
+  ],
+  "post_freeze_change_reason": "Only corrected mapping-default documentation, independently re-reviewed. Runtime/build/tests/fixtures identical.",
+  "full_suite": {
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests",
+      "examples/imdb/tests",
+      "-m",
+      "not integration and not smoke",
+      "-q",
+      "-rs"
+    ],
+    "exit_code": 0,
+    "passed": 3512,
+    "skipped": 4,
+    "deselected": 49,
+    "warnings": 19,
+    "seconds": 187.36,
+    "skip_reasons": [
+      {
+        "file": "tests/test_makefile_env_precedence.py:91",
+        "reason": "the readonly SHELLOPTS failure is bash-specific"
+      },
+      {
+        "file": "tests/test_multi_pair_leases.py:306",
+        "reason": "not a git checkout"
+      },
+      {
+        "file": "tests/test_multi_pair_orchestration.py:209",
+        "reason": "not a git checkout"
+      },
+      {
+        "file": "tests/test_schema_multi_pair.py:118",
+        "reason": "the multi-pair example is multi-pair on purpose"
+      }
+    ],
+    "warning_ownership": {
+      "A5/E08": "19 inherited multiprocessing fork deprecation warnings: build_subset15/planned_edges4. No new warning."
+    }
+  },
+  "static": [
+    {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/dev/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "src",
+        "tests",
+        "examples",
+        "scripts/sync_requirements.py",
+        "plan/library-implementation/tools/capture_baseline.py",
+        "plan/library-implementation/tools/run_e04_fault.py",
+        "plan/library-implementation/tools/verify_e03_artifacts.py"
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!"
+    },
+    {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/dev/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit_code": 0,
+      "stdout": "No broken requirements found."
+    },
+    {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/dev/bin/python",
+        "scripts/sync_requirements.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": "Runtime requirements match project.dependencies"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": ""
+    }
+  ],
+  "b3": {
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests/integration/test_multi_topic_relationship.py::test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer",
+      "-m",
+      "integration",
+      "-v"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 24.662,
+    "containers_before": {
+      "exit_code": 0,
+      "containers": []
+    },
+    "containers_after": {
+      "exit_code": 0,
+      "containers": []
+    }
+  },
+  "b3_pytest": {
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 24.08
+  },
+  "initial_infrastructure_failure": {
+    "reason": "Docker daemon stopped; start Docker then owned retry passed",
+    "b3": {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/dev/bin/python",
+        "-m",
+        "pytest",
+        "tests/integration/test_multi_topic_relationship.py::test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer",
+        "-m",
+        "integration",
+        "-v"
+      ],
+      "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+      "exit_code": 1,
+      "timeout": false,
+      "elapsed_seconds": 0.625,
+      "containers_before": {
+        "exit_code": 1,
+        "containers": []
+      },
+      "containers_after": {
+        "exit_code": 1,
+        "containers": []
+      }
+    }
+  },
+  "artifacts_evidence": "e04-artifacts.json",
+  "artifact_commands": "e04-artifact-commands.json",
+  "images_evidence": "e04-images.json",
+  "image_commands": "e04-image-commands.json",
+  "logs": [
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/full-final.log",
+      "sha256": "ff48623cbc88f3bbfacafa56b64fc176a1e523a358765d9ac9bc71594496c1b8",
+      "bytes": 4906
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/s4-repair-final.log",
+      "sha256": "2fc493bd3ef5b4563d9135e3d689bcda4af6e87bf5d4c3f5eaec1e21097cdac5",
+      "bytes": 261
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/s4-interrupted-frame.log",
+      "sha256": "5041f8742859f976cf8ba7fde2ce310359c7e86a310d67f87ca2bc873f31de0c",
+      "bytes": 99
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/s2-effects-tests.log",
+      "sha256": "76c61d14963e36c41cc9146b1680c8787c2ead11d3c0dca96766680158d92909",
+      "bytes": 181
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final-ruff.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "bytes": 19
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final-build.log",
+      "sha256": "2f7ca4613e069975a1f4ef425b664a154a876e9c2b054ec399f41c6253db4030",
+      "bytes": 26629
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final-rebuild.log",
+      "sha256": "d31f4853a706ea99e80666714d6a6d571d1f095f5417690b52b2664b0db53437",
+      "bytes": 17292
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final-twine.log",
+      "sha256": "f1ac7ae2c71fb36570c13aaba17fbd1f74ef231bcf2cac62590e9e4b290d0e2d",
+      "bytes": 468
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final-artifact-driver.log",
+      "sha256": "e472a48a5ab773129285affcae92fca4dcdd2d6377f4d5425318ca707e9a2efd",
+      "bytes": 65
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final-image-driver.log",
+      "sha256": "9895934a91afa7596ef3f06b351808b91c206d8615943d56ff885b3b1cc7df59",
+      "bytes": 140
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final-b3/pytest.log",
+      "sha256": "31de0ec63965c71ed0924c827449a5bb5b876dc45ab8a696d77a60c7eb260117",
+      "bytes": 24752
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final-b3-retry/pytest.log",
+      "sha256": "754f35910483a6495e19b81d1e94297196343296e6e21e16a2d4254a09b1b872",
+      "bytes": 602
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/docker-startup-failure-final-cli-build.log",
+      "sha256": "88232cc34f38673f104906f233aa6c2f8e3d2da6861b9b6e275ce85f4686e0d1",
+      "bytes": 239
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-validation-20261018/final_driver.py",
+      "sha256": "e424bd1508b07076ab4bd96241275157917776f767551447b6f2cbbc5d4e3480",
+      "bytes": 6422
+    }
+  ],
+  "limits": [
+    "E04 smoke installed checks do not replace E07 full installed regression lane",
+    "Native macOS arm64 and local Linux arm64 images do not close E08 platform/start-method/max-worker matrices",
+    "No console executable or packaged resources until E05; no E06 prebuilt image delivery",
+    "Approved caller callback/initial submission/OS-uninterruptible exclusions retained"
+  ],
+  "final_review": {
+    "verdict": "accepted",
+    "report": "../reviews/e04-final-adversarial-review.md",
+    "independent_focused_passes": 24,
+    "seeded_codec_roundtrips": 1000,
+    "extra_corrupt_controls": 4,
+    "actionable_findings": 0
+  },
+  "publication": false,
+  "delivery_checks": {
+    "renderer": {
+      "command": [
+        "var/e04-validation-20261018/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/tools/render_plan.py"
+      ],
+      "exit_code": 0,
+      "stdout": "Validated and rendered 13 epics, 26 features, 54 stories; 48 checklist items covered; dependency graphs acyclic."
+    },
+    "local_links": {
+      "files": 87,
+      "checked": 454,
+      "missing": 0
+    },
+    "whitespace": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0
+    }
+  },
+  "delivery_documentation_normalization": {
+    "path": "docs/LIBRARY_API.md",
+    "reviewed_sha256": "7cd357739c4facf05e1e0795ed359e0e6a93ae5aa58418edccc5a1a9c79c3757",
+    "delivered_sha256": "fa3da8eb0011cf43cd7a12a796181b96ff71318be12b606cb078d46e22a7d75b",
+    "change": "Removed one trailing space caught by staged whitespace check. No semantic/runtime/test/build/artifact change.",
+    "staged_whitespace_initial_exit_code": 2
+  },
+  "reviewed_source_sha256": "1d04f2e6ffa3ee09bcfec4d8e82a2621131cee1717c60f7fce54fd44e690b05c",
+  "delivery_source_sha256": "cefa79c72880b3b4c7ba06931b3d5b38bf3141839a9d06e65336dac3f28a4e85",
+  "delivery_source_evidence": "e04-delivery-source.json"
+}

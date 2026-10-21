@@ -1,8 +1,9 @@
-# Local distribution development (E03)
+# Local distribution development (E04)
 
 The development artifact now contains the migrated runtime modules under
-`neo4j_graph_loader`. The public API wrappers, installed `graph-loader` command,
-packaged resources and checkout-free image delivery remain E04–E06 work.
+`neo4j_graph_loader`. The supported schema/planning modules are documented in the
+[public API guide](LIBRARY_API.md). The installed `graph-loader` command,
+packaged resources and checkout-free image delivery remain E05–E06 work.
 Do not upload these development artifacts.
 
 ## Fresh checkout development
@@ -26,13 +27,14 @@ noneditable environments away from the checkout.
 ## Migration from the old namespace
 
 There is no `src` compatibility shim. Replace `from src.models.schema import
-GraphSchema` with `from neo4j_graph_loader.models.schema import GraphSchema`,
+GraphSchema` with `from neo4j_graph_loader.schema import GraphSchema`,
 and `python -m src.cli` with `python -m neo4j_graph_loader.cli`. The same prefix
 change applies to `loader`, `orchestrator` and `utils`, including subprocess and
 patch targets. Old pickles that encode `src.*` class identities are not supported;
 new process/spawn traffic uses the canonical migrated identities. Serialized
 schema, plan/chunk and DLQ formats and Kafka groups/keys retain their behavior.
-The module interfaces remain internal pending the E04 public contract.
+Use `neo4j_graph_loader.schema` and `neo4j_graph_loader.planning` for the
+supported E04 surface; other module interfaces remain internal.
 
 ## Dependency authority
 
@@ -79,7 +81,7 @@ The version authority is the literal `_version.py` value. Current local builds
 are `0.1.0a1.dev0`; E11 freezes the approved candidate target `0.1.0a1` at a clean
 reviewed source snapshot before building exact retained artifacts. File-based
 versioning needs no SCM fallback or Git at runtime. Release tags are created
-at the tested commit in E12; no tag or publication is part of E03.
+at the tested commit in E12; no tag or publication is part of E04.
 
 ## Metrics and image identity
 

@@ -20,12 +20,18 @@ FILES = {"requirements.txt", "requirements-dev.txt", "pyproject.toml", "Makefile
          "requirements-build.txt", "PACKAGE_README.md", "MANIFEST.in", "docs/DISTRIBUTION_DEVELOPMENT.md",
          "plan/library-implementation/tools/capture_baseline.py",
          "plan/library-implementation/tools/run_dlq_proof.py",
-         "plan/library-implementation/tools/verify_e03_artifacts.py"}
+         "plan/library-implementation/tools/verify_e03_artifacts.py",
+         "plan/library-implementation/tools/run_e04_fault.py"}
 UNTRACKED_INPUTS = [
     "tests/test_library_preflight.py", "tests/test_dlq_proof_harness.py", "tests/fixtures",
     "src/neo4j_graph_loader", "PACKAGE_README.md", "MANIFEST.in", "requirements-build.txt",
     "scripts/sync_requirements.py", "tests/test_distribution_foundation.py",
     "docs/DISTRIBUTION_DEVELOPMENT.md", "tests/test_namespace_migration.py",
+    "docs/LIBRARY_API.md", "tests/test_public_api.py", "tests/test_public_lifecycle.py",
+    "tests/test_planner_transport.py", "tests/test_public_cancellation.py",
+    "tests/test_public_cleanup.py",
+    "tests/test_planner_imports.py", "tests/fixtures/e04_faults.py",
+    "plan/library-implementation/tools/run_e04_fault.py",
     "plan/library-implementation/tools/capture_baseline.py",
     "plan/library-implementation/tools/run_dlq_proof.py",
     "plan/library-implementation/tools/verify_e03_artifacts.py",
@@ -56,7 +62,7 @@ def allowed(relative):
 
 def capture():
     tracked = set(git("ls-files", "-z").decode().rstrip("\0").split("\0"))
-    # Untracked inclusion is deliberately restricted to named prerequisite/E02/E03 inputs.
+    # Untracked inclusion is deliberately restricted to named prerequisite/E02/E03/E04 inputs.
     untracked = set(git("ls-files", "--others", "--exclude-standard", "-z", "--",
                         *UNTRACKED_INPUTS).decode().rstrip("\0").split("\0")) - {""}
     rows = []

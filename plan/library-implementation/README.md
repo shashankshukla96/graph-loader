@@ -1,6 +1,6 @@
 # Library implementation plan
 
-Prepared 2026-10-15; reviewed 2026-10-16. **All 13 epic decompositions are approved by the [fresh independent audit](reviews/fresh-audit-02.md). E00 execution is complete and independently accepted in the [execution review](reviews/execution-e00-e01-01.md). E01 decisions/stories are complete and independently reviewed following explicit approvals and delegated registry/ownership completion; E02 is complete and independently accepted by per-story and fresh adversarial reviews. E03 is complete and independently accepted by the [fresh final review](reviews/e03-final-adversarial.md). E04–E12 have not started.**
+Prepared 2026-10-15; reviewed 2026-10-16. **All 13 epic decompositions are approved by the [fresh independent audit](reviews/fresh-audit-02.md). E00 execution is complete and independently accepted in the [execution review](reviews/execution-e00-e01-01.md). E01 decisions/stories are complete and independently reviewed following explicit approvals and delegated registry/ownership completion; E02 is complete and independently accepted by per-story and fresh adversarial reviews. E03 is complete and independently accepted by the [fresh final review](reviews/e03-final-adversarial.md). E04 is complete and independently accepted by the [fresh adversarial review](reviews/e04-final-adversarial-review.md). E05–E12 have not started.**
 
 This decomposes the [library/PyPI checklist](../../docs/PYPI_LIBRARY_CHECKLIST.md)
 into **13 phase epics, 26 features and 54 stories**. It is a planning deliverable;
@@ -221,3 +221,22 @@ E03 final acceptance: [completion evidence](evidence/e03-completion.md),
 [fresh zero-history adversarial review](reviews/e03-final-adversarial.md). All
 actionable findings were repaired and independently rechecked. No upload or
 GitHub push was performed; E04–E12 remain unstarted.
+
+
+## E04 public API and bounded lifecycle
+
+[E04](epics/e04.md) is complete after all six ordered stories and a fresh
+[final adversarial review](reviews/e04-final-adversarial-review.md). The
+[public API guide](../../docs/LIBRARY_API.md) specifies explicit schema/planning
+exports, Kafka/source requirements, exclusive ownership, cooperative operation
+deadlines and one aggregate cleanup budget with retained-worker diagnostics.
+Imports are inert and public planners own independent default metrics registries.
+
+[Final evidence](evidence/e04-final-validation.md) binds the fresh3,512-pass suite,
+four inherited skips,49 deselections and19 known fork warnings to source and
+environment; exact B3 passed without skip. Isolated artifacts/no-Git rebuild,
+two clean installs and all four new immutable image matrices passed.
+[Review resolutions](reviews/e04-resolutions.md) preserve findings/repairs and
+independent rechecks. [E05 handoff](handoff-e05.md) is prepared; E05–E12 are not
+implemented. [Change tracker](CHANGE_TRACKER.md) records actual local delivery
+and per-file tested-content equality; no publication is authorized.

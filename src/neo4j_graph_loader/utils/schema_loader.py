@@ -7,9 +7,9 @@ All pipeline components must obtain the schema exclusively through
 ``load_schema()``. This ensures a single parse + validation point and
 gives callers a fully typed ``GraphSchema`` object.
 
-Do **not** import ``GraphSchema`` directly and call
-``GraphSchema.model_validate()`` from application code or tests —
-use this module instead.
+Runtime file consumers use this function. Public callers may also construct or
+validate ``neo4j_graph_loader.schema.GraphSchema`` directly; that path retains
+Pydantic ValidationError rather than the file-loading SchemaLoadError.
 """
 from __future__ import annotations
 
@@ -59,11 +59,18 @@ def load_schema(path: str | os.PathLike) -> GraphSchema:
     >>> print(len(schema.nodes))
     2
     """
-    resolved = Path(path).resolve()
+    try:
+        resolved = Path(path).resolve()
+    except (OSError, RuntimeError) as exc:
+        raise SchemaLoadError(f"Failed to resolve schema path: {exc}") from exc
 
     # ── 1. File existence check ───────────────────────────────────────────────
-    if not resolved.is_file():
-        raise SchemaLoadError(f"Schema file not found: {resolved}")
+    try:
+        is_file = resolved.is_file()
+    except OSError as exc:
+        raise SchemaLoadError(f"Failed to inspect schema at {resolved}: {exc}") from exc
+    if not is_file:
+        raise SchemaLoadError(f"Schema file not found: {resolved}") from FileNotFoundError(str(resolved))
 
     # ── 2. YAML parse ─────────────────────────────────────────────────────────
     try:
@@ -83,7 +90,7 @@ def load_schema(path: str | os.PathLike) -> GraphSchema:
         raise SchemaLoadError(
             f"Schema file must be a YAML mapping at the root level, "
             f"got: {type(raw).__name__}"
-        )
+        ) from ValueError("schema root must be a mapping")
 
     # ── 4. Pydantic validation ────────────────────────────────────────────────
     try:

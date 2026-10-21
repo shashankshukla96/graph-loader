@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""E03 archive closure and installed namespace smoke checks (not E07 regressions)."""
+"""E03/E04 archive closure and installed public smoke checks (not E07 regressions)."""
 import argparse
 import ast
 from email.parser import BytesParser
@@ -131,6 +131,15 @@ else: raise AssertionError('old namespace imported')
         assert child.returncode == 0 and "usage:" in child.stdout.lower(), (command, child.stdout, child.stderr)
         record["helps"].append({"command": command, "exit_code": child.returncode,
                                "stdout_sha256": sha(child.stdout.encode()), "stderr": child.stderr})
+    record["public_examples"] = []
+    for fixture in ("e04_imports.py", "e04_public_example.py"):
+        content = (ROOT / "tests/fixtures" / fixture).read_text()
+        command = [str(python), "-I", "-c", content]
+        child = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
+        assert child.returncode == 0, child.stdout + child.stderr
+        record["public_examples"].append({"fixture": fixture, "code_sha256": sha(content.encode()),
+                                          "command": command, "exit_code": child.returncode,
+                                          "result": json.loads(child.stdout)})
     return record
 
 
