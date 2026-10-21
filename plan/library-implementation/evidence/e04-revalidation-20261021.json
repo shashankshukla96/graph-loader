@@ -1,0 +1,144 @@
+{
+  "date": "2026-10-21",
+  "reviewed_head": "1871898ea350d0e17c0e926b3b87595fbde0c2ef",
+  "repair_commit": "aa03f2c0d71409a7ed46534ec57780e5bef966bf",
+  "verdict": "accepted",
+  "actionable_findings": 0,
+  "product_changes": false,
+  "publication": false,
+  "source_input_count": 259,
+  "source_inputs_equal_before_after_tested_committed_current": true,
+  "environment_sha256": "01e164fd8501e329de5a67ac77646f90a6ca3eb4c5825057afcf0c98162e3356",
+  "full_suite": {
+    "command": [
+      "var/e04-r1-20261020/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests",
+      "examples/imdb/tests",
+      "-m",
+      "not integration and not smoke",
+      "-q",
+      "-rs"
+    ],
+    "exit_code": 0,
+    "passed": 3516,
+    "skipped": 4,
+    "deselected": 49,
+    "warnings": 19,
+    "seconds": 187.8,
+    "skip_warning_ownership": "Four inherited skips and19 known fork warnings:A5/E08; no new skip or warning."
+  },
+  "original_repro": {
+    "command": [
+      "var/e04-r1-20261020/dev/bin/python",
+      "var/e04-revalidation-20261020/lifecycle-source-failure/probe.py",
+      "var/e04-check-20261021/original-repro"
+    ],
+    "exit_code": 0,
+    "cases": 2,
+    "operation_seconds": [
+      0.12509416700004294,
+      0.12892070799989597
+    ],
+    "supervisor_expired": false,
+    "ordinary_source_cause_and_marker_preserved": true,
+    "blocked_peer_entered": true,
+    "closed_and_owned_lock_reclaimed": true
+  },
+  "fresh_static_checks": {
+    "ruff": "passed:src,tests,examples,sync_requirements,plan tools,owned audit helper",
+    "dependency_parity": "passed",
+    "pip_check": "passed",
+    "whitespace": "passed",
+    "plan_renderer": "passed:13epics26features54stories48checklist items"
+  },
+  "retained_proof_audit": {
+    "reviewed_head": "1871898ea350d0e17c0e926b3b87595fbde0c2ef",
+    "per_file_tested_committed_current_equal": true,
+    "source_inputs": 259,
+    "environment_equal": true,
+    "raw_result_logs_verified": 25,
+    "command_logs_verified": {
+      "e04-r1-artifact-commands.json": {
+        "records": 9,
+        "failed_records": 0
+      },
+      "e04-r1-image-commands.json": {
+        "records": 57,
+        "failed_records": 1
+      }
+    },
+    "archive_inspections_equal": true,
+    "wheel_member_bytes_equal": true,
+    "runtime_modules": 52,
+    "retained_installed_mixed_cases_verified": 12,
+    "retained_image_successful_checks": 52,
+    "retained_successful_builds": 4
+  },
+  "retained_not_rerun": [
+    "isolated B3 service proof",
+    "build/rebuild and clean installation probes",
+    "four image build/probe matrices",
+    "12 checkout-free installed/image mixed cases"
+  ],
+  "independent_review": {
+    "report": "../reviews/e04-r1-independent-revalidation-20261021.md",
+    "verdict": "approved",
+    "focused_passed": 221,
+    "focused_seconds": 58.43,
+    "additional_public_spawn_cases": 7,
+    "report_sha256": "27ca8366bb80ed74c5377f5d4a41637ae8218c1ce4b4845498e51796ecf5111d"
+  },
+  "logs": [
+    {
+      "path": "var/e04-check-20261021/after.json",
+      "sha256": "d58ef26828f0587b3535d82d56b0436565c64f14c8d0858a2445cecd8f1ce0ea",
+      "size": 66604
+    },
+    {
+      "path": "var/e04-check-20261021/audit.py",
+      "sha256": "b53496c6bb6093c30821d2eec83bb81b1eefa968611518307d404a231fc6ed33",
+      "size": 2591
+    },
+    {
+      "path": "var/e04-check-20261021/evidence-audit.json",
+      "sha256": "bf1c13c58225504e1fd53da84c15bf2f5cf64507a59e840aa65194f36f9c2041",
+      "size": 643
+    },
+    {
+      "path": "var/e04-check-20261021/full-suite.log",
+      "sha256": "247552be0b580984691f21c2121135f9bfcbc4e7f240db7be06a112c008c1863",
+      "size": 4906
+    },
+    {
+      "path": "var/e04-check-20261021/original-repro/default.json",
+      "sha256": "00206a5c96b82da6a8d6e5c20bc6adc95325f9167cb3c272f9a59821c9048bc9",
+      "size": 317
+    },
+    {
+      "path": "var/e04-check-20261021/original-repro/default.log",
+      "sha256": "6909bed3f66393b0be3f74d842502a3d5e7da84840ed7ec4b2ae79a332460205",
+      "size": 7853
+    },
+    {
+      "path": "var/e04-check-20261021/original-repro/timeout.json",
+      "sha256": "21db1eb7341499cf75e2eedf16ba428df78ca045674d4ef87d8eadbeb793d799",
+      "size": 316
+    },
+    {
+      "path": "var/e04-check-20261021/original-repro/timeout.log",
+      "sha256": "4e07efc6cd9745b848268fd9083b0c7c99a96600a5adf1057d0a53448419ecbd",
+      "size": 7853
+    },
+    {
+      "path": "var/e04-check-20261021/source.json",
+      "sha256": "1a80278da6353e8b8bb9a2b728cedf3cb0b545e4e68367e12667f97e33123d92",
+      "size": 66604
+    }
+  ],
+  "limits": [
+    "Sequential receives may delay observation of a later-lane error behind an earlier blocked lane.",
+    "E07 installed full-suite and E08/E09 matrices remain future work; no E05 implementation."
+  ]
+}

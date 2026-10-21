@@ -9,8 +9,11 @@ No entry authorizes a GitHub push, image/package upload or publication.
 The [revalidation finding](reviews/e04-completion-verification-20261020.md) is
 closed by the [repair proof](evidence/e04-r1-repair.md) and
 [fresh independent final review](reviews/e04-r1-final-review.md). E04 S3/S4
-are restored complete; E05 remains unimplemented and its handoff requires the
-local delivery record below. Historical failures and approvals remain intact.
+are restored complete; E05 remains unimplemented and its handoff is ready after
+the recorded local repair delivery. Fresh delivered-code
+[completion revalidation](reviews/e04-completion-verification-20261021.md)
+confirms acceptance with 3,516 passes and another independent approval.
+Historical failures and approvals remain intact.
 
 ## Committed changes
 
@@ -29,6 +32,7 @@ local delivery record below. Historical failures and approvals remain intact.
 | 2026-10-20 | E04 delivery evidence / E05 draft handoff | `786260bec3cceb8ed14990896380640cb52115d2` | Recorded E04's actual delivery identity, postcommit input equality and the conditioned E05 handoff. No runtime source change. | [Postcommit proof](evidence/e04-postcommit.json), [E05 handoff](handoff-e05.md). Its gate was subsequently blocked by E04-R1; the accepted repair is recorded below. |
 | 2026-10-20 | E04 revalidation: changes requested | `d987ad8d16eedfc70b45fcccb2a4fd6b088f2cb9` | Recorded independently reproduced P1 E04-R1, fresh passing baseline/artifact/image/service checks, reopened E04 S3/S4 and gated E05. Review/status/evidence only; no product fix. | [Current report](reviews/e04-completion-verification-20261020.md), [independent lifecycle finding](reviews/e04-lifecycle-revalidation-20261020.md), [exact evidence](evidence/e04-revalidation-20261020.json). |
 | 2026-10-21 | E04-R1 repair / S3-S4 acceptance restored | `aa03f2c0d71409a7ed46534ec57780e5bef966bf` | Propagate a received worker failure before waiting on peers or applying a post-reply interruption check; retain its cause and enter shared cleanup. Add supervised default/finite mixed-source and deterministic cause-priority regressions. | [Fresh3516-pass/full/B3/artifact/image/mixed proof](evidence/e04-r1-repair.md), [final independent acceptance](reviews/e04-r1-final-review.md), [259-input committed equality](evidence/e04-r1-postcommit.json). |
+| 2026-10-21 | E04-R1 delivery evidence | `1871898ea350d0e17c0e926b3b87595fbde0c2ef` | Recorded the actual repair commit and equality of all 259 tested, committed and current inputs. Documentation/evidence only. | [Postcommit proof](evidence/e04-r1-postcommit.json). |
 
 **Commit boundaries matter:** E00, E01 and E02 were completed in a dirty checkout
 and first committed together with E03 in `bf5471e`. The repeated hash above is
@@ -65,6 +69,7 @@ E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) pre
 | 2026-10-20 | `55dd4938188768090c10d851f8f7330706975ea5` | [E04 final validation](evidence/e04-final-validation.md):3,512 passes, exact no-skip B3, rebuilt artifacts/two clean installs/four immutable image matrices and [independent final acceptance](reviews/e04-final-adversarial-review.md). | Local implementation delivered at that SHA; [postcommit equality](evidence/e04-postcommit.json) verifies259 inputs, with this documentation-only follow-up recording the hash. |
 | 2026-10-20 | `786260bec3cceb8ed14990896380640cb52115d2` | [Current E04 revalidation](reviews/e04-completion-verification-20261020.md): fresh 3,512 passes, no-skip B3, clean artifacts/52 image checks, but **E04-R1 reproduced independently and by the primary agent**. [Transport review](reviews/e04-transport-revalidation-20261020.md) found no transport defect; [lifecycle review](reviews/e04-lifecycle-revalidation-20261020.md) requests correction. S3/S4 reopened; E05 blocked. Product code unchanged. | Recorded locally in `d987ad8d16eedfc70b45fcccb2a4fd6b088f2cb9`. This tracker-only follow-up records the actual reporting commit; R1 remains unfixed. |
 | 2026-10-21 | `aa03f2c0d71409a7ed46534ec57780e5bef966bf` | [R1 repair validation](evidence/e04-r1-repair.md):3,516 passes, exact no-skip B3, isolated original/rebuilt artifacts, clean installs, four new immutable image matrices and12 checkout-free mixed cases; [fresh final review](reviews/e04-r1-final-review.md) accepts. | Local repair delivered at that SHA; this documentation-only follow-up records actual identity and [all259-input equality](evidence/e04-r1-postcommit.json). |
+| 2026-10-21 | `1871898ea350d0e17c0e926b3b87595fbde0c2ef` | [Delivered repair revalidation](reviews/e04-completion-verification-20261021.md): fresh 3,516 passes, four inherited skips, 49 deselections, 19 known warnings; original reproduction and static checks pass, all 259 tested/committed/current inputs agree, retained artifact/image/B3 proof audited. [Fresh independent review](reviews/e04-r1-independent-revalidation-20261021.md) approves with 221 focused passes and 7 extra public probes. | Reporting delivery pending; E04 accepted and E05 handoff ready. No product change or E05 implementation. |
 
 E00–E04 are accepted after the independently reviewed R1 repair. The approved
 plan design remains intact and E05–E12 remain unstarted. The historical green
