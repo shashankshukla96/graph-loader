@@ -161,3 +161,56 @@ def test_cleanup_action_failure_still_reaps_children_and_retains_owned_topic(tmp
     import shutil
     shutil.rmtree(planner.spill_dir)
     path.with_name(path.name+'.lock').unlink()
+
+
+@pytest.mark.parametrize('timeout',[None,.8],ids=['no-timeout','finite-timeout'])
+def test_observed_source_error_does_not_wait_for_blocked_peer(tmp_path,timeout):
+    scenario='public-mixed-error-default' if timeout is None else 'public-mixed-error-timeout'
+    output=tmp_path/'mixed'
+    result=subprocess.run([sys.executable,str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'),
+        scenario,'--mode','timeout','--python',sys.executable,'--output',str(output),'--hard-timeout','15'],
+        cwd=ROOT,capture_output=True,text=True,timeout=25)
+    assert result.returncode==0,result.stdout+result.stderr+(output/'client.log').read_text()
+    supervisor=json.loads((output/'supervisor.json').read_text())
+    client=json.loads((output/'client.json').read_text())
+    assert not supervisor['timeout'] and supervisor['exit_code']==0
+    assert client['configured_timeout']==timeout
+    assert client['error']=='RuntimeError' and 'LookupError: ordinary child source failure' in client['ordinary_cause']
+    assert len(client['received_errors'])==1 and 'LookupError: ordinary child source failure' in client['received_errors'][0][1]
+    assert client['blocked_peer_entered'] and len(client['child_pids'])==2
+    assert 0<=client['failure_to_cleanup_seconds']<.3
+    assert client['observation_to_raise_seconds']<11.3 # aggregate10s + poll/scheduling slack
+    assert client['elapsed_seconds']<13.8
+    assert client['production_children_dead'] and client['production_endpoints_closed']
+    assert not client['active_child_pids'] and not client['heartbeat_alive']
+    assert not client['lock_exists'] and not client['spill_exists']
+    assert 'ordinary child source failure' in client['failure_marker'] and 'LookupError' in client['failure_marker']
+    assert 'EdgePlanTimeoutError' not in client['failure_marker']
+    assert client['caller_sentinel_preserved'] and client['caller_signal_preserved']
+
+
+@pytest.mark.parametrize('interruption',['timeout','cancel'])
+def test_received_inline_source_error_keeps_cause_before_post_receive_check(tmp_path,monkeypatch,interruption):
+    import threading
+    from neo4j_graph_loader.loader import edge_planner as implementation
+    from test_public_cancellation import planner_for
+    signal=threading.Event();clock=[0.];failure=LookupError('already received source failure')
+    def rows():
+        raise failure
+        yield
+    planner=planner_for(rows(),tmp_path,cancel_event=signal,timeout_seconds=1)
+    planner._clock=lambda:clock[0]
+    original_recv=implementation._InlineWorker.recv
+    def recv(worker):
+        reply=original_recv(worker)
+        assert reply[0]=='error'
+        if interruption=='timeout':clock[0]=2.
+        else:signal.set()
+        return reply
+    monkeypatch.setattr(implementation._InlineWorker,'recv',recv)
+    with pytest.raises(RuntimeError,match='already received source failure') as captured:
+        planner.finish(tmp_path/'plan.json')
+    assert captured.value.__cause__ is failure
+    assert planner._closed and not planner._workers
+    assert not planner._cleanup_incomplete
+    assert 'already received source failure' in (tmp_path/'plan.json.failed').read_text()

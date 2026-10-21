@@ -96,7 +96,12 @@ for identical plan IDs. Successful cleanup releases the lock/spill/progress;
 source/startup errors write `<plan>.failed` while output ownership is held.
 The original failure cause is retained inline; process failures retain remote
 type/message/traceback diagnostics as a local error cause, without deserializing
-arbitrary remote exception objects. A wrong finish path leaves the owner active.
+arbitrary remote exception objects. Once a worker failure reply is received, it
+is raised immediately with that cause and enters shared cleanup; later replies
+or a following timeout/cancellation check cannot replace the observed error.
+Receives still follow lane order: an error behind an earlier blocked lane may
+remain unobserved until that receive returns or the operation is interrupted.
+A wrong finish path leaves the owner active.
 Lifecycle/ownership alone does not promise interruption of blocked caller code.
 
 ## Cancellation and one operation clock

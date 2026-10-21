@@ -1,5 +1,9 @@
 # E04 final validation and review
 
+Historical original-delivery proof. The later R1 finding and its
+[current repair closure](e04-r1-repair.md) supersede this original completion
+disposition while retaining these exact historical results.
+
 The six story gates are independently accepted in execution order; their evidence
 and original findings/rechecks are retained beside this file. Whole-E04 is independently accepted in the
 [fresh adversarial review](../reviews/e04-final-adversarial-review.md). The full suite passed3,512 tests, with

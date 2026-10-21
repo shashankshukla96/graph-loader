@@ -86,6 +86,16 @@ class FailingSource(EdgeRecordSource):
         yield
 
 
+class PeerReadyFailingSource(FailingSource):
+    """Ensure the unrelated real child is blocked before reporting a source error."""
+    def __init__(self,ready):self.ready=ready
+    def records(self,edge):
+        deadline=time.monotonic()+3
+        while not Path(self.ready).exists() and time.monotonic()<deadline:time.sleep(.005)
+        if not Path(self.ready).exists():raise AssertionError('blocked peer never entered records')
+        yield from super().records(edge)
+
+
 def _public_partial_worker(sock,worker,bootstrap,config,producer=None,consumer=None,progress=None,parent_duplicate=None):
     if parent_duplicate is not None:parent_duplicate.close()
     stream=FrameStream(sock); stream.recv(initial=True)
@@ -114,6 +124,9 @@ def public_fault(scenario,mode,output):
     directory=Path(output).parent; ready=directory/'fault-ready';path=directory/'plan.json'
     signal=threading.Event();stop_setter=threading.Event();set_times=[];observations=[];handles=[]
     timer=None
+    mixed=scenario in {'public-mixed-error-default','public-mixed-error-timeout'}
+    received_errors=[];cleanup_entries=[];ordinary_cause=None
+    sentinel=directory/'caller-owned';sentinel.write_text('caller sentinel')
     fake_clock=[0.]
     original_worker=implementation._ProcessWorker
     class RecordingWorker(original_worker):
@@ -130,6 +143,10 @@ def public_fault(scenario,mode,output):
                         return data
                 self.connection.socket=PartialReadProbe()
             handles.append(self)
+        def recv(self):
+            reply=super().recv()
+            if mixed and reply[0]!='ok':received_errors.append((time.monotonic(),str(reply[1])))
+            return reply
         def start(self):
             super().start()
             if scenario=='public-startup' and len(handles)==2:
@@ -151,9 +168,17 @@ def public_fault(scenario,mode,output):
     if scenario in {'public-stop','public-many','public-startup'}:
         sources=[BlockedSource(str(ready),order=index) for index in range(4 if scenario=='public-many' else 2 if scenario=='public-startup' else 1)]
     if scenario=='public-source-error':sources=[FailingSource()]
+    if mixed:sources=[PeerReadyFailingSource(str(ready)),BlockedSource(str(ready),order=1)]
     planner=planning.producer_edge_planner(load_schema(root/'examples/social/graph_schema.yaml'),sources,
         planning.PlanSettings(topic='unused',workers=len(sources),memory_mb=1,hub_degree=1 if scenario=='public-send' else 0),
-        'unused',plan_path=path,cancel_event=signal,timeout_seconds=.8 if mode=='timeout' and scenario!='public-stop' else None)
+        'unused',plan_path=path,cancel_event=signal,timeout_seconds=.8 if mode=='timeout' and scenario not in {'public-stop','public-mixed-error-default'} else None)
+    if mixed:
+        assert isinstance(planner.lanes[0][0].source,PeerReadyFailingSource)
+        original_close=planner.close
+        def close(*args,**kwargs):
+            if planner._cleanup_started is None:cleanup_entries.append(time.monotonic())
+            return original_close(*args,**kwargs)
+        planner.close=close
     if scenario=='public-gap':planner._clock=lambda:fake_clock[0]
     original_check=planner._check
     def check():
@@ -188,6 +213,7 @@ def public_fault(scenario,mode,output):
                 fake_clock[0]=6.;ready.touch()
             if scenario!='public-stop':planner.finish(path)
         except (planning.EdgePlanCancelledError,planning.EdgePlanTimeoutError) as error:
+            assert not mixed,'received source error was replaced by cancellation/timeout'
             assert isinstance(error,planning.EdgePlanTimeoutError if mode=='timeout' else planning.EdgePlanCancelledError)
             assert ready.exists(),'fault was never activated'
             reference=planner._deadline if mode=='timeout' else set_times[0]
@@ -195,8 +221,10 @@ def public_fault(scenario,mode,output):
             assert 0 <= lateness < .3,lateness
             error_name=type(error).__name__
         except RuntimeError as error:
-            assert (scenario=='public-source-error' and 'ordinary child source failure' in str(error)) or (scenario=='public-startup' and 'second process started then failed' in str(error))
-            if scenario=='public-source-error':assert error.__cause__ is not None
+            assert ((scenario=='public-source-error' or mixed) and 'ordinary child source failure' in str(error)) or (scenario=='public-startup' and 'second process started then failed' in str(error))
+            if scenario=='public-source-error' or mixed:
+                assert error.__cause__ is not None
+                ordinary_cause=str(error.__cause__)
             lateness=0.;error_name=type(error).__name__
         else:
             assert scenario=='public-stop','public fault returned successfully'
@@ -209,7 +237,14 @@ def public_fault(scenario,mode,output):
             'lock_exists':path.with_name(path.name+'.lock').exists(),
             'spill_exists':planner.spill_dir.exists(),
             'failure_marker':path.with_name(path.name+'.failed').read_text() if path.with_name(path.name+'.failed').exists() else None,
-            'heartbeat_alive':any(t.name=='edge-plan-heartbeat' for t in threading.enumerate())}
+            'heartbeat_alive':any(t.name=='edge-plan-heartbeat' for t in threading.enumerate()),
+            'received_errors':received_errors,'ordinary_cause':ordinary_cause,
+            'failure_to_cleanup_seconds':cleanup_entries[0]-received_errors[0][0] if mixed else None,
+            'observation_to_raise_seconds':time.monotonic()-received_errors[0][0] if mixed else None,
+            'blocked_peer_entered':ready.exists(),'configured_timeout':planner.timeout_seconds,
+            'active_child_pids':[child.pid for child in mp.active_children()],
+            'caller_sentinel_preserved':sentinel.read_text()=='caller sentinel',
+            'caller_signal_preserved':not signal.is_set()}
     finally:
         stop_setter.set()
         for handle in handles:

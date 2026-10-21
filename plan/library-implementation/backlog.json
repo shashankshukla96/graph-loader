@@ -3,7 +3,7 @@
   "title": "Library implementation epics",
   "date": "2026-10-15",
   "source_checklist": "../../docs/PYPI_LIBRARY_CHECKLIST.md",
-  "status": "E00-E03 accepted; E04 revalidation changes requested (E04-R1); E05-E12 not started",
+  "status": "E00-E04 accepted; E04-R1 repaired and independently accepted; E05-E12 not started",
   "epics": [
     {
       "id": "E00",
@@ -436,7 +436,7 @@
       "scope": "Export only the E01 API. Scheduling workers, CLI supervision and test injection hooks remain internal unless explicitly approved.",
       "exit_gate": "Public API and lifecycle regressions pass, imports are inert and no unapproved retry/fleet guarantees are exposed.",
       "review_status": "approved",
-      "implementation_status": "changes requested",
+      "implementation_status": "complete",
       "features": [
         {
           "id": "E04.F1",
@@ -554,7 +554,7 @@
                 "Through public planner imports, separately supervise real-process partial-large-reply stalls and later-command write backpressure, testing both cancellation and timeout. Assert the approved public error and prompt coordinator signal/deadline observation using the existing abort/terminate path. The supervisor has an independent hard deadline and owns emergency fixture cleanup; private-adapter tests alone do not satisfy this gate. E04.F2.S4 supplies the final total elapsed-budget, complete liveness, marker and resource assertions across these same public cases."
               ],
               "evidence": "evidence/E04.F2.S3.md",
-              "status": "changes requested"
+              "status": "complete"
             },
             {
               "id": "E04.F2.S4",
@@ -581,7 +581,7 @@
                 "Complete the public integration controls from E04.F2.S3 with final error/diagnostic, total poll-plus-cleanup elapsed-budget, worker/endpoint liveness, absence of leaked helpers, failure-marker and retained/reclaimed owned-resource assertions. Cover pre-reply blocked source, mid-frame reply stall, later-command/stop write backpressure, ordinary source failure and partial startup; exercise both timeout and cancellation where applicable. Keep an independent hard-deadline supervisor with emergency cleanup, and prove normal children exit while an unreapable-worker fake retains potentially live resources and reports their identities."
               ],
               "evidence": "evidence/E04.F2.S4.md",
-              "status": "changes requested"
+              "status": "complete"
             },
             {
               "id": "E04.F2.S2",

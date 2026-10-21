@@ -5,11 +5,12 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — changes requested, 2026-10-20:**
-[E04-R1](reviews/e04-completion-verification-20261020.md) was independently
-reproduced despite the green existing suite. E04 S3/S4 are reopened and E05 is
-blocked until the source-error/blocked-peer case is fixed and independently
-re-reviewed. Historical delivery and approvals below remain historical evidence.
+**Current gate — E04-R1 repaired and accepted, 2026-10-21:**
+The [revalidation finding](reviews/e04-completion-verification-20261020.md) is
+closed by the [repair proof](evidence/e04-r1-repair.md) and
+[fresh independent final review](reviews/e04-r1-final-review.md). E04 S3/S4
+are restored complete; E05 remains unimplemented and its handoff requires the
+local delivery record below. Historical failures and approvals remain intact.
 
 ## Committed changes
 
@@ -25,7 +26,7 @@ re-reviewed. Historical delivery and approvals below remain historical evidence.
 | 2026-10-18 | E03 verification / E04 handoff | `06ae36c05d724c47f99fa0d4d98dbf1f76aa9902` | Added fresh E03 verification and independent review, refreshed the executable E04 handoff, introduced this tracker and linked current status. Documentation/evidence only; no E04 implementation or runtime change. | [Current verification](reviews/e03-completion-verification-20261018.md), [independent source acceptance](reviews/e03-revalidation-independent-20261018.md), [handoff/tracker acceptance](reviews/e04-handoff-tracker-review-20261018.md). |
 | 2026-10-18 | E03 tracker bookkeeping | `98cd267db5c70d3517a89ec68c1a4cedf2c254fd` | Recorded the actual E03 verification-delivery SHA in this tracker; tracker-only change. | Git file history and `git show` preserve the exact bookkeeping diff. |
 | 2026-10-20 | E04 public API and bounded planner lifecycle | `55dd4938188768090c10d851f8f7330706975ea5` | Delivered all six ordered stories: explicit schema/planning API, ownership, closed framed IPC, operation cancellation/deadline, aggregate cleanup with retention diagnostics and independent metrics/import effects. | [Final3512-pass/B3/artifact/image proof](evidence/e04-final-validation.md), [per-story resolutions](reviews/e04-resolutions.md), [fresh final acceptance](reviews/e04-final-adversarial-review.md), [259-input postcommit equality](evidence/e04-postcommit.json). |
-| 2026-10-20 | E04 delivery evidence / E05 draft handoff | `786260bec3cceb8ed14990896380640cb52115d2` | Recorded E04's actual delivery identity, postcommit input equality and the conditioned E05 handoff. No runtime source change. | [Postcommit proof](evidence/e04-postcommit.json), [E05 handoff](handoff-e05.md). Its gate is now blocked by E04-R1. |
+| 2026-10-20 | E04 delivery evidence / E05 draft handoff | `786260bec3cceb8ed14990896380640cb52115d2` | Recorded E04's actual delivery identity, postcommit input equality and the conditioned E05 handoff. No runtime source change. | [Postcommit proof](evidence/e04-postcommit.json), [E05 handoff](handoff-e05.md). Its gate was subsequently blocked by E04-R1; the accepted repair is recorded below. |
 | 2026-10-20 | E04 revalidation: changes requested | `d987ad8d16eedfc70b45fcccb2a4fd6b088f2cb9` | Recorded independently reproduced P1 E04-R1, fresh passing baseline/artifact/image/service checks, reopened E04 S3/S4 and gated E05. Review/status/evidence only; no product fix. | [Current report](reviews/e04-completion-verification-20261020.md), [independent lifecycle finding](reviews/e04-lifecycle-revalidation-20261020.md), [exact evidence](evidence/e04-revalidation-20261020.json). |
 
 **Commit boundaries matter:** E00, E01 and E02 were completed in a dirty checkout
@@ -37,9 +38,9 @@ the date those contents were committed.
 
 ## E04 delivered locally — 2026-10-20
 
-This section records the original delivery; its completion acceptance is
-superseded by the current revalidation finding above. Delivery remains in Git;
-no product repair has been made during the requested validation.
+This section records the original delivery. The later R1 revalidation reopened
+its acceptance, and the subsequent repair below restores it. That revalidation
+itself made no product repair; original delivery remains preserved in Git.
 
 Entry HEAD `98cd267db5c70d3517a89ec68c1a4cedf2c254fd`, clean checkout.
 All six E04 stories completed in approved order; [execution plan](execution-e04.md),
@@ -63,10 +64,9 @@ E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) pre
 | 2026-10-20 | `55dd4938188768090c10d851f8f7330706975ea5` | [E04 final validation](evidence/e04-final-validation.md):3,512 passes, exact no-skip B3, rebuilt artifacts/two clean installs/four immutable image matrices and [independent final acceptance](reviews/e04-final-adversarial-review.md). | Local implementation delivered at that SHA; [postcommit equality](evidence/e04-postcommit.json) verifies259 inputs, with this documentation-only follow-up recording the hash. |
 | 2026-10-20 | `786260bec3cceb8ed14990896380640cb52115d2` | [Current E04 revalidation](reviews/e04-completion-verification-20261020.md): fresh 3,512 passes, no-skip B3, clean artifacts/52 image checks, but **E04-R1 reproduced independently and by the primary agent**. [Transport review](reviews/e04-transport-revalidation-20261020.md) found no transport defect; [lifecycle review](reviews/e04-lifecycle-revalidation-20261020.md) requests correction. S3/S4 reopened; E05 blocked. Product code unchanged. | Recorded locally in `d987ad8d16eedfc70b45fcccb2a4fd6b088f2cb9`. This tracker-only follow-up records the actual reporting commit; R1 remains unfixed. |
 
-E00–E03 remain accepted. E04 implementation acceptance is changes requested for
-S3/S4; the approved plan design remains intact. E05–E12 remain unstarted, and
-E05 cannot proceed until E04-R1 is closed. A green historical run does not waive
-the newly reproduced failure case.
+E00–E04 are accepted after the independently reviewed R1 repair. The approved
+plan design remains intact and E05–E12 remain unstarted. The historical green
+runs did not waive R1; new source, regressions and whole-proof checks close it.
 
 ## Update this tracker with every change
 
@@ -99,3 +99,16 @@ the newly reproduced failure case.
 For the full repository history before the library checklist, use `git log`.
 To inspect a particular change, use `git show <exact-commit>`; the table above
 identifies the relevant local commits without relying on a remote branch.
+
+
+## E04-R1 accepted — 2026-10-21; local delivery pending
+
+Clean entry `6508bd31779c49c0d1dd78f0ee242c91b9f9a9fc`; only the
+[R1 repair plan](execution-e04-r1.md) was executed. Received failures propagate
+with causes immediately; mixed-source default/finite-timeout and post-reply
+interruption regressions pass. Fresh3,516-test/B3/artifact/image checks and
+[final independent acceptance](reviews/e04-r1-final-review.md) restore S3/S4.
+[Exact repair proof](evidence/e04-r1-repair.md) preserves negative controls,
+transient infrastructure failure and immutable tested identities. Actual repair
+SHA and259-input committed-content equality follow in a tracker/evidence commit;
+no guessed or recursively enclosing hash is recorded. E05 is not implemented.

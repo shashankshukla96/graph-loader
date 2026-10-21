@@ -2,8 +2,9 @@
 
 Reviews use zero inherited conversation, inspect the actual working tree and run
 independent controls. Original findings and retests remain in each linked report;
-this index does not replace their evidence. Implementation and repairs remain one
-local delivery delta from entry `98cd267db5c70d3517a89ec68c1a4cedf2c254fd`.
+this index does not replace their evidence. Original E04 implementation/repairs were delivered together from entry
+`98cd267db5c70d3517a89ec68c1a4cedf2c254fd`; the additional R1 repair is a separate
+local delivery tracked below.
 
 | Gate | Actionable finding and concrete repair | Independent disposition |
 | --- | --- | --- |
@@ -23,3 +24,16 @@ not substitutes for final source/artifact identities in
 attempts and the one incorrectly scoped test injection are preserved in raw logs;
 required image/B3 retries and corrected fault checks passed. No acceptance is
 inferred from an infrastructure skip or author-only review.
+
+
+## E04-R1 closure — 2026-10-21
+
+[Revalidation](e04-completion-verification-20261020.md) reopened S3/S4 when an
+already received source error waited on a blocked peer and could be replaced by
+timeout. `_gather` now raises that error immediately with its existing cause,
+before another receive or post-reply interruption check. New supervised real
+mixed-source controls and deterministic cause-priority controls cover the gap.
+[Plan review](e04-r1-plan-review.md), [source/test review](e04-r1-repair-review.md)
+and [fresh final review](e04-r1-final-review.md) accept the repair. Original
+negative findings remain unchanged; [new proof](../evidence/e04-r1-repair.md)
+records3,516 passes and fresh artifact/image/service/mixed-installed checks.

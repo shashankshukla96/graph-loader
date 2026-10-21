@@ -1578,18 +1578,20 @@ class ParallelEdgePlanner:
                 raise
 
     def _gather(self) -> list:
-        results, errors, causes = [], [], []
+        results = []
         self._check()
         for index, worker in enumerate(self._workers):
             self._check()
             status, payload = worker.recv()
-            self._check()
             if status != "ok":
-                errors.append(f"planner worker {index} failed: {payload}")
-                causes.append(getattr(worker, "_failure", None) or RuntimeError(str(payload)))
+                # A received failure must enter owned cleanup without waiting on
+                # a blocked peer or being replaced by a later timeout/cancel check.
+                cause = getattr(worker, "_failure", None)
+                if cause is None:
+                    cause = RuntimeError(str(payload))
+                raise RuntimeError(f"planner worker {index} failed: {payload}") from cause
+            self._check()
             results.append(payload)
-        if errors:
-            raise RuntimeError(errors[0] if len(errors) == 1 else "; ".join(errors)) from causes[0]
         return results
 
     def _broadcast(self, command: str, payloads) -> list:

@@ -1,0 +1,351 @@
+{
+  "date": "2026-10-20",
+  "entry_head": "6508bd31779c49c0d1dd78f0ee242c91b9f9a9fc",
+  "finding": "E04-R1",
+  "scope": "E04.F2.S3/S4 source-error propagation and cleanup, no E05 implementation",
+  "source_sha256": "3f00faeef6a887516b3501590226537e71ea1bd3a9ea1f1f76315fdf2c110a7f",
+  "environment_sha256": "01e164fd8501e329de5a67ac77646f90a6ca3eb4c5825057afcf0c98162e3356",
+  "before_after_source_environment_equal": true,
+  "safe_input_count": 259,
+  "negative_controls": {
+    "old_code_default_supervisor_expired": true,
+    "old_code_timeout_error": "EdgePlanTimeoutError",
+    "old_code_timeout_cause": null,
+    "new_deterministic_tests_before_fix": {
+      "failed": 2,
+      "exit_code": 1,
+      "expected_failure": true
+    },
+    "original_repro_script": "var/e04-revalidation-20261020-w62ij3nv/source-error-repro/probe.py"
+  },
+  "focused": {
+    "passed": 200,
+    "seconds": 17.96,
+    "exit_code": 0,
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests/test_public_cleanup.py",
+      "tests/test_public_cancellation.py",
+      "tests/test_planner_transport.py",
+      "tests/test_public_lifecycle.py",
+      "tests/test_public_api.py",
+      "tests/test_external_planner.py",
+      "tests/test_library_preflight.py",
+      "tests/test_planner_abort.py",
+      "tests/test_edge_planner.py",
+      "tests/test_planner_imports.py",
+      "-q"
+    ]
+  },
+  "full_suite": {
+    "passed": 3516,
+    "skipped": 4,
+    "deselected": 49,
+    "warnings": 19,
+    "seconds": 192.57,
+    "exit_code": 0,
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests",
+      "examples/imdb/tests",
+      "-m",
+      "not integration and not smoke",
+      "-q",
+      "-rs"
+    ],
+    "skips": [
+      {
+        "file": "tests/test_makefile_env_precedence.py:91",
+        "reason": "the readonly SHELLOPTS failure is bash-specific"
+      },
+      {
+        "file": "tests/test_multi_pair_leases.py:306",
+        "reason": "not a git checkout"
+      },
+      {
+        "file": "tests/test_multi_pair_orchestration.py:209",
+        "reason": "not a git checkout"
+      },
+      {
+        "file": "tests/test_schema_multi_pair.py:118",
+        "reason": "the multi-pair example is multi-pair on purpose"
+      }
+    ],
+    "warning_ownership": "19 inherited A5/E08 fork deprecations:15 build_subset/4 planned_edges; no new warning"
+  },
+  "b3": {
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests/integration/test_multi_topic_relationship.py::test_dead_letter_arrival_stream_type_wide_dlq_drained_by_the_retry_consumer",
+      "-m",
+      "integration",
+      "-v"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 25.481,
+    "containers_before": {
+      "exit_code": 0,
+      "containers": []
+    },
+    "containers_after": {
+      "exit_code": 0,
+      "containers": []
+    }
+  },
+  "b3_pytest": {
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 24.88
+  },
+  "artifacts": "e04-r1-artifacts.json",
+  "artifact_commands": "e04-r1-artifact-commands.json",
+  "images": "e04-r1-images.json",
+  "image_commands": "e04-r1-image-commands.json",
+  "installed_mixed": "e04-r1-installed-mixed.json",
+  "installed_mixed_supervision": "Two clean installs and four immutable images, each default/finite timeout. Native own process group15s cutoff; containers run networknone/no mounts, own cid and25s outer cutoff, inner15s. Production cleanup asserted before owned emergency recovery.",
+  "initial_image_build_failure": {
+    "component": "edge",
+    "reason": "Transient Docker Hub manifest HEAD EOF; failed log retained, only remaining edge/clock resumed after prior CLI/node proofs were complete. No source or Dockerfile change."
+  },
+  "static": [
+    {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/dev/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "src",
+        "tests",
+        "examples",
+        "scripts/sync_requirements.py",
+        "plan/library-implementation/tools/capture_baseline.py",
+        "plan/library-implementation/tools/run_e04_fault.py",
+        "plan/library-implementation/tools/verify_e03_artifacts.py",
+        "var/e04-r1-20261020/final_driver.py",
+        "var/e04-r1-20261020/installed_mixed_client.py",
+        "var/e04-r1-20261020/installed_mixed_matrix.py"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/dev/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit_code": 0,
+      "stdout": "No broken requirements found."
+    },
+    {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/dev/bin/python",
+        "scripts/sync_requirements.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": "Runtime requirements match project.dependencies"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "logs": [
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/setup.log",
+      "size": 18609,
+      "sha256": "1aeb64fa30d4489c35b83da1c7aad1c8806fe97f5fb6fb1f2695ccef7b8a0e56"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/before-repro.log",
+      "size": 686,
+      "sha256": "09a859d0003da410ec155d65f946f784185d0e7d515faffa66fb8ae37ca0659a"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/before-repro/default.log",
+      "size": 1900,
+      "sha256": "52b8dcf21b93863b976481b45d47d82eb859229331eb3383c3bc294d3884e7dd"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/before-repro/default.json",
+      "size": 361,
+      "sha256": "3c90d9dc247fd3199597e7415fb0f4eff2c44714e2daefbbd1021ed9e2745aa5"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/before-repro/timeout.log",
+      "size": 2319,
+      "sha256": "b386b9f938a306be04d5e6dda9b7f0b17508c694dfdab48a31bae2f2ae201996"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/before-repro/timeout.json",
+      "size": 361,
+      "sha256": "836236b46a83331e74d7f86ccf2d92edf05c8bafce6d11c73e8506ea80999d31"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/red-check.log",
+      "size": 5554,
+      "sha256": "46072c1706ffb9233bd1e222a0f5992ba8fead468397de5f315a584024c6e17d"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/focused.log",
+      "size": 261,
+      "sha256": "27604c664b202d98cca8789bc219f356f9bcc81ad2536e60cf9fcedc1eb8d52c"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/full-final.log",
+      "size": 5093,
+      "sha256": "94048cf00d95ddfe9f4559a0d8c42c359e2042968ce2fa4b7e18dc9aad61a5e0"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/final-ruff.log",
+      "size": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/final-b3/result.json",
+      "size": 578,
+      "sha256": "0c0c99f1bc68d7cf0b111611f634870796afe13762799e46c6374a6ccc9074c6"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/final-b3/pytest.log",
+      "size": 594,
+      "sha256": "8858f88e156e36d12a76034237204161be8436aa80bb3080ab48996e9b7d61a5"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/after-repro.log",
+      "size": 685,
+      "sha256": "ec615e457c052c624b3e7446ccd987ef39ebd71c81c387126eb9d22e11e90228"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/after-repro/default.log",
+      "size": 7853,
+      "sha256": "4dd359ed37f30487e5246ef03bb907893a48e081c3e1260ab1b8fb36dcf7d63f"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/after-repro/default.json",
+      "size": 360,
+      "sha256": "5e6be1d1edf24fbe7e4abe35a2cf8a352768372f7119cec1424f0755085d50e8"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/after-repro/timeout.log",
+      "size": 7852,
+      "sha256": "b216af032a58faa26dede92bbd786d3d5174cfb13b16383328b4faeb8f662f00"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/after-repro/timeout.json",
+      "size": 361,
+      "sha256": "b0b605792e7706f83ccf3066326844807065fe26e558275991284128b7142ac7"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/final-artifact-driver.log",
+      "size": 65,
+      "sha256": "e472a48a5ab773129285affcae92fca4dcdd2d6377f4d5425318ca707e9a2efd"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/initial-registry-failure-final-edge-build.log",
+      "size": 927,
+      "sha256": "6dcb0334c85733e26c1c5edf6805d9d921a3b3b5d200894941181138671b54ee"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/initial-registry-failure-final-image-driver.log",
+      "size": 967,
+      "sha256": "aeecca7392026930e227a4e3cc260fae2ec972ddb441a284801a34c2b24337c8"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/final-image-retry-driver.log",
+      "size": 71,
+      "sha256": "5af5ff4b8ff9279392104b3c464ac3ec6a34e422d4012ac67e8fd5e03b4e7c51"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/installed-mixed-matrix.log",
+      "size": 254,
+      "sha256": "2d76ae7fc12bb8b3bbf4ebddf3b2e576e65085ef4a352d0d0504623d2dd110e8"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/final_driver.py",
+      "size": 6762,
+      "sha256": "fbcc642e126c83fbc163ec08b63923787784cb43228f8013c73e51772a292e04"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/installed_mixed_client.py",
+      "size": 4050,
+      "sha256": "2e6b3e30a65fbec4700d8ae68cd3b25691ea91e4a27385abd3b47155eb4527fd"
+    },
+    {
+      "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/installed_mixed_matrix.py",
+      "size": 2741,
+      "sha256": "0be14288149b3ebfdf8e720368e54d5b11e955b766d25ff88d5db5a3058d41ff"
+    }
+  ],
+  "limits": [
+    "Only received errors propagate immediately; sequential lane receives can delay observation of a later failure. No receive-multiplexing redesign.",
+    "Approved initial submission/caller-callback/blocked-inline/OS-uninterruptible exclusions remain.",
+    "Native macOSarm64 and local Linuxarm64 checks do not complete E08/E09 broader matrices.",
+    "Installed smoke/mixed controls do not replace E07 installed full test lane."
+  ],
+  "repair_review": "../reviews/e04-r1-repair-review.md",
+  "final_adversarial_review": {
+    "verdict": "accepted",
+    "date": "2026-10-21",
+    "report": "../reviews/e04-r1-final-review.md",
+    "report_sha256": "bb90372efd4cb20f290447a4cf2935e1814be3e0f946287fd41d308234a5284c",
+    "independent_focused_passes": 200,
+    "independent_focused_seconds": 18.06,
+    "fresh_installed_mixed_cases": 12,
+    "actionable_findings": 0,
+    "additional_controls": "received failure priority, success interruption checks/order, false-valued original causes and extracted old-code negative controls"
+  },
+  "publication": false,
+  "resumed_validation": {
+    "date": "2026-10-21",
+    "source_sha256": "3f00faeef6a887516b3501590226537e71ea1bd3a9ea1f1f76315fdf2c110a7f",
+    "environment_sha256": "01e164fd8501e329de5a67ac77646f90a6ca3eb4c5825057afcf0c98162e3356",
+    "all_259_source_inputs_and_environment_equal": true,
+    "raw_manifest": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/resumed-source.json",
+    "raw_manifest_sha256": "c3b6a441d358135bfcd5843e51276ec2d1b8ecd60b848ba26602cf0873367c8c",
+    "prior_final_review_attempt": "Usage limit interrupted the reviewer before a verdict/report; no acceptance inferred. New zero-history final review requested."
+  },
+  "acceptance_date": "2026-10-21",
+  "delivery_checks": {
+    "renderer": {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e04-r1-20261020/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/tools/render_plan.py"
+      ],
+      "exit_code": 0,
+      "stdout": "Validated and rendered 13 epics, 26 features, 54 stories; 48 checklist items covered; dependency graphs acyclic."
+    },
+    "local_links": {
+      "checked": 519,
+      "files": 95,
+      "missing": 0
+    },
+    "whitespace": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    "metadata_helpers_lint": {
+      "command": "dev/bin/python -m ruff check var/e04-r1-20261020/*.py",
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "initial_findings": "Two E401 import-formatting errors in ignored delivery_checks.py/record_results.py fixed by splitting imports; no source/test/build changes."
+    }
+  }
+}

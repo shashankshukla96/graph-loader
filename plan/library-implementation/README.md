@@ -1,6 +1,6 @@
 # Library implementation plan
 
-Prepared 2026-10-15; current implementation revalidation 2026-10-20. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E03 remain accepted. E04 was delivered and previously reviewed, but [current revalidation](reviews/e04-completion-verification-20261020.md) reproduced P1 E04-R1; E04 acceptance and S3/S4 are changes requested. E05–E12 have not started; E05 is blocked until the finding is fixed and independently re-reviewed. Historical reviews/results are preserved.**
+Prepared 2026-10-15; latest repair acceptance 2026-10-21. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E04 are accepted. [E04-R1](reviews/e04-completion-verification-20261020.md) reopened S3/S4 after the original delivery; the [repair evidence](evidence/e04-r1-repair.md) and [fresh final review](reviews/e04-r1-final-review.md) now close that finding. E05–E12 have not started. Historical failures, reviews and results are preserved.**
 
 This decomposes the [library/PyPI checklist](../../docs/PYPI_LIBRARY_CHECKLIST.md)
 into **13 phase epics, 26 features and 54 stories**. It is a planning deliverable;
@@ -240,3 +240,21 @@ two clean installs and all four new immutable image matrices passed.
 independent rechecks. [E05 handoff](handoff-e05.md) is prepared; E05–E12 are not
 implemented. [Change tracker](CHANGE_TRACKER.md) records actual local delivery
 and per-file tested-content equality; no publication is authorized.
+
+
+## E04-R1 repair acceptance — 2026-10-21
+
+The coordinator now propagates a received worker failure with its diagnostic
+cause before waiting on another lane or checking interruption again. This lets
+shared cleanup reap a blocked peer. Sequential receive order is unchanged;
+errors behind an earlier blocked lane may remain unobserved until interruption.
+The new public regressions cover mixed failing/blocked real sources with default
+and finite timeout, plus interruption immediately after receiving an inline error.
+
+[Repair evidence](evidence/e04-r1-repair.md) and
+[fresh final acceptance](reviews/e04-r1-final-review.md) bind the repaired state
+to3,516 passes, four inherited skips,49 deselections and19 known warnings;
+exact B3, isolated original/rebuilt artifacts, two clean installs, four newly
+built image matrices and12 checkout-free installed mixed-source controls pass.
+E04 S3/S4 are restored complete. [E05 handoff](handoff-e05.md) is ready after
+local delivery recording; no E05 implementation, push or publication is included.

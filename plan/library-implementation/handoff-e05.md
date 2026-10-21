@@ -1,11 +1,11 @@
 # E05 next-agent handoff — installed command, resources and writable state
 
-**Blocked by current E04 revalidation (2026-10-20):**
-[E04-R1](reviews/e04-completion-verification-20261020.md) reproduces an observed
-source failure waiting behind another blocked worker and losing its diagnostics
-to a timeout. E04 S3/S4 require correction, regression tests and independent
-re-review before this handoff can proceed. Earlier delivery/approval below is
-historical and does not waive the new finding. Do not start E05 yet.
+**E04-R1 closed by independent repair acceptance, 2026-10-21:**
+The [original finding](reviews/e04-completion-verification-20261020.md) remains
+historical. [New repair evidence](evidence/e04-r1-repair.md) and
+[fresh final acceptance](reviews/e04-r1-final-review.md) restore E04 S3/S4.
+Use the actual repair delivery and postcommit equality in the change tracker
+before starting E05; this repair task does not implement E05.
 
 Prepared 2026-10-20. Execute **E05 only after E04 final independent acceptance
 and local delivery are recorded** in the [change tracker](CHANGE_TRACKER.md)
@@ -112,3 +112,15 @@ acceptance, then record actual full delivery SHA in a follow-up tracker/evidence
 commit with per-file tested-content equality. A tracker does not recursively
 contain its own enclosing hash. Never push or publish without explicit new user
 authorization.
+
+
+## Preserve the R1 failure-cleanup regression
+
+A received ordinary worker failure must raise immediately with its existing
+cause and enter shared cleanup before waiting for unrelated blocked workers.
+Preserve the externally supervised public mixed-source default/finite-timeout
+controls and deterministic post-reply timeout/cancellation cause controls in
+`tests/test_public_cleanup.py`, plus `PeerReadyFailingSource` readiness coordination.
+Receive order remains sequential: do not claim observation of a later-lane error
+while an earlier receive is blocked. The repair evidence includes12 checkout-free
+spawned mixed controls across both rebuilt wheel installs and all four new images.

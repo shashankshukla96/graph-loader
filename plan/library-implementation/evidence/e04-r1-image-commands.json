@@ -1,0 +1,1142 @@
+[
+  {
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile",
+      "-t",
+      "graph-loader-e04-r1-cli:local-20261020",
+      "."
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 4.187671040999703,
+    "log": "final-cli-build.log",
+    "log_sha256": "0c338dac938f0c29e24fc79836717407c4bacd65b12c35822e7c883a04977420"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-c",
+      "import hashlib,importlib,importlib.metadata as m,json,pathlib,sysconfig\nsite=pathlib.Path(sysconfig.get_paths()['purelib']).resolve()\nfor name,digest in {'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': 'bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/planning.py': '3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a', 'neo4j_graph_loader/schema.py': '7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/_planner_transport.py': '00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': '0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': '247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}.items():\n    module=importlib.import_module(name.removesuffix('.py').replace('/','.').removesuffix('.__init__'))\n    path=pathlib.Path(module.__file__).resolve()\n    assert path.is_relative_to(site),(name,str(path))\n    assert hashlib.sha256(path.read_bytes()).hexdigest()==digest,name\nassert m.version('neo4j-graph-loader')=='0.1.0a1.dev0'\nassert not m.distribution('neo4j-graph-loader').entry_points\nassert not list(site.glob('__editable__*'))\nassert not any(n=='src' or n.startswith('src.') for n in __import__('sys').modules)\nassert not any(m.packages_distributions().get(n) for n in ['pytest','testcontainers','pandas','dotenv','build','twine'])\nprint(json.dumps({'runtime_modules':len({'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': 'bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/planning.py': '3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a', 'neo4j_graph_loader/schema.py': '7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/_planner_transport.py': '00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': '0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': '247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}),'site':str(site),'origin_bytes':'equal'}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.7496493329999794,
+    "log": "final-cli-origins.log",
+    "log_sha256": "0a69a64ed0bda753058b3e6a6adabbc0bc2a251e5b421875ce3184f807996491"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-c",
+      "import importlib\nimport json\nimport logging\nimport logging.config\nimport multiprocessing as mp\nfrom multiprocessing.process import BaseProcess\nimport os\nimport signal\nimport socket\nimport subprocess\nimport threading\n\n# Existing caller configuration must survive both public and CLI imports.\nlogger=logging.getLogger('caller.owned');logger.setLevel(logging.ERROR);logger.propagate=False\nhandler=logging.StreamHandler();logger.addHandler(handler)\nroot=logging.getLogger();root.setLevel(logging.WARNING)\nbefore=(dict(os.environ),list(threading.enumerate()),mp.get_start_method(allow_none=True),\n        root.level,list(root.handlers),logger.level,list(logger.handlers),logger.propagate,\n        {s:signal.getsignal(s) for s in signal.valid_signals() if s not in {signal.SIGKILL,signal.SIGSTOP}})\ndef forbidden(*args,**kwargs):raise AssertionError('import attempted process-wide setup or I/O')\nsocket.socket.__init__=forbidden\nsocket.socket.connect=socket.socket.connect_ex=socket.socket.bind=socket.socket.listen=forbidden\nsubprocess.Popen=BaseProcess.start=threading.Thread.start=forbidden\nsignal.signal=mp.set_start_method=logging.basicConfig=logging.config.dictConfig=logging.config.fileConfig=forbidden\nfor module in ('neo4j_graph_loader.schema','neo4j_graph_loader.planning','neo4j_graph_loader.cli'):\n    importlib.import_module(module)\nfrom neo4j_graph_loader.utils import metrics\nassert metrics._process_metrics is None\nassert before==(dict(os.environ),list(threading.enumerate()),mp.get_start_method(allow_none=True),\n        root.level,list(root.handlers),logger.level,list(logger.handlers),logger.propagate,\n        {s:signal.getsignal(s) for s in signal.valid_signals() if s not in {signal.SIGKILL,signal.SIGSTOP}})\nprint(json.dumps({'imports':'inert','signals':len(before[-1]),'threads':len(before[1]),'metrics_initialized':False}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.43865687499965134,
+    "log": "final-cli-e04_imports.py.log",
+    "log_sha256": "7b1a2693242db3fef1be1213cc043e90bde27ef1c5e00643b18dc9a864fb23c5"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-c",
+      "\"\"\"Self-contained installed public example; producer is an owned local test double.\"\"\"\nimport json\nfrom pathlib import Path\nimport tempfile\nimport threading\nfrom types import SimpleNamespace\n\nfrom neo4j_graph_loader import planning, schema\n\nSCHEMA='''loading: {mode: bulk}\nnodes:\n- label: Person\n  topic: people\n  key_property: id\n  properties: {id: {type: integer, required: true}}\nedges:\n- type: KNOWS\n  topic: knows\n  nodes: {source: Person, target: Person}\n  source_key_property: id\n  target_key_property: id\n  properties: {weight: {type: integer}}\n'''\nclass Producer:\n    def __init__(self):self.pending=[];self.offset=0\n    def produce(self,topic,*,value,partition,on_delivery):\n        message=SimpleNamespace(topic=lambda:topic,partition=lambda:partition,offset=lambda n=self.offset:n)\n        self.offset+=1;self.pending.append((on_delivery,message))\n    def poll(self,timeout=0):\n        pending,self.pending=self.pending,[]\n        for callback,message in pending:callback(None,message)\n    def flush(self,timeout=0):self.poll();return 0\nwith tempfile.TemporaryDirectory(prefix='e04-public-') as temporary:\n    root=Path(temporary);path=root/'schema.yaml';path.write_text(SCHEMA)\n    model=schema.load_schema(path);assert isinstance(model,schema.GraphSchema)\n    try:schema.load_schema(root/'missing')\n    except schema.SchemaLoadError as error:assert isinstance(error.__cause__,FileNotFoundError)\n    else:raise AssertionError('missing schema succeeded')\n    settings=planning.PlanSettings(topic='chunks',partitions=1,memory_mb=1,hub_degree=0)\n    try:planning.producer_edge_planner(model,{'UNKNOWN':[]},settings,'unused')\n    except planning.EdgePlanError:pass\n    else:raise AssertionError('unknown source succeeded')\n    planner=planning.producer_edge_planner(model,{'KNOWS':[{'source':{'id':1},'target':{'id':2},'properties':{'weight':1}}]},\n        settings,'unused',context='inline',producer_factory=Producer)\n    try:\n        result=planner.finish(root/'plan.json')\n        assert isinstance(result,planning.PlanResult) and isinstance(result.plan,planning.EdgePlan)\n        assert result.plan.total_rows==1 and result.rows_read==1 and len(result.digest)==64\n    finally:planner.close()\n    signal=threading.Event();signal.set()\n    cancelled=planning.producer_edge_planner(model,{},settings,'unused',context='inline',cancel_event=signal)\n    try:cancelled.finish(root/'cancelled.json')\n    except planning.EdgePlanCancelledError:pass\n    else:raise AssertionError('cancelled planner succeeded')\n    expired=planning.producer_edge_planner(model,{},settings,'unused',context='inline',timeout_seconds=1)\n    expired._clock=lambda:0.;expired.start();expired._clock=lambda:2.\n    try:expired.finish(root/'expired.json')\n    except planning.EdgePlanTimeoutError:pass\n    else:raise AssertionError('expired planner succeeded')\n    assert not list(root.glob('*.lock')) and not list(root.glob('.edge-plan-spill-*'))\nprint(json.dumps({'public_schema':'success_and_error','public_planning':'one_row_result_and_input_error',\n                  'cancellation':'approved_error','deadline':'approved_error','owned_resources':'reclaimed'}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.34022879099984493,
+    "log": "final-cli-e04_public_example.py.log",
+    "log_sha256": "cbcacfd246d8c6204d84a0ca0c5e8b85d832a2c9a8a2bb54a72ed9124d7d277d"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.cli",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.49932412499993006,
+    "log": "final-cli-cli-help.log",
+    "log_sha256": "6d533495d5d9f517799ca6192501fdddeb6b0357392825c96ae9b10de31e14fe"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.node_loader",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.39032191700016483,
+    "log": "final-cli-loader.node_loader-help.log",
+    "log_sha256": "623a16777337a9610a9cee3c3c9a9d168fe3deb12bcc484a229bd3a14c8703ce"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.edge_loader",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.44918429200015453,
+    "log": "final-cli-loader.edge_loader-help.log",
+    "log_sha256": "e461de343ba73a5fd1a1baf702a4f1e827662224c3be3d7d36fd5cfdc8328f23"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.retry_consumer",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3767230409998774,
+    "log": "final-cli-loader.retry_consumer-help.log",
+    "log_sha256": "6dcfb3ad158387db6ac3922dc68c83afc2ba24d4acab0e35365e38ee72a3ec81"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.planned_writer",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.4367011670001375,
+    "log": "final-cli-loader.planned_writer-help.log",
+    "log_sha256": "2e52960a5df7ade095261bc5665a8106a02c47e0d6d98ebc35a5f8ead25c6e32"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.planned_dispatcher",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.22224333300027865,
+    "log": "final-cli-orchestrator.planned_dispatcher-help.log",
+    "log_sha256": "90a93117c72845a4e427c6977f0e0b564ee9a2da7b98f500dfadfaade3ec2006"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.lease_server",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.22847937500000626,
+    "log": "final-cli-orchestrator.lease_server-help.log",
+    "log_sha256": "9b7059845a27b45b8d027b92e43b7848df12bb789a61a153ebece003e2f7f572"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.clock_runner",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.2816733749996274,
+    "log": "final-cli-orchestrator.clock_runner-help.log",
+    "log_sha256": "934ea7575abf1a11c3143b0b6008ffd7c9a23f654a49651299dec4a5cc0f9b59"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.4383824999999888,
+    "log": "final-cli-default-help.log",
+    "log_sha256": "6d533495d5d9f517799ca6192501fdddeb6b0357392825c96ae9b10de31e14fe"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:1d69043cbc85d14b9715940bd3ecba04fc62d32b94d7f8ce3d314ff5a584d126",
+      "-I",
+      "-m",
+      "pip",
+      "check"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3320001659999434,
+    "log": "final-cli-pip-check.log",
+    "log_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+  },
+  {
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile.node_loader",
+      "-t",
+      "graph-loader-e04-r1-node:local-20261020",
+      "."
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3848665420000543,
+    "log": "final-node-build.log",
+    "log_sha256": "6ba3ff3e53e6d7745565e310bc43e63db9c25697ce6ae31371a9c942ce83de63"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-c",
+      "import hashlib,importlib,importlib.metadata as m,json,pathlib,sysconfig\nsite=pathlib.Path(sysconfig.get_paths()['purelib']).resolve()\nfor name,digest in {'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': 'bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/planning.py': '3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a', 'neo4j_graph_loader/schema.py': '7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/_planner_transport.py': '00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': '0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': '247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}.items():\n    module=importlib.import_module(name.removesuffix('.py').replace('/','.').removesuffix('.__init__'))\n    path=pathlib.Path(module.__file__).resolve()\n    assert path.is_relative_to(site),(name,str(path))\n    assert hashlib.sha256(path.read_bytes()).hexdigest()==digest,name\nassert m.version('neo4j-graph-loader')=='0.1.0a1.dev0'\nassert not m.distribution('neo4j-graph-loader').entry_points\nassert not list(site.glob('__editable__*'))\nassert not any(n=='src' or n.startswith('src.') for n in __import__('sys').modules)\nassert not any(m.packages_distributions().get(n) for n in ['pytest','testcontainers','pandas','dotenv','build','twine'])\nprint(json.dumps({'runtime_modules':len({'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': 'bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/planning.py': '3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a', 'neo4j_graph_loader/schema.py': '7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/_planner_transport.py': '00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': '0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': '247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}),'site':str(site),'origin_bytes':'equal'}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.5880229590002273,
+    "log": "final-node-origins.log",
+    "log_sha256": "0a69a64ed0bda753058b3e6a6adabbc0bc2a251e5b421875ce3184f807996491"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-c",
+      "import importlib\nimport json\nimport logging\nimport logging.config\nimport multiprocessing as mp\nfrom multiprocessing.process import BaseProcess\nimport os\nimport signal\nimport socket\nimport subprocess\nimport threading\n\n# Existing caller configuration must survive both public and CLI imports.\nlogger=logging.getLogger('caller.owned');logger.setLevel(logging.ERROR);logger.propagate=False\nhandler=logging.StreamHandler();logger.addHandler(handler)\nroot=logging.getLogger();root.setLevel(logging.WARNING)\nbefore=(dict(os.environ),list(threading.enumerate()),mp.get_start_method(allow_none=True),\n        root.level,list(root.handlers),logger.level,list(logger.handlers),logger.propagate,\n        {s:signal.getsignal(s) for s in signal.valid_signals() if s not in {signal.SIGKILL,signal.SIGSTOP}})\ndef forbidden(*args,**kwargs):raise AssertionError('import attempted process-wide setup or I/O')\nsocket.socket.__init__=forbidden\nsocket.socket.connect=socket.socket.connect_ex=socket.socket.bind=socket.socket.listen=forbidden\nsubprocess.Popen=BaseProcess.start=threading.Thread.start=forbidden\nsignal.signal=mp.set_start_method=logging.basicConfig=logging.config.dictConfig=logging.config.fileConfig=forbidden\nfor module in ('neo4j_graph_loader.schema','neo4j_graph_loader.planning','neo4j_graph_loader.cli'):\n    importlib.import_module(module)\nfrom neo4j_graph_loader.utils import metrics\nassert metrics._process_metrics is None\nassert before==(dict(os.environ),list(threading.enumerate()),mp.get_start_method(allow_none=True),\n        root.level,list(root.handlers),logger.level,list(logger.handlers),logger.propagate,\n        {s:signal.getsignal(s) for s in signal.valid_signals() if s not in {signal.SIGKILL,signal.SIGSTOP}})\nprint(json.dumps({'imports':'inert','signals':len(before[-1]),'threads':len(before[1]),'metrics_initialized':False}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.39074283299987655,
+    "log": "final-node-e04_imports.py.log",
+    "log_sha256": "7b1a2693242db3fef1be1213cc043e90bde27ef1c5e00643b18dc9a864fb23c5"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-c",
+      "\"\"\"Self-contained installed public example; producer is an owned local test double.\"\"\"\nimport json\nfrom pathlib import Path\nimport tempfile\nimport threading\nfrom types import SimpleNamespace\n\nfrom neo4j_graph_loader import planning, schema\n\nSCHEMA='''loading: {mode: bulk}\nnodes:\n- label: Person\n  topic: people\n  key_property: id\n  properties: {id: {type: integer, required: true}}\nedges:\n- type: KNOWS\n  topic: knows\n  nodes: {source: Person, target: Person}\n  source_key_property: id\n  target_key_property: id\n  properties: {weight: {type: integer}}\n'''\nclass Producer:\n    def __init__(self):self.pending=[];self.offset=0\n    def produce(self,topic,*,value,partition,on_delivery):\n        message=SimpleNamespace(topic=lambda:topic,partition=lambda:partition,offset=lambda n=self.offset:n)\n        self.offset+=1;self.pending.append((on_delivery,message))\n    def poll(self,timeout=0):\n        pending,self.pending=self.pending,[]\n        for callback,message in pending:callback(None,message)\n    def flush(self,timeout=0):self.poll();return 0\nwith tempfile.TemporaryDirectory(prefix='e04-public-') as temporary:\n    root=Path(temporary);path=root/'schema.yaml';path.write_text(SCHEMA)\n    model=schema.load_schema(path);assert isinstance(model,schema.GraphSchema)\n    try:schema.load_schema(root/'missing')\n    except schema.SchemaLoadError as error:assert isinstance(error.__cause__,FileNotFoundError)\n    else:raise AssertionError('missing schema succeeded')\n    settings=planning.PlanSettings(topic='chunks',partitions=1,memory_mb=1,hub_degree=0)\n    try:planning.producer_edge_planner(model,{'UNKNOWN':[]},settings,'unused')\n    except planning.EdgePlanError:pass\n    else:raise AssertionError('unknown source succeeded')\n    planner=planning.producer_edge_planner(model,{'KNOWS':[{'source':{'id':1},'target':{'id':2},'properties':{'weight':1}}]},\n        settings,'unused',context='inline',producer_factory=Producer)\n    try:\n        result=planner.finish(root/'plan.json')\n        assert isinstance(result,planning.PlanResult) and isinstance(result.plan,planning.EdgePlan)\n        assert result.plan.total_rows==1 and result.rows_read==1 and len(result.digest)==64\n    finally:planner.close()\n    signal=threading.Event();signal.set()\n    cancelled=planning.producer_edge_planner(model,{},settings,'unused',context='inline',cancel_event=signal)\n    try:cancelled.finish(root/'cancelled.json')\n    except planning.EdgePlanCancelledError:pass\n    else:raise AssertionError('cancelled planner succeeded')\n    expired=planning.producer_edge_planner(model,{},settings,'unused',context='inline',timeout_seconds=1)\n    expired._clock=lambda:0.;expired.start();expired._clock=lambda:2.\n    try:expired.finish(root/'expired.json')\n    except planning.EdgePlanTimeoutError:pass\n    else:raise AssertionError('expired planner succeeded')\n    assert not list(root.glob('*.lock')) and not list(root.glob('.edge-plan-spill-*'))\nprint(json.dumps({'public_schema':'success_and_error','public_planning':'one_row_result_and_input_error',\n                  'cancellation':'approved_error','deadline':'approved_error','owned_resources':'reclaimed'}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.2944256249998034,
+    "log": "final-node-e04_public_example.py.log",
+    "log_sha256": "cbcacfd246d8c6204d84a0ca0c5e8b85d832a2c9a8a2bb54a72ed9124d7d277d"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.cli",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.44144541599962395,
+    "log": "final-node-cli-help.log",
+    "log_sha256": "6d533495d5d9f517799ca6192501fdddeb6b0357392825c96ae9b10de31e14fe"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.node_loader",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.4481658750000861,
+    "log": "final-node-loader.node_loader-help.log",
+    "log_sha256": "623a16777337a9610a9cee3c3c9a9d168fe3deb12bcc484a229bd3a14c8703ce"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.edge_loader",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.39345600000024206,
+    "log": "final-node-loader.edge_loader-help.log",
+    "log_sha256": "e461de343ba73a5fd1a1baf702a4f1e827662224c3be3d7d36fd5cfdc8328f23"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.retry_consumer",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3982274999998481,
+    "log": "final-node-loader.retry_consumer-help.log",
+    "log_sha256": "6dcfb3ad158387db6ac3922dc68c83afc2ba24d4acab0e35365e38ee72a3ec81"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.planned_writer",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.44888429100001304,
+    "log": "final-node-loader.planned_writer-help.log",
+    "log_sha256": "2e52960a5df7ade095261bc5665a8106a02c47e0d6d98ebc35a5f8ead25c6e32"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.planned_dispatcher",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.22588929099993038,
+    "log": "final-node-orchestrator.planned_dispatcher-help.log",
+    "log_sha256": "90a93117c72845a4e427c6977f0e0b564ee9a2da7b98f500dfadfaade3ec2006"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.lease_server",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.22783333300003505,
+    "log": "final-node-orchestrator.lease_server-help.log",
+    "log_sha256": "9b7059845a27b45b8d027b92e43b7848df12bb789a61a153ebece003e2f7f572"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.clock_runner",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.23087874999964697,
+    "log": "final-node-orchestrator.clock_runner-help.log",
+    "log_sha256": "934ea7575abf1a11c3143b0b6008ffd7c9a23f654a49651299dec4a5cc0f9b59"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.45555274999969697,
+    "log": "final-node-default-help.log",
+    "log_sha256": "623a16777337a9610a9cee3c3c9a9d168fe3deb12bcc484a229bd3a14c8703ce"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:d81ce32787a10c3b413e800fdfcc8497f94b68c175e59fdc38bffe4cb6e3ceed",
+      "-I",
+      "-m",
+      "pip",
+      "check"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.33551441600002363,
+    "log": "final-node-pip-check.log",
+    "log_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+  },
+  {
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile.edge_loader",
+      "-t",
+      "graph-loader-e04-r1-edge:local-20261020",
+      "."
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 1,
+    "seconds": 0.4790231249999124,
+    "log": "initial-registry-failure-final-edge-build.log",
+    "log_sha256": "6dcb0334c85733e26c1c5edf6805d9d921a3b3b5d200894941181138671b54ee"
+  },
+  {
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile.edge_loader",
+      "-t",
+      "graph-loader-e04-r1-edge:local-20261020",
+      "."
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.6033283750002738,
+    "log": "final-edge-build.log",
+    "log_sha256": "7a7d3fa847f2177b2da2b171eb9bcabd220a740b05257bdfdd53eed756ed2135"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-c",
+      "import hashlib,importlib,importlib.metadata as m,json,pathlib,sysconfig\nsite=pathlib.Path(sysconfig.get_paths()['purelib']).resolve()\nfor name,digest in {'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': 'bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/planning.py': '3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a', 'neo4j_graph_loader/schema.py': '7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/_planner_transport.py': '00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': '0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': '247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}.items():\n    module=importlib.import_module(name.removesuffix('.py').replace('/','.').removesuffix('.__init__'))\n    path=pathlib.Path(module.__file__).resolve()\n    assert path.is_relative_to(site),(name,str(path))\n    assert hashlib.sha256(path.read_bytes()).hexdigest()==digest,name\nassert m.version('neo4j-graph-loader')=='0.1.0a1.dev0'\nassert not m.distribution('neo4j-graph-loader').entry_points\nassert not list(site.glob('__editable__*'))\nassert not any(n=='src' or n.startswith('src.') for n in __import__('sys').modules)\nassert not any(m.packages_distributions().get(n) for n in ['pytest','testcontainers','pandas','dotenv','build','twine'])\nprint(json.dumps({'runtime_modules':len({'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': 'bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/planning.py': '3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a', 'neo4j_graph_loader/schema.py': '7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/_planner_transport.py': '00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': '0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': '247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}),'site':str(site),'origin_bytes':'equal'}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.4970060420000664,
+    "log": "final-edge-origins.log",
+    "log_sha256": "0a69a64ed0bda753058b3e6a6adabbc0bc2a251e5b421875ce3184f807996491"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-c",
+      "import importlib\nimport json\nimport logging\nimport logging.config\nimport multiprocessing as mp\nfrom multiprocessing.process import BaseProcess\nimport os\nimport signal\nimport socket\nimport subprocess\nimport threading\n\n# Existing caller configuration must survive both public and CLI imports.\nlogger=logging.getLogger('caller.owned');logger.setLevel(logging.ERROR);logger.propagate=False\nhandler=logging.StreamHandler();logger.addHandler(handler)\nroot=logging.getLogger();root.setLevel(logging.WARNING)\nbefore=(dict(os.environ),list(threading.enumerate()),mp.get_start_method(allow_none=True),\n        root.level,list(root.handlers),logger.level,list(logger.handlers),logger.propagate,\n        {s:signal.getsignal(s) for s in signal.valid_signals() if s not in {signal.SIGKILL,signal.SIGSTOP}})\ndef forbidden(*args,**kwargs):raise AssertionError('import attempted process-wide setup or I/O')\nsocket.socket.__init__=forbidden\nsocket.socket.connect=socket.socket.connect_ex=socket.socket.bind=socket.socket.listen=forbidden\nsubprocess.Popen=BaseProcess.start=threading.Thread.start=forbidden\nsignal.signal=mp.set_start_method=logging.basicConfig=logging.config.dictConfig=logging.config.fileConfig=forbidden\nfor module in ('neo4j_graph_loader.schema','neo4j_graph_loader.planning','neo4j_graph_loader.cli'):\n    importlib.import_module(module)\nfrom neo4j_graph_loader.utils import metrics\nassert metrics._process_metrics is None\nassert before==(dict(os.environ),list(threading.enumerate()),mp.get_start_method(allow_none=True),\n        root.level,list(root.handlers),logger.level,list(logger.handlers),logger.propagate,\n        {s:signal.getsignal(s) for s in signal.valid_signals() if s not in {signal.SIGKILL,signal.SIGSTOP}})\nprint(json.dumps({'imports':'inert','signals':len(before[-1]),'threads':len(before[1]),'metrics_initialized':False}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3911309589998382,
+    "log": "final-edge-e04_imports.py.log",
+    "log_sha256": "7b1a2693242db3fef1be1213cc043e90bde27ef1c5e00643b18dc9a864fb23c5"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-c",
+      "\"\"\"Self-contained installed public example; producer is an owned local test double.\"\"\"\nimport json\nfrom pathlib import Path\nimport tempfile\nimport threading\nfrom types import SimpleNamespace\n\nfrom neo4j_graph_loader import planning, schema\n\nSCHEMA='''loading: {mode: bulk}\nnodes:\n- label: Person\n  topic: people\n  key_property: id\n  properties: {id: {type: integer, required: true}}\nedges:\n- type: KNOWS\n  topic: knows\n  nodes: {source: Person, target: Person}\n  source_key_property: id\n  target_key_property: id\n  properties: {weight: {type: integer}}\n'''\nclass Producer:\n    def __init__(self):self.pending=[];self.offset=0\n    def produce(self,topic,*,value,partition,on_delivery):\n        message=SimpleNamespace(topic=lambda:topic,partition=lambda:partition,offset=lambda n=self.offset:n)\n        self.offset+=1;self.pending.append((on_delivery,message))\n    def poll(self,timeout=0):\n        pending,self.pending=self.pending,[]\n        for callback,message in pending:callback(None,message)\n    def flush(self,timeout=0):self.poll();return 0\nwith tempfile.TemporaryDirectory(prefix='e04-public-') as temporary:\n    root=Path(temporary);path=root/'schema.yaml';path.write_text(SCHEMA)\n    model=schema.load_schema(path);assert isinstance(model,schema.GraphSchema)\n    try:schema.load_schema(root/'missing')\n    except schema.SchemaLoadError as error:assert isinstance(error.__cause__,FileNotFoundError)\n    else:raise AssertionError('missing schema succeeded')\n    settings=planning.PlanSettings(topic='chunks',partitions=1,memory_mb=1,hub_degree=0)\n    try:planning.producer_edge_planner(model,{'UNKNOWN':[]},settings,'unused')\n    except planning.EdgePlanError:pass\n    else:raise AssertionError('unknown source succeeded')\n    planner=planning.producer_edge_planner(model,{'KNOWS':[{'source':{'id':1},'target':{'id':2},'properties':{'weight':1}}]},\n        settings,'unused',context='inline',producer_factory=Producer)\n    try:\n        result=planner.finish(root/'plan.json')\n        assert isinstance(result,planning.PlanResult) and isinstance(result.plan,planning.EdgePlan)\n        assert result.plan.total_rows==1 and result.rows_read==1 and len(result.digest)==64\n    finally:planner.close()\n    signal=threading.Event();signal.set()\n    cancelled=planning.producer_edge_planner(model,{},settings,'unused',context='inline',cancel_event=signal)\n    try:cancelled.finish(root/'cancelled.json')\n    except planning.EdgePlanCancelledError:pass\n    else:raise AssertionError('cancelled planner succeeded')\n    expired=planning.producer_edge_planner(model,{},settings,'unused',context='inline',timeout_seconds=1)\n    expired._clock=lambda:0.;expired.start();expired._clock=lambda:2.\n    try:expired.finish(root/'expired.json')\n    except planning.EdgePlanTimeoutError:pass\n    else:raise AssertionError('expired planner succeeded')\n    assert not list(root.glob('*.lock')) and not list(root.glob('.edge-plan-spill-*'))\nprint(json.dumps({'public_schema':'success_and_error','public_planning':'one_row_result_and_input_error',\n                  'cancellation':'approved_error','deadline':'approved_error','owned_resources':'reclaimed'}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.2861917909999647,
+    "log": "final-edge-e04_public_example.py.log",
+    "log_sha256": "cbcacfd246d8c6204d84a0ca0c5e8b85d832a2c9a8a2bb54a72ed9124d7d277d"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.cli",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.39946412499966755,
+    "log": "final-edge-cli-help.log",
+    "log_sha256": "6d533495d5d9f517799ca6192501fdddeb6b0357392825c96ae9b10de31e14fe"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.node_loader",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3918297499999426,
+    "log": "final-edge-loader.node_loader-help.log",
+    "log_sha256": "623a16777337a9610a9cee3c3c9a9d168fe3deb12bcc484a229bd3a14c8703ce"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.edge_loader",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3909143750001931,
+    "log": "final-edge-loader.edge_loader-help.log",
+    "log_sha256": "e461de343ba73a5fd1a1baf702a4f1e827662224c3be3d7d36fd5cfdc8328f23"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.retry_consumer",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3398130000000492,
+    "log": "final-edge-loader.retry_consumer-help.log",
+    "log_sha256": "6dcfb3ad158387db6ac3922dc68c83afc2ba24d4acab0e35365e38ee72a3ec81"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.planned_writer",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3990442920003261,
+    "log": "final-edge-loader.planned_writer-help.log",
+    "log_sha256": "2e52960a5df7ade095261bc5665a8106a02c47e0d6d98ebc35a5f8ead25c6e32"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.planned_dispatcher",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.24119429199981823,
+    "log": "final-edge-orchestrator.planned_dispatcher-help.log",
+    "log_sha256": "90a93117c72845a4e427c6977f0e0b564ee9a2da7b98f500dfadfaade3ec2006"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.lease_server",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.23446683300016957,
+    "log": "final-edge-orchestrator.lease_server-help.log",
+    "log_sha256": "9b7059845a27b45b8d027b92e43b7848df12bb789a61a153ebece003e2f7f572"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.clock_runner",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.27610879199983174,
+    "log": "final-edge-orchestrator.clock_runner-help.log",
+    "log_sha256": "934ea7575abf1a11c3143b0b6008ffd7c9a23f654a49651299dec4a5cc0f9b59"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.38236720899976717,
+    "log": "final-edge-default-help.log",
+    "log_sha256": "e461de343ba73a5fd1a1baf702a4f1e827662224c3be3d7d36fd5cfdc8328f23"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:f09e39676762af53ef987a679ea0bbf7084d843ae9a40338ca148be8e7094231",
+      "-I",
+      "-m",
+      "pip",
+      "check"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.2316476250002779,
+    "log": "final-edge-pip-check.log",
+    "log_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+  },
+  {
+    "command": [
+      "docker",
+      "build",
+      "-f",
+      "Dockerfile.clock",
+      "-t",
+      "graph-loader-e04-r1-clock:local-20261020",
+      "."
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3425692499999968,
+    "log": "final-clock-build.log",
+    "log_sha256": "5d6ecaa106dfacea4661ee6beb22a730a0688bdc86c7c12c1062f42b6810e982"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-c",
+      "import hashlib,importlib,importlib.metadata as m,json,pathlib,sysconfig\nsite=pathlib.Path(sysconfig.get_paths()['purelib']).resolve()\nfor name,digest in {'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': 'bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/planning.py': '3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a', 'neo4j_graph_loader/schema.py': '7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/_planner_transport.py': '00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': '0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': '247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}.items():\n    module=importlib.import_module(name.removesuffix('.py').replace('/','.').removesuffix('.__init__'))\n    path=pathlib.Path(module.__file__).resolve()\n    assert path.is_relative_to(site),(name,str(path))\n    assert hashlib.sha256(path.read_bytes()).hexdigest()==digest,name\nassert m.version('neo4j-graph-loader')=='0.1.0a1.dev0'\nassert not m.distribution('neo4j-graph-loader').entry_points\nassert not list(site.glob('__editable__*'))\nassert not any(n=='src' or n.startswith('src.') for n in __import__('sys').modules)\nassert not any(m.packages_distributions().get(n) for n in ['pytest','testcontainers','pandas','dotenv','build','twine'])\nprint(json.dumps({'runtime_modules':len({'neo4j_graph_loader/_version.py': '8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312', 'neo4j_graph_loader/__init__.py': 'bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189', 'neo4j_graph_loader/cli.py': 'd27bb4b258ed6f3c1781c11fbaccd2468eb9c69d5de9cc6acd9e2e3c4dc34aa4', 'neo4j_graph_loader/planning.py': '3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a', 'neo4j_graph_loader/schema.py': '7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e', 'neo4j_graph_loader/utils/consumer_groups.py': '0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88', 'neo4j_graph_loader/utils/metrics.py': 'ceb94f11896b90c7f9d15190d73fb9f7b6f09ac2e791bf5b20252a3096d1a2fa', 'neo4j_graph_loader/utils/cypher_generator.py': 'c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8', 'neo4j_graph_loader/utils/neo4j_session.py': '879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3', 'neo4j_graph_loader/utils/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/utils/schema_loader.py': '49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f', 'neo4j_graph_loader/models/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/models/schema.py': '70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19', 'neo4j_graph_loader/loader/mix_and_batch.py': 'ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3', 'neo4j_graph_loader/loader/slot_admission.py': 'a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b', 'neo4j_graph_loader/loader/planned_writer.py': 'f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c', 'neo4j_graph_loader/loader/control.py': '3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0', 'neo4j_graph_loader/loader/_planner_transport.py': '00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b', 'neo4j_graph_loader/loader/edge_execution.py': '4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368', 'neo4j_graph_loader/loader/__init__.py': 'b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5', 'neo4j_graph_loader/loader/fenced_tx.py': '975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076', 'neo4j_graph_loader/loader/lease_client.py': 'cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c', 'neo4j_graph_loader/loader/edge_spill.py': '25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657', 'neo4j_graph_loader/loader/dead_letter_replay.py': '9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34', 'neo4j_graph_loader/loader/edge_planner.py': '0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8', 'neo4j_graph_loader/loader/write_timing_capture.py': 'bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165', 'neo4j_graph_loader/loader/node_loader.py': '9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112', 'neo4j_graph_loader/loader/retry_consumer.py': '25e128ce91ff94a36b6abca770c4e43318b0f3615abc7fd173e49097819a9da1', 'neo4j_graph_loader/loader/edge_records.py': '77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769', 'neo4j_graph_loader/loader/record_validation.py': 'f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657', 'neo4j_graph_loader/loader/edge_plan.py': '247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f', 'neo4j_graph_loader/loader/write_errors.py': '78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643', 'neo4j_graph_loader/loader/parked_pair_index.py': 'c39be57572789434d0e618edcfb1acb0d38eb1a3995befd3d67fc4d46bb38ea4', 'neo4j_graph_loader/loader/write_outage.py': '15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4', 'neo4j_graph_loader/loader/dead_letter.py': 'd3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf', 'neo4j_graph_loader/loader/edge_loader.py': 'c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43', 'neo4j_graph_loader/orchestrator/planned_edges.py': '3b56f857fa07ea29b848a987fc7cc89ce092d636cce348dc4493456b8b8f34b0', 'neo4j_graph_loader/orchestrator/isolation.py': '2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88', 'neo4j_graph_loader/orchestrator/bulk_monitor.py': '42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894', 'neo4j_graph_loader/orchestrator/docker_service.py': '4c91cfc2b873abb346ed953e2dafd51ae23e0c6caa6969c916ed440bb2c866a6', 'neo4j_graph_loader/orchestrator/dependency_manager.py': '483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4', 'neo4j_graph_loader/orchestrator/planned_dispatcher.py': '03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc', 'neo4j_graph_loader/orchestrator/lease_server.py': '994a381d8e2c0b05f7fa92e1a6b4c1067c9e6d895f0101d77e157bc5a74c1be1', 'neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py': 'f82f098fc174cb3ad6f49caf471b4a8dab49d31a1a9eca9622a087af7674b5f7', 'neo4j_graph_loader/orchestrator/auto_settings.py': '4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167', 'neo4j_graph_loader/orchestrator/__init__.py': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'neo4j_graph_loader/orchestrator/schema_initializer.py': 'd6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48', 'neo4j_graph_loader/orchestrator/fleet_contract.py': '1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d', 'neo4j_graph_loader/orchestrator/rotation.py': '6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652', 'neo4j_graph_loader/orchestrator/clock_runner.py': '2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152', 'neo4j_graph_loader/orchestrator/coordination.py': '9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456', 'neo4j_graph_loader/orchestrator/stream_groups.py': '96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831'}),'site':str(site),'origin_bytes':'equal'}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.44444691599983344,
+    "log": "final-clock-origins.log",
+    "log_sha256": "0a69a64ed0bda753058b3e6a6adabbc0bc2a251e5b421875ce3184f807996491"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-c",
+      "import importlib\nimport json\nimport logging\nimport logging.config\nimport multiprocessing as mp\nfrom multiprocessing.process import BaseProcess\nimport os\nimport signal\nimport socket\nimport subprocess\nimport threading\n\n# Existing caller configuration must survive both public and CLI imports.\nlogger=logging.getLogger('caller.owned');logger.setLevel(logging.ERROR);logger.propagate=False\nhandler=logging.StreamHandler();logger.addHandler(handler)\nroot=logging.getLogger();root.setLevel(logging.WARNING)\nbefore=(dict(os.environ),list(threading.enumerate()),mp.get_start_method(allow_none=True),\n        root.level,list(root.handlers),logger.level,list(logger.handlers),logger.propagate,\n        {s:signal.getsignal(s) for s in signal.valid_signals() if s not in {signal.SIGKILL,signal.SIGSTOP}})\ndef forbidden(*args,**kwargs):raise AssertionError('import attempted process-wide setup or I/O')\nsocket.socket.__init__=forbidden\nsocket.socket.connect=socket.socket.connect_ex=socket.socket.bind=socket.socket.listen=forbidden\nsubprocess.Popen=BaseProcess.start=threading.Thread.start=forbidden\nsignal.signal=mp.set_start_method=logging.basicConfig=logging.config.dictConfig=logging.config.fileConfig=forbidden\nfor module in ('neo4j_graph_loader.schema','neo4j_graph_loader.planning','neo4j_graph_loader.cli'):\n    importlib.import_module(module)\nfrom neo4j_graph_loader.utils import metrics\nassert metrics._process_metrics is None\nassert before==(dict(os.environ),list(threading.enumerate()),mp.get_start_method(allow_none=True),\n        root.level,list(root.handlers),logger.level,list(logger.handlers),logger.propagate,\n        {s:signal.getsignal(s) for s in signal.valid_signals() if s not in {signal.SIGKILL,signal.SIGSTOP}})\nprint(json.dumps({'imports':'inert','signals':len(before[-1]),'threads':len(before[1]),'metrics_initialized':False}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.39102379199994175,
+    "log": "final-clock-e04_imports.py.log",
+    "log_sha256": "7b1a2693242db3fef1be1213cc043e90bde27ef1c5e00643b18dc9a864fb23c5"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-c",
+      "\"\"\"Self-contained installed public example; producer is an owned local test double.\"\"\"\nimport json\nfrom pathlib import Path\nimport tempfile\nimport threading\nfrom types import SimpleNamespace\n\nfrom neo4j_graph_loader import planning, schema\n\nSCHEMA='''loading: {mode: bulk}\nnodes:\n- label: Person\n  topic: people\n  key_property: id\n  properties: {id: {type: integer, required: true}}\nedges:\n- type: KNOWS\n  topic: knows\n  nodes: {source: Person, target: Person}\n  source_key_property: id\n  target_key_property: id\n  properties: {weight: {type: integer}}\n'''\nclass Producer:\n    def __init__(self):self.pending=[];self.offset=0\n    def produce(self,topic,*,value,partition,on_delivery):\n        message=SimpleNamespace(topic=lambda:topic,partition=lambda:partition,offset=lambda n=self.offset:n)\n        self.offset+=1;self.pending.append((on_delivery,message))\n    def poll(self,timeout=0):\n        pending,self.pending=self.pending,[]\n        for callback,message in pending:callback(None,message)\n    def flush(self,timeout=0):self.poll();return 0\nwith tempfile.TemporaryDirectory(prefix='e04-public-') as temporary:\n    root=Path(temporary);path=root/'schema.yaml';path.write_text(SCHEMA)\n    model=schema.load_schema(path);assert isinstance(model,schema.GraphSchema)\n    try:schema.load_schema(root/'missing')\n    except schema.SchemaLoadError as error:assert isinstance(error.__cause__,FileNotFoundError)\n    else:raise AssertionError('missing schema succeeded')\n    settings=planning.PlanSettings(topic='chunks',partitions=1,memory_mb=1,hub_degree=0)\n    try:planning.producer_edge_planner(model,{'UNKNOWN':[]},settings,'unused')\n    except planning.EdgePlanError:pass\n    else:raise AssertionError('unknown source succeeded')\n    planner=planning.producer_edge_planner(model,{'KNOWS':[{'source':{'id':1},'target':{'id':2},'properties':{'weight':1}}]},\n        settings,'unused',context='inline',producer_factory=Producer)\n    try:\n        result=planner.finish(root/'plan.json')\n        assert isinstance(result,planning.PlanResult) and isinstance(result.plan,planning.EdgePlan)\n        assert result.plan.total_rows==1 and result.rows_read==1 and len(result.digest)==64\n    finally:planner.close()\n    signal=threading.Event();signal.set()\n    cancelled=planning.producer_edge_planner(model,{},settings,'unused',context='inline',cancel_event=signal)\n    try:cancelled.finish(root/'cancelled.json')\n    except planning.EdgePlanCancelledError:pass\n    else:raise AssertionError('cancelled planner succeeded')\n    expired=planning.producer_edge_planner(model,{},settings,'unused',context='inline',timeout_seconds=1)\n    expired._clock=lambda:0.;expired.start();expired._clock=lambda:2.\n    try:expired.finish(root/'expired.json')\n    except planning.EdgePlanTimeoutError:pass\n    else:raise AssertionError('expired planner succeeded')\n    assert not list(root.glob('*.lock')) and not list(root.glob('.edge-plan-spill-*'))\nprint(json.dumps({'public_schema':'success_and_error','public_planning':'one_row_result_and_input_error',\n                  'cancellation':'approved_error','deadline':'approved_error','owned_resources':'reclaimed'}))\n"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.29290754099974947,
+    "log": "final-clock-e04_public_example.py.log",
+    "log_sha256": "cbcacfd246d8c6204d84a0ca0c5e8b85d832a2c9a8a2bb54a72ed9124d7d277d"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.cli",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3952524160004032,
+    "log": "final-clock-cli-help.log",
+    "log_sha256": "6d533495d5d9f517799ca6192501fdddeb6b0357392825c96ae9b10de31e14fe"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.node_loader",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.39911962499991205,
+    "log": "final-clock-loader.node_loader-help.log",
+    "log_sha256": "623a16777337a9610a9cee3c3c9a9d168fe3deb12bcc484a229bd3a14c8703ce"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.edge_loader",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3923635420001119,
+    "log": "final-clock-loader.edge_loader-help.log",
+    "log_sha256": "e461de343ba73a5fd1a1baf702a4f1e827662224c3be3d7d36fd5cfdc8328f23"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.retry_consumer",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.3459150829999089,
+    "log": "final-clock-loader.retry_consumer-help.log",
+    "log_sha256": "6dcfb3ad158387db6ac3922dc68c83afc2ba24d4acab0e35365e38ee72a3ec81"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.loader.planned_writer",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.392337833000056,
+    "log": "final-clock-loader.planned_writer-help.log",
+    "log_sha256": "2e52960a5df7ade095261bc5665a8106a02c47e0d6d98ebc35a5f8ead25c6e32"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.planned_dispatcher",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.22928154199962592,
+    "log": "final-clock-orchestrator.planned_dispatcher-help.log",
+    "log_sha256": "90a93117c72845a4e427c6977f0e0b564ee9a2da7b98f500dfadfaade3ec2006"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.lease_server",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.17776158300011957,
+    "log": "final-clock-orchestrator.lease_server-help.log",
+    "log_sha256": "9b7059845a27b45b8d027b92e43b7848df12bb789a61a153ebece003e2f7f572"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "neo4j_graph_loader.orchestrator.clock_runner",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.23372550000021874,
+    "log": "final-clock-orchestrator.clock_runner-help.log",
+    "log_sha256": "934ea7575abf1a11c3143b0b6008ffd7c9a23f654a49651299dec4a5cc0f9b59"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "--help"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.22910829200009175,
+    "log": "final-clock-default-help.log",
+    "log_sha256": "934ea7575abf1a11c3143b0b6008ffd7c9a23f654a49651299dec4a5cc0f9b59"
+  },
+  {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--entrypoint",
+      "python",
+      "sha256:3e4e4b678905323c8b087b60c2ba3dd9840d5b2b932eb42abe6f4abb39debbb4",
+      "-I",
+      "-m",
+      "pip",
+      "check"
+    ],
+    "cwd": "/Users/shashank/Desktop/Code/Graph/graph-loader",
+    "exit_code": 0,
+    "seconds": 0.23259891699990476,
+    "log": "final-clock-pip-check.log",
+    "log_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+  }
+]
