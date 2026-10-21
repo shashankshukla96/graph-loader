@@ -11,14 +11,18 @@ and closes the retained product/proof/documentation findings. [Exact proof](evid
 records3566passes, four inherited skips,49 deselections,19 known warnings,
 no-skip B3, two clean wheel installs, true outside-Git rebuild, four immutable
 images and12public R1 controls. E04-R1 remains closed. All270 finald tested inputs
-and environment are unchanged. Local delivery is pending final staging/commit;
-its actual full hash will be recorded in the following tracker/evidence commit.
+and environment are unchanged. Local delivery is `2265e4fd1d9f76eb2813856157dea89a80b9f216`.
+[Postcommit equality](evidence/e05-postcommit.json) verifies all270 tested,
+committed and current bytes/sizes/modes plus the unchanged environment. This
+documentation-only follow-up records the actual hash; its own hash is in Git log
+under rule5.
 E06–E12, upload, push, tag and publication remain unstarted/unauthorized.
 
 ## Committed changes
 
 | Date | Epic / change | Exact local commit | What changed | Verification / evidence |
 | --- | --- | --- | --- | --- |
+| 2026-10-21 | E05.F1.S1, E05.F1.S2, E05.F2.S1 local delivery | `2265e4fd1d9f76eb2813856157dea89a80b9f216` | Installed command/module/version, two finite schema resources, private persistent runtime paths and early preflight through planner/metrics/seven launcher roles. | [Final acceptance](reviews/e05-final-adversarial-review.md), [exact proof](evidence/e05-final-validation.md), [postcommit equality](evidence/e05-postcommit.json):3566passes,4 inherited skips,49 deselections,19 known warnings; artifacts/true no-Git rebuild/two installs/four images/12R1/B3 pass. |
 | 2026-10-11 | Checklist foundation | `d53a92cfef652b7aae5aca6472736c10e851db42` | Added the library/PyPI checklist and independent checklist validation. No distribution implementation was claimed. | [Checklist review](../../docs/PYPI_CHECKLIST_REVIEW.md), [checklist](../../docs/PYPI_LIBRARY_CHECKLIST.md). |
 | 2026-10-17 | E03 handoff preparation | `6de3562083cc7079091d056b89d66f18b69931e8` | Added the migration handoff and independent handoff review, including full SDLC, test/build gates and repeat-until-resolved independent review. Earlier implementation remained uncommitted then. | [Handoff review](reviews/handoff-e03-review-20261017.md). |
 | 2026-10-17 | E00 prerequisites | `bf5471e9243dbda90cdf066a5d811486119dba7c` | First committed the inherited planner ownership/recovery fixes, schema/logging fixes, service-independent test repairs and maintained DLQ fixture/harness. Preserved them during the E03 migration. | [E00 baseline](evidence/E00.F1.S1.md), [DLQ proof](evidence/E00.F2.S1.md). |
@@ -126,16 +130,17 @@ repair SHA; its own enclosing hash is available through Git history under rule5.
 E05 is not implemented.
 
 
-## E05 accepted; local delivery pending — 2026-10-21
+## E05 delivered locally — 2026-10-21
 
 Clean entry `14fe493`; executing only [E05](execution-e05.md) after accepted
 E04-R1 revalidation. Ordered console entry, finite samples and owned writable
 runtime stories require independent reviews and fresh full/artifact/image/B3
-proof before completion/local delivery. Exact commit hashes will follow actual
-acceptance; no E06 implementation, publication or push is authorized.
+proof before completion/local delivery. Actual delivery is `2265e4fd1d9f76eb2813856157dea89a80b9f216`; no E06 implementation, publication or push is authorized.
 
 All ordered stories and the fresh final adversarial review now accept the exact
 finald candidate. See [resolutions](reviews/e05-resolutions.md),
 [final validation](evidence/e05-final-validation.md) and [E06 handoff](handoff-e06.md).
-Pending authorized local delivery has no invented hash; rule5 applies to the
-subsequent bookkeeping commit.
+Actual delivery is `2265e4fd1d9f76eb2813856157dea89a80b9f216`;
+[postcommit proof](evidence/e05-postcommit.json) verifies all270 accepted inputs
+against committed/current content and modes. Rule5 applies to this follow-up
+bookkeeping commit; no tested product input changes.

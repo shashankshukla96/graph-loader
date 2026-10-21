@@ -3,8 +3,9 @@
 Prepared2026-10-21. **E06 is not started or authorized by this E05 task.** Begin
 only after E05 final independent acceptance/local delivery are recorded in the
 [tracker](CHANGE_TRACKER.md) and [final evidence](evidence/e05-final-validation.md),
-and the user asks to execute E06. Exact E05 delivery hash follows actual commit;
-never substitute a placeholder or invent registry digests. No push/upload/tag/
+and the user asks to execute E06. E05 delivery is `2265e4fd1d9f76eb2813856157dea89a80b9f216`;
+[postcommit proof](evidence/e05-postcommit.json) verifies all270 tested/committed/
+current inputs. Never substitute a placeholder or invent registry digests. No push/upload/tag/
 publication/workflow is authorized.
 
 Repository `/Users/shashank/Desktop/Code/Graph/graph-loader`, branch

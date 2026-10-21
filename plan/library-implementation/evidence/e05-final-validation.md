@@ -5,8 +5,11 @@ Scope E05 only; clean entry `14fe4934976f62f421086e541e6bc00dbc1ceec8` on
 Plan and all three stories independently accepted, preserving repaired findings
 in [resolutions](../reviews/e05-resolutions.md). **[Fresh final adversarial review](../reviews/e05-final-adversarial-review.md)
 accepts E05 with no open finding.** [Independent staging review](../reviews/e05-delivery-review.md)
-accepts the delivery scope and all270 index/current inputs; actual local commit
-identity and postcommit equality remain pending. [Independent proof](e05-final-independent.json) binds the
+accepts the delivery scope and all270 index/current inputs; local delivery is
+`2265e4fd1d9f76eb2813856157dea89a80b9f216` and [postcommit proof](e05-postcommit.json)
+verifies all270 tested, committed and current bytes/sizes/modes, with unchanged
+environment. This following documentation-only record contains the actual hash;
+its own hash is authoritatively available through tracker Git history. [Independent proof](e05-final-independent.json) binds the
 exact finald candidate and retains all finding closures.
 
 Fresh CPython3.12.14 environment installed requirements-dev then editable package.

@@ -271,6 +271,8 @@ rebuild/member equality/two clean installs, four immutable read-only image check
 actual data binds,12public R1 controls and no-skip B3. All270 tested inputs and
 environment are unchanged across finald proof.
 
-Local delivery remains pending the final staging check and authorized commit;
-[tracker](CHANGE_TRACKER.md) records its actual full hash afterwards. The
+Local delivery is `2265e4fd1d9f76eb2813856157dea89a80b9f216`;
+[postcommit proof](evidence/e05-postcommit.json) verifies all270 tested, committed
+and current inputs with unchanged environment. The [tracker](CHANGE_TRACKER.md)
+records the actual hash; its documentation follow-up follows rule5. The
 [E06 handoff](handoff-e06.md) is prepared; E06–E12 and publication are not executed.

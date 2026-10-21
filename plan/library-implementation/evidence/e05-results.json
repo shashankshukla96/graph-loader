@@ -2313,7 +2313,14 @@
     "report_sha256": "a47b624b6822be818f7145d957b64136cedf50accafb69b4481d6d4e1b420e5b",
     "independent_evidence": "e05-final-independent.json",
     "independent_evidence_sha256": "eb1bbb90e6e35ff954854194317e5b143219dfd99855b96a480e579f49754fad",
-    "delivery": "independent staging accepted;actual commit pending"
+    "delivery": {
+      "commit": "2265e4fd1d9f76eb2813856157dea89a80b9f216",
+      "postcommit_proof": "e05-postcommit.json",
+      "postcommit_proof_sha256": "20e1e71b9573f63b34dae17fb9ac44375cd516ecfe91987df328b67a625505ab",
+      "tested_committed_current_inputs_equal": 270,
+      "environment_unchanged": true,
+      "bookkeeping": "following documentation-only commit; own hash recorded by Git log under tracker rule5"
+    }
   },
   "limits": [
     "E06 checkout-free image selection and service-ingestion matrix not implemented",
