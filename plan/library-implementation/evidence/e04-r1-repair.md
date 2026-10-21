@@ -92,3 +92,11 @@ Final acceptance on2026-10-21 is based on the new zero-history final review, not
 the usage-limited attempt. Canonical E04 S3/S4 completion and the E05 prerequisite
 are restored; final render/link/staged checks and local delivery identity follow.
 No E05 work or push/publication is included.
+
+
+Local repair delivery: `aa03f2c0d71409a7ed46534ec57780e5bef966bf`.
+[Postcommit proof](e04-r1-postcommit.json) confirms all259 tested delivery inputs
+match actual committed blobs and current files in bytes, size and executable mode;
+environment identity is unchanged. The following tracker/evidence commit records
+the actual repair hash and changes no tested source/build/test inputs. Its own
+hash is available in Git history without recursive bookkeeping.

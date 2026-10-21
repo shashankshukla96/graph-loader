@@ -28,6 +28,7 @@ local delivery record below. Historical failures and approvals remain intact.
 | 2026-10-20 | E04 public API and bounded planner lifecycle | `55dd4938188768090c10d851f8f7330706975ea5` | Delivered all six ordered stories: explicit schema/planning API, ownership, closed framed IPC, operation cancellation/deadline, aggregate cleanup with retention diagnostics and independent metrics/import effects. | [Final3512-pass/B3/artifact/image proof](evidence/e04-final-validation.md), [per-story resolutions](reviews/e04-resolutions.md), [fresh final acceptance](reviews/e04-final-adversarial-review.md), [259-input postcommit equality](evidence/e04-postcommit.json). |
 | 2026-10-20 | E04 delivery evidence / E05 draft handoff | `786260bec3cceb8ed14990896380640cb52115d2` | Recorded E04's actual delivery identity, postcommit input equality and the conditioned E05 handoff. No runtime source change. | [Postcommit proof](evidence/e04-postcommit.json), [E05 handoff](handoff-e05.md). Its gate was subsequently blocked by E04-R1; the accepted repair is recorded below. |
 | 2026-10-20 | E04 revalidation: changes requested | `d987ad8d16eedfc70b45fcccb2a4fd6b088f2cb9` | Recorded independently reproduced P1 E04-R1, fresh passing baseline/artifact/image/service checks, reopened E04 S3/S4 and gated E05. Review/status/evidence only; no product fix. | [Current report](reviews/e04-completion-verification-20261020.md), [independent lifecycle finding](reviews/e04-lifecycle-revalidation-20261020.md), [exact evidence](evidence/e04-revalidation-20261020.json). |
+| 2026-10-21 | E04-R1 repair / S3-S4 acceptance restored | `aa03f2c0d71409a7ed46534ec57780e5bef966bf` | Propagate a received worker failure before waiting on peers or applying a post-reply interruption check; retain its cause and enter shared cleanup. Add supervised default/finite mixed-source and deterministic cause-priority regressions. | [Fresh3516-pass/full/B3/artifact/image/mixed proof](evidence/e04-r1-repair.md), [final independent acceptance](reviews/e04-r1-final-review.md), [259-input committed equality](evidence/e04-r1-postcommit.json). |
 
 **Commit boundaries matter:** E00, E01 and E02 were completed in a dirty checkout
 and first committed together with E03 in `bf5471e`. The repeated hash above is
@@ -63,6 +64,7 @@ E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) pre
 | 2026-10-18 | `ffb862537b83ef7be053fb96e05d12fcbcfdd355` | [Fresh E03 completion verification](reviews/e03-completion-verification-20261018.md): 3,387 test passes, exact no-skip DLQ proof, rebuilt artifacts/two clean installs and four new-image matrices. [Independent source review](reviews/e03-revalidation-independent-20261018.md) accepts E03; [handoff/tracker review](reviews/e04-handoff-tracker-review-20261018.md) approved after H1 was fixed and rechecked. Added this tracker and refreshed [E04 handoff](handoff-e04.md); no product/E04 implementation. | Delivered locally in `06ae36c05d724c47f99fa0d4d98dbf1f76aa9902`; source reviewed at `ffb8625` is unchanged. This tracker-only follow-up records the actual new hash. |
 | 2026-10-20 | `55dd4938188768090c10d851f8f7330706975ea5` | [E04 final validation](evidence/e04-final-validation.md):3,512 passes, exact no-skip B3, rebuilt artifacts/two clean installs/four immutable image matrices and [independent final acceptance](reviews/e04-final-adversarial-review.md). | Local implementation delivered at that SHA; [postcommit equality](evidence/e04-postcommit.json) verifies259 inputs, with this documentation-only follow-up recording the hash. |
 | 2026-10-20 | `786260bec3cceb8ed14990896380640cb52115d2` | [Current E04 revalidation](reviews/e04-completion-verification-20261020.md): fresh 3,512 passes, no-skip B3, clean artifacts/52 image checks, but **E04-R1 reproduced independently and by the primary agent**. [Transport review](reviews/e04-transport-revalidation-20261020.md) found no transport defect; [lifecycle review](reviews/e04-lifecycle-revalidation-20261020.md) requests correction. S3/S4 reopened; E05 blocked. Product code unchanged. | Recorded locally in `d987ad8d16eedfc70b45fcccb2a4fd6b088f2cb9`. This tracker-only follow-up records the actual reporting commit; R1 remains unfixed. |
+| 2026-10-21 | `aa03f2c0d71409a7ed46534ec57780e5bef966bf` | [R1 repair validation](evidence/e04-r1-repair.md):3,516 passes, exact no-skip B3, isolated original/rebuilt artifacts, clean installs, four new immutable image matrices and12 checkout-free mixed cases; [fresh final review](reviews/e04-r1-final-review.md) accepts. | Local repair delivered at that SHA; this documentation-only follow-up records actual identity and [all259-input equality](evidence/e04-r1-postcommit.json). |
 
 E00–E04 are accepted after the independently reviewed R1 repair. The approved
 plan design remains intact and E05–E12 remain unstarted. The historical green
@@ -101,7 +103,7 @@ To inspect a particular change, use `git show <exact-commit>`; the table above
 identifies the relevant local commits without relying on a remote branch.
 
 
-## E04-R1 accepted — 2026-10-21; local delivery pending
+## E04-R1 delivered locally — 2026-10-21
 
 Clean entry `6508bd31779c49c0d1dd78f0ee242c91b9f9a9fc`; only the
 [R1 repair plan](execution-e04-r1.md) was executed. Received failures propagate
@@ -109,6 +111,9 @@ with causes immediately; mixed-source default/finite-timeout and post-reply
 interruption regressions pass. Fresh3,516-test/B3/artifact/image checks and
 [final independent acceptance](reviews/e04-r1-final-review.md) restore S3/S4.
 [Exact repair proof](evidence/e04-r1-repair.md) preserves negative controls,
-transient infrastructure failure and immutable tested identities. Actual repair
-SHA and259-input committed-content equality follow in a tracker/evidence commit;
-no guessed or recursively enclosing hash is recorded. E05 is not implemented.
+transient infrastructure failure and immutable tested identities. Repair delivery: `aa03f2c0d71409a7ed46534ec57780e5bef966bf`.
+[Postcommit proof](evidence/e04-r1-postcommit.json) verifies all259 tested delivery
+inputs against actual Git blobs and current content/size/mode, with unchanged
+environment. This following documentation/evidence commit records the actual
+repair SHA; its own enclosing hash is available through Git history under rule5.
+E05 is not implemented.

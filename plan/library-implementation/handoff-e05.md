@@ -4,12 +4,13 @@
 The [original finding](reviews/e04-completion-verification-20261020.md) remains
 historical. [New repair evidence](evidence/e04-r1-repair.md) and
 [fresh final acceptance](reviews/e04-r1-final-review.md) restore E04 S3/S4.
-Use the actual repair delivery and postcommit equality in the change tracker
-before starting E05; this repair task does not implement E05.
+Repair delivery is `aa03f2c0d71409a7ed46534ec57780e5bef966bf`;
+[postcommit equality](evidence/e04-r1-postcommit.json) verifies all259 tested inputs.
+The change tracker records actual delivery. This repair task does not implement E05.
 
 Prepared 2026-10-20. Execute **E05 only after E04 final independent acceptance
 and local delivery are recorded** in the [change tracker](CHANGE_TRACKER.md)
-and [E04 final evidence](evidence/e04-final-validation.md). E04 local delivery is
+and [E04 final evidence](evidence/e04-final-validation.md). Original E04 local delivery is
 `55dd4938188768090c10d851f8f7330706975ea5`; [postcommit equality](evidence/e04-postcommit.json)
 verifies the259 inputs. The tracker follow-up records this actual hash. This
 handoff does not start E05. No upload, push, tag, publication or workflow is authorized.
