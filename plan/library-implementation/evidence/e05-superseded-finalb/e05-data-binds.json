@@ -1,0 +1,254 @@
+[
+  {
+    "component": "cli",
+    "id": "sha256:d82665874a06370d03513b8876dc555d345a674738b92b9170f98485936c142c",
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--read-only",
+      "--tmpfs",
+      "/tmp:rw,nosuid,size=128m",
+      "--workdir",
+      "/",
+      "--cidfile",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/container.cid",
+      "--label",
+      "graph-loader.e05-bind-proof=71ef68c809bc47f8bb60c37fbb4550dd",
+      "--entrypoint",
+      "python",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/runtime_schema.yaml,target=/app/runtime_schema.yaml,readonly",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/edge-plan.json,target=/app/edge-plan.json,readonly",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/rejections,target=/app/rejections",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/timings,target=/app/write-timings",
+      "sha256:d82665874a06370d03513b8876dc555d345a674738b92b9170f98485936c142c",
+      "-I",
+      "-c",
+      "import errno,hashlib,importlib.resources as r,json,pathlib\nfrom neo4j_graph_loader.schema import load_schema\nload_schema('/app/runtime_schema.yaml')\nfor name,digest in {'graph_schema.yaml': '954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747', 'social_schema.yaml': 'fd558b4bb65671b9cda6514280d23e37a93adebd04e240d938c36173d3f98c74'}.items():\n    assert hashlib.sha256(r.files('neo4j_graph_loader').joinpath('data',name).read_bytes()).hexdigest()==digest,name\nfor name in ('runtime_schema.yaml','edge-plan.json'):\n    try: pathlib.Path('/app',name).write_text('forbidden')\n    except OSError as e: assert e.errno==errno.EROFS,e\n    else: raise AssertionError('readonly bind was writable')\nfor name in ('rejections','write-timings'):\n    pathlib.Path('/app',name,'owned.txt').write_text('written')\nassert pathlib.Path('/app/edge-plan.json').read_text()=='{}'\nprint(json.dumps({'readonly_inputs':True,'writable_outputs':True,'resource_bytes':'equal'}))\n"
+    ],
+    "seconds": 0.20619045900002675,
+    "mounts": [
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/runtime_schema.yaml",
+        "destination": "/app/runtime_schema.yaml",
+        "readonly": true
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/edge-plan.json",
+        "destination": "/app/edge-plan.json",
+        "readonly": true
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/rejections",
+        "destination": "/app/rejections",
+        "readonly": false
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-cli/timings",
+        "destination": "/app/write-timings",
+        "readonly": false
+      }
+    ],
+    "exit_code": 0,
+    "result": {
+      "readonly_inputs": true,
+      "writable_outputs": true,
+      "resource_bytes": "equal"
+    }
+  },
+  {
+    "component": "node",
+    "id": "sha256:04b5f564a005a7c6146052687ed51ec0730220cb90255254ef4e57a7364e751a",
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--read-only",
+      "--tmpfs",
+      "/tmp:rw,nosuid,size=128m",
+      "--workdir",
+      "/",
+      "--cidfile",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/container.cid",
+      "--label",
+      "graph-loader.e05-bind-proof=1b55b992106b4575906f2e15690b63bc",
+      "--entrypoint",
+      "python",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/runtime_schema.yaml,target=/app/runtime_schema.yaml,readonly",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/edge-plan.json,target=/app/edge-plan.json,readonly",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/rejections,target=/app/rejections",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/timings,target=/app/write-timings",
+      "sha256:04b5f564a005a7c6146052687ed51ec0730220cb90255254ef4e57a7364e751a",
+      "-I",
+      "-c",
+      "import errno,hashlib,importlib.resources as r,json,pathlib\nfrom neo4j_graph_loader.schema import load_schema\nload_schema('/app/runtime_schema.yaml')\nfor name,digest in {'graph_schema.yaml': '954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747', 'social_schema.yaml': 'fd558b4bb65671b9cda6514280d23e37a93adebd04e240d938c36173d3f98c74'}.items():\n    assert hashlib.sha256(r.files('neo4j_graph_loader').joinpath('data',name).read_bytes()).hexdigest()==digest,name\nfor name in ('runtime_schema.yaml','edge-plan.json'):\n    try: pathlib.Path('/app',name).write_text('forbidden')\n    except OSError as e: assert e.errno==errno.EROFS,e\n    else: raise AssertionError('readonly bind was writable')\nfor name in ('rejections','write-timings'):\n    pathlib.Path('/app',name,'owned.txt').write_text('written')\nassert pathlib.Path('/app/edge-plan.json').read_text()=='{}'\nprint(json.dumps({'readonly_inputs':True,'writable_outputs':True,'resource_bytes':'equal'}))\n"
+    ],
+    "seconds": 0.18637000000035187,
+    "mounts": [
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/runtime_schema.yaml",
+        "destination": "/app/runtime_schema.yaml",
+        "readonly": true
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/edge-plan.json",
+        "destination": "/app/edge-plan.json",
+        "readonly": true
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/rejections",
+        "destination": "/app/rejections",
+        "readonly": false
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-node/timings",
+        "destination": "/app/write-timings",
+        "readonly": false
+      }
+    ],
+    "exit_code": 0,
+    "result": {
+      "readonly_inputs": true,
+      "writable_outputs": true,
+      "resource_bytes": "equal"
+    }
+  },
+  {
+    "component": "edge",
+    "id": "sha256:0c8ee520d47248778533f5fa4c4e2c22c13b581e59ae9064d4ad9cb5a658bbe7",
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--read-only",
+      "--tmpfs",
+      "/tmp:rw,nosuid,size=128m",
+      "--workdir",
+      "/",
+      "--cidfile",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/container.cid",
+      "--label",
+      "graph-loader.e05-bind-proof=3d24f465235d4c369944d8eeff9177a4",
+      "--entrypoint",
+      "python",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/runtime_schema.yaml,target=/app/runtime_schema.yaml,readonly",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/edge-plan.json,target=/app/edge-plan.json,readonly",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/rejections,target=/app/rejections",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/timings,target=/app/write-timings",
+      "sha256:0c8ee520d47248778533f5fa4c4e2c22c13b581e59ae9064d4ad9cb5a658bbe7",
+      "-I",
+      "-c",
+      "import errno,hashlib,importlib.resources as r,json,pathlib\nfrom neo4j_graph_loader.schema import load_schema\nload_schema('/app/runtime_schema.yaml')\nfor name,digest in {'graph_schema.yaml': '954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747', 'social_schema.yaml': 'fd558b4bb65671b9cda6514280d23e37a93adebd04e240d938c36173d3f98c74'}.items():\n    assert hashlib.sha256(r.files('neo4j_graph_loader').joinpath('data',name).read_bytes()).hexdigest()==digest,name\nfor name in ('runtime_schema.yaml','edge-plan.json'):\n    try: pathlib.Path('/app',name).write_text('forbidden')\n    except OSError as e: assert e.errno==errno.EROFS,e\n    else: raise AssertionError('readonly bind was writable')\nfor name in ('rejections','write-timings'):\n    pathlib.Path('/app',name,'owned.txt').write_text('written')\nassert pathlib.Path('/app/edge-plan.json').read_text()=='{}'\nprint(json.dumps({'readonly_inputs':True,'writable_outputs':True,'resource_bytes':'equal'}))\n"
+    ],
+    "seconds": 0.193489917000079,
+    "mounts": [
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/runtime_schema.yaml",
+        "destination": "/app/runtime_schema.yaml",
+        "readonly": true
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/edge-plan.json",
+        "destination": "/app/edge-plan.json",
+        "readonly": true
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/rejections",
+        "destination": "/app/rejections",
+        "readonly": false
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-edge/timings",
+        "destination": "/app/write-timings",
+        "readonly": false
+      }
+    ],
+    "exit_code": 0,
+    "result": {
+      "readonly_inputs": true,
+      "writable_outputs": true,
+      "resource_bytes": "equal"
+    }
+  },
+  {
+    "component": "clock",
+    "id": "sha256:4a1b92315c8d9d08f37bff297798ff8c9843ecd2a894bdc00e71acf73ff764c6",
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "--read-only",
+      "--tmpfs",
+      "/tmp:rw,nosuid,size=128m",
+      "--workdir",
+      "/",
+      "--cidfile",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/container.cid",
+      "--label",
+      "graph-loader.e05-bind-proof=291f638709b24dfdb6194a302b0cc149",
+      "--entrypoint",
+      "python",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/runtime_schema.yaml,target=/app/runtime_schema.yaml,readonly",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/edge-plan.json,target=/app/edge-plan.json,readonly",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/rejections,target=/app/rejections",
+      "--mount",
+      "type=bind,source=/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/timings,target=/app/write-timings",
+      "sha256:4a1b92315c8d9d08f37bff297798ff8c9843ecd2a894bdc00e71acf73ff764c6",
+      "-I",
+      "-c",
+      "import errno,hashlib,importlib.resources as r,json,pathlib\nfrom neo4j_graph_loader.schema import load_schema\nload_schema('/app/runtime_schema.yaml')\nfor name,digest in {'graph_schema.yaml': '954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747', 'social_schema.yaml': 'fd558b4bb65671b9cda6514280d23e37a93adebd04e240d938c36173d3f98c74'}.items():\n    assert hashlib.sha256(r.files('neo4j_graph_loader').joinpath('data',name).read_bytes()).hexdigest()==digest,name\nfor name in ('runtime_schema.yaml','edge-plan.json'):\n    try: pathlib.Path('/app',name).write_text('forbidden')\n    except OSError as e: assert e.errno==errno.EROFS,e\n    else: raise AssertionError('readonly bind was writable')\nfor name in ('rejections','write-timings'):\n    pathlib.Path('/app',name,'owned.txt').write_text('written')\nassert pathlib.Path('/app/edge-plan.json').read_text()=='{}'\nprint(json.dumps({'readonly_inputs':True,'writable_outputs':True,'resource_bytes':'equal'}))\n"
+    ],
+    "seconds": 0.18867087500075286,
+    "mounts": [
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/runtime_schema.yaml",
+        "destination": "/app/runtime_schema.yaml",
+        "readonly": true
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/edge-plan.json",
+        "destination": "/app/edge-plan.json",
+        "readonly": true
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/rejections",
+        "destination": "/app/rejections",
+        "readonly": false
+      },
+      {
+        "source": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finalb/bind-clock/timings",
+        "destination": "/app/write-timings",
+        "readonly": false
+      }
+    ],
+    "exit_code": 0,
+    "result": {
+      "readonly_inputs": true,
+      "writable_outputs": true,
+      "resource_bytes": "equal"
+    }
+  }
+]

@@ -1,0 +1,109 @@
+# Synthetic social/commerce graph used to validate the library with a
+# non-IMDb model.  Nothing in src/ knows about it: the YAML plus data on the
+# declared topics is the whole contract.
+#
+# Covered on purpose:
+#   * integer (Person), string (Company, Product, City) and date (Day) keys
+#   * a self-referencing type with self loops (FRIEND_OF)
+#   * two types between the same labels (LIVES_IN, VISITED: Person -> City)
+#   * hub-heavy small labels (City: ~25 nodes, Day: ~60 nodes)
+#   * a label without relationships (Country)
+#   * repeated (source, target) pairs whose last record wins per property
+#   * string, integer, float, date and datetime properties
+loading:
+  mode: bulk
+  consumer_group_id: social-example
+  unwind_batch_size: 500
+  edge_unwind_batch_size: 2000
+  rejection_log_path: var/rejections/social-node-loader.jsonl
+
+nodes:
+  - label: Person
+    topic: social-person
+    key_property: person_id
+    properties:
+      person_id: {type: integer, required: true, constraint: {type: uniqueness}}
+      name: {type: string, required: true}
+      age: {type: integer}
+      score: {type: float}
+      joined: {type: date}
+  - label: Company
+    topic: social-company
+    key_property: company_id
+    properties:
+      company_id: {type: string, required: true}
+      name: {type: string, required: true}
+      founded: {type: integer}
+  - label: Product
+    topic: social-product
+    key_property: sku
+    properties:
+      sku: {type: string, required: true, constraint: {type: uniqueness}}
+      title: {type: string, required: true}
+      price: {type: float, required: true}
+  - label: City
+    topic: social-city
+    key_property: name
+    properties:
+      name: {type: string, required: true, constraint: {type: uniqueness}}
+      population: {type: integer}
+  - label: Day
+    topic: social-day
+    key_property: day
+    properties:
+      day: {type: date, required: true, constraint: {type: uniqueness}}
+      weekday: {type: string}
+  - label: Country
+    topic: social-country
+    key_property: code
+    properties:
+      code: {type: string, required: true, constraint: {type: uniqueness}}
+      name: {type: string}
+
+edges:
+  - type: WORKS_AT
+    topic: social-works-at
+    nodes: {source: Person, target: Company}
+    source_key_property: person_id
+    target_key_property: company_id
+    properties:
+      since: {type: date, required: true}
+      role: {type: string}
+  - type: BOUGHT
+    topic: social-bought
+    nodes: {source: Person, target: Product}
+    source_key_property: person_id
+    target_key_property: sku
+    properties:
+      quantity: {type: integer, required: true}
+      amount: {type: float}
+      at: {type: datetime}
+  - type: FRIEND_OF
+    topic: social-friend-of
+    nodes: {source: Person, target: Person}
+    source_key_property: person_id
+    target_key_property: person_id
+    properties:
+      since: {type: integer, required: true}
+      weight: {type: float}
+  - type: LIVES_IN
+    topic: social-lives-in
+    nodes: {source: Person, target: City}
+    source_key_property: person_id
+    target_key_property: name
+    properties:
+      since: {type: date}
+  - type: VISITED
+    topic: social-visited
+    nodes: {source: Person, target: City}
+    source_key_property: person_id
+    target_key_property: name
+    properties:
+      times: {type: integer, required: true}
+  - type: ACTIVE_ON
+    topic: social-active-on
+    nodes: {source: Person, target: Day}
+    source_key_property: person_id
+    target_key_property: day
+    properties:
+      sessions: {type: integer, required: true}

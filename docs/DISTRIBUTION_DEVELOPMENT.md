@@ -2,8 +2,9 @@
 
 The development artifact now contains the migrated runtime modules under
 `neo4j_graph_loader`. The supported schema/planning modules are documented in the
-[public API guide](LIBRARY_API.md). The installed `graph-loader` command,
-packaged resources and checkout-free image delivery remain E05–E06 work.
+[public API guide](LIBRARY_API.md). The installed `graph-loader` command and two bundled schema resources work
+without a checkout. Private writable run directories are documented in the [CLI guide](CLI_RUNTIME.md);
+checkout-free image delivery remains E06 work.
 Do not upload these development artifacts.
 
 ## Fresh checkout development

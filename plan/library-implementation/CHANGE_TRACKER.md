@@ -5,15 +5,15 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E04-R1 repaired and accepted, 2026-10-21:**
-The [revalidation finding](reviews/e04-completion-verification-20261020.md) is
-closed by the [repair proof](evidence/e04-r1-repair.md) and
-[fresh independent final review](reviews/e04-r1-final-review.md). E04 S3/S4
-are restored complete; E05 remains unimplemented and its handoff is ready after
-the recorded local repair delivery. Fresh delivered-code
-[completion revalidation](reviews/e04-completion-verification-20261021.md)
-confirms acceptance with 3,516 passes and another independent approval.
-Historical failures and approvals remain intact.
+**Current gate — E05 independently accepted, 2026-10-21:**
+[Final review](reviews/e05-final-adversarial-review.md) accepts all three stories
+and closes the retained product/proof/documentation findings. [Exact proof](evidence/e05-final-validation.md)
+records3566passes, four inherited skips,49 deselections,19 known warnings,
+no-skip B3, two clean wheel installs, true outside-Git rebuild, four immutable
+images and12public R1 controls. E04-R1 remains closed. All270 finald tested inputs
+and environment are unchanged. Local delivery is pending final staging/commit;
+its actual full hash will be recorded in the following tracker/evidence commit.
+E06–E12, upload, push, tag and publication remain unstarted/unauthorized.
 
 ## Committed changes
 
@@ -124,3 +124,18 @@ inputs against actual Git blobs and current content/size/mode, with unchanged
 environment. This following documentation/evidence commit records the actual
 repair SHA; its own enclosing hash is available through Git history under rule5.
 E05 is not implemented.
+
+
+## E05 accepted; local delivery pending — 2026-10-21
+
+Clean entry `14fe493`; executing only [E05](execution-e05.md) after accepted
+E04-R1 revalidation. Ordered console entry, finite samples and owned writable
+runtime stories require independent reviews and fresh full/artifact/image/B3
+proof before completion/local delivery. Exact commit hashes will follow actual
+acceptance; no E06 implementation, publication or push is authorized.
+
+All ordered stories and the fresh final adversarial review now accept the exact
+finald candidate. See [resolutions](reviews/e05-resolutions.md),
+[final validation](evidence/e05-final-validation.md) and [E06 handoff](handoff-e06.md).
+Pending authorized local delivery has no invented hash; rule5 applies to the
+subsequent bookkeeping commit.

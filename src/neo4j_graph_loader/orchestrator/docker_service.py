@@ -188,9 +188,9 @@ def _dns_safe_run_token(run_id: str) -> str:
     return hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:24]
 
 
-def _mount_write_timing_directory(volumes: dict) -> bool:
+def _mount_write_timing_directory(volumes: dict, directory: str | None = None) -> bool:
     """Expose the optional host timing directory to loader containers."""
-    host_directory = os.environ.get("GRAPH_LOADER_TIMING_DIR")
+    host_directory = directory if directory is not None else os.environ.get("GRAPH_LOADER_TIMING_DIR")
     if not host_directory:
         return False
     host_directory = os.path.abspath(host_directory)
@@ -357,8 +357,15 @@ def _stop_and_remove_quietly(container: object) -> None:
 
 
 class DockerService:
-    def __init__(self, client: docker.DockerClient = None):
+    def __init__(self, client: docker.DockerClient = None, *, runtime=None):
         self.client = client or docker.from_env()
+        self.runtime = runtime
+
+    def _mount_timings(self, volumes):
+        return _mount_write_timing_directory(volumes, str(self.runtime.timings) if self.runtime is not None else None)
+
+    def _rejection_directory(self, explicit):
+        return explicit if explicit is not None else (str(self.runtime.rejections) if self.runtime is not None else REJECTION_DIR)
 
     def _run_container(self, **kwargs):
         """``containers.run`` that records the launch time for a later stop (F1)."""
@@ -392,7 +399,7 @@ class DockerService:
         if not encoded:
             raise ValueError("global clock run_id must not be empty")
         volumes = {os.path.abspath(config_path): {"bind": "/app/runtime_schema.yaml", "mode": "ro"}}
-        capture_timings = _mount_write_timing_directory(volumes)
+        capture_timings = self._mount_timings(volumes)
         if capture_timings:
             env["GRAPH_LOADER_METRICS_SNAPSHOT_PATH"] = f"/app/write-timings/metrics-clock-{encoded}.prom"
         return self._run_container(
@@ -439,7 +446,7 @@ class DockerService:
         encoded_run_id = run_id.encode("utf-8").hex()
         env = {"PYTHONUNBUFFERED": "1", **_metrics_env_passthrough()}
         volumes: Dict[str, Dict[str, str]] = {}
-        capture_timings = _mount_write_timing_directory(volumes)
+        capture_timings = self._mount_timings(volumes)
         if capture_timings:
             env["GRAPH_LOADER_METRICS_SNAPSHOT_PATH"] = (
                 f"/app/write-timings/metrics-lease-server-{encoded_run_id}-r{restart_attempt}.prom"
@@ -518,7 +525,7 @@ class DockerService:
             key: os.environ[key] for key in ("GRAPH_LOADER_PLAN_NODE_PHASE_WRITERS",) if os.environ.get(key)
         }, **_metrics_env_passthrough()}
         volumes = {host_plan: {"bind": _PLAN_MOUNT, "mode": "ro"}}
-        capture_timings = _mount_write_timing_directory(volumes)
+        capture_timings = self._mount_timings(volumes)
         if capture_timings:
             env["GRAPH_LOADER_METRICS_SNAPSHOT_PATH"] = (
                 f"/app/write-timings/metrics-planned-dispatcher-{encoded_run_id}.prom"
@@ -588,7 +595,7 @@ class DockerService:
             os.path.abspath(config_path): {"bind": "/app/runtime_schema.yaml", "mode": "ro"},
             host_plan: {"bind": _PLAN_MOUNT, "mode": "ro"},
         }
-        capture_timings = _mount_write_timing_directory(volumes)
+        capture_timings = self._mount_timings(volumes)
         encoded_run_id = run_id.encode("utf-8").hex()
         launchers = []
         for index in range(writers):
@@ -635,7 +642,7 @@ class DockerService:
         replicas: int = 1,
         network: str = "graph-loader-net",
         environment: Optional[Dict[str, str]] = None,
-        rejection_dir: str = REJECTION_DIR,
+        rejection_dir: str | None = None,
         run_id: Optional[str] = None,
         consumer_group_prefix: str = "graph-loader",
         slot_gating: bool = False,
@@ -761,13 +768,13 @@ class DockerService:
         if environment is None:
             env.update(_metrics_env_passthrough())
         host_config_path = os.path.abspath(config_path)
-        host_rejection_dir = os.path.abspath(rejection_dir)
+        host_rejection_dir = os.path.abspath(self._rejection_directory(rejection_dir))
         os.makedirs(host_rejection_dir, exist_ok=True)
         volumes = {
             host_config_path: {"bind": "/app/runtime_schema.yaml", "mode": "ro"},
             host_rejection_dir: {"bind": "/app/rejections", "mode": "rw"},
         }
-        capture_timings = _mount_write_timing_directory(volumes)
+        capture_timings = self._mount_timings(volumes)
         # Finite bulk replicas all start from this one launch: each owns the
         # partitions ``p % replicas == replica_id`` via ``assign()`` so a
         # staggered start never rebalances (and revokes) a writing sibling.
@@ -892,12 +899,16 @@ class DockerService:
             env.update(_metrics_env_passthrough())
         host_config_path = os.path.abspath(config_path)
         volumes = {host_config_path: {"bind": "/app/runtime_schema.yaml", "mode": "ro"}}
-        capture_timings = _mount_write_timing_directory(volumes)
+        if self.runtime is not None:
+            volumes[str(self.runtime.rejections)] = {"bind": "/app/rejections", "mode": "rw"}
+        capture_timings = self._mount_timings(volumes)
         encoded_run_id = run_id.encode("utf-8").hex()
         launchers = []
         for index in range(replicas):
             replica_id = str(index)
             replica_environment = dict(env)
+            if self.runtime is not None:
+                replica_environment["REJECTION_LOG_PATH"] = f"/app/rejections/retry-consumer-{replica_id}.jsonl"
             if capture_timings:
                 replica_environment["GRAPH_LOADER_METRICS_SNAPSHOT_PATH"] = (
                     f"/app/write-timings/metrics-retry-consumer-{replica_id}-{encoded_run_id}.prom"
@@ -932,7 +943,7 @@ class DockerService:
         replicas: int = 1,
         network: str = "graph_loader_default",
         environment: Optional[Dict[str, str]] = None,
-        rejection_dir: str = REJECTION_DIR,
+        rejection_dir: str | None = None,
         run_id: Optional[str] = None,
         lease_address: Optional[str] = None,
         lease_buckets: Optional[int] = None,
@@ -981,13 +992,13 @@ class DockerService:
 
         # Use an absolute path for the volume mount
         host_config_path = os.path.abspath(config_path)
-        host_rejection_dir = os.path.abspath(rejection_dir)
+        host_rejection_dir = os.path.abspath(self._rejection_directory(rejection_dir))
         os.makedirs(host_rejection_dir, exist_ok=True)
         volumes = {
             host_config_path: {"bind": "/app/runtime_schema.yaml", "mode": "ro"},
             host_rejection_dir: {"bind": "/app/rejections", "mode": "rw"},
         }
-        capture_timings = _mount_write_timing_directory(volumes)
+        capture_timings = self._mount_timings(volumes)
         # Bulk loaders are finite and run-scoped, and their orchestrator
         # removes them after the run: keep them after exit so a crashed
         # replica's exit code and logs remain inspectable, and so Docker need

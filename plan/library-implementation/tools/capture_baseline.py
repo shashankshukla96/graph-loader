@@ -29,7 +29,7 @@ UNTRACKED_INPUTS = [
     "docs/DISTRIBUTION_DEVELOPMENT.md", "tests/test_namespace_migration.py",
     "docs/LIBRARY_API.md", "tests/test_public_api.py", "tests/test_public_lifecycle.py",
     "tests/test_planner_transport.py", "tests/test_public_cancellation.py",
-    "tests/test_public_cleanup.py",
+    "tests/test_public_cleanup.py", "tests/test_installed_cli.py", "tests/test_cli_resources.py", "tests/test_runtime_paths.py", "docs/CLI_RUNTIME.md",
     "tests/test_planner_imports.py", "tests/fixtures/e04_faults.py",
     "plan/library-implementation/tools/run_e04_fault.py",
     "plan/library-implementation/tools/capture_baseline.py",
@@ -52,6 +52,8 @@ def canonical(value):
 
 def allowed(relative):
     path = PurePosixPath(relative)
+    if relative in {"src/neo4j_graph_loader/data/graph_schema.yaml", "src/neo4j_graph_loader/data/social_schema.yaml"}:
+        return True
     if relative != ".env.example" and any(part.startswith(".env") or part in {"__pycache__", "data", "datasets", "reports", "logs"}
            for part in path.parts):
         return False

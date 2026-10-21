@@ -53,7 +53,7 @@ finishes in writers. For multi-pair types, use sources naming their `topic`;
 a plain type mapping cannot identify the pair. Ordering follows source order
 and schema rules; no restart-safe arrival or exactly-once guarantee is added.
 
-The installed console script/default resources remain E05 work; existing module
+The installed console script and bundled default/social resources are available; existing module
 commands still work with external configuration. This is `0.1.0a1.dev0`
 development work, not release/platform/service matrix acceptance. E04 cancellation and cleanup behavior is described below.
 

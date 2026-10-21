@@ -1,0 +1,303 @@
+{
+  "review": "independent final adversarial E05",
+  "entry_head": "14fe4934976f62f421086e541e6bc00dbc1ceec8",
+  "branch": "codex/pypi-library-checklist",
+  "final_source_sha256": "4485190c3f87ba5c7f03e933716ebc21aafbbe06d749a4d88a946418d79f2d76",
+  "environment_sha256": "e49ae7c075909a04df1d517f3fec72030e944b95829f4d7591ee877d7072c9c4",
+  "inputs": 270,
+  "before_after_current_bytes_sizes_modes_equal": true,
+  "final_full_suite": {
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests",
+      "examples/imdb/tests",
+      "-m",
+      "not integration and not smoke",
+      "-q",
+      "-rs"
+    ],
+    "passed": 3566,
+    "skipped": 4,
+    "deselected": 49,
+    "warnings": 19,
+    "seconds": 196.08,
+    "log": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finald/full-tests.log",
+    "log_sha256": "f0a3cff1fd29abc9becdac4766148f32b4a4eba5985a7e941d17da6c6ec40696",
+    "executed_by": "implementation agent; inspected by independent reviewer"
+  },
+  "independent_tests": {
+    "broad_prior_candidate": "354 passed in99.14s; no skips/warnings; runtime logic unchanged thereafter",
+    "finald_command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests/test_runtime_paths.py",
+      "tests/test_cli_resources.py",
+      "tests/test_installed_cli.py",
+      "-q",
+      "-rs"
+    ],
+    "finald_result": "50 passed in 7.71s"
+  },
+  "independent_adversarial": {
+    "early_public_main_cases": 11,
+    "sentinel_cases": 70,
+    "interleaved_launches": 14,
+    "concurrent_public_main": 8,
+    "real_zip_lifetime_controls": 2,
+    "missing_undecodable_resource_controls": 2,
+    "all_sentinels_preserved": true,
+    "periodic_final_metrics_path_equal": true,
+    "environment_unchanged": true
+  },
+  "independent_install_root": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald",
+  "independent_installs": {
+    "original": {
+      "wheel": {
+        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finald/final-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "size": 447176,
+        "sha256": "99a88f8b88aa5e80495e6089c74ff4e9e5c44a0e77cba288e55922531c7ca434"
+      },
+      "site": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/original/lib/python3.12/site-packages",
+      "full_clean_probe_passed": true
+    },
+    "rebuilt": {
+      "wheel": {
+        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/finald/final-rebuilt/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "size": 447176,
+        "sha256": "66d6bf439175d844ea2d42415d5e3b7a2c55d798f59bf8f3f665c6737c6d51ad"
+      },
+      "site": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/rebuilt/lib/python3.12/site-packages",
+      "full_clean_probe_passed": true
+    }
+  },
+  "independent_no_git_rebuild": {
+    "source": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/no-git/neo4j_graph_loader-0.1.0a1.dev0",
+    "git_discovery_exit": 128,
+    "commands": [
+      {
+        "command": [
+          "git",
+          "rev-parse",
+          "--show-toplevel"
+        ],
+        "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/no-git/neo4j_graph_loader-0.1.0a1.dev0",
+        "exit_code": 128,
+        "log": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/outside-git-discovery.log",
+        "log_sha256": "d2b35cacadc66b7fad8dedd1be5244e17150a6625978c9330f831bd7a9cd6b1e"
+      },
+      {
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/dev/bin/python",
+          "-m",
+          "build",
+          "--wheel",
+          "--outdir",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/no-git-wheel",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/no-git/neo4j_graph_loader-0.1.0a1.dev0"
+        ],
+        "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/no-git",
+        "exit_code": 0,
+        "log": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/outside-no-git-build.log",
+        "log_sha256": "2ed6d90b5796d5f664e1ff6c21d9557ec009dadc3956d67049f2218a3a60f12e"
+      },
+      {
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/dev/bin/python",
+          "-m",
+          "twine",
+          "check",
+          "--strict",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/no-git-wheel/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl"
+        ],
+        "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald",
+        "exit_code": 0,
+        "log": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/outside-no-git-twine.log",
+        "log_sha256": "e8821938bf68f9c7988cb48ecbc9f874b3ccccd0e8b2d5ed0835f3b4ba507f77"
+      }
+    ],
+    "original_wheel_sha256": "99a88f8b88aa5e80495e6089c74ff4e9e5c44a0e77cba288e55922531c7ca434",
+    "rebuilt_wheel": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e05-final-review-c4vkkvzh/finald/no-git-wheel/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+    "rebuilt_wheel_sha256": "7616d88c50c5c33996a508eb3aa892d0b3758375044f2859b9e004ba3d25b979",
+    "all_member_bytes_equal": true,
+    "members": 63
+  },
+  "independent_archive_negative_controls": [
+    {
+      "kind": "original",
+      "mutation": "neo4j_graph_loader/data/graph_schema.yaml",
+      "rejected": true
+    },
+    {
+      "kind": "original",
+      "mutation": "neo4j_graph_loader/data/social_schema.yaml",
+      "rejected": true
+    },
+    {
+      "kind": "original",
+      "mutation": "neo4j_graph_loader-0.1.0a1.dev0.dist-info/entry_points.txt",
+      "rejected": true
+    },
+    {
+      "kind": "original",
+      "mutation": "INJECTED",
+      "rejected": true
+    },
+    {
+      "kind": "rebuilt",
+      "mutation": "neo4j_graph_loader/data/graph_schema.yaml",
+      "rejected": true
+    },
+    {
+      "kind": "rebuilt",
+      "mutation": "neo4j_graph_loader/data/social_schema.yaml",
+      "rejected": true
+    },
+    {
+      "kind": "rebuilt",
+      "mutation": "neo4j_graph_loader-0.1.0a1.dev0.dist-info/entry_points.txt",
+      "rejected": true
+    },
+    {
+      "kind": "rebuilt",
+      "mutation": "INJECTED",
+      "rejected": true
+    },
+    {
+      "kind": "sdist",
+      "mutation": "src/neo4j_graph_loader/data/graph_schema.yaml",
+      "rejected": true
+    },
+    {
+      "kind": "sdist",
+      "mutation": "src/neo4j_graph_loader/data/social_schema.yaml",
+      "rejected": true
+    },
+    {
+      "kind": "sdist",
+      "mutation": "src/neo4j_graph_loader.egg-info/entry_points.txt",
+      "rejected": true
+    }
+  ],
+  "independent_process_controls": {
+    "count": 28,
+    "module_origin_checks": 4,
+    "readonly_resource_fixtures": 4,
+    "runtime_fixtures": 4,
+    "actual_data_binds": 4,
+    "separately_supervised_R1_cases": 12,
+    "images": {
+      "cli": "sha256:082adbfbdce03674c8683317c5b9e7d3d6ed462fbbd9fc0a1b845bee7ddad867",
+      "node": "sha256:4856edbddfc0faf3062f5b3ba80e92bf2bae403a5618f28cf6aaa68167284144",
+      "edge": "sha256:3dd1dcfc532c282cb1f4a7762930e19e293eef8033b1e93b5d3c23d55bfc4ae3",
+      "clock": "sha256:d43ce61eac26a5567299e6fe8ca71cef5eef0b0fbe85659e542072a08b0fa831"
+    },
+    "all_exit_zero_no_timeouts": true
+  },
+  "raw_evidence": {
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/candidate-check.py": {
+      "sha256": "2752f3465335471a40fefeed7dc8b7078570c8a0ec0ef3947ead7456ee0bb979",
+      "size": 2216
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/candidate-check.log": {
+      "sha256": "e81d993487fb1bff552a071a9ea6f9f7edd76221caf56b74f54a7e639862d37d",
+      "size": 1978
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/audit-probes.json": {
+      "sha256": "2a417b2b435fef77e8089073a8dc67811102a47e6f9837b860bb48bb9e876db1",
+      "size": 95307
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/adversarial-commands.json": {
+      "sha256": "3c6e0c3be8ae52e7dbc0da84c758e871b4b9f01a9e3aa60db2650f7499b777ef",
+      "size": 9577
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/adversarial.py.log": {
+      "sha256": "9edaef95f53210a57a8d34c1bf686009a0d482440ce6ace781ff18763cbd35a9",
+      "size": 37373
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/parallel-start-proof.py.log": {
+      "sha256": "f3bfa056b202fbcc20bf10640cb72a1270bf9b96bd3c0b2cb3a0fe260cb4aa20",
+      "size": 1261
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/entry-resource-runtime-tests.log": {
+      "sha256": "fe4ff2ba1e7b2bd7b9f6edd2f4405343f7591b8c0a1cb449f654bdf3429147d7",
+      "size": 99
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/negative-controls.py": {
+      "sha256": "d6ab788fd4b84f8fb22ee51f9dcaa79c4c8c6bb03dca649a56fe56771e636a35",
+      "size": 1978
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/negative-controls.json": {
+      "sha256": "b41f2c93df486f6b3cff94cce3988574237f92d5d2aedf2f16404bfc050d005e",
+      "size": 1241
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/negative-controls.log": {
+      "sha256": "8c3250110d5f29c74509dc7e680b7abf00e164115399077d5b85db331a0e06dc",
+      "size": 44
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/process-controls.py": {
+      "sha256": "9eddc8fe8d386747ed7fdf048afadbb5ca6c0be8121d75daa7480667daefcf9a",
+      "size": 4844
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/process-controls.json": {
+      "sha256": "9068e9d2e452bf38938ca4666d1f5304fecc38cfea1d6070632ea69f812ec350",
+      "size": 153682
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/process-controls.log": {
+      "sha256": "7a09f6bd1c1751d0669bc8ffbcff9f156971ad85dc122960a85fa8ad416a2660",
+      "size": 786
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/no-git-rebuild.py": {
+      "sha256": "1c6599507d2924f71452f4331d7df609a21db9ff3de8ca0fb2cfc017f34bedea",
+      "size": 2329
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/no-git-rebuild.json": {
+      "sha256": "d71a720f462f4af2852f7aeecc2fbd397d950b7669d63e3a3c64172015bd319e",
+      "size": 2712
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/no-git-rebuild.log": {
+      "sha256": "d71a720f462f4af2852f7aeecc2fbd397d950b7669d63e3a3c64172015bd319e",
+      "size": 2712
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/final-checks.json": {
+      "sha256": "b6a0b922aedac864396be7a1507f0d2cd5e5f78b8597bfd6eb59fe79e91d2b26",
+      "size": 3150
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/identity-check.py": {
+      "sha256": "f1992e6979402663c3f3d699ce7fa4b2a7bb05515004469e48a2a0073ce543ac",
+      "size": 1802
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/identity-check.json": {
+      "sha256": "9086bbbb83fecf085c670e887143e6d35a6bba0f2f38529f7d57d0352a586602",
+      "size": 693
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/identity-check.log": {
+      "sha256": "1ac0f8e9226a516c1d2ac21a4b719e3ba7f785ca760c88dec1f4ec4c436ad79f",
+      "size": 637
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/installs.json": {
+      "sha256": "7eec72c9e48e5ba00baf83ad6a3a90f41d6412817dc228f014b4809c7c3298b6",
+      "size": 748
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/original-install.log": {
+      "sha256": "0ec58a0f59b157347b51680741381c99219c6a63ed874924f3b542da0ba61661",
+      "size": 4956
+    },
+    "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e05-validation-20261021/final-independent/finald/rebuilt-install.log": {
+      "sha256": "714c6dfb3e61db24dafc6a29ba4a4524978cbe53db757aa85aec9c8bbb25fde4",
+      "size": 4953
+    }
+  },
+  "retained_prior_attempts": {
+    "finalb": "full independent controls before late documentation/help repairs",
+    "finalc": "superseded after second CLI help correction; no-git inspection encountered changed CLI bytes and is not accepted-candidate evidence",
+    "harness_adjustments": "JSON tuple/list normalization, /private alias normalization, old temp env recreation, Docker startup, and temporary concurrent.py naming corrected; raw failures retained under parent final-independent"
+  },
+  "limits": [
+    "E05 only; no E06-E12 implementation/publication/platform/service-matrix acceptance",
+    "controlled launch arguments and actual read-only data binds do not claim complete checkout-free service orchestration",
+    "B3/full-suite executed by implementation agent; current raw logs/results inspected, focused and adversarial checks executed independently"
+  ]
+}

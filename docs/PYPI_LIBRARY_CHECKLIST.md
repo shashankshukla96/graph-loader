@@ -8,7 +8,13 @@ The loader works from a checkout, but it is not yet a supported, installable
 Python distribution. Adding a wheel alone will not make its Docker orchestration,
 paths, lifecycle, or imports usable by another application.
 
-## Current evidence
+## Historical E03 evidence
+
+This retained checkpoint predates the public API and E05 installed command,
+resources and private state. Current implementation proof is in
+[E05 validation](../plan/library-implementation/evidence/e05-final-validation.md)
+and the [change tracker](../plan/library-implementation/CHANGE_TRACKER.md).
+The release, platform and installed service matrix remain open.
 
 | Area | What exists | What is missing |
 | --- | --- | --- |
@@ -23,8 +29,9 @@ paths, lifecycle, or imports usable by another application.
 | Integration fixtures | Maintained arrival dataset and exact B3 real-service test passed without skips on 2026-10-16 | Installed release-image service/mode/failure matrix under V6 |
 | Publishing | GitHub repository exists | No release publisher or verified PyPI/TestPyPI project ownership |
 
-Every unchecked item below requires evidence before marking it complete. Names
-and approved API shapes describe future implementation, not installed interfaces. The proposed normalized
+Every unchecked item below requires its own evidence before marking it complete.
+Use the current implementation tracker for delivered APIs and commands; approved
+release/support targets still require their remaining downstream proof. The proposed normalized
 name returned HTTP 404 from both indexes on 2026-10-16; this does not reserve it
 or establish ownership. Account access remains unverified. See the
 [D01–D07 decisions and remaining ownership gate](../plan/library-implementation/decision-brief.md).

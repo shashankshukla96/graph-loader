@@ -3151,7 +3151,7 @@ def main(argv: list[str] | None = None) -> int:
 
             sink, producer = build_malformed_record_sink(
                 dead_letter=edge.dead_letter, entity_topic=edge.dead_letter_entity, entity_kind="edge",
-                rejection_log_path="var/rejections/retry-consumer.jsonl",
+                rejection_log_path=os.environ.get("REJECTION_LOG_PATH", "var/rejections/retry-consumer.jsonl"),
                 bootstrap_servers=bootstrap_servers, run_id=run_id, replica_id="retry",
             )
             sink_by_edge_type[edge.type] = sink

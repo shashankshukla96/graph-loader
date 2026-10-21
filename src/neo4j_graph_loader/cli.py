@@ -22,7 +22,8 @@ from threading import Condition, Event, Lock, Thread
 
 from docker.errors import NotFound
 
-from neo4j_graph_loader.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.schema_loader import load_schema, SchemaLoadError
+from neo4j_graph_loader._runtime import prepare_run, timing_directory, timing_kwargs
 from neo4j_graph_loader.orchestrator.schema_initializer import (
     get_neo4j_driver,
     apply_schema,
@@ -457,7 +458,7 @@ def _start_bucket_lease_server(docker_service: "DockerService", args: argparse.N
     try:
         args.lease_address = docker_service.bucket_lease_address(container, network=args.network)
     except Exception:
-        _stop_bucket_lease_server(container)
+        _stop_bucket_lease_server(container, **timing_kwargs(args))
         raise
     settings = {
         "address": args.lease_address, "buckets": args.lease_buckets,
@@ -469,7 +470,7 @@ def _start_bucket_lease_server(docker_service: "DockerService", args: argparse.N
         settings["address"], settings["buckets"], ",".join(settings["keyed_labels"]) or "-",
         settings["outer_batch_size"],
     )
-    directory = os.environ.get("GRAPH_LOADER_TIMING_DIR")
+    directory = timing_directory(args)
     if directory:
         try:
             (Path(directory) / "lease-settings.json").write_text(json.dumps(settings) + "\n", encoding="utf-8")
@@ -478,7 +479,7 @@ def _start_bucket_lease_server(docker_service: "DockerService", args: argparse.N
     return container
 
 
-def _stop_bucket_lease_server(container: object) -> None:
+def _stop_bucket_lease_server(container: object, *, timing_dir: str | None = None) -> None:
     """Stop the coordinator, surface its shutdown stats, keep its log, remove it."""
     failures = _stop_exact_containers([container], stop_timeout=_LEASE_SERVER_STOP_TIMEOUT_SECONDS)
     if failures:
@@ -490,7 +491,7 @@ def _stop_bucket_lease_server(container: object) -> None:
         for line in logs.splitlines():
             if "stage=lease-server-stats" in line:
                 logger.info("%s", line.split(": ", 1)[-1])
-        directory = os.environ.get("GRAPH_LOADER_TIMING_DIR")
+        directory = timing_dir if timing_dir is not None else os.environ.get("GRAPH_LOADER_TIMING_DIR")
         if directory:
             (Path(directory) / "lease-server.log").write_text(logs, encoding="utf-8")
     except Exception as exc:
@@ -935,7 +936,7 @@ def _run_precedence_substages(
         )
         _record_bulk_edge_stage_timing(
             edge.type, started_utc, datetime.now(timezone.utc).isoformat(), elapsed, result == 0,
-            substage=(rank, topic),
+            substage=(rank, topic), **timing_kwargs(args),
         )
         if result:
             if _shutdown_requested():
@@ -974,7 +975,7 @@ def _run_isolated_relationship_bulk_phase(
             edge.type, elapsed_seconds, "succeeded" if succeeded else "failed",
         )
         _record_bulk_edge_stage_timing(
-            edge.type, started_utc, completed_utc, elapsed_seconds, succeeded,
+            edge.type, started_utc, completed_utc, elapsed_seconds, succeeded, **timing_kwargs(args),
         )
 
 
@@ -1004,13 +1005,14 @@ def _co_scheduled_self_references(
 def _record_bulk_edge_stage_timing(
     edge_type: str, started_utc: str, completed_utc: str,
     elapsed_seconds: float, succeeded: bool, substage: tuple[int, str] | None = None,
+    *, timing_dir: str | None = None,
 ) -> None:
     """Keep a per-type lifecycle measurement beside Docker write timings.
 
     A precedence sub-stage (``substage=(rank, topic)``) writes its own ``substage-<type>.t<rank>.json``
     row beside the type's overall row.
     """
-    directory = os.environ.get("GRAPH_LOADER_TIMING_DIR")
+    directory = timing_dir if timing_dir is not None else os.environ.get("GRAPH_LOADER_TIMING_DIR")
     if not directory:
         return
     try:
@@ -1158,7 +1160,7 @@ def _run_completion_driven_bulk_edges(
                     edge_type, elapsed_seconds, "succeeded" if succeeded else "failed",
                 )
                 _record_bulk_edge_stage_timing(
-                    edge_type, started_utc, completed_utc, elapsed_seconds, succeeded,
+                    edge_type, started_utc, completed_utc, elapsed_seconds, succeeded, **timing_kwargs(args),
                 )
             if failures:
                 cancelled.set()
@@ -1719,7 +1721,8 @@ def _run_lease_relationship_fleet(
     collapses a self-reference's cell to one resource.
     """
     try:
-        _merge_deprecated_lease_flags(args)
+        if getattr(args, "runtime", None) is None:
+            _merge_deprecated_lease_flags(args)
     except ValueError as exc:
         logger.error("stage=launch reason=%s", exc)
         return 1
@@ -1853,7 +1856,7 @@ def _run_lease_relationship_fleet(
         # lease container, not whichever object was launched originally.
         # _stop_bucket_lease_server (Story 5's design: "reuse it verbatim")
         # also captures stage=lease-server-stats and the coordinator's log.
-        _stop_bucket_lease_server(monitor.tracked_lease_server)
+        _stop_bucket_lease_server(monitor.tracked_lease_server, **timing_kwargs(args))
         return 0
     except Exception as exc:
         logger.error("stage=lease-relationship-fleet run_id=%s failed: %s", run_id, exc)
@@ -1901,11 +1904,7 @@ def _run_lease_relationship_fleet(
         _sweep_orphaned_lease_containers(docker_service, run_id)
 
 
-def _bucket_lease_numeric_bounds(schema, args: argparse.Namespace, *, feature_flag: str) -> None:
-    """Shared bucket/keyed-max/outer-batch/python_apoc checks for both bulk
-    ``--edge-leases`` and the streaming lease-fleet default (P5-S1 Story 6).
-    Raises with ``feature_flag`` named in the message so the two callers'
-    errors stay distinguishable."""
+def _bucket_lease_numeric_args(args: argparse.Namespace) -> None:
     buckets = getattr(args, "lease_buckets", DEFAULT_BUCKET_LEASE_BUCKETS)
     if isinstance(buckets, bool) or not isinstance(buckets, int) or not 1 <= buckets <= 4096:
         raise ValueError("--bucket-lease-buckets must be 1-4096")
@@ -1915,6 +1914,14 @@ def _bucket_lease_numeric_bounds(schema, args: argparse.Namespace, *, feature_fl
     outer = getattr(args, "lease_outer_batch_size", DEFAULT_BUCKET_LEASE_OUTER_BATCH_SIZE)
     if isinstance(outer, bool) or not isinstance(outer, int) or not 1 <= outer <= 1_000_000:
         raise ValueError("--bucket-lease-outer-batch-size must be 1-1000000")
+
+
+def _bucket_lease_numeric_bounds(schema, args: argparse.Namespace, *, feature_flag: str) -> None:
+    """Shared bucket/keyed-max/outer-batch/python_apoc checks for both bulk
+    ``--edge-leases`` and the streaming lease-fleet default (P5-S1 Story 6).
+    Raises with ``feature_flag`` named in the message so the two callers'
+    errors stay distinguishable."""
+    _bucket_lease_numeric_args(args)
     unsupported = sorted(
         edge.type for edge in getattr(schema, "edges", ())
         if getattr(getattr(edge, "execution", None), "mode", "python_apoc") != "python_apoc"
@@ -1946,11 +1953,11 @@ def _validate_stream_lease_settings(schema, args: argparse.Namespace) -> None:
     _bucket_lease_numeric_bounds(schema, args, feature_flag="--mode stream")
 
 
-def _validate_edge_plan_settings(schema, args: argparse.Namespace) -> None:
+def _validate_edge_plan_flags(args: argparse.Namespace) -> None:
     """Check ``--edge-plan`` preconditions (bulk only, exclusive with leases)."""
-    if args.mode != "bulk":
+    if getattr(args, "edge_plan", None) and args.mode != "bulk":
         raise ValueError("--edge-plan requires --mode bulk")
-    if getattr(args, "edge_leases", False):
+    if getattr(args, "edge_plan", None) and getattr(args, "edge_leases", False):
         raise ValueError("--edge-plan and --edge-leases are mutually exclusive")
     writers = getattr(args, "plan_writers", None)
     if writers is not None and (isinstance(writers, bool) or not isinstance(writers, int) or not 1 <= writers <= 64):
@@ -1961,6 +1968,10 @@ def _validate_edge_plan_settings(schema, args: argparse.Namespace) -> None:
         value = getattr(args, name, None)
         if value is not None and (isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high):
             raise ValueError(f"--{name.replace('_', '-')} must be {low}-{high}")
+
+
+def _validate_edge_plan_settings(schema, args: argparse.Namespace) -> None:
+    _validate_edge_plan_flags(args)
     unsupported = sorted(
         edge.type for edge in getattr(schema, "edges", ())
         if getattr(getattr(edge, "execution", None), "mode", "python_apoc") != "python_apoc"
@@ -1980,6 +1991,8 @@ def _validate_edge_mode_flags(args: argparse.Namespace) -> None:
     ) if on]
     if len(chosen) > 1:
         raise ValueError(f"{' and '.join(chosen)} are mutually exclusive; choose one relationship mode")
+    if getattr(args, "edge_leases", False) and args.mode != "bulk":
+        raise ValueError("--edge-leases requires --mode bulk")
     if getattr(args, "edge_classic", False) and args.mode != "bulk":
         raise ValueError(
             "--edge-classic requires --mode bulk (stream mode uses the bucket-lease fleet; its classic "
@@ -1989,8 +2002,16 @@ def _validate_edge_mode_flags(args: argparse.Namespace) -> None:
 
 def _validate_early_numeric_args(args: argparse.Namespace) -> None:
     """Reject out-of-range numeric flags before any side effect."""
+    if getattr(args, "edge_plan", None) or (
+        args.mode == "bulk" and not getattr(args, "edge_classic", False) and not getattr(args, "edge_leases", False)
+    ):
+        _validate_edge_plan_flags(args)
     if args.mode == "bulk" and getattr(args, "bulk_timeout_seconds", 300.0) <= 0:
         raise ValueError("--bulk-timeout-seconds must be positive")
+    if getattr(args, "edge_leases", False) or (
+        args.mode == "stream" and not getattr(args, "stream_clock_rotation", False)
+    ):
+        _bucket_lease_numeric_args(args)
     if args.mode == "stream":
         replicas = getattr(args, "retry_consumer_replicas", 1)
         if isinstance(replicas, bool) or not isinstance(replicas, int) or not 1 <= replicas <= 64:
@@ -2482,7 +2503,8 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
     # first, so it is restored last, after every container/metrics cleanup.
     shutdown = _install_shutdown_handlers(cleanups)
     try:
-        _merge_deprecated_lease_flags(args)
+        if getattr(args, "runtime", None) is None:
+            _merge_deprecated_lease_flags(args)
     except ValueError as exc:
         logger.error("stage=launch reason=%s", exc)
         return 1
@@ -2530,11 +2552,13 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
     cli_process_metrics = metrics_module.process_metrics()
     cli_metrics_server = metrics_module.start_metrics_server(
         cli_process_metrics, kind="cli", name="-", addr=cli_metrics_bind_addr, allow_ephemeral_fallback=True,
+        **({"snapshot_path": str(args.runtime.timings / "metrics-cli.prom")} if getattr(args, "runtime", None) is not None else {}),
     )
 
     def _stop_cli_metrics_server() -> None:
         metrics_module.write_metrics_snapshot(
-            cli_process_metrics, metrics_module.cli_snapshot_path(),
+            cli_process_metrics, (str(args.runtime.timings / "metrics-cli.prom") if getattr(args, "runtime", None) is not None
+                                  else metrics_module.cli_snapshot_path()),
         )
         metrics_module.stop_metrics_server(cli_metrics_server)
 
@@ -2661,7 +2685,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                 if getattr(args, "replace_stale_plan_topic", False) and explicit_run_id is not None \
                         and not getattr(args, "plan_topic", None):
                     replace_stale_chunk_topic(
-                        DockerService(), parent_run_id,
+                        _docker_service_for_run(args), parent_run_id,
                         os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
                     )
                 planner = start_kafka_edge_planner(
@@ -2677,7 +2701,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
     elif getattr(args, "edge_plan", None) == AUTO_EDGE_PLAN:
         args.edge_plan = None
 
-    docker_service = DockerService()
+    docker_service = _docker_service_for_run(args)
     if getattr(args, "skip_image_build", False):
         logger.info("Using the pre-built node loader image.")
     else:
@@ -2974,7 +2998,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                 if isinstance(rejected, int) and rejected:
                     logger.warning(
                         "stage=outcome rejected=%s malformed relationship record(s) were skipped; "
-                        "see %s/%s-planner-*.jsonl", rejected, REJECTION_DIR, parent_run_id,
+                        "see %s/%s-planner-*.jsonl", rejected, (args.runtime.rejections if getattr(args, "runtime", None) is not None else REJECTION_DIR), parent_run_id,
                     )
                 return 0
             return _run_relationship_orchestration(
@@ -3008,11 +3032,16 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
         if monitor is not None:
             monitor.close()
         if lease_container is not None:
-            _stop_bucket_lease_server(lease_container)
+            _stop_bucket_lease_server(lease_container, **timing_kwargs(args))
         # Bulk node loaders run without Docker auto-remove (see
         # DockerService.run_node_loader) so a crashed replica's exit code and
         # logs survive for diagnosis; remove them once the run is over.
         _remove_exact_containers(started_containers)
+
+
+def _docker_service_for_run(args):
+    runtime = getattr(args, "runtime", None)
+    return DockerService(runtime=runtime) if runtime is not None else DockerService()
 
 
 def _docker_service_or_none() -> DockerService | None:
@@ -3231,13 +3260,48 @@ def handle_replay_dlq(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_schema_example(args: argparse.Namespace) -> int:
+    try:
+        content = Path(args.config).read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        logger.error("stage=schema reason=%s", exc)
+        return 1
+    sys.stdout.write(content)
+    return 0
+
+
+def handle_validate_schema(args: argparse.Namespace) -> int:
+    from neo4j_graph_loader.utils.schema_loader import SchemaLoadError
+
+    try:
+        schema = load_schema(args.config)
+    except SchemaLoadError as exc:
+        logger.error("stage=schema reason=%s", exc)
+        return 1
+    print(f"Schema valid: {len(schema.nodes)} node types, {len(schema.edges)} relationship types")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Neo4j Graph Loader CLI")
+    from neo4j_graph_loader._version import __version__
+
+    parser = argparse.ArgumentParser(prog="graph-loader", description="Neo4j Graph Loader CLI")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    example = subparsers.add_parser("schema-example", help="Print a bundled schema YAML")
+    example.add_argument("--name", dest="sample", choices=("default", "social"), default="default")
+    example.set_defaults(func=handle_schema_example, config=None)
+    validate = subparsers.add_parser("validate-schema", help="Validate a schema without services")
+    inputs = validate.add_mutually_exclusive_group()
+    inputs.add_argument("--config", help="Caller schema YAML path")
+    inputs.add_argument("--sample", choices=("default", "social"), default="default")
+    validate.set_defaults(func=handle_validate_schema)
 
     # Start command
     parser_start = subparsers.add_parser("start", help="Start the ingestion pipeline")
-    parser_start.add_argument("--config", default="config/graph_schema.yaml", help="Path to schema YAML")
+    parser_start.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
+    parser_start.add_argument("--run-dir", metavar="BASE", help="Create a private persistent attempt under BASE (default: OS temporary directory)")
     parser_start.add_argument("--mode", choices=["bulk", "stream"], required=True, help="Ingestion mode")
     parser_start.add_argument("--network", default="graph-loader-net", help="Docker network for containers")
     parser_start.add_argument(
@@ -3397,7 +3461,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser_start.add_argument(
         "--plan-dir", default=None,
         help="with --edge-plan (no file): directory for the plan file and its completion ledger "
-        "(default: $GRAPH_LOADER_TIMING_DIR, else var/edge-plans/<run id>)",
+        "(default: private attempt plans directory)",
     )
     parser_start.add_argument(
         "--plan-memory-mb", type=int, default=None,
@@ -3409,7 +3473,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser_start.add_argument(
         "--plan-spill-dir", default=None,
         help="with --edge-plan (no file): directory for the planner's temporary spill files, removed "
-        "afterwards; needs about the relationship topics' uncompressed size free (default: the plan directory)",
+        "after workers reap; needs about the relationship topics' uncompressed size free (default: private attempt spill directory)",
     )
     parser_start.add_argument(
         "--replace-stale-plan-topic", action="store_true",
@@ -3442,7 +3506,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser_start.add_argument(
         "--run-id",
         help="optional validated run identity. Names the run and scopes bulk relationship consumer "
-        "groups, container names and labels, the default --plan-dir, the plan topic and the lease "
+        "groups, container names and labels, the plan topic and the lease "
         "server. Stream consumer groups are stable and do not use it, except for one-time legacy "
         "offset migration",
     )
@@ -3461,14 +3525,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Status command
     parser_status = subparsers.add_parser("status", help="Check pipeline status and lags")
-    parser_status.add_argument("--config", default="config/graph_schema.yaml", help="Path to schema YAML")
+    parser_status.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
     parser_status.set_defaults(func=handle_status)
 
     # Replay-DLQ command
     parser_replay = subparsers.add_parser(
         "replay-dlq", help="Read a DLQ topic and republish matching envelopes to their source topic",
     )
-    parser_replay.add_argument("--config", default="config/graph_schema.yaml", help="Path to schema YAML")
+    parser_replay.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
     replay_entity = parser_replay.add_mutually_exclusive_group(required=True)
     replay_entity.add_argument("--node-label", help="Replay this node label's DLQ topic")
     replay_entity.add_argument("--edge-type", help="Replay this relationship type's DLQ topic")
@@ -3514,6 +3578,37 @@ def main(args_list: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     parser = build_parser()
     args = parser.parse_args(args_list)
+    if args.command == "start":
+        try:
+            _merge_deprecated_lease_flags(args)
+            _validate_edge_mode_flags(args)
+            _validate_early_numeric_args(args)
+            _validated_run_id(args.run_id)
+        except ValueError as exc:
+            logger.error("stage=launch reason=%s", exc)
+            return 1
+    if hasattr(args, "config"):
+        from contextlib import ExitStack
+        from neo4j_graph_loader._resources import schema_path
+
+        with ExitStack() as stack:
+            try:
+                args.config = str(stack.enter_context(schema_path(args.config, sample=getattr(args, "sample", "default"))))
+            except OSError as exc:
+                logger.error("stage=schema reason=%s", exc)
+                return 1
+            if args.command == "start":
+                try:
+                    schema = load_schema(args.config)
+                    if (args.mode == "bulk" and not getattr(args, "edge_classic", False)
+                            and not getattr(args, "edge_plan", None) and _dead_letter_edge_types(schema)):
+                        _bucket_lease_numeric_args(args)
+                    args.runtime = prepare_run(args, args.config)
+                except (OSError, ValueError, SchemaLoadError) as exc:
+                    logger.error("stage=runtime directory=%s reason=%s", getattr(args, "runtime_root", "-"), exc)
+                    return 1
+                args.config = str(args.runtime.schema)
+            return args.func(args)
     return args.func(args)
 
 

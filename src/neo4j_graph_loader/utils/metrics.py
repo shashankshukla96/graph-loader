@@ -800,6 +800,7 @@ def start_metrics_server(
     addr: str = "0.0.0.0",
     port: int | None = None,
     allow_ephemeral_fallback: bool = False,
+    snapshot_path: str | None = None,
 ) -> Any | None:
     """Bind and start the metrics HTTP server (see
     :func:`_start_metrics_server_impl`; never raises) and, when a snapshot
@@ -814,7 +815,8 @@ def start_metrics_server(
         if not _metrics_disabled():
             # CLI: exactly the final-write file (no timing dir -> no periodic
             # snapshots); never a leftover per-container snapshot path.
-            path = cli_snapshot_path() if kind == "cli" else os.environ.get("GRAPH_LOADER_METRICS_SNAPSHOT_PATH")
+            path = snapshot_path if snapshot_path is not None else (
+                cli_snapshot_path() if kind == "cli" else os.environ.get("GRAPH_LOADER_METRICS_SNAPSHOT_PATH"))
             if path:
                 start_periodic_snapshots(metrics, path)
     except Exception as exc:  # noqa: BLE001 - never raise

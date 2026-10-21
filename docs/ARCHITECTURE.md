@@ -1,5 +1,14 @@
 # Architecture
 
+Installed CLI paths use a private persistent `<attempt>` directory, logged as
+`stage=runtime directory=...`, under OS temporary storage or `--run-dir BASE`.
+Plan, spill and timing overrides remain explicit; see the
+[installed runtime guide](CLI_RUNTIME.md). Direct component modules retain their
+legacy caller-relative paths unless explicitly configured.
+Later CLI timing-directory references mean `<attempt>/timings/` by default,
+or the explicit `GRAPH_LOADER_TIMING_DIR` override. Enabled diagnostics do not
+require setting that environment variable.
+
 How the pieces of graph-loader fit together, and why concurrent relationship
 writes do not wait on each other's Neo4j locks. This page explains the design;
 [USAGE](USAGE.md) is the detailed reference for flags, schema fields and
@@ -57,7 +66,7 @@ transactions are **node-disjoint by construction**.
 | **CLI orchestrator** | host process, `src/neo4j_graph_loader/cli.py` | Parses and validates flags and schema, picks the bulk relationship mode, creates the control, DLQ and retry topics, applies the schema DDL (constraints and indexes) to Neo4j, launches and supervises Docker containers (`src/neo4j_graph_loader/orchestrator/docker_service.py`), runs the bulk monitors, enforces stop/shutdown, serves its own metrics. |
 | **Node loaders** | containers, `src/neo4j_graph_loader/loader/node_loader.py` | One fleet per node label (`replicas`, or derived from topic size in bulk). `UNWIND ... MERGE` batches, offsets committed only after the Neo4j batch is durable, with a contiguous-resolution barrier per partition. Group `<consumer_group_id>-<label>`. In stream mode their writes are lease-fenced against relationship writers. |
 | **Edge loaders** | containers, `src/neo4j_graph_loader/loader/edge_loader.py`, `edge_execution.py` | One fleet per relationship type, for classic, lease and stream modes. Validate records, resolve endpoint pairs, write by APOC-locked batches (classic) or by leased bucket cells (lease/stream). Not used by planned mode. |
-| **Planner** | processes started by the CLI, `src/neo4j_graph_loader/loader/edge_planner.py`, `edge_plan.py` | Planned mode: reads every relationship topic up to the bulk boundary while the nodes load, validates records, assigns every node to one resource, groups rows into units and chunks, publishes chunks to the run's chunk topic and writes `edge-plan.json` (plus `edge-plan.json.progress` during the run and `.failed` on failure). Malformed records go to `var/rejections/<run id>-planner-<worker>.jsonl`. Memory is bounded: beyond its budget it spills to disk and produces the identical plan. |
+| **Planner** | processes started by the CLI, `src/neo4j_graph_loader/loader/edge_planner.py`, `edge_plan.py` | Planned mode: reads every relationship topic up to the bulk boundary while the nodes load, validates records, assigns every node to one resource, groups rows into units and chunks, publishes chunks to the run's chunk topic and writes `edge-plan.json` (plus `edge-plan.json.progress` during the run and `.failed` on failure). Malformed records go to `<attempt>/rejections/<run id>-planner-<worker>.jsonl`. Memory is bounded: beyond its budget it spills to disk and produces the identical plan. |
 | **Dispatcher** | container, `src/neo4j_graph_loader/orchestrator/planned_dispatcher.py` | Planned mode: a small TCP service that grants chunks to writers under the node-disjointness rules and keeps the completion ledger in memory; the CLI verifies it and persists it as `edge-plan.json.ledger.json`. Fails closed. |
 | **Planned writers** | containers, `src/neo4j_graph_loader/loader/planned_writer.py` | Planned mode: ask the dispatcher for a chunk, read that message by `(partition, offset)`, validate it, run **one** `MERGE` transaction, report `DONE` after the commit. |
 | **Lease server** | container, `src/neo4j_graph_loader/orchestrator/lease_server.py` | Bulk `--edge-leases` (including the lease mode chosen automatically because of `dead_letter`) and every stream run, except under the deprecated `--stream-clock-rotation`: a TCP coordinator granting exclusive leases on resources (`Label:bucket`, or one resource per node for small "keyed" labels). Writers hold leases for exactly the resources their transaction touches. Restart-safe through time-based fencing. |
@@ -197,7 +206,7 @@ and on partition revocation loaders commit buffered work first or fail closed.
   complete; each lease/classic stage's groups at zero lag. Anything else exits
   1 and states no success. Records that arrive after the boundary fail the run.
 * **Invalid records.** Without a DLQ they go to an fsync'd JSONL rejection file
-  (`var/rejections/`) before their offsets may advance; with `dead_letter` they
+  (`<attempt>/rejections/`) before their offsets may advance; with `dead_letter` they
   go to the DLQ with an envelope and stay there (terminal; replay with
   `replay-dlq`). Planner rejections are counted and the load
   continues.

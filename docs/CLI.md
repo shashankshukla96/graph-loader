@@ -1,6 +1,8 @@
 # Command-line reference
 
-`python -m neo4j_graph_loader.cli <command>` is the single entry point. This page is derived
+`graph-loader <command>` is the installed entry point.
+`python -m neo4j_graph_loader <command>` and the existing CLI module form are
+equivalent. Top-level `--version` reports the installed package version. This page is derived
 from `build_parser()` in `src/neo4j_graph_loader/cli.py` and the code behind it; run
 `python -m neo4j_graph_loader.cli <command> --help` for the live text (no Kafka, Neo4j or
 Docker needed to print help).
@@ -22,10 +24,12 @@ Contents: [Commands](#commands) | [start](#start) | [stop](#stop) |
 | `start` | Apply the schema DDL, launch the node-loader fleet (Docker containers) and the relationship machinery, in `--mode bulk` (finite) or `--mode stream` (open-ended). |
 | `stop` | Stop node-loader containers (all, or one label). |
 | `status` | List node-loader containers and their state. |
+| `schema-example` | Print the bundled default or social schema with `--name default\|social`, without services. |
+| `validate-schema` | Validate `--config PATH` or `--sample default\|social` without services. |
 | `replay-dlq` | Republish dead-lettered (or parked) records of one node label or relationship type to their source topic. |
 
-There are no other subcommands. Related helpers are separate modules, not CLI
-commands: `python -m neo4j_graph_loader.loader.node_loader`, `python -m neo4j_graph_loader.loader.edge_loader`
+See the [installed schema/runtime guide](CLI_RUNTIME.md) for resource lifetimes,
+private run directories and read-only installations. Related helpers are separate modules: `python -m neo4j_graph_loader.loader.node_loader`, `python -m neo4j_graph_loader.loader.edge_loader`
 (single-topic debugging runs), `python -m neo4j_graph_loader.loader.retry_consumer`
 (standalone DLQ drain), `scripts/validate_monitoring.py`, and the
 `make monitoring-up|monitoring-down|monitoring-validate` targets.
@@ -48,10 +52,11 @@ container is started, except where noted.
 | Flag | Default | Valid values / range | Applies to | Notes |
 | --- | --- | --- | --- | --- |
 | `--mode {bulk,stream}` | required | `bulk`, `stream` | both | `bulk` is finite and verifies a zero-lag drain; `stream` runs until SIGINT/SIGTERM. |
-| `--config PATH` | `config/graph_schema.yaml` | a schema YAML | both | Validated before anything starts. |
+| `--config PATH` | bundled canonical schema | a caller schema YAML | both | Explicit caller paths take priority; no cwd config fallback. |
+| `--run-dir BASE` | OS temporary directory | a writable parent directory | both | Create a unique private persistent attempt under BASE; see [runtime paths](CLI_RUNTIME.md). |
 | `--network NAME` | `graph-loader-net` | an existing Docker network | both | The network the loader containers join; it must reach Kafka and Neo4j under the `LOADER_*` addresses. |
 | `--skip-image-build` | off | flag | both | Use already-built images (`make build-images`, or tags from `GRAPH_LOADER_*_IMAGE`) instead of building them at start. |
-| `--run-id ID` | random UUID hex | 1-128 chars of `[A-Za-z0-9._-]`, starting with a letter or digit | both | Run identity. Scopes container names and labels, the default `--plan-dir`, the planned chunk topic, the lease server and the **bulk** relationship consumer groups. Stream groups do **not** contain it; in stream mode it only lets the CLI migrate legacy run-scoped offsets (see the stream notes below). |
+| `--run-id ID` | random UUID hex | 1-128 chars of `[A-Za-z0-9._-]`, starting with a letter or digit | both | Run identity. Scopes container names and labels, the planned chunk topic, the lease server and the **bulk** relationship consumer groups. Stream groups do **not** contain it; in stream mode it only lets the CLI migrate legacy run-scoped offsets (see the stream notes below). |
 | `--bulk-timeout-seconds S` | `300` | float > 0, validated before any side effect | bulk | Ignored in stream (any value is accepted there). Maximum seconds for each bulk lifecycle stage. Progress-based for node draining, waiting for the edge plan (planner heartbeat) and the planned dispatch: those fail only after `S` seconds **without progress**. |
 | `--accept-former-dlq TOPIC` | none | repeatable; a topic name | both (classic, lease, stream; not planned) | Start although `TOPIC`, a relationship type's former default DLQ name (`<topic>.dlq` or `<type>.dlq`), still holds records. Deleting the old topic is the expected step. |
 | `--accept-dlq-leftovers TYPE` | none | repeatable; a relationship type | both (classic, lease, stream; not planned) | Start although `TYPE`'s parked-pair index holds records of a topic it no longer reads or of a topic now bound to another label pair. Draining the DLQ with the previous schema first is the expected step. |
@@ -76,8 +81,9 @@ The former-DLQ and DLQ-leftover preflights are skipped when the run is planned
 ### Planned mode tuning (`--edge-plan`, also the bulk default)
 
 Every value is derived automatically (`src/neo4j_graph_loader/orchestrator/auto_settings.py`); a
-flag overrides it. Range errors exit 1. These flags are validated only when the
-run is planned and are silently unused in lease, classic and stream runs.
+flag overrides it. Invalid ranges exit1 before state creation for explicit
+planning and default bulk starts. Planner settings have no effect in explicit
+classic/lease modes; stream `--edge-plan` is rejected.
 
 | Flag | Default | Range | Applies when | Notes |
 | --- | --- | --- | --- | --- |
@@ -88,9 +94,9 @@ run is planned and are silently unused in lease, classic and stream runs.
 | `--plan-chunk-rows N` | `clamp(records / (20 * writers), 500, 5000)` | 1-100000 | planned, no file | Maximum rows per chunk transaction. |
 | `--plan-partitions N` | `4` | 1-1024 | planned, no file | Partitions of the run's chunk topic. |
 | `--plan-topic NAME` | `graph-loader-edge-chunks-<run id>` | a new topic name | planned, no file | The chunk topic to create. |
-| `--plan-dir DIR` | `$GRAPH_LOADER_TIMING_DIR`, else `var/edge-plans/<run id>` | a directory | planned, no file | Holds `edge-plan.json` and `edge-plan.json.ledger.json`. |
+| `--plan-dir DIR` | private attempt `plans/` | a directory | planned, no file | Holds `edge-plan.json` and `edge-plan.json.ledger.json`. |
 | `--plan-memory-mb N` | a quarter of available RAM over the planner processes, 256-4096 MiB | 16 - 1048576 | planned, no file | Per-planner memory budget; beyond it the planner spills to `--plan-spill-dir` and produces the identical plan. |
-| `--plan-spill-dir DIR` | the plan directory | a directory | planned, no file | Temporary spill files, removed afterwards; needs about the relationship topics' uncompressed size free. |
+| `--plan-spill-dir DIR` | private attempt `spill/` | a directory | planned, no file | Planner-owned spill children are removed after workers reap; attempt state persists. Needs about the relationship topics' uncompressed size free. |
 | `--replace-stale-plan-topic` | off | flag | planned, no file, **explicit `--run-id`** | Delete the chunk topic left behind by a killed run with the same run id, if no container of that run is alive. Default: refuse to start. Ignored if `--plan-topic` is given. |
 | `--keep-plan-topic` | off | flag | planned, no file | Keep the run's chunk topic afterwards (default: deleted). |
 
@@ -198,7 +204,7 @@ python -m neo4j_graph_loader.cli status [--config PATH]
 
 Logs one line per node-loader container (`Loader <name> (<id>): <status> [Node:
 <label>]`) or `No loaders running.` `--config` (default
-`config/graph_schema.yaml`) is only logged. Exits 0; exits 1 with a clear message when Docker is unreachable. For lag, use the
+the bundled canonical schema) is only logged. Exits 0; exits 1 with a clear message when Docker is unreachable. For lag, use the
 metrics ([MONITORING](MONITORING.md)) or Kafka's consumer-group tooling.
 
 ## replay-dlq
@@ -214,7 +220,7 @@ copy.
 
 | Flag | Default | Notes |
 | --- | --- | --- |
-| `--config PATH` | `config/graph_schema.yaml` | Schema YAML. |
+| `--config PATH` | bundled canonical schema | Caller schema YAML when explicitly supplied. |
 | `--node-label LABEL` / `--edge-type TYPE` | one is required | **Mutually exclusive.** Unknown name exits 1. |
 | `--reason-code CODE` | none | Only envelopes with exactly this `reason_code`. |
 | `--since TS` / `--until TS` | none | ISO-8601 timestamps; a timestamp without offset is UTC. `--until` earlier than `--since` exits 1. |
@@ -257,7 +263,7 @@ Selected lines (source in parentheses):
 | `stage=node-label-ready label=<L> elapsed_s=<s>` | CLI | A node label fully loaded; edge chunks needing it may start. |
 | `stage=edge-plan-settings records=... writers=... buckets=... chunk_rows=... buckets_reason=...` | CLI planned | Settings the plan uses; `buckets_reason` says why `B` has its value (`writers`, `self_ref_share=S`, `volume_cap=V,...` or `explicit`). |
 | `stage=edge-plan-start / edge-plan-scan / edge-plan-ready plan_id=...` | planner | Planning progress; `edge-plan-ready` carries chunks, rows, resources, hubs. |
-| `stage=edge-plan-rejections plan_id=... rejected=<n> dir=...` | planner | Malformed relationship records skipped to `var/rejections/<run id>-planner-<worker>.jsonl`. |
+| `stage=edge-plan-rejections plan_id=... rejected=<n> dir=...` | planner | Malformed relationship records skipped to `<attempt>/rejections/<run id>-planner-<worker>.jsonl`. |
 | `stage=planned-dispatcher-ready ... chunks=<n> rows=<n>` / `stage=planned-ready labels=...` / `stage=planned-done chunk=... writer=...` | dispatcher | Dispatcher up; labels ready; a chunk committed. |
 | `stage=planned-dispatch-failed reason=<r>` | dispatcher | The planned dispatch failed (the run fails). |
 | `stage=planned-writer-complete writer=<n> chunks=<n> rows=<n>` | writer | A planned writer finished. |
@@ -309,14 +315,14 @@ some derived from the host variables. "Host" below means the `start`/
 
 | Variable | Default | Read by | Notes |
 | --- | --- | --- | --- |
-| `GRAPH_LOADER_TIMING_DIR` | unset | CLI | Host directory mounted into containers for write-timing logs, metrics snapshots (`metrics-cli.prom`) and, if set, the default `--plan-dir`. |
+| `GRAPH_LOADER_TIMING_DIR` | private attempt `timings/` | CLI | Explicit host timing directory overrides this run default; mounted into containers for timings and metrics snapshots. Plan output has its own private default. |
 | `GRAPH_LOADER_TIMING_LOG_PATH` | set by the CLI | loader containers | Per-replica write-timing log path inside the container. |
 | `GRAPH_LOADER_EDGE_EXPLICIT_LOCKS` | `1` | classic edge loaders (forwarded by the CLI) | `0` skips the `apoc.lock.nodes` step (benchmark experiment; deadlocks become possible). |
 | `GRAPH_LOADER_PLAN_NODE_PHASE_WRITERS` | `0` (unlimited) | planned dispatcher (forwarded by the CLI) | Cap on active chunks while node labels still load. |
 | `GRAPH_LOADER_RUN_ID` | set by the CLI | edge loaders, retry consumer | The run id inside a container. |
 | `KAFKA_GROUP_ID` | node loaders: `<consumer_group_id>-<label>` (not set by the CLI); edge loaders and retry consumer: set by the CLI | node, edge loaders, retry consumer | Consumer group of a container. The CLI sets it for edge loaders (bulk `<prefix>-<type>-<phase run id>`, stream `<prefix>-<type>`) and the retry consumer (`<prefix>-retry-consumer`). A standalone retry consumer defaults to the legacy `graph-loader-retry-consumer-<run id>`. |
 | `KAFKA_COORDINATION_GROUP_ID` | set by the CLI | edge loaders with slot gating (only the deprecated `--stream-clock-rotation` path) | Group used to read the control (coordination) topic. |
-| `REJECTION_LOG_PATH` | `loading.rejection_log_path` (`var/rejections/node-loader.jsonl`) | node and edge loaders | Per-replica JSONL sink for records rejected when no DLQ is configured; the CLI mounts `var/rejections` and gives each replica its own file. |
+| `REJECTION_LOG_PATH` | `loading.rejection_log_path` (`var/rejections/node-loader.jsonl`) | node, edge and retry loaders | Per-replica JSONL sink for records rejected when no DLQ is configured; the CLI mounts its private rejection directory and gives each replica its own file (including retry fallback). |
 
 ### Metrics
 
@@ -327,7 +333,7 @@ See [MONITORING](MONITORING.md) for the metric catalogue.
 | `GRAPH_LOADER_METRICS_ENABLED` | enabled | every process (forwarded by the CLI) | `0` or `false` disables the endpoint and snapshots. |
 | `GRAPH_LOADER_METRICS_PORT` | `9464` | every process (forwarded by the CLI) | Prometheus endpoint port. The CLI falls back to an ephemeral port when taken. |
 | `GRAPH_LOADER_METRICS_BIND_ADDR` | `127.0.0.1` | CLI only | Set to expose the CLI's endpoint to a Prometheus container; logs a warning because the endpoint is unauthenticated. |
-| `GRAPH_LOADER_METRICS_SNAPSHOT_PATH` | set by the CLI per replica | containers; CLI uses `$GRAPH_LOADER_TIMING_DIR/metrics-cli.prom` | Atomic Prometheus-text snapshot written periodically and at exit. |
+| `GRAPH_LOADER_METRICS_SNAPSHOT_PATH` | set by the CLI per replica | containers; CLI uses its resolved timing directory/metrics-cli.prom | Atomic Prometheus-text snapshot written periodically and at exit. |
 | `GRAPH_LOADER_METRICS_SNAPSHOT_INTERVAL_S` | `15` | every process (forwarded by the CLI) | Seconds between periodic snapshot rewrites. `0` disables the periodic timer (the exit-time write still happens); non-finite values fall back to the default, values below 1 are raised to 1 and values above 86400 are clamped. |
 | `GRAPH_LOADER_VERSION` | package version (`0.1.0a1.dev0` in the E02 scaffold) | every process (nonempty overrides forwarded by the CLI to containers) | Startup override for the process-info metric only; does not change package/image identity. A directly supplied empty value remains empty for compatibility. |
 | `GRAPH_LOADER_LEASE_MERGE_ROWS` | `200` | stream edge loaders and the retry consumer (forwarded by the CLI) | Small lease cells are merged under one lease up to this many rows. |

@@ -40,7 +40,7 @@ def test_parser_start_valid():
     args = parser.parse_args(["start", "--mode", "bulk"])
     assert args.command == "start"
     assert args.mode == "bulk"
-    assert args.config == "config/graph_schema.yaml"
+    assert args.config is None
     assert hasattr(args, "func")
 
 
@@ -71,13 +71,14 @@ def test_parser_status():
 
 
 @patch("neo4j_graph_loader.cli.handle_start")
-def test_main_routes_to_start_handler(mock_handle_start):
+def test_main_routes_to_start_handler(mock_handle_start, tmp_path):
     mock_handle_start.return_value = 0
-    exit_code = main(["start", "--mode", "stream"])
+    exit_code = main(["start", "--mode", "stream", "--run-dir", str(tmp_path)])
     assert exit_code == 0
     mock_handle_start.assert_called_once()
     args = mock_handle_start.call_args[0][0]
     assert args.mode == "stream"
+    assert args.runtime.schema == tmp_path / args.runtime.root.name / "runtime_schema.yaml"
 
 
 @patch("neo4j_graph_loader.cli.handle_stop")

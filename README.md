@@ -36,7 +36,7 @@ are required.
 | [Examples](examples/README.md) | [IMDb](examples/imdb/README.md) (a real 23M-record benchmark), [social](examples/social/README.md) (synthetic, exact verification), [multi_topic](examples/multi_topic/README.md) (several topics or label pairs per type). |
 | [History](docs/HISTORY.md) | Project origins and design evolution. |
 | [Public library API](docs/LIBRARY_API.md) | Schema and producer planning, Kafka requirements, ownership, cancellation and cleanup. |
-| [Distribution development](docs/DISTRIBUTION_DEVELOPMENT.md) | Install/build/check the runtime; the console executable remains E05 work. |
+| [Distribution development](docs/DISTRIBUTION_DEVELOPMENT.md) | Install/build/check the runtime, installed command, bundled schemas and private run state. |
 
 ## Quick start (about 5 minutes)
 

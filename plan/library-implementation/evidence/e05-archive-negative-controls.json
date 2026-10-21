@@ -1,0 +1,57 @@
+[
+  {
+    "artifact": "original",
+    "mutation": "neo4j_graph_loader/data/graph_schema.yaml",
+    "rejected": true
+  },
+  {
+    "artifact": "original",
+    "mutation": "neo4j_graph_loader/data/social_schema.yaml",
+    "rejected": true
+  },
+  {
+    "artifact": "original",
+    "mutation": "neo4j_graph_loader-0.1.0a1.dev0.dist-info/entry_points.txt",
+    "rejected": true
+  },
+  {
+    "artifact": "original",
+    "mutation": "unexpected-private-input.txt",
+    "rejected": true
+  },
+  {
+    "artifact": "rebuilt",
+    "mutation": "neo4j_graph_loader/data/graph_schema.yaml",
+    "rejected": true
+  },
+  {
+    "artifact": "rebuilt",
+    "mutation": "neo4j_graph_loader/data/social_schema.yaml",
+    "rejected": true
+  },
+  {
+    "artifact": "rebuilt",
+    "mutation": "neo4j_graph_loader-0.1.0a1.dev0.dist-info/entry_points.txt",
+    "rejected": true
+  },
+  {
+    "artifact": "rebuilt",
+    "mutation": "unexpected-private-input.txt",
+    "rejected": true
+  },
+  {
+    "artifact": "sdist",
+    "mutation": "src/neo4j_graph_loader/data/graph_schema.yaml",
+    "rejected": true
+  },
+  {
+    "artifact": "sdist",
+    "mutation": "src/neo4j_graph_loader/data/social_schema.yaml",
+    "rejected": true
+  },
+  {
+    "artifact": "sdist",
+    "mutation": "src/neo4j_graph_loader.egg-info/entry_points.txt",
+    "rejected": true
+  }
+]

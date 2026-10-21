@@ -98,3 +98,18 @@ unresolved actionable findings** after independent source preservation, runtime,
 archive/negative-control, two clean environment and four image matrix checks.
 Final full and no-skip B3 log/proof identities were checked directly against the
 frozen source/environment. See [completion](../evidence/e03-completion.md).
+
+
+## E05 implementation and final acceptance
+
+[Execution plan](../execution-e05.md), [plan review](e05-plan-review.md),
+[S1](e05-s1-review.md), [S2](e05-s2-review.md), [S3](e05-s3-review.md),
+[resolutions](e05-resolutions.md) and [fresh final adversarial acceptance](e05-final-adversarial-review.md)
+retain original findings and independently verified closure. The original final
+review usage-limit interruption has no acceptance status. Finald binds270 inputs,
+3566full passes and exact package/image/B3 evidence; earlier attempts remain
+historical. Completion/staging/actual-commit equality checks are separate.
+
+[Independent precommit delivery check](e05-delivery-review.md) accepts the staged
+E05 scope and all270 tested/index/current inputs. Actual commit equality follows
+the authorized local commit.

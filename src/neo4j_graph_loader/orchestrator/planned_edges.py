@@ -33,6 +33,7 @@ from typing import Callable, Iterable
 from neo4j_graph_loader.loader.edge_plan import EdgePlan, EdgePlanError, plan_failure_marker, plan_progress_path, read_plan_file
 from neo4j_graph_loader.loader.planned_writer import STOP_REASON, DispatcherClient
 from neo4j_graph_loader.orchestrator.docker_service import REJECTION_DIR
+from neo4j_graph_loader._runtime import timing_kwargs
 
 
 logger = logging.getLogger(__name__)
@@ -141,7 +142,8 @@ def start_kafka_edge_planner(schema, args, *, run_id: str, writers: int, bootstr
     # Malformed relationship records go to the same rejection directory the classic loaders use
     # (one file per planner worker) and are skipped instead of failing the run.
     planner = (planner_factory or KafkaEdgePlanner)(schema, bootstrap_servers, settings_for, plan_id=run_id,
-                                                    plan_path=plan_path, rejection_dir=Path(REJECTION_DIR))
+                                                    plan_path=plan_path, rejection_dir=(args.runtime.rejections if getattr(args, "runtime", None) is not None
+                                                                                      else Path(REJECTION_DIR)))
     try:
         planner.start()
         ledger_path(plan_path).unlink(missing_ok=True)
@@ -393,8 +395,8 @@ def _iso(epoch: float) -> str:
 
 
 def _record_timings(plan: EdgePlan, summary: dict, per_type: dict[str, dict], writers: int,
-                    elapsed_seconds: float) -> None:
-    directory = os.environ.get("GRAPH_LOADER_TIMING_DIR")
+                    elapsed_seconds: float, *, timing_dir: str | None = None) -> None:
+    directory = timing_dir if timing_dir is not None else os.environ.get("GRAPH_LOADER_TIMING_DIR")
     if not directory:
         return
     try:
@@ -430,7 +432,7 @@ class _PhaseContainers:
     writers: tuple = ()
 
 
-def _stop_phase(containers: _PhaseContainers, stop_exact, remove_exact) -> None:
+def _stop_phase(containers: _PhaseContainers, stop_exact, remove_exact, *, timing_dir: str | None = None) -> None:
     if containers.writers:
         failures = stop_exact(containers.writers)
         if failures:
@@ -446,7 +448,7 @@ def _stop_phase(containers: _PhaseContainers, stop_exact, remove_exact) -> None:
             for line in logs.splitlines():
                 if "stage=planned-dispatcher-stats" in line or "stage=planned-dispatch-failed" in line:
                     logger.info("%s", line.split(": ", 1)[-1])
-            directory = os.environ.get("GRAPH_LOADER_TIMING_DIR")
+            directory = timing_dir if timing_dir is not None else os.environ.get("GRAPH_LOADER_TIMING_DIR")
             if directory:
                 (Path(directory) / "planned-dispatcher.log").write_text(logs, encoding="utf-8")
         except Exception as exc:
@@ -578,7 +580,7 @@ def run_planned_edge_phase(
                 sleep(_POLL_SECONDS)
         durable = persist_ledger(plan_path, plan, digest, summary)
         elapsed = clock() - started
-        _record_timings(plan, summary, per_type, writers_count, elapsed)
+        _record_timings(plan, summary, per_type, writers_count, elapsed, **timing_kwargs(args))
         logger.info("stage=planned-edges ledger=%s", durable)
         logger.info(
             "stage=planned-edges-complete plan_id=%s chunks=%s rows=%s elapsed_s=%.3f %s",
@@ -605,4 +607,4 @@ def run_planned_edge_phase(
     finally:
         if control is not None:
             control.close()
-        _stop_phase(containers, stop_exact, remove_exact)
+        _stop_phase(containers, stop_exact, remove_exact, **timing_kwargs(args))

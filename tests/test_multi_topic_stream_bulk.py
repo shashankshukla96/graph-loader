@@ -257,9 +257,7 @@ def test_edge_loader_main_refuses_precedence_in_stream_before_any_resource() -> 
 
 
 def _service():
-    service = DockerService.__new__(DockerService)
-    service.client = MagicMock()
-    return service
+    return DockerService(client=MagicMock())
 
 
 def test_run_edge_loader_passes_repeated_topics_only_for_multi_topic(tmp_path) -> None:

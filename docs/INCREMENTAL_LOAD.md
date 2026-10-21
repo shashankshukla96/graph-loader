@@ -1,5 +1,14 @@
 # How to load incrementally
 
+Installed CLI paths use a private persistent `<attempt>` directory, logged as
+`stage=runtime directory=...`, under OS temporary storage or `--run-dir BASE`.
+Plan, spill and timing overrides remain explicit; see the
+[installed runtime guide](CLI_RUNTIME.md). Direct component modules retain their
+legacy caller-relative paths unless explicitly configured.
+Later CLI timing-directory references mean `<attempt>/timings/` by default,
+or the explicit `GRAPH_LOADER_TIMING_DIR` override. Enabled diagnostics do not
+require setting that environment variable.
+
 Related docs: [CLI reference](CLI.md), [Architecture](ARCHITECTURE.md), [Changelog](../CHANGELOG.md), [USAGE.md](USAGE.md), [BULK_LOAD.md](BULK_LOAD.md), [MONITORING.md](MONITORING.md).
 
 There are two ways to keep a graph up to date from Kafka with this library, and this guide covers both and helps you choose:
@@ -102,7 +111,7 @@ Three patterns follow from the table above.
 
 ### A4. Run ids, plan topics, precedence sub-stages, reruns
 
-* **A fresh run id per batch is the default and the right habit.** The CLI generates a random UUID hex; you can pass a readable one that stays valid (`1-128` of letters, digits, `.`, `_`, `-`), for example `--run-id inc-20261001T0200Z`. The id names the containers, `var/edge-plans/<run id>`, the planned chunk topic `graph-loader-edge-chunks-<run id>`, the planner rejection files `var/rejections/<run id>-planner-<worker>.jsonl`, and (through a derived stage id) the lease/classic relationship groups and edge container names.
+* **A fresh run id per batch is the default and the right habit.** The CLI generates a random UUID hex; you can pass a readable one that stays valid (`1-128` of letters, digits, `.`, `_`, `-`), for example `--run-id inc-20261001T0200Z`. The id names the containers, the planned chunk topic `graph-loader-edge-chunks-<run id>`, the planner rejection files `<attempt>/rejections/<run id>-planner-<worker>.jsonl`, and (through a derived stage id) the lease/classic relationship groups and edge container names.
 * **Planned chunk topics** are created per run and deleted after it. They are left behind only by a `kill -9`. A random id never collides with them, but each leftover keeps its data forever (unlimited retention), so delete leftovers. To reuse an id after a kill, add `--replace-stale-plan-topic` ([BULK_LOAD.md section 14](BULK_LOAD.md#14-re-running-and-recovering)).
 * **Precedence sub-stages** (lease/classic): one full stage per topic in `topics:` order, each with its own group `<prefix>-<type>-<R>.bulk.0.<h>.topic.<i>.<h>`, boundary and zero-lag proof. One run leaves N groups per precedence type; delete the groups of finished runs you do not need (`kafka-consumer-groups --delete --group ...`). Reruns need a fresh id. Planned mode creates no sub-stage groups.
 * **A rerun after a failed batch** is safe: every write is an idempotent `MERGE`. With Pattern 2 you must still hold the batch still; with Pattern 1 the failed batch is simply read again.
@@ -323,7 +332,7 @@ An edge loader that exits tears down every other edge type and the lease server 
 | **Lease server** | `graph_loader_lease_*` (`kind="lease-server"`), `GraphLoaderLeaseWaitersStuck`, `GraphLoaderLeaseWaitTimeoutsDetected` | Counters reset to 0 on a supervised restart; use `rate()`/`increase()`. |
 | **Idle loaders** | `GraphLoaderNoRecordsConsumed` | Fires for a legitimately idle stream loader with no traffic about 20 minutes in; scope or tune it. |
 
-The dashboard also has a "DLQ envelopes per consumed record" panel (the DLQ routing rate against the consumed-record rate, per type), a "Retry writes stalled" panel, a "Stream write outage" panel, and the multi-topic lag rows. Each container exposes metrics on its own `GRAPH_LOADER_METRICS_PORT` (default 9464, mapped to an ephemeral loopback host port); with `GRAPH_LOADER_TIMING_DIR` set, every process also writes a `metrics-*.prom` snapshot every 15 s, which survives a killed process. For a bulk-style run summary there is no "done" in a stream: judge health by lag, backlog and the alerts.
+The dashboard also has a "DLQ envelopes per consumed record" panel (the DLQ routing rate against the consumed-record rate, per type), a "Retry writes stalled" panel, a "Stream write outage" panel, and the multi-topic lag rows. Each container exposes metrics on its own `GRAPH_LOADER_METRICS_PORT` (default 9464, mapped to an ephemeral loopback host port); with metrics enabled, every process also writes to the resolved timing directory a `metrics-*.prom` snapshot every 15 s, which survives a killed process. For a bulk-style run summary there is no "done" in a stream: judge health by lag, backlog and the alerts.
 
 ### B10. Graceful stop, restart, consumer groups and resume
 

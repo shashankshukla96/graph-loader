@@ -363,7 +363,12 @@ def test_the_classic_and_planner_rejection_directories_are_one_constant() -> Non
     from neo4j_graph_loader.orchestrator import docker_service, planned_edges
     assert planned_edges.REJECTION_DIR is docker_service.REJECTION_DIR
     for method in (docker_service.DockerService.run_edge_loader, docker_service.DockerService.run_node_loader):
-        assert inspect.signature(method).parameters["rejection_dir"].default == docker_service.REJECTION_DIR
+        assert inspect.signature(method).parameters["rejection_dir"].default is None
+    # No runtime context still resolves to the same legacy constant. A CLI run
+    # supplies its private directory (covered by test_runtime_paths).
+    service = docker_service.DockerService(client=MagicMock())
+    assert service._rejection_directory(None) == docker_service.REJECTION_DIR
+    assert service._rejection_directory("caller/rejections") == "caller/rejections"
 
 
 @patch("neo4j_graph_loader.cli.start_kafka_edge_planner")

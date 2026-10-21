@@ -1,6 +1,6 @@
 # Library implementation plan
 
-Prepared 2026-10-15; latest repair acceptance 2026-10-21. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E04 are accepted. [E04-R1](reviews/e04-completion-verification-20261020.md) reopened S3/S4 after the original delivery; the [repair evidence](evidence/e04-r1-repair.md) and [fresh final review](reviews/e04-r1-final-review.md) now close that finding. E05–E12 have not started. Historical failures, reviews and results are preserved.**
+Prepared 2026-10-15; latest repair acceptance 2026-10-21. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E04 are accepted. [E04-R1](reviews/e04-completion-verification-20261020.md) reopened S3/S4 after the original delivery; the [repair evidence](evidence/e04-r1-repair.md) and [fresh final review](reviews/e04-r1-final-review.md) now close that finding. [E05](evidence/e05-final-validation.md) is now independently accepted; E06–E12 have not started. Historical failures, reviews and results are preserved.**
 
 This decomposes the [library/PyPI checklist](../../docs/PYPI_LIBRARY_CHECKLIST.md)
 into **13 phase epics, 26 features and 54 stories**. It is a planning deliverable;
@@ -258,3 +258,19 @@ exact B3, isolated original/rebuilt artifacts, two clean installs, four newly
 built image matrices and12 checkout-free installed mixed-source controls pass.
 E04 S3/S4 are restored complete. [E05 handoff](handoff-e05.md) is ready after
 local delivery recording; no E05 implementation, push or publication is included.
+
+
+## E05 accepted — 2026-10-21
+
+Installed graph-loader/package-module commands, finite canonical/social schema
+resources and private persistent run state are complete. All three stories and
+the [fresh final review](reviews/e05-final-adversarial-review.md) accepted after
+retained fixes. Exact [final evidence](evidence/e05-final-validation.md) records
+3566passes, four inherited skips,49 deselections,19 known warnings, real no-Git
+rebuild/member equality/two clean installs, four immutable read-only image checks,
+actual data binds,12public R1 controls and no-skip B3. All270 tested inputs and
+environment are unchanged across finald proof.
+
+Local delivery remains pending the final staging check and authorized commit;
+[tracker](CHANGE_TRACKER.md) records its actual full hash afterwards. The
+[E06 handoff](handoff-e06.md) is prepared; E06–E12 and publication are not executed.

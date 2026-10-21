@@ -1,5 +1,14 @@
 # graph-loader monitoring guide
 
+Installed CLI paths use a private persistent `<attempt>` directory, logged as
+`stage=runtime directory=...`, under OS temporary storage or `--run-dir BASE`.
+Plan, spill and timing overrides remain explicit; see the
+[installed runtime guide](CLI_RUNTIME.md). Direct component modules retain their
+legacy caller-relative paths unless explicitly configured.
+Later CLI timing-directory references mean `<attempt>/timings/` by default,
+or the explicit `GRAPH_LOADER_TIMING_DIR` override. Enabled diagnostics do not
+require setting that environment variable.
+
 Related docs: [CLI reference](CLI.md), [Architecture](ARCHITECTURE.md), [Changelog](../CHANGELOG.md), [USAGE.md](USAGE.md), [BULK_LOAD.md](BULK_LOAD.md), [INCREMENTAL_LOAD.md](INCREMENTAL_LOAD.md).
 
 An optional, local Prometheus + Grafana stack that discovers every
@@ -35,7 +44,7 @@ This guide covers:
   setup.
 - **No Pushgateway.** This stack uses live pull scraping. For containers
   shorter-lived than a scrape interval, periodic and exit-time snapshots
-  preserve metrics when `GRAPH_LOADER_TIMING_DIR` is set. Files use
+  preserve enabled metrics in the resolved CLI timing directory. Files use
   `metrics-<kind>[-<name>][-<replica>].prom` in Prometheus text format;
   see [USAGE](USAGE.md).
 - **Off by default.** `docker compose up` alone never starts Prometheus or
@@ -247,7 +256,7 @@ A relationship type can be fed by several topics (`edges[].topics`). Metrics kee
   `kind="cli"`: the retry consumer also exports this gauge (`kind="retry-consumer"`, for its DLQ topic), which is
   not a data topic of the type.
 * **Planner rejection count is not a metric.** Planned mode skips malformed relationship records into
-  `var/rejections/<run id>-planner-<worker>.jsonl` and reports the count in the logs only
+  `<attempt>/rejections/<run id>-planner-<worker>.jsonl` and reports the count in the logs only
   (`stage=edge-plan-rejections ... rejected=<n>`, `stage=outcome rejected=<n>`; `rejected` in the plan statistics).
   Alert on that log line or the rejection files.
 

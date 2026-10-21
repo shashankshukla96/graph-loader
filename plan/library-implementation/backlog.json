@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "title": "Library implementation epics",
-  "date": "2026-10-15",
+  "date": "2026-10-21",
   "source_checklist": "../../docs/PYPI_LIBRARY_CHECKLIST.md",
-  "status": "E00-E04 accepted; E04-R1 repaired and independently accepted; E05-E12 not started",
+  "status": "E00-E05 accepted; E04-R1 closed; E06-E12 not started",
   "epics": [
     {
       "id": "E00",
@@ -623,7 +623,7 @@
       "scope": "Handle local files/resources and process entry behavior here; Docker image selection is E06.",
       "exit_gate": "Installed help/version/schema example work from an unrelated cwd, resources are complete, and state writes succeed with a read-only package directory.",
       "review_status": "approved",
-      "implementation_status": "not started",
+      "implementation_status": "complete",
       "features": [
         {
           "id": "E05.F1",
@@ -652,7 +652,7 @@
                 "Install wheel and test help/version, parser errors and module/executable parity from an unrelated cwd with no services."
               ],
               "evidence": "evidence/E05.F1.S1.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E05.F1.S2",
@@ -677,7 +677,7 @@
                 "Run installed sample-schema validation and explicit-path validation; inspect resources after sdist rebuild."
               ],
               "evidence": "evidence/E05.F1.S2.md",
-              "status": "planned"
+              "status": "complete"
             }
           ]
         },
@@ -709,7 +709,7 @@
                 "Inspect every container bind mount and generated runtime config path."
               ],
               "evidence": "evidence/E05.F2.S1.md",
-              "status": "planned"
+              "status": "complete"
             }
           ]
         }

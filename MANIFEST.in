@@ -1,5 +1,7 @@
-# E03 ships migrated Python runtime modules and reviewed build metadata only.
+# E05 finite runtime modules, approved schemas and reviewed build metadata.
 global-exclude *
 include pyproject.toml PACKAGE_README.md LICENSE MANIFEST.in
 recursive-include src/neo4j_graph_loader *.py
-recursive-include src/neo4j_graph_loader.egg-info PKG-INFO SOURCES.txt dependency_links.txt top_level.txt requires.txt
+include src/neo4j_graph_loader/data/graph_schema.yaml
+include src/neo4j_graph_loader/data/social_schema.yaml
+recursive-include src/neo4j_graph_loader.egg-info PKG-INFO SOURCES.txt dependency_links.txt top_level.txt requires.txt entry_points.txt

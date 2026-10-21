@@ -1,5 +1,14 @@
 # graph-loader usage guide
 
+Installed CLI paths use a private persistent `<attempt>` directory, logged as
+`stage=runtime directory=...`, under OS temporary storage or `--run-dir BASE`.
+Plan, spill and timing overrides remain explicit; see the
+[installed runtime guide](CLI_RUNTIME.md). Direct component modules retain their
+legacy caller-relative paths unless explicitly configured.
+Later CLI timing-directory references mean `<attempt>/timings/` by default,
+or the explicit `GRAPH_LOADER_TIMING_DIR` override. Enabled diagnostics do not
+require setting that environment variable.
+
 graph-loader loads a property graph from Kafka into Neo4j. You describe the
 graph once in a YAML schema, publish node and relationship records to the
 topics that schema declares, and run one command. The loader works out the
@@ -120,7 +129,7 @@ project `.env` without overriding exported values.
 | `LOADER_NEO4J_URI` | containers | Neo4j URI inside the Docker network (default `bolt://neo4j:7687`) |
 | `LOADER_CPUSET` | containers | CPU set for every loader, dispatcher and writer container |
 | `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE`, `GRAPH_LOADER_CLOCK_IMAGE` | CLI | Image tags (default `graph-loader-node:latest`, `graph-loader-edge:latest`, `graph-loader-clock:latest`; `make build-images` builds these defaults) |
-| `GRAPH_LOADER_TIMING_DIR` | CLI | Directory for write-timing logs, the plan file and its completion ledger |
+| `GRAPH_LOADER_TIMING_DIR` | CLI | Explicit timing/metrics directory override (default `<attempt>/timings/`); plan and ledger default to `<attempt>/plans/` |
 | `GRAPH_LOADER_METRICS_ENABLED` | host and containers | `1`/`true` (default) to expose a Prometheus `/metrics` endpoint and write the `metrics-<kind>[-<name>][-<replica>].prom` snapshot in `GRAPH_LOADER_TIMING_DIR`; `0`/`false` (case-insensitive) disables both |
 | `GRAPH_LOADER_METRICS_PORT` | host and containers | Port for the metrics HTTP server (default `9464`; the host CLI binds `127.0.0.1` and falls back to an ephemeral free port, logged as a warning, if the configured port is taken) |
 | `GRAPH_LOADER_METRICS_SNAPSHOT_INTERVAL_S` | host and containers | Seconds between periodic rewrites of the `.prom` snapshot (default `15`; `0` disables the periodic timer, the exit-time write still happens; non-finite values fall back to the default and positive values below `1` are raised to `1`, values above `86400` are clamped). Forwarded from the host into launched containers; the snapshot *path* is not forwarded (each container gets its own under `GRAPH_LOADER_TIMING_DIR`). |
@@ -178,7 +187,7 @@ edges:
 | `flush_interval_ms` | `1000` | Flush an incomplete node batch after this idle time |
 | `retry_max_attempts`, `retry_base_delay_ms`, `retry_max_delay_ms` | `3`, `100`, `5000` | Retry of retryable Neo4j errors for node writes |
 | `max_poll_interval_ms`, `session_timeout_ms`, `heartbeat_interval_ms` | `300000`, `45000`, `500` | Kafka consumer settings |
-| `rejection_log_path` | `var/rejections/node-loader.jsonl` | Where node loaders record malformed records |
+| `rejection_log_path` | `var/rejections/node-loader.jsonl` | Direct node-loader default; CLI launchers override it with private per-replica rejection paths |
 | `coordination` | see code | **Deprecated.** Settings of the legacy global batch clock (topic, buckets, slot and lease timings); read only by the deprecated `--stream-clock-rotation` path, ignored by the default bucket-lease fleet |
 | `bucket_lease`, `retry_consumer`, `coordination` | see code | These three blocks reject unknown keys: a typo such as `retry_consumer.poll_timeout` (for `poll_timeout_ms`) fails the schema load with "Extra inputs are not permitted" instead of being silently ignored. `loading` itself, `dead_letter`, the edge-level `mix_and_batch`, `retry` and `execution` blocks, and `topics` entries (`TopicEndpoints`) do the same. (The `nodes[]` and `edges[]` entries themselves, and `properties`, do not reject unknown keys) |
 | `bucket_lease.tx_timeout_ms`, `.expected_chunk_commit_ms`, `.restart_quiet_margin_ms`, `.reconnect_timeout_ms` | `30000`, `1000`, `5000`, `60000` | Fencing and lease-server restart timing (section 12). `tx_timeout_ms` (`T`, 1000–600000, at least 10 x `expected_chunk_commit_ms`) is the Neo4j transaction timeout: leased writes get at most `T` minus 4 s (fenced BEGIN), planned and other unleased writes get the flat `T`. It **must be at least 6000 in the lease modes** (stream, `--edge-leases`, and the bulk lease mode chosen because of `dead_letter`); the check is not applied under `--stream-clock-rotation`; `restart_quiet_margin_ms` is at least 2000; `reconnect_timeout_ms` `0` means unbounded. `reconnect_timeout_ms + T + (T + margin)` must stay under `max_poll_interval_ms - 5000` unless `reconnect_timeout_ms` is `0` |
@@ -988,7 +997,7 @@ other improvements. See [section 9](#9-performance-guide).
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--config PATH` | `config/graph_schema.yaml` | Schema YAML |
+| `--config PATH` | bundled canonical schema | Schema YAML |
 | `--mode {bulk,stream}` | – | Bulk loads everything up to the boundary and exits; stream keeps consuming |
 | `--network NAME` | `graph-loader-net` | Docker network for all containers |
 | `--skip-image-build` | off | Use existing `graph-loader-node` / `graph-loader-edge` images instead of building them |
@@ -1002,16 +1011,16 @@ other improvements. See [section 9](#9-performance-guide).
 | `--plan-chunk-rows C` | derived | Maximum rows per chunk transaction |
 | `--plan-partitions N` | `4` | Partitions of the run's chunk topic |
 | `--plan-topic NAME` | `graph-loader-edge-chunks-<run id>` | Chunk topic (created per run) |
-| `--plan-dir DIR` | `$GRAPH_LOADER_TIMING_DIR` or `var/edge-plans/<run id>` | Where the plan file and ledger are written |
+| `--plan-dir DIR` | private attempt `plans/` | Where the plan file and ledger are written |
 | `--plan-memory-mb M` | a quarter of the available RAM over the planner processes, 256–4096 | Memory budget of each planner process; beyond it the planner spills to disk (see [large inputs](#large-inputs-bounded-memory-planning)) |
-| `--plan-spill-dir DIR` | the plan directory | Temporary spill files of the planner, deleted when planning ends |
+| `--plan-spill-dir DIR` | private attempt `spill/` | Planner-owned spill children removed after workers reap; attempt state persists |
 | `--keep-plan-topic` | off | Keep the chunk topic after the run |
 | `--node-replicas-min-records N` | `10000` | Labels without YAML `replicas` get 1 loader below this many records |
 | `--max-node-replicas N` | `8` | Cap on derived node-loader replicas |
 | `--edge-leases`, `--bucket-lease-buckets`, `--bucket-lease-outer-batch-size`, `--bucket-lease-keyed-max-nodes` | off (on by default when the schema enables relationship `dead_letter`), 16, 32000, 1000 | Bucket-lease mode, with `--mode bulk`. The same `--bucket-lease-*` flags also tune the bucket-lease coordinator that `--mode stream` uses by default (section 5.1) — `--edge-leases` itself stays bulk-only |
 | `--bulk-edge-overlap {labels,shared}` | `labels` | Classic scheduling of per-type relationship loaders; only takes effect with `--edge-classic` (in planned and lease modes it is ignored with a warning) |
 | `--max-concurrent-bulk-edges N` | `0` (unlimited) | Classic mode: cap on concurrently running relationship types; only takes effect with `--edge-classic` (ignored with a warning in planned and lease modes) |
-| `--run-id ID` | generated | Explicit run identity: scopes container names/labels, the default `--plan-dir`, the planned chunk topic (`--replace-stale-plan-topic` needs it), the lease server and the **bulk** relationship consumer groups (stream groups do not contain it); in stream mode it only lets `start` migrate a legacy run-scoped group's offsets (section 10) |
+| `--run-id ID` | generated | Explicit run identity: scopes container names/labels, the planned chunk topic (`--replace-stale-plan-topic` needs it), the lease server and the **bulk** relationship consumer groups (stream groups do not contain it); in stream mode it only lets `start` migrate a legacy run-scoped group's offsets (section 10) |
 | `--accept-former-dlq TOPIC` | – | Repeatable. Start although a relationship type's former default DLQ topic (`<topic>.dlq` or `<type>.dlq`) still holds records (section 3, "Migration warning") |
 | `--accept-dlq-leftovers TYPE` | – | Repeatable. Start although the type's parked-pair index still holds records of a topic it no longer reads or of a topic now bound to another label pair (section 3) |
 | `--retry-consumer-replicas N` | `1` | Stream mode: replicas of the DLQ retry consumer (section 5.3) |
@@ -1443,11 +1452,12 @@ Print the resolved Neo4j URI and Kafka address (never the password) before the r
 * **Invalid records are rejected, not lost.** When the planner reads the edge
   topics (no plan file), a malformed record (undecodable, bad JSON, or failing
   the schema's record validation) is appended, fsync'd, to
-  `var/rejections/<run id>-planner-<worker>.jsonl`
-  with the classic rejection-log entry format (`var/rejections/` is the directory the classic
-  relationship loaders use too; `loading.rejection_log_path` only configures the node loaders), a rerun with
-  the same `--run-id` deletes that run's earlier planner files first, an unwritable
-  directory fails the plan with the path and the record's position, logged at WARNING, counted as
+  `<attempt>/rejections/<run id>-planner-<worker>.jsonl`
+  with the classic rejection-log entry format. CLI node, edge, retry and planner
+  files share `<attempt>/rejections/`. Attempts isolate repeated run IDs; prior
+  rejection evidence is retained. Output access is checked before ingestion;
+  later write failures report the path and record position. Rejections are logged
+  at WARNING, counted as
   `rejected` in the plan stats (`stats.rejected`, only present when nonzero) and
   left out of the plan. The plan is exactly the plan of the valid records
   for any number of planners, and the load completes. Records in a
@@ -1497,9 +1507,9 @@ record JSON, ~90k chunks):
   (interpreter, Kafka client). The default gives four processes a quarter of
   the available RAM between them.
 * **Spill disk:** about the uncompressed size of the relationship records
-  plus ~10%, on `--plan-spill-dir` (default: the plan directory). Put it on a
+  plus ~10%, on `--plan-spill-dir` (default: private attempt `spill/`). Put it on a
   large local disk, not on a tmpfs. A full disk fails the plan closed with a
-  clear error. The files are deleted when planning ends, also on failure.
+  clear error. Planner-owned spill children are removed after workers reap; live-owner state and the attempt directory are retained.
 * **Kafka:** the run's chunk topic holds every record once more (lz4
   compressed on the broker, typically a third to a quarter of the JSON size).
   It is created with unlimited retention (`retention.ms=-1`,
@@ -1636,7 +1646,7 @@ identical either way.
   [section 6](#6-planned-mode-in-depth).
 * **Plan and ledger:** `edge-plan.json` and `edge-plan.json.ledger.json` in
   `--plan-dir`. These record every chunk, its resources and when it committed.
-* **Write-timing logs:** set `GRAPH_LOADER_TIMING_DIR`. Each node batch and
+* **Write-timing logs:** use `<attempt>/timings/`, or set `GRAPH_LOADER_TIMING_DIR` to override it. Each node batch and
   each relationship chunk is logged as `stage=node-write` or `stage=edge-write`,
   with records, write time, and fetch and lease wait.
 * **Metrics snapshots:** every process (CLI, node/edge/planned-writer loaders,
@@ -1666,8 +1676,7 @@ identical either way.
   Prometheus's own `rate()`/`increase()`/`resets()` already handle a counter
   that drops between scrapes correctly; a dashboard that instead subtracts
   two raw scrapes would not. The previous generation's final values are still
-  recoverable from that container's own periodic and exit-time metrics snapshot when
-  `GRAPH_LOADER_TIMING_DIR` is set, at
+  recoverable from that container's own periodic and exit-time metrics snapshot under the resolved CLI timing directory, at
   `metrics-lease-server-<run>-r<attempt>.prom` (one file per restart attempt,
   never overwritten by the next one) — except after an ungraceful `docker
   kill`, which never runs the exit-time write: the last periodic snapshot
@@ -1726,12 +1735,12 @@ identical either way.
     `stage=bulk-substage edge=<type> topic=<t> rank=<i> run_id=<sub run id> start` and
     `stage=bulk-substage-complete edge=<type> topic=<t> rank=<i> elapsed_s=<s> outcome=<...>`. A failed or stopped
     sub-stage logs `stage=bulk-substage edge=<type> topic=<t> failed: ...` and later topics never start.
-  * *Timing rows.* With `GRAPH_LOADER_TIMING_DIR` set, the type keeps `stage-<type>.json` (its total, all topics)
+  * *Timing rows.* In the resolved CLI timing directory, the type keeps `stage-<type>.json` (its total, all topics)
     and each sub-stage writes `substage-<type>.t<rank>.json` (with `rank` and `topic`); the IMDb report shows
     them as per-topic rows under the type. The loaders' write logs and metric snapshots of topic `rank` are
     `edge-<type>.t<rank>-<replica>.log` and `metrics-edge-<type>.t<rank>-<replica>.prom`.
   * *Planner rejection count (planned mode).* Malformed relationship records are skipped into
-    `var/rejections/<run id>-planner-<worker>.jsonl`. The count is not a Prometheus metric: it is logged as
+    `<attempt>/rejections/<run id>-planner-<worker>.jsonl`. The count is not a Prometheus metric: it is logged as
     `stage=edge-plan-rejections plan_id=<id> rejected=<n> dir=<dir>` when planning ends, as
     `stage=outcome rejected=<n> ...` at the end of the run, and recorded as `rejected` in the plan's per-lane
     statistics (present only when nonzero). Alert on the log line, or on the rejection files, not on a metric.
