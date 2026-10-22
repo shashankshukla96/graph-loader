@@ -1,5 +1,10 @@
 # E05 final validation — 2026-10-21
 
+Latest delivered-code [revalidation and small path-error repair](../reviews/e05-completion-verification-20261021.md)
+supersede this original delivery for current repaired source. Original counts,
+identities, failures and acceptance below remain historical and are not silently
+rebound to the new runtime/test bytes.
+
 Scope E05 only; clean entry `14fe4934976f62f421086e541e6bc00dbc1ceec8` on
 `codex/pypi-library-checklist`, after delivered/revalidated E04-R1 acceptance.
 Plan and all three stories independently accepted, preserving repaired findings

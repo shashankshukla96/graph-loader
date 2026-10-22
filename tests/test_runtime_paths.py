@@ -112,6 +112,26 @@ def test_missing_schema_and_invalid_numeric_flags_do_not_create_state(tmp_path, 
     assert not (tmp_path/'runs').exists()
 
 
+@pytest.mark.parametrize('target', ['run-dir', 'plan-dir', 'plan-spill-dir', 'timing-env', 'edge-plan'])
+def test_symlink_loop_paths_fail_cleanly_before_dispatch(tmp_path, monkeypatch, caplog, target):
+    loop = tmp_path/'loop'
+    loop.symlink_to(loop.name)
+    arguments = ['start', '--mode', 'bulk', '--run-dir', str(tmp_path/'runs')]
+    monkeypatch.delenv('GRAPH_LOADER_TIMING_DIR', raising=False)
+    if target == 'timing-env':
+        monkeypatch.setenv('GRAPH_LOADER_TIMING_DIR', str(loop))
+    else:
+        path = loop/'plan.json' if target == 'edge-plan' else loop
+        arguments.extend(['--'+target, str(path)])
+    handler = MagicMock()
+    monkeypatch.setattr(cli, 'handle_start', handler)
+    with patch.object(cli, 'DockerService', side_effect=AssertionError('docker connected')):
+        assert cli.main(arguments) == 1
+    handler.assert_not_called()
+    assert 'stage=runtime' in caplog.text and str(loop) in caplog.text
+    assert loop.is_symlink() and os.readlink(loop) == loop.name
+
+
 def test_external_plan_is_readonly_input_and_sibling_ledger_is_preflighted(tmp_path, monkeypatch):
     # External producers may create the plan later, so absence is deliberately supported.
     plan=tmp_path/'producer'/'future-plan.json'

@@ -17,8 +17,16 @@ class RunPaths:
     timings: Path
 
 
+def _resolve_path(path: Path) -> Path:
+    try:
+        return path.resolve()
+    except RuntimeError as exc:
+        # Python 3.12 reports symlink loops outside the OSError hierarchy.
+        raise ValueError(f'cannot resolve runtime path {path}: {exc}') from exc
+
+
 def _writable_directory(path: Path) -> Path:
-    path = path.resolve()
+    path = _resolve_path(path)
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     # Probe actual access; do not chmod caller directories or touch their files.
     descriptor, probe = tempfile.mkstemp(prefix='.graph-loader-probe-', dir=path)
@@ -68,7 +76,7 @@ def prepare_run(args, config: str) -> RunPaths:
             _writable_file(existing)
     edge_plan = getattr(args, 'edge_plan', None)
     from neo4j_graph_loader.orchestrator.planned_edges import ledger_path
-    plan_path = Path(edge_plan).resolve() if edge_plan and edge_plan != 'auto' else plans/'edge-plan.json'
+    plan_path = _resolve_path(Path(edge_plan)) if edge_plan and edge_plan != 'auto' else plans/'edge-plan.json'
     ledger = ledger_path(plan_path)
     _writable_file(ledger)
     _writable_file(ledger.with_name(f'.{ledger.name}.tmp'))
