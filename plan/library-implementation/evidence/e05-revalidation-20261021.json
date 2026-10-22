@@ -1334,5 +1334,7 @@
       "exact B3 service proof"
     ],
     "broader_python_semantics_control": "Explicit emulation only; not actual Python3.13 execution."
-  }
+  },
+  "repair_delivery_commit": "c35a6045ef39a822dcbcfcfc2c20d6b9c2227a28",
+  "postcommit_proof": "e05-revalidation-postcommit-20261021.json"
 }

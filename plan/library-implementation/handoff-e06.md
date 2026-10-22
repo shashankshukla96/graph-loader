@@ -1,8 +1,9 @@
 # E06 next-agent handoff — checkout-free Docker execution
 
 Latest E05 [revalidation and path-error repair](reviews/e05-completion-verification-20261021.md)
-must have final independent acceptance and local delivery recorded in the
-[tracker](CHANGE_TRACKER.md) before starting E06. Preserve all five new public
+is independently accepted and delivered locally in `c35a6045ef39a822dcbcfcfc2c20d6b9c2227a28`;
+[postcommit equality](evidence/e05-revalidation-postcommit-20261021.json) verifies all 270 tested inputs. The
+[tracker](CHANGE_TRACKER.md) records that delivery before E06. Preserve all five new public
 symlink-loop preflight regressions and the narrow path-resolution exception
 boundary. The original E05 delivery below remains historical.
 

@@ -127,3 +127,9 @@ Native macOS/CPython 3.12 and local Linux arm64 images do not close E07's instal
 full-suite lane or E08/E09's wider support/service matrices. Host binds still
 require daemon visibility; image delivery remains E06. Persistent attempts and
 caller-owned shared overrides keep their documented ownership rules.
+
+Local repair delivery: `c35a6045ef39a822dcbcfcfc2c20d6b9c2227a28`.
+[Postcommit proof](../evidence/e05-revalidation-postcommit-20261021.json) confirms all 270 tested input contents,
+sizes and executable flags equal committed blobs and current files; environment
+identity is unchanged. A following documentation-only commit records actual
+delivery identity, without recursively embedding its own hash.

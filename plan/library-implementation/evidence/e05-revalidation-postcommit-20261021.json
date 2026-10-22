@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-21",
+  "repair_delivery_commit": "c35a6045ef39a822dcbcfcfc2c20d6b9c2227a28",
+  "parent_commit": "0638322f3b84471f63ee867861fb75b13c97760b",
+  "tested_input_count": 270,
+  "tested_current_committed_bytes_sizes_modes_equal": true,
+  "environment_equal": true,
+  "environment_sha256": "e49ae7c075909a04df1d517f3fec72030e944b95829f4d7591ee877d7072c9c4",
+  "tested_source_sha256": "b9b8faec4c88ff142f9d74bbd679411f06a8322712143f91232cee88d3fe6511",
+  "postcommit_source_sha256": "2e9df0a7176a64aaad00db534a94564e6172ce2bf46ec03caac53da0face96e1",
+  "identity_note": "Only HEAD changes the combined source identity; all270 input contents/sizes/modes agree.",
+  "input_rows_sha256": "a77399eb9ae6fea7909e76907688b8f897ada7dfc89d314912f400a495b62d2f",
+  "postcommit_raw_manifest": "var/e05-revalidation-20261021/delivery.json",
+  "postcommit_raw_manifest_sha256": "17a385d0f16935abd3b25ca934b0107fcf00d54107352fd1081b224035321567",
+  "commit_name_status": [
+    "M\tplan/library-implementation/CHANGE_TRACKER.md",
+    "M\tplan/library-implementation/README.md",
+    "M\tplan/library-implementation/evidence/e05-final-validation.md",
+    "A\tplan/library-implementation/evidence/e05-revalidation-20261021.json",
+    "A\tplan/library-implementation/execution-e05-revalidation.md",
+    "M\tplan/library-implementation/handoff-e06.md",
+    "A\tplan/library-implementation/reviews/e05-completion-verification-20261021.md",
+    "A\tplan/library-implementation/reviews/e05-distribution-revalidation-20261021.md",
+    "A\tplan/library-implementation/reviews/e05-final-revalidation-20261021.md",
+    "A\tplan/library-implementation/reviews/e05-runtime-revalidation-20261021.md",
+    "M\tsrc/neo4j_graph_loader/_runtime.py",
+    "M\ttests/test_runtime_paths.py"
+  ],
+  "publication_or_push": false
+}
