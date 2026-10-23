@@ -1,10 +1,11 @@
 # Fresh final E06 audit resumed — 2026-10-23
 
-**Disposition: accepted for the exact amended source and fresh complete E06
-validation proof; no actionable findings remain.** Local commit and tested/
-committed/current equality remain required delivery steps. Historical acceptance
-and the first repaired candidate's 3,674-pass run are superseded for the final
-working product.
+**Disposition: accepted and delivered locally; no actionable findings remain.**
+The exact amended source, fresh complete E06 proof and independent postcommit
+279-input equality pass. Local repair commit is
+`c15c43c5c4eb7c6fe6920489fd5835a91bf72377`; postcommit closure below supersedes
+the earlier pending-delivery statements retained as review history. Historical
+acceptance and the first repair's 3,674-pass run remain superseded.
 
 ## Scope, independence and retained failure
 
@@ -164,3 +165,38 @@ test edit, private `.env` access, remote IMDb request, container/service/network
 mutation, foreign cleanup, commit, push or publication occurred. Real services
 were exclusively parent-owned; this review independently audited their exact
 source/helper, assertions, receipts, persistent artifacts and cleanup evidence.
+
+
+## Independent postcommit closure
+
+Local repair delivery is `c15c43c5c4eb7c6fe6920489fd5835a91bf72377`, parent
+`e78970cb310a7a265ae6af5db958edc613f1d923`. Independently inspected the actual
+19-file commit inventory, then read all **279 actual committed Git blobs** using
+their tree object identities. Each blob's SHA-256, byte length and executable
+mode matches the frozen tested row and current filesystem bytes/size/mode.
+This establishes equality directly; it does not rely on the parent's boolean
+receipt. No product/test diff exists after delivery.
+
+A newly computed safe environment capture matches the original environment and
+identity `96b072066210abc50c4d8cf2bf48460f11e2ebbea959f87983d47328e1d5135d`.
+Every captured source row is identical. Only the HEAD component changes combined
+source identity from the frozen
+`2ee3cb59488a8ee9a4f3d7e93eb7773c4de3d9bff1303585db313e6758f30fd5`
+to postcommit
+`6683c8165e9d0391247b451e0ebc45c10493d7dee4509423d0dd3699a1984156`.
+Verified the parent's raw delivery-manifest hash and every row of
+`evidence/e06-revalidation-postcommit-20261023.json`; reviewed SHA-256
+`6c195d4994d22d226ae6945bd0c342bda122b178ef038d2e92befa93600fe395`.
+Own independent result and executable are
+`var/e06-final-audit-resume-20261023/postcommit-independent-audit.json` and
+`audit_postcommit.py`.
+
+The follow-up changes only tracker, plan README, execution record, E07 handoff,
+parent completion report, this independent review, the machine proof's delivery
+addition, and the new postcommit equality record. Previously accepted machine
+proof fields and receipts remain unchanged. These documentation/evidence-only
+changes correctly record the actual repair SHA and equality without claiming
+E07 execution or publication. The following commit's own identity belongs to
+Git history under tracker rule5. This follow-up scope is approved; the parent
+may stage these explicit eight files and commit locally. No product gate rerun
+is needed for these bookkeeping bytes.

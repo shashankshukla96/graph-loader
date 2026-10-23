@@ -2,9 +2,11 @@
 
 **Latest gate — 2026-10-23:** amended E06 repairs and fresh proof are
 [independently accepted](reviews/e06-final-audit-resume-20261023.md), including
-3,713 full passes and actual installed service checks. Local delivery and
-postcommit equality are pending in the [tracker](CHANGE_TRACKER.md); E07 must
-wait for them and the user's execution request. Preserve the
+3,713 full passes and actual installed service checks. Local repair delivery is
+`c15c43c5c4eb7c6fe6920489fd5835a91bf72377`; [all279-input equality](evidence/e06-revalidation-postcommit-20261023.json) confirms
+committed/tested/current bytes, sizes and modes plus unchanged environment.
+The [tracker](CHANGE_TRACKER.md) records delivery. E07 handoff is ready;
+execute only when the user requests E07. Preserve the
 [revalidation report](reviews/e06-completion-verification-20261023.md) and all
 rejected repair evidence. Original delivery statements below are historical.
 

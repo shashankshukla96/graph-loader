@@ -8080,5 +8080,13 @@
       "exit_code": 0,
       "log": "var/e06-revalidation-20261023/final/plan-render.log"
     }
-  ]
+  ],
+  "delivery": {
+    "commit": "c15c43c5c4eb7c6fe6920489fd5835a91bf72377",
+    "postcommit_equality": "evidence/e06-revalidation-postcommit-20261023.json",
+    "tested_input_count": 279,
+    "all_tested_committed_current_bytes_sizes_modes_equal": true,
+    "environment_unchanged": true,
+    "followup": "Documentation/evidence only; own hash from Git history without recursive self-hashing."
+  }
 }

@@ -4,8 +4,9 @@
 [independently accepted](reviews/e06-final-audit-resume-20261023.md) after
 3,713 full test passes. The first repair's green result was rejected for a
 compaction defect; [current report](reviews/e06-completion-verification-20261023.md)
-preserves that history. Local delivery and input equality remain pending in the
-[tracker](CHANGE_TRACKER.md); E07 has not started. Original acceptance below
+preserves that history. Local delivery `c15c43c5c4eb7c6fe6920489fd5835a91bf72377` and
+[all279-input equality](evidence/e06-revalidation-postcommit-20261023.json) are recorded in the
+[tracker](CHANGE_TRACKER.md); E07 handoff is ready and execution has not started. Original acceptance below
 remains historical.
 
 Prepared 2026-10-15; latest E06 acceptance 2026-10-23. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E04 are accepted. [E04-R1](reviews/e04-completion-verification-20261020.md) reopened S3/S4 after the original delivery; the [repair evidence](evidence/e04-r1-repair.md) and [fresh final review](reviews/e04-r1-final-review.md) now close that finding. [E05 delivered-code revalidation](reviews/e05-completion-verification-20261021.md) repairs two low-priority findings and is independently accepted after 3,571 test passes; [E06 final independent acceptance](reviews/e06-final-adversarial-review.md) closes all three stories after frozen full/artifact/image/service/R1/B3 validation. E07–E12 have not started. Historical failures, reviews and results are preserved.**

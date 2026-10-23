@@ -2,7 +2,7 @@
 
 **Independently accepted: amended repairs and complete refreshed E06 proof.**
 [Fresh final review](e06-final-audit-resume-20261023.md) finds no actionable issue.
-Local commit/input equality remain delivery gates. No E07 implementation, push,
+Local delivery is `c15c43c5c4eb7c6fe6920489fd5835a91bf72377`; [all279 postcommit equality](../evidence/e06-revalidation-postcommit-20261023.json) passes. No E07 implementation, push,
 upload, release tag or publication is authorized by this review.
 
 Entry was clean `e78970cb310a7a265ae6af5db958edc613f1d923`, original E06
@@ -121,9 +121,10 @@ ordering, dependency or support promise; no E07–E12 implementation. Private
 `.env` and remote IMDb are untouched, and no foreign/global Docker cleanup,
 publication or push occurred.
 
-After independent final acceptance, inspect staging and commit locally, then
-record actual SHA and all279 tested/committed/current content/size/mode equality
-in a documentation-only follow-up under tracker rule5. The following commit's
-own hash is available from Git history without recursive self-hashing. E07 may
-be offered via the updated handoff only after those gates; executing E07 still
-requires the user's request.
+Independent final acceptance and precommit scope inspection pass. Local repair
+commit is `c15c43c5c4eb7c6fe6920489fd5835a91bf72377`. [Postcommit proof](../evidence/e06-revalidation-postcommit-20261023.json)
+compares all279 actual committed blobs/current files against tested bytes,
+sizes and modes; environment remains unchanged. The following documentation-only
+commit records this actual SHA under tracker rule5; its own identity is in Git
+history without recursive self-hashing. The updated E07 handoff is ready;
+executing E07 still requires the user's request.

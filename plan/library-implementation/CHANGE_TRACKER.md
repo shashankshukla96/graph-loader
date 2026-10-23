@@ -5,7 +5,7 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E06 revalidation independently accepted, local delivery pending, 2026-10-23:**
+**Current gate — E06 revalidation independently accepted and delivered locally, 2026-10-23:**
 [Fresh completion report](reviews/e06-completion-verification-20261023.md) records
 the shared database normalization repair and inherited parked-index ordering
 repair. The first index repair was rejected for a compaction gap; its green proof
@@ -14,8 +14,11 @@ inherited skips, 49 deselections and 19 known warnings, plus strict artifacts,
 two clean installs, four new immutable images/76 checks/four binds, 12 supervised
 R1 cases, exact no-skip B3 and real installed service proof. [Fresh independent
 acceptance](reviews/e06-final-audit-resume-20261023.md) finds no open issue.
-All279 tested inputs/environment match before/after. Actual local commit and
-postcommit equality are pending; E07 remains unstarted. No push/publication.
+Local repair delivery is `c15c43c5c4eb7c6fe6920489fd5835a91bf72377`. [Postcommit equality](evidence/e06-revalidation-postcommit-20261023.json)
+verifies all279 tested/committed/current bytes, sizes and modes and unchanged
+environment. This documentation-only follow-up records actual identity under
+rule5; its own hash comes from Git history. E07 handoff is ready; execution
+remains unstarted. No push/publication.
 
 **Original E06 acceptance (historical):**
 Clean entry `a2bc7bbd6e82350a25e9a127454452c360c1ceda`. User authorized only
@@ -57,7 +60,7 @@ E06–E12, upload, push, tag and publication remain unstarted/unauthorized.
 
 | Date | Epic / change | Exact local commit | What changed | Verification / evidence |
 | --- | --- | --- | --- | --- |
-| 2026-10-23 | E06 revalidation repair and fresh acceptance | Pending actual local commit | Shared database selection in topology probe; inherited index acknowledgement/replay ordering repair with bounded overlapping-call history. First repair rejected for compaction and retained. | [Execution/finding history](execution-e06-revalidation.md); amended source independently passes 159 index/boundary controls and 290 E06 checks; [fresh final acceptance](reviews/e06-final-audit-resume-20261023.md) and [3,713-pass/full proof](evidence/e06-revalidation-20261023.json) pass. Actual local delivery/equality pending. |
+| 2026-10-23 | E06 revalidation repair and fresh acceptance | `c15c43c5c4eb7c6fe6920489fd5835a91bf72377` | Shared database selection in topology probe; inherited index acknowledgement/replay ordering repair with bounded overlapping-call history. First repair rejected for compaction and retained. | [Execution/finding history](execution-e06-revalidation.md); amended source independently passes 159 index/boundary controls and 290 E06 checks; [fresh final acceptance](reviews/e06-final-audit-resume-20261023.md) and [3,713-pass/full proof](evidence/e06-revalidation-20261023.json) pass. [All279 postcommit equality](evidence/e06-revalidation-postcommit-20261023.json) passes. |
 | 2026-10-23 | E06 original delivery evidence | `e78970cb310a7a265ae6af5db958edc613f1d923` | Recorded original delivery hash, 279-input postcommit equality and E07 handoff. Documentation only; subsequent revalidation qualifies that original acceptance. | [Historical proof](evidence/e06-final-validation.md), [E07 handoff](handoff-e07.md). |
 | 2026-10-23 | E06.F1.S1, E06.F1.S2, E06.F2.S1 local delivery | `a034420f98a57d17c7591b23eb1011d7bc346d25` | Matching prebuilt component candidates, deterministic compatible image selection pinned to immutable IDs, strict shared mounts/service/coordinator preflight and narrow repeated-stop lifecycle repair. | [Final acceptance](reviews/e06-final-adversarial-review.md), [staged delivery](reviews/e06-delivery-review.md), [final proof](evidence/e06-final-validation.md), [279-input postcommit equality](evidence/e06-postcommit.json): 3,624 passes, four inherited skips, 49 deselections, 19 known warnings; strict artifacts/two installs/four images/two loads/12R1/exact B3 pass. |
 | 2026-10-21 | E05.F1.S1, E05.F1.S2, E05.F2.S1 local delivery | `2265e4fd1d9f76eb2813856157dea89a80b9f216` | Installed command/module/version, two finite schema resources, private persistent runtime paths and early preflight through planner/metrics/seven launcher roles. | [Final acceptance](reviews/e05-final-adversarial-review.md), [exact proof](evidence/e05-final-validation.md), [postcommit equality](evidence/e05-postcommit.json):3566passes,4 inherited skips,49 deselections,19 known warnings; artifacts/true no-Git rebuild/two installs/four images/12R1/B3 pass. |

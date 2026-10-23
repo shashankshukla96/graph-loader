@@ -100,5 +100,6 @@ inventory empty. Source/environment before/after match. See the
 [completion report](reviews/e06-completion-verification-20261023.md) and
 [machine receipts](evidence/e06-revalidation-20261023.json).
 [Fresh final independent whole-proof/document acceptance](reviews/e06-final-audit-resume-20261023.md)
-now passes with no actionable issue. Local delivery/equality remain required;
-no E07 execution or publication is inferred.
+now passes with no actionable issue. Local repair delivery is `c15c43c5c4eb7c6fe6920489fd5835a91bf72377`;
+[all279 tested/committed/current equality](evidence/e06-revalidation-postcommit-20261023.json) and unchanged environment
+are verified. No E07 execution or publication is inferred.
