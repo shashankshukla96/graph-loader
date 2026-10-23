@@ -128,7 +128,8 @@ structure, never read by an operator or ``replay-dlq``).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 import datetime as _datetime
 import json
 import logging
@@ -242,6 +243,15 @@ class _OutstandingRecord:
         return self.order < other.order
 
 
+@dataclass
+class _LocalMutations:
+    """Same-key ordering evidence retained until the last local caller finishes."""
+
+    callers: int = 0
+    applied: dict[int, int] = field(default_factory=dict)
+    installed: dict[int, int] = field(default_factory=dict)
+
+
 class ParkedPairIndex:
     """Per-record, cross-flush index of outstanding DLQ'd relationship rows.
 
@@ -310,6 +320,13 @@ class ParkedPairIndex:
         # EOF marker's own offset) this instance's poller has applied.
         # Read/written under _lock; drives caught_up()'s non-blocking check.
         self._applied_position: dict[int, int] = {}
+        # A confirmed local mutation is visible before its consumer echo.
+        # Older log entries must not undo it. Key by index-log partition
+        # and wire key; producer offsets never advance _applied_position.
+        self._pending_local_positions: dict[tuple[int, str], int] = {}
+        # Same-key history exists only while a local call can still return
+        # from producer I/O and install its confirmed mutation.
+        self._active_local_mutations: dict[str, _LocalMutations] = {}
         self._lock = threading.Lock()
         self._consumer = None
         self._watermark_consumer = None
@@ -489,8 +506,71 @@ class ParkedPairIndex:
 
     def _advance_position(self, partition: int, position: int) -> None:
         with self._lock:
-            if position > self._applied_position.get(partition, -1):
-                self._applied_position[partition] = position
+            self._advance_position_locked(partition, position)
+
+    def _advance_position_locked(self, partition: int, position: int) -> None:
+        if position > self._applied_position.get(partition, -1):
+            self._applied_position[partition] = position
+            # A compacted-away echo may never arrive. Later records or
+            # EOF still prove it cannot subsequently replay behind us.
+            passed = [
+                key for key, offset in self._pending_local_positions.items()
+                if key[0] == partition and offset < position
+            ]
+            for key in passed:
+                del self._pending_local_positions[key]
+
+    def _set_record_locked(self, pair_key, wire_key: str, record: _OutstandingRecord | None) -> None:
+        if record is not None:
+            self._by_pair.setdefault(pair_key, {})[wire_key] = record
+            return
+        records = self._by_pair.get(pair_key)
+        if records is not None:
+            records.pop(wire_key, None)
+            if not records:
+                del self._by_pair[pair_key]
+
+    @contextmanager
+    def _local_mutations(self, wire_keys: Sequence[str]):
+        """Register before producer I/O; duplicates and overlapping calls share history."""
+        wire_keys = tuple(wire_keys)
+        with self._lock:
+            for wire_key in wire_keys:
+                active = self._active_local_mutations.setdefault(wire_key, _LocalMutations())
+                active.callers += 1
+        try:
+            yield
+        finally:
+            with self._lock:
+                for wire_key in wire_keys:
+                    active = self._active_local_mutations[wire_key]
+                    active.callers -= 1
+                    if active.callers == 0:
+                        del self._active_local_mutations[wire_key]
+
+    def _install_confirmed(
+        self, pair_key, wire_key: str, record: _OutstandingRecord | None,
+        delivery_position: tuple[int, int],
+    ) -> None:
+        partition, offset = delivery_position
+        with self._lock:
+            active = self._active_local_mutations[wire_key]
+            # Only actual same-key state can supersede this installation.
+            # Compaction can let unrelated records advance the partition
+            # position beyond an echo the poller has never applied.
+            if active.applied.get(partition, -1) >= offset:
+                return
+            if active.installed.get(partition, -1) > offset:
+                return
+            key = (partition, wire_key)
+            if self._pending_local_positions.get(key, -1) > offset:
+                return  # a newer confirmed local installation already won
+            self._set_record_locked(pair_key, wire_key, record)
+            active.installed[partition] = offset
+            # Do not retain a past fence: repeated equal EOF positions
+            # need not advance again to prune it.
+            if self._applied_position.get(partition, -1) <= offset:
+                self._pending_local_positions[key] = offset
 
     def _apply(self, message) -> None:
         raw_key = message.key()
@@ -507,12 +587,12 @@ class ParkedPairIndex:
             return
         pair_key = self._key(source_key, target_key, original_topic)
         with self._lock:
+            partition, offset = message.partition(), message.offset()
+            if offset < self._pending_local_positions.get((partition, wire_key), -1):
+                self._advance_position_locked(partition, offset + 1)
+                return
             if value is None:
-                records = self._by_pair.get(pair_key)
-                if records is not None:
-                    records.pop(wire_key, None)
-                    if not records:
-                        del self._by_pair[pair_key]
+                self._set_record_locked(pair_key, wire_key, None)
             else:
                 try:
                     data = json.loads(value)
@@ -524,18 +604,17 @@ class ParkedPairIndex:
                         "ParkedPairIndex: unreadable value on topic %s, key=%s -- ignoring",
                         self._topic, wire_key,
                     )
-                    self._applied_position[message.partition()] = max(
-                        self._applied_position.get(message.partition(), -1), message.offset() + 1,
-                    )
+                    self._advance_position_locked(partition, offset + 1)
                     return
-                self._by_pair.setdefault(pair_key, {})[wire_key] = _OutstandingRecord(
+                self._set_record_locked(pair_key, wire_key, _OutstandingRecord(
                     original_topic=original_topic, original_partition=original_partition,
                     original_offset=original_offset, first_failure_at_ms=first_failure_at_ms, seq=seq,
                     labels=labels,
-                )
-            self._applied_position[message.partition()] = max(
-                self._applied_position.get(message.partition(), -1), message.offset() + 1,
-            )
+                ))
+            active = self._active_local_mutations.get(wire_key)
+            if active is not None:
+                active.applied[partition] = max(active.applied.get(partition, -1), offset)
+            self._advance_position_locked(partition, offset + 1)
 
     # ── Live path (every live-writer replica) ───────────────────────────
 
@@ -790,13 +869,13 @@ class ParkedPairIndex:
             if labels is not None:
                 payload["labels"] = list(labels)
         value = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        self._publish(wire_key, value)
         record = _OutstandingRecord(
             original_topic=original_topic, original_partition=original_partition,
             original_offset=original_offset, first_failure_at_ms=first_failure_at_ms, seq=seq, labels=labels,
         )
-        with self._lock:
-            self._by_pair.setdefault(pair_key, {})[wire_key] = record
+        with self._local_mutations((wire_key,)):
+            delivery_position = self._publish(wire_key, value)
+            self._install_confirmed(pair_key, wire_key, record, delivery_position)
 
     def remove(
         self, source_key: object, target_key: object, *,
@@ -818,14 +897,10 @@ class ParkedPairIndex:
         """
         self._require_writable()
         wire_key = _record_wire_key(source_key, target_key, original_topic, original_partition, original_offset)
-        self._publish(wire_key, None)
         pair_key = self._key(source_key, target_key, original_topic)
-        with self._lock:
-            records = self._by_pair.get(pair_key)
-            if records is not None:
-                records.pop(wire_key, None)
-                if not records:
-                    del self._by_pair[pair_key]
+        with self._local_mutations((wire_key,)):
+            delivery_position = self._publish(wire_key, None)
+            self._install_confirmed(pair_key, wire_key, None, delivery_position)
 
     def remove_many(
         self, records: "Sequence[tuple[object, object, str, int, int]]",
@@ -840,18 +915,28 @@ class ParkedPairIndex:
         """
         self._require_writable()
         assert self._producer is not None, "ParkedPairIndex: writable instance has no producer (start() not called?)"
-        results: list[Exception | None] = [None] * len(records)
-        delivered: set[int] = set()
-        failed: dict[int, Exception] = {}
-        keys: list[tuple[str, str]] = []
-        produced: list[int] = []
-        for position, (source_key, target_key, topic, partition, offset) in enumerate(records):
-            wire_key = _record_wire_key(source_key, target_key, topic, partition, offset)
-            keys.append((wire_key, self._key(source_key, target_key, topic)))
+        # Resolve every key before registration/I/O, so a malformed later
+        # input cannot leave earlier operations registered or produced.
+        keys = [
+            (_record_wire_key(source_key, target_key, topic, partition, offset),
+             self._key(source_key, target_key, topic))
+            for source_key, target_key, topic, partition, offset in records
+        ]
+        with self._local_mutations([wire_key for wire_key, _pair_key in keys]):
+            return self._remove_many_confirmed(keys)
 
-            def on_delivery(error, _message, position=position) -> None:
+    def _remove_many_confirmed(self, keys: Sequence[tuple[str, Hashable]]) -> list[Exception | None]:
+        results: list[Exception | None] = [None] * len(keys)
+        delivered: dict[int, tuple[int, int]] = {}
+        failed: dict[int, Exception] = {}
+        produced: list[int] = []
+        for position, (wire_key, _pair_key) in enumerate(keys):
+            def on_delivery(error, message, position=position) -> None:
                 if error is None:
-                    delivered.add(position)
+                    try:
+                        delivered[position] = self._delivery_position(message)
+                    except ParkedPairIndexError as exc:
+                        failed[position] = exc
                 else:
                     failed[position] = ParkedPairIndexError(
                         f"parked-pair index publish to {self._topic} failed: {error}"
@@ -879,28 +964,41 @@ class ParkedPairIndex:
                     results[position] = flush_error or ParkedPairIndexError(
                         f"parked-pair index publish to {self._topic} has an undelivered message"
                     )
-        with self._lock:
-            for position, (wire_key, pair_key) in enumerate(keys):
-                if results[position] is not None:
-                    continue
-                pair_records = self._by_pair.get(pair_key)
-                if pair_records is not None:
-                    pair_records.pop(wire_key, None)
-                    if not pair_records:
-                        del self._by_pair[pair_key]
+        for position, (wire_key, pair_key) in enumerate(keys):
+            if results[position] is None:
+                self._install_confirmed(pair_key, wire_key, None, delivered[position])
         return results
 
-    def _publish(self, wire_key: str, value: bytes | None) -> None:
+    def _delivery_position(self, message) -> tuple[int, int]:
+        try:
+            topic, partition, offset = message.topic(), message.partition(), message.offset()
+        except Exception as exc:
+            raise ParkedPairIndexError("parked-pair index delivery has no valid broker position") from exc
+        if (
+            topic != self._topic
+            or type(partition) is not int or partition < 0 or partition not in self._partitions
+            or type(offset) is not int or offset < 0
+        ):
+            raise ParkedPairIndexError("parked-pair index delivery has no valid broker position")
+        return partition, offset
+
+    def _publish(self, wire_key: str, value: bytes | None) -> tuple[int, int]:
         """Synchronously publish and block until Kafka acknowledges, raising
         on any failure (review finding M3 — mirrors
         ``dead_letter.DeadLetterProducer.publish``'s discipline exactly)."""
         assert self._producer is not None, "ParkedPairIndex: writable instance has no producer (start() not called?)"
         delivery_error: Exception | None = None
+        delivery_position: tuple[int, int] | None = None
 
-        def on_delivery(error, _message) -> None:
-            nonlocal delivery_error
+        def on_delivery(error, message) -> None:
+            nonlocal delivery_error, delivery_position
             if error is not None:
                 delivery_error = error
+            else:
+                try:
+                    delivery_position = self._delivery_position(message)
+                except ParkedPairIndexError as exc:
+                    delivery_error = exc
 
         try:
             self._producer.produce(
@@ -915,6 +1013,9 @@ class ParkedPairIndex:
             )
         if delivery_error is not None:
             raise ParkedPairIndexError(f"parked-pair index publish to {self._topic} failed: {delivery_error}")
+        if delivery_position is None:
+            raise ParkedPairIndexError("parked-pair index publish has no confirmed broker position")
+        return delivery_position
 
 
 def _topic_partitions(consumer, topic: str, timeout: float = 30.0) -> list[int]:

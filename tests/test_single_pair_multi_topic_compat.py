@@ -123,7 +123,11 @@ def _index(schema, edge) -> list:
     index = ParkedPairIndex(topic=_names(edge)[2], bootstrap_servers="kafka:1", writable=True,
                             sequenced=edge.is_multi_topic)
     published: list = []
-    index._publish = lambda key, value: published.append((key, value))
+    def capture_publish(key, value):
+        published.append((key, value))
+        return (0, len(published) - 1)
+
+    index._publish = capture_publish
     for offset, topic in enumerate(reversed(edge.topics)):  # the later-listed topic first
         index.add(record.source_key, record.target_key, original_topic=topic, original_partition=1,
                   original_offset=10 + offset, first_failure_at_ms=FIXED_NOW_MS)

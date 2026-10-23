@@ -124,6 +124,7 @@ def probe(schema_hash, marker, token):
                 assert hashlib.file_digest(source, 'sha256').hexdigest() == os.environ['GRAPH_LOADER_PREFLIGHT_PLAN_SHA256']
         from neo4j import GraphDatabase
         from neo4j.exceptions import AuthError, ClientError
+        from neo4j_graph_loader.utils.neo4j_session import open_session
         phase = 'neo4j-connect'
         driver = GraphDatabase.driver(os.environ['NEO4J_URI'],
             auth=(os.environ['NEO4J_USERNAME'], os.environ['NEO4J_PASSWORD']),
@@ -131,7 +132,7 @@ def probe(schema_hash, marker, token):
         try:
             driver.verify_connectivity()
             phase = 'neo4j-database'
-            with driver.session(database=os.environ.get('NEO4J_DATABASE') or None) as session:
+            with open_session(driver) as session:
                 session.run('RETURN 1').consume()
         except AuthError:
             phase = 'neo4j-auth'

@@ -48,9 +48,7 @@ def _schema(**edge_overrides) -> GraphSchema:
 
 class _AckingIndexProducer(_IndexProducer):
     def produce(self, topic, key=None, value=None, on_delivery=None, **kwargs) -> None:
-        super().produce(topic, key=key, value=value)
-        if on_delivery is not None:
-            on_delivery(None, MagicMock())
+        super().produce(topic, key=key, value=value, on_delivery=on_delivery)
 
 
 def _index(log: _FakeTopicLog, *, sequenced: bool) -> ParkedPairIndex:

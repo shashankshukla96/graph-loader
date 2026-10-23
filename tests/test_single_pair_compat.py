@@ -145,7 +145,11 @@ def _index(schema, edge) -> dict:
     index = parked_pair_index.ParkedPairIndex(topic="compat.dlq.parked-pairs", bootstrap_servers="kafka:1",
                                               writable=True)
     published: list = []
-    index._publish = lambda key, value: published.append((key, value))
+    def capture_publish(key, value):
+        published.append((key, value))
+        return (0, len(published) - 1)
+
+    index._publish = capture_publish
     index.add(record.source_key, record.target_key, original_topic=edge.topic, original_partition=2,
               original_offset=17, first_failure_at_ms=FIXED_NOW_MS)
     [(add_key, add_value)] = published

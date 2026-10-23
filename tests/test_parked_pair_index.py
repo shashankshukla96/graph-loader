@@ -13,6 +13,7 @@ crash/re-read.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 import json
 import threading
 
@@ -30,9 +31,11 @@ class _FakeTopicLog:
         self.records: list[tuple[bytes, bytes | None]] = []
         self.lock = threading.Lock()
 
-    def append(self, key: bytes, value: bytes | None) -> None:
+    def append(self, key: bytes, value: bytes | None) -> int:
         with self.lock:
+            offset = len(self.records)
             self.records.append((key, value))
+            return offset
 
     def high_watermark(self) -> int:
         with self.lock:
@@ -117,8 +120,10 @@ class _FakeProducer:
     def __init__(self, config: dict, log: _FakeTopicLog) -> None:
         self._log = log
 
-    def produce(self, topic, key=None, value=None, **kwargs) -> None:
-        self._log.append(key, value)
+    def produce(self, topic, key=None, value=None, on_delivery=None, **kwargs) -> None:
+        offset = self._log.append(key, value)
+        if on_delivery is not None:
+            on_delivery(None, _FakeMessage(topic, 0, offset, key, value))
 
     def flush(self, *args, **kwargs) -> int:
         return 0
@@ -141,6 +146,521 @@ def _seed(log: _FakeTopicLog, source_key, target_key, *, original_topic, origina
     key = _record_wire_key(source_key, target_key, original_topic, original_partition, original_offset).encode("utf-8")
     value = json.dumps({"first_failure_at_ms": first_failure_at_ms}).encode("utf-8")
     log.append(key, value)
+
+
+def _paused_writer(log=None, producer_class=_FakeProducer):
+    """Real index with its poller paused so tests choose exact replay boundaries."""
+    log = log if log is not None else _FakeTopicLog()
+    index = ParkedPairIndex(
+        topic="t.dlq.parked-pairs", bootstrap_servers="unused:1", writable=True,
+        consumer_factory=lambda config: _FakeConsumer(config, log),
+        producer_factory=lambda config: producer_class(config, log), poll_timeout_seconds=0.01,
+    )
+    index.start()
+    index._stop_event.set()
+    index._thread.join(timeout=2)
+    assert not index._thread.is_alive()
+    return index, log
+
+
+_RACE_IDENTITY = {"original_topic": "knows", "original_partition": 0, "original_offset": 1}
+
+
+def _race_add(index):
+    index.add("a", "b", **_RACE_IDENTITY, first_failure_at_ms=1000)
+
+
+def _race_remove(index, *, bulk=False):
+    if bulk:
+        assert index.remove_many([("a", "b", "knows", 0, 1)]) == [None]
+    else:
+        index.remove("a", "b", **_RACE_IDENTITY)
+
+
+def _replay_next(index, offset):
+    message = index._consumer.poll(0)
+    assert message.error() is None
+    assert message.offset() == offset
+    index._apply(message)
+
+
+@contextmanager
+def _paused_local_install(index, mutate):
+    """Keep a real mutating caller alive after its acknowledgement, before install."""
+    paused, resume = threading.Event(), threading.Event()
+    errors = []
+    install = index._install_confirmed
+
+    def install_when_resumed(*args):
+        if threading.current_thread() is caller:
+            paused.set()
+            assert resume.wait(5), "local caller was never resumed"
+        return install(*args)
+
+    def call():
+        try:
+            mutate(index)
+        except BaseException as exc:
+            errors.append(exc)
+
+    caller = threading.Thread(target=call)
+    index._install_confirmed = install_when_resumed
+    caller.start()
+    try:
+        assert paused.wait(5), "local caller did not reach installation"
+        yield
+    finally:
+        resume.set()
+        caller.join(timeout=5)
+        index._install_confirmed = install
+        assert not caller.is_alive(), "local caller did not finish"
+        assert not errors, errors
+
+
+@pytest.mark.parametrize("bulk", [False, True])
+def test_confirmed_remove_is_not_undone_by_an_older_add_echo(bulk):
+    index, _ = _paused_writer()
+    try:
+        _race_add(index)
+        _race_remove(index, bulk=bulk)
+        assert not index.contains("a", "b", **_RACE_IDENTITY)
+        _replay_next(index, 0)
+        assert not index.contains("a", "b", **_RACE_IDENTITY)
+        assert not index.is_blocked("a", "b")
+        _replay_next(index, 1)
+        assert not index.contains("a", "b", **_RACE_IDENTITY)
+    finally:
+        index.stop()
+
+
+def test_confirmed_readd_is_not_undone_by_an_older_tombstone_echo():
+    index, _ = _paused_writer()
+    try:
+        _race_add(index)
+        _race_remove(index)
+        _race_add(index)
+        _replay_next(index, 0)
+        _replay_next(index, 1)
+        assert index.contains("a", "b", **_RACE_IDENTITY)
+        assert index.is_blocked("a", "b")
+        _replay_next(index, 2)
+        assert index.contains("a", "b", **_RACE_IDENTITY)
+    finally:
+        index.stop()
+
+
+@pytest.mark.parametrize("operation", ["add", "remove", "bulk"])
+@pytest.mark.parametrize("foreign_write", [False, True])
+def test_echo_or_newer_foreign_write_before_flush_returns_wins(operation, foreign_write):
+    index, log = _paused_writer()
+    try:
+        removing = operation != "add"
+        if removing:
+            _race_add(index)
+            _replay_next(index, 0)
+        old_flush = index._producer.flush
+
+        def flush_with_interleaving(*args, **kwargs):
+            result = old_flush(*args, **kwargs)
+            _replay_next(index, 1 if removing else 0)
+            if foreign_write:
+                key = _record_wire_key("a", "b", **_RACE_IDENTITY).encode()
+                value = b'{"first_failure_at_ms":2000}' if removing else None
+                offset = log.append(key, value)
+                _replay_next(index, offset)
+            return result
+
+        index._producer.flush = flush_with_interleaving
+        if removing:
+            _race_remove(index, bulk=operation == "bulk")
+        else:
+            _race_add(index)
+        expected = removing if foreign_write else not removing
+        assert index.contains("a", "b", **_RACE_IDENTITY) is expected
+        assert index.is_blocked("a", "b") is expected
+        assert index.caught_up(index.watermark_snapshot())
+        assert not index._pending_local_positions
+        index._producer.flush = old_flush
+    finally:
+        index.stop()
+
+
+@pytest.mark.parametrize("newer_progress", ["none", "same_key_echo", "unrelated_record", "eof"])
+@pytest.mark.parametrize("older_operation", ["add", "remove", "bulk"])
+def test_older_confirmed_local_install_cannot_overwrite_a_newer_one(newer_progress, older_operation):
+    index, log = _paused_writer()
+    try:
+        removing = older_operation != "add"
+        if removing:
+            _race_add(index)
+            _replay_next(index, 0)
+        mutate = (lambda writer: _race_remove(writer, bulk=older_operation == "bulk")) if removing else _race_add
+        with _paused_local_install(index, mutate):
+            if removing:
+                _race_add(index)
+            else:
+                _race_remove(index)
+            assert len(index._active_local_mutations) == 1
+            active = next(iter(index._active_local_mutations.values()))
+            assert active.callers == 1  # the newer caller ended; the older still needs its history
+            newer_offset = log.high_watermark() - 1
+            if newer_progress == "same_key_echo":
+                # Both messages are still consumed in partition order.
+                _replay_next(index, newer_offset - 1)
+                _replay_next(index, newer_offset)
+            elif newer_progress == "unrelated_record":
+                _seed(log, "x", "y", original_topic="knows", original_partition=0, original_offset=2)
+                # Compaction discarded the older same-key writes; the poller
+                # has only applied the unrelated later record.
+                index._consumer._next_offset = newer_offset + 1
+                _replay_next(index, newer_offset + 1)
+            elif newer_progress == "eof":
+                index._advance_position(0, newer_offset + 1)
+            if newer_progress != "none":
+                assert not index._pending_local_positions
+        assert index.contains("a", "b", **_RACE_IDENTITY) is removing
+        assert index.is_blocked("a", "b") is removing
+        assert not index._active_local_mutations
+    finally:
+        index.stop()
+
+
+@pytest.mark.parametrize("operation", ["add", "remove", "bulk"])
+def test_compacted_echo_and_unrelated_progress_do_not_drop_a_confirmed_mutation(operation):
+    index, log = _paused_writer()
+    try:
+        removing = operation != "add"
+        if removing:
+            _race_add(index)
+            _replay_next(index, 0)
+        old_flush = index._producer.flush
+
+        def compact_then_apply_unrelated(*args, **kwargs):
+            result = old_flush(*args, **kwargs)
+            key = _record_wire_key("a", "b", **_RACE_IDENTITY).encode()
+            other_key = _record_wire_key("x", "y", "knows", 0, 2).encode()
+            other_offset = log.append(other_key, b'{"first_failure_at_ms":2000}')
+            # The future same-key record permits Kafka to compact the local
+            # echo, but has not yet reached this instance's consumer.
+            future_value = b'{"first_failure_at_ms":3000}' if removing else None
+            log.append(key, future_value)
+            index._consumer._next_offset = other_offset
+            _replay_next(index, other_offset)
+            assert not index.caught_up(index.watermark_snapshot())
+            return result
+
+        index._producer.flush = compact_then_apply_unrelated
+        if removing:
+            _race_remove(index, bulk=operation == "bulk")
+        else:
+            _race_add(index)
+        assert index.is_blocked("x", "y")
+        assert index.contains("a", "b", **_RACE_IDENTITY) is (not removing)
+        assert index.is_blocked("a", "b") is (not removing)
+        # Installing behind the already-consumed frontier must not create a
+        # fence that repeated equal EOF positions could leave forever.
+        assert not index._pending_local_positions
+        assert not index._active_local_mutations
+        position = index._applied_position[0]
+        index._advance_position(0, position)
+        assert not index._pending_local_positions
+        _replay_next(index, log.high_watermark() - 1)
+        assert index.contains("a", "b", **_RACE_IDENTITY) is removing
+    finally:
+        index.stop()
+
+
+@pytest.mark.parametrize("operation", ["add", "remove", "bulk"])
+@pytest.mark.parametrize("bad_value", [b"not-json", b"{}", b'{"first_failure_at_ms":1,"seq":[]}'])
+def test_ignored_newer_same_key_value_does_not_veto_a_confirmed_install(operation, bad_value):
+    index, log = _paused_writer()
+    try:
+        removing = operation != "add"
+        if removing:
+            _race_add(index)
+            _replay_next(index, 0)
+        old_flush = index._producer.flush
+
+        def apply_ignored_value(*args, **kwargs):
+            result = old_flush(*args, **kwargs)
+            key = _record_wire_key("a", "b", **_RACE_IDENTITY).encode()
+            offset = log.append(key, bad_value)
+            # A later malformed write may compact the valid echo, but it
+            # supplies no valid state to supersede that local mutation.
+            index._consumer._next_offset = offset
+            _replay_next(index, offset)
+            assert index.caught_up(index.watermark_snapshot())
+            return result
+
+        index._producer.flush = apply_ignored_value
+        if removing:
+            _race_remove(index, bulk=operation == "bulk")
+        else:
+            _race_add(index)
+        assert index.contains("a", "b", **_RACE_IDENTITY) is (not removing)
+        assert not index._pending_local_positions
+        assert not index._active_local_mutations
+    finally:
+        index.stop()
+
+
+@pytest.mark.parametrize("operation", ["add", "remove", "bulk"])
+def test_same_key_history_is_registered_before_produce_without_holding_state_lock(operation):
+    index, log = _paused_writer()
+    try:
+        removing = operation != "add"
+        if removing:
+            _race_add(index)
+            _replay_next(index, 0)
+        produce, flush = index._producer.produce, index._producer.flush
+
+        def produce_with_foreign_write(topic, key=None, value=None, on_delivery=None, **kwargs):
+            assert index._lock.acquire(blocking=False)
+            index._lock.release()
+            assert index._active_local_mutations[key.decode()].callers == 1
+            produce(topic, key=key, value=value, on_delivery=on_delivery, **kwargs)
+            offset = log.append(key, b'{"first_failure_at_ms":2000}' if removing else None)
+            # Skip the compacted local echo and apply the newer valid state
+            # during produce(), before the mutator even enters flush().
+            index._consumer._next_offset = offset
+            _replay_next(index, offset)
+
+        def flush_without_state_lock(*args, **kwargs):
+            assert index._lock.acquire(blocking=False)
+            index._lock.release()
+            return flush(*args, **kwargs)
+
+        index._producer.produce = produce_with_foreign_write
+        index._producer.flush = flush_without_state_lock
+        if removing:
+            _race_remove(index, bulk=operation == "bulk")
+        else:
+            _race_add(index)
+        assert index.contains("a", "b", **_RACE_IDENTITY) is removing
+        assert not index._active_local_mutations
+    finally:
+        index.stop()
+
+
+def test_local_ack_does_not_skip_unrelated_keys_or_satisfy_the_read_barrier():
+    index, log = _paused_writer()
+    try:
+        _seed(log, "x", "y", original_topic="knows", original_partition=0, original_offset=2)
+        _race_add(index)  # acknowledged at index-log offset 1, unrelated key is at 0
+        snapshot = index.watermark_snapshot()
+        assert not index.caught_up(snapshot)
+        assert not index.is_blocked("x", "y")
+        _replay_next(index, 0)
+        assert index.is_blocked("x", "y")
+        assert not index.caught_up(snapshot)
+        _replay_next(index, 1)
+        assert index.caught_up(snapshot)
+        assert index.is_blocked("a", "b")
+        assert not index._pending_local_positions
+    finally:
+        index.stop()
+
+
+@pytest.mark.parametrize("compacted_progress", ["eof", "later_record"])
+def test_pending_fence_retires_only_after_its_partition_passes_the_offset(compacted_progress):
+    index, _ = _paused_writer()
+    try:
+        _race_add(index)
+        assert index._pending_local_positions
+        index._advance_position(1, 100)  # another partition cannot retire it
+        assert index._pending_local_positions
+        index._advance_position(0, 0)  # NEXT offset equal to ack offset has not passed it
+        assert index._pending_local_positions
+        if compacted_progress == "eof":
+            def poll_eof(_timeout):
+                index._stop_event.set()
+                return _FakeMessage(index._topic, 0, 1, None, None, error=_eof_error())
+
+            index._consumer.poll = poll_eof
+            index._stop_event.clear()
+            index._poll_forever()
+        else:
+            key = _record_wire_key("x", "y", "knows", 0, 2).encode()
+            index._apply(_FakeMessage(index._topic, 0, 3, key, b'{"first_failure_at_ms":2000}'))
+            assert index.is_blocked("x", "y")
+        assert not index._pending_local_positions
+        assert index.is_blocked("a", "b")
+    finally:
+        index.stop()
+
+
+@pytest.mark.parametrize("operation", ["add", "remove", "bulk"])
+@pytest.mark.parametrize("bad_ack", [
+    "missing_callback", "missing_message", "wrong_topic", "unknown_partition", "negative_partition",
+    "bool_partition", "string_partition", "negative_offset", "bool_offset", "string_offset",
+])
+def test_unconfirmed_or_malformed_delivery_never_installs_locally(operation, bad_ack):
+    class InvalidProducer(_FakeProducer):
+        def produce(self, topic, key=None, value=None, on_delivery=None, **kwargs):
+            if bad_ack == "missing_callback":
+                return
+            message = _FakeMessage(topic, 0, 1, key, value)
+            if bad_ack == "missing_message":
+                message = None
+            elif bad_ack == "wrong_topic":
+                message._topic = "another-index"
+            elif bad_ack == "unknown_partition":
+                message._partition = 1
+            elif bad_ack == "negative_partition":
+                message._partition = -1
+            elif bad_ack == "bool_partition":
+                message._partition = False
+            elif bad_ack == "string_partition":
+                message._partition = "0"
+            elif bad_ack == "negative_offset":
+                message._offset = -1
+            elif bad_ack == "bool_offset":
+                message._offset = True
+            elif bad_ack == "string_offset":
+                message._offset = "1"
+            on_delivery(None, message)
+
+    log = _FakeTopicLog()
+    if operation != "add":
+        _seed(log, "a", "b", **_RACE_IDENTITY)
+    index, _ = _paused_writer(log, InvalidProducer)
+    try:
+        if operation == "bulk":
+            (error,) = index.remove_many([("a", "b", "knows", 0, 1)])
+            assert isinstance(error, ParkedPairIndexError)
+        else:
+            with pytest.raises(ParkedPairIndexError):
+                (_race_add if operation == "add" else _race_remove)(index)
+        assert index.contains("a", "b", **_RACE_IDENTITY) is (operation != "add")
+        assert not index._pending_local_positions
+        assert not index._active_local_mutations
+    finally:
+        index.stop()
+
+
+def test_bulk_partial_delivery_installs_only_confirmed_records_with_one_flush():
+    class PartialProducer(_FakeProducer):
+        def __init__(self, config, log):
+            super().__init__(config, log)
+            self.produced = self.flushes = 0
+
+        def produce(self, topic, key=None, value=None, on_delivery=None, **kwargs):
+            position = self.produced
+            self.produced += 1
+            if position == 0:
+                super().produce(topic, key=key, value=value, on_delivery=on_delivery)
+            elif position == 1:
+                on_delivery(None, None)  # malformed success is not a confirmed removal
+            # The final publication has no callback at all.
+
+        def flush(self, *args, **kwargs):
+            self.flushes += 1
+            return 1  # one outstanding publication; the first callback did confirm
+
+    log = _FakeTopicLog()
+    for offset in range(3):
+        _seed(log, f"a{offset}", "b", original_topic="knows", original_partition=0, original_offset=offset)
+    index, _ = _paused_writer(log, PartialProducer)
+    try:
+        results = index.remove_many([(f"a{i}", "b", "knows", 0, i) for i in range(3)])
+        assert results[0] is None
+        assert all(isinstance(error, ParkedPairIndexError) for error in results[1:])
+        assert not index.is_blocked("a0", "b")
+        assert index.is_blocked("a1", "b") and index.is_blocked("a2", "b")
+        assert index._producer.flushes == 1
+        assert not index.caught_up(index.watermark_snapshot())
+        assert not index._active_local_mutations
+    finally:
+        index.stop()
+
+
+def test_duplicate_bulk_keys_keep_history_until_every_registration_ends():
+    log = _FakeTopicLog()
+    _seed(log, "a", "b", **_RACE_IDENTITY)
+    index, _ = _paused_writer(log)
+    try:
+        wire_key = _record_wire_key("a", "b", **_RACE_IDENTITY)
+        produce, flush = index._producer.produce, index._producer.flush
+        caller_counts = []
+
+        def observe_registration(*args, **kwargs):
+            caller_counts.append(index._active_local_mutations[wire_key].callers)
+            return produce(*args, **kwargs)
+
+        def newer_add_and_prune(*args, **kwargs):
+            result = flush(*args, **kwargs)
+            index._producer.flush = flush
+            _race_add(index)
+            assert index._active_local_mutations[wire_key].callers == 2
+            # Both duplicate removals return after the newer add and after
+            # its echo fence has already been pruned by partition progress.
+            index._advance_position(0, log.high_watermark())
+            assert not index._pending_local_positions
+            return result
+
+        index._producer.produce = observe_registration
+        index._producer.flush = newer_add_and_prune
+        assert index.remove_many([("a", "b", "knows", 0, 1)] * 2) == [None, None]
+        assert caller_counts == [2, 2, 3]
+        assert index.contains("a", "b", **_RACE_IDENTITY)
+        assert not index._active_local_mutations
+    finally:
+        index.stop()
+
+
+@pytest.mark.parametrize("operation", ["add", "remove", "bulk"])
+@pytest.mark.parametrize("failure", ["produce", "flush", "delivery", "install"])
+def test_local_context_is_released_on_every_publication_or_install_failure(operation, failure):
+    class FailureProducer(_FakeProducer):
+        def produce(self, topic, key=None, value=None, on_delivery=None, **kwargs):
+            assert index._active_local_mutations[key.decode()].callers == 1
+            if failure == "produce":
+                raise RuntimeError("produce failed")
+            if failure == "flush":
+                return  # no delivery callback before the failing flush
+            if failure == "delivery":
+                on_delivery(RuntimeError("delivery failed"), None)
+                return
+            super().produce(topic, key=key, value=value, on_delivery=on_delivery)
+
+        def flush(self, *args, **kwargs):
+            if failure == "flush":
+                raise RuntimeError("flush failed")
+            return 0
+
+    index, _ = _paused_writer(producer_class=FailureProducer)
+    try:
+        if failure == "install":
+            def failed_install(*args):
+                raise RuntimeError("install failed")
+
+            index._install_confirmed = failed_install
+        if operation == "bulk" and failure != "install":
+            (error,) = index.remove_many([("a", "b", "knows", 0, 1)])
+            assert isinstance(error, ParkedPairIndexError)
+        else:
+            with pytest.raises(RuntimeError, match=f"{failure} failed"):
+                if operation == "bulk":
+                    index.remove_many([("a", "b", "knows", 0, 1)])
+                else:
+                    (_race_add if operation == "add" else _race_remove)(index)
+        assert not index._active_local_mutations
+        assert not index._pending_local_positions
+    finally:
+        index.stop()
+
+
+def test_bulk_resolves_all_keys_before_registering_or_producing_anything():
+    index, log = _paused_writer(producer_class=_DeliveringProducer)
+    try:
+        with pytest.raises(TypeError):
+            index.remove_many([("a", "b", "knows", 0, 1), (object(), "b", "knows", 0, 2)])
+        assert not index._active_local_mutations
+        assert not index._pending_local_positions
+        assert not log.records
+        assert index._producer.flushes == 0
+    finally:
+        index.stop()
 
 
 # ── is_blocked / rebuild-on-start ────────────────────────────────────────
@@ -660,8 +1180,7 @@ class _DeliveringProducer(_FakeProducer):
         self.flushes = 0
 
     def produce(self, topic, key=None, value=None, on_delivery=None, **kwargs) -> None:
-        super().produce(topic, key=key, value=value)
-        on_delivery(None, None)
+        super().produce(topic, key=key, value=value, on_delivery=on_delivery)
 
     def flush(self, *args, **kwargs) -> int:
         self.flushes += 1

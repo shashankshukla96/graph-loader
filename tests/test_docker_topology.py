@@ -119,6 +119,49 @@ def test_container_probe_reports_mount_failure_without_exception_text(monkeypatc
     assert capsys.readouterr().out.strip()=='{"ok": false, "phase": "mount"}'
 
 
+@pytest.mark.parametrize('setting,expected', [
+    (None, None), ('', None), ('   ', None), (' graph_db ', 'graph_db'), ('graph_db', 'graph_db'),
+])
+def test_probe_uses_shared_database_selection_and_completes_metadata(tmp_path, monkeypatch, capsys, setting, expected):
+    import hashlib
+    from neo4j.exceptions import ClientError
+    from neo4j_graph_loader import _docker_preflight
+
+    schema = tmp_path/'runtime_schema.yaml'
+    schema.write_bytes(b'schema')
+    for name in ('rejections', 'plans', 'spill', 'timings'):
+        directory = tmp_path/'preflight'/name
+        directory.mkdir(parents=True)
+        (directory/('owned-'+name)).write_text('token')
+    monkeypatch.setattr(_docker_preflight, 'Path', lambda path: tmp_path/str(path).removeprefix('/app/'))
+    if setting is None:
+        monkeypatch.delenv('NEO4J_DATABASE', raising=False)
+    else:
+        monkeypatch.setenv('NEO4J_DATABASE', setting)
+    for key, value in {'NEO4J_URI': 'bolt://unused:1', 'NEO4J_USERNAME': 'owned',
+                       'NEO4J_PASSWORD': 'owned-test', 'KAFKA_BOOTSTRAP_SERVERS': 'bootstrap:9092'}.items():
+        monkeypatch.setenv(key, value)
+    driver = MagicMock()
+    def session(**kwargs):
+        if kwargs.get('database') != expected:
+            raise ClientError('wrong database selected')
+        return MagicMock()
+    driver.session.side_effect = session
+    monkeypatch.setattr('neo4j.GraphDatabase.driver', lambda *args, **kwargs: driver)
+    admin = MagicMock()
+    admin.list_topics.return_value = SimpleNamespace(brokers={1: SimpleNamespace(host='advertised', port=9093)})
+    monkeypatch.setattr('confluent_kafka.admin.AdminClient', lambda *args, **kwargs: admin)
+    connect = MagicMock()
+    monkeypatch.setattr('socket.create_connection', connect)
+
+    assert probe(hashlib.sha256(b'schema').hexdigest(), 'owned', 'token') == 0
+    assert capsys.readouterr().out.strip() == '{"ok": true}'
+    assert driver.session.call_args.kwargs.get('database') == expected
+    admin.list_topics.assert_called_once_with(timeout=8)
+    assert [call.args[0] for call in connect.call_args_list] == [('bootstrap', 9092), ('advertised', 9093)]
+    driver.close.assert_called_once()
+
+
 def test_probe_cleanup_failure_prevents_success(tmp_path):
     s=service(tmp_path);container=s.client.api
     def wait(*args,**kwargs):

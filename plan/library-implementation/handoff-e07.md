@@ -1,5 +1,13 @@
 # E07 next-agent handoff — installed regression runner and inventory
 
+**Latest gate — 2026-10-23:** amended E06 repairs and fresh proof are
+[independently accepted](reviews/e06-final-audit-resume-20261023.md), including
+3,713 full passes and actual installed service checks. Local delivery and
+postcommit equality are pending in the [tracker](CHANGE_TRACKER.md); E07 must
+wait for them and the user's execution request. Preserve the
+[revalidation report](reviews/e06-completion-verification-20261023.md) and all
+rejected repair evidence. Original delivery statements below are historical.
+
 Prepared2026-10-22. **E07 is not started or authorized by the E06 task.** Begin
 only after E06 final independent acceptance and actual local delivery/equality
 are recorded in the [tracker](CHANGE_TRACKER.md) and [final evidence](evidence/e06-final-validation.md),
@@ -53,6 +61,17 @@ before asyncio closes the loop, retaining the outer ignore. The original failed
 full-suite stderr was discarded; natural150 repetitions passed, so attribution
 remains limited to the independently proved compatible lifecycle hole. All
 original red/green evidence and failed proof attempts remain retained.
+
+Preserve the delivered-code revalidation regressions as part of inventory and
+installed-scope decisions. Topology must use shared database normalization for
+unset/empty/whitespace-only/padded/explicit settings. The inherited parked-index
+repair validates broker acknowledgement positions, fences older same-key replay,
+and retains actual applied/newer-installed evidence only while overlapping local
+mutations are active. Register before producer I/O and release after the last
+caller even on failure; unrelated progress, compaction gaps and malformed values
+cannot veto a confirmed update. Preserve add/remove/bulk, duplicate-key and
+metadata/error controls, plus the independent compaction reproduction. The first
+repair's 3,674-pass run was rejected and cannot serve as final acceptance.
 
 E06's finite installed service helper is not E07's general regression runner.
 Execute E07 in canonical dependency order: F1.S1 runner; F1.S3 collected-ID and

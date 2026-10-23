@@ -1,5 +1,11 @@
 # E06 final validation — 2026-10-22
 
+**Historical delivery proof:** the 2026-10-23 delivered-code revalidation found
+and repaired additional issues. [Fresh completion](../reviews/e06-completion-verification-20261023.md)
+and [independent acceptance](../reviews/e06-final-audit-resume-20261023.md) now
+control the gate; current local delivery/equality are in the
+[tracker](../CHANGE_TRACKER.md). Results below describe the original delivery.
+
 **Accepted by the fresh final independent adversarial review on 2026-10-23.**
 [Review](../reviews/e06-final-adversarial-review.md), [independent checks](e06-final-independent.json).
 Validation executions below retain their actual October 22 dates.
