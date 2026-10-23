@@ -289,6 +289,9 @@ two clean noneditable installs, four immutable images, two actual installed load
 12 supervised R1 controls, four real bind probes and exact no-skip B3 pass.
 Fresh independent checks on October 23 distinguish new reruns from retained
 October 22 service receipts; all failed attempts and causal limits remain in
-[resolutions](reviews/e06-resolutions.md). Local delivery and per-file equality
-will be recorded from actual Git output. Future [E07](handoff-e07.md) is prepared
+[resolutions](reviews/e06-resolutions.md). Local delivery is
+`a034420f98a57d17c7591b23eb1011d7bc346d25`; [postcommit equality](evidence/e06-postcommit.json)
+verifies all 279 tested, committed and current input bytes, sizes and modes, with
+unchanged environment. The tracker records the actual SHA; this evidence-only
+follow-up uses Git history for its own hash. Future [E07](handoff-e07.md) is prepared
 but unstarted; no push, publication or E07–E12 execution is included.

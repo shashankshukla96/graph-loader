@@ -1,6 +1,6 @@
 {
   "date": "2026-10-22",
-  "status": "independently accepted; local delivery pending",
+  "status": "independently accepted and delivered locally",
   "entry_head": "a2bc7bbd6e82350a25e9a127454452c360c1ceda",
   "source_sha256": "39cb146ce8e5891c04c1ea10b02e83d2bb06582c817f043599fba757f2851d13",
   "environment_sha256": "96b072066210abc50c4d8cf2bf48460f11e2ebbea959f87983d47328e1d5135d",
@@ -614,7 +614,15 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   },
-  "delivery": null,
+  "delivery": {
+    "date": "2026-10-23",
+    "commit": "a034420f98a57d17c7591b23eb1011d7bc346d25",
+    "postcommit_equality": "evidence/e06-postcommit.json",
+    "tested_input_count": 279,
+    "all_tested_committed_current_bytes_sizes_modes_equal": true,
+    "environment_unchanged": true,
+    "followup": "Documentation/evidence only; its own commit identity is in Git history, without recursive self-hashing."
+  },
   "limitations": [
     "Local Linux arm64 images/native macOS do not close E08 matrix",
     "No registry publication/digest or anonymous pull claim",

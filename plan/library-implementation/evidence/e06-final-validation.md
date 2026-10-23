@@ -69,10 +69,11 @@ version-only root/no src alias/version/dependencies and D02 ordering restriction
 remain. Native macOS/local Linux arm64 does not certify E08's wider matrix or
 E09's service/ordering guarantees. No publication occurred.
 
-All three stories and E06 are independently accepted. The actual full Git delivery
-SHA and per-file tested/committed/current equality will be recorded after the
-authorized local commit in a documentation-only follow-up. Its own hash comes
-from Git history. Temporary outside working directories from October 22 have
+All three stories and E06 are independently accepted. Local main delivery is
+`a034420f98a57d17c7591b23eb1011d7bc346d25`. [Postcommit proof](e06-postcommit.json)
+verifies all 279 tested/committed/current input bytes, sizes and modes and the
+unchanged environment. This documentation-only follow-up records the actual
+full delivery SHA; its own hash comes from Git history. Temporary outside working directories from October 22 have
 become unavailable; hashed raw receipts/artifacts remain, and the final independent
 report records fresh October 23 installation/image checks without relabelling
 the earlier service executions.

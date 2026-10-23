@@ -3,9 +3,10 @@
 Prepared2026-10-22. **E07 is not started or authorized by the E06 task.** Begin
 only after E06 final independent acceptance and actual local delivery/equality
 are recorded in the [tracker](CHANGE_TRACKER.md) and [final evidence](evidence/e06-final-validation.md),
-and the user asks to execute E07. Local delivery identity will be recorded there
-from actual Git output after acceptance, without inventing a commit or registry
-digest. No push/upload/release tag/publication/workflow is authorized.
+and the user asks to execute E07. E06 is independently accepted on 2026-10-23
+and delivered locally in `a034420f98a57d17c7591b23eb1011d7bc346d25`;
+[postcommit equality](evidence/e06-postcommit.json) verifies all 279 tested inputs.
+No registry digest or publication availability has been established. No push/upload/release tag/publication/workflow is authorized.
 
 Repository `/Users/shashank/Desktop/Code/Graph/graph-loader`, branch
 `codex/pypi-library-checklist`. Read actual HEAD/status/applicable AGENTS.md,

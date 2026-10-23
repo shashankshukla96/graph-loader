@@ -82,5 +82,6 @@ real-service red/green regression proves the boundary; attribution of the origin
 discarded-stderr storm failure remains explicitly limited. The exact repaired
 source passed every finalb gate under `var/e06-validation-20261022/finalb/`.
 [Fresh final adversarial acceptance](reviews/e06-final-adversarial-review.md) on
-2026-10-23 accepts all E06 stories. Local delivery/equality follows actual Git
-output. No E07–E12 implementation or publication scope has been added.
+2026-10-23 accepts all E06 stories. Local delivery is
+`a034420f98a57d17c7591b23eb1011d7bc346d25`; [postcommit equality](evidence/e06-postcommit.json)
+confirms all 279 tested, committed and current inputs and unchanged environment. No E07–E12 implementation or publication scope has been added.

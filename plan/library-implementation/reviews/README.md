@@ -122,5 +122,6 @@ the authorized local commit.
 repair and independent re-review. [Fresh final acceptance](e06-final-adversarial-review.md)
 on 2026-10-23 verifies all frozen E06 gates and distinguishes retained actual
 service receipts from new independent reruns. [Machine-readable checks](../evidence/e06-final-independent.json)
-record current identities and origins. Local staging and postcommit equality
-checks follow separately; E07–E12 remain unstarted.
+record current identities and origins. The [separate staged delivery review](e06-delivery-review.md)
+accepts the implementation commit scope; [postcommit equality](../evidence/e06-postcommit.json)
+records every tested/committed/current byte, size and mode. E07–E12 remain unstarted.
