@@ -1,6 +1,6 @@
 # Library implementation plan
 
-Prepared 2026-10-15; latest repair acceptance 2026-10-21. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E04 are accepted. [E04-R1](reviews/e04-completion-verification-20261020.md) reopened S3/S4 after the original delivery; the [repair evidence](evidence/e04-r1-repair.md) and [fresh final review](reviews/e04-r1-final-review.md) now close that finding. [E05 delivered-code revalidation](reviews/e05-completion-verification-20261021.md) repairs two low-priority findings and is independently accepted after 3,571 test passes; E06–E12 have not started. Historical failures, reviews and results are preserved.**
+Prepared 2026-10-15; latest E06 acceptance 2026-10-23. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E04 are accepted. [E04-R1](reviews/e04-completion-verification-20261020.md) reopened S3/S4 after the original delivery; the [repair evidence](evidence/e04-r1-repair.md) and [fresh final review](reviews/e04-r1-final-review.md) now close that finding. [E05 delivered-code revalidation](reviews/e05-completion-verification-20261021.md) repairs two low-priority findings and is independently accepted after 3,571 test passes; [E06 final independent acceptance](reviews/e06-final-adversarial-review.md) closes all three stories after frozen full/artifact/image/service/R1/B3 validation. E07–E12 have not started. Historical failures, reviews and results are preserved.**
 
 This decomposes the [library/PyPI checklist](../../docs/PYPI_LIBRARY_CHECKLIST.md)
 into **13 phase epics, 26 features and 54 stories**. It is a planning deliverable;
@@ -56,7 +56,7 @@ Final E02 evidence: **3,380 passed, four explained inherited skips, 49 deselecte
 19 inherited fork warnings**; **147 focused passes**. See [S1](evidence/E02.F1.S1.md),
 [S2](evidence/E02.F1.S2.md), [S3](evidence/E02.F2.S1.md), final source/artifact JSON
 and the [E03 handoff](handoff-e03.md). These are a new source identity, not a
-relabeling of E00's earlier baseline. Those are historical E02-only results. E04–E12 remain unstarted; no publication or
+relabeling of E00's earlier baseline. Those are historical E02-only results; E04–E12 were unstarted at that checkpoint; no publication or
 remote graph operation was performed.
 
 ## E03 completion and current handoff
@@ -71,9 +71,10 @@ and cancellation are E04, console/resources are E05, and release delivery remain
 later work. Historical E02-only scaffold statements above describe that earlier
 phase, not the current E03 artifact.
 
-Use the [E04 handoff](handoff-e04.md) for the next assignment and maintain the
-[commit change tracker](CHANGE_TRACKER.md) for every implementation/fix/delivery.
-E04–E12 remain unstarted. Nothing authorizes a GitHub push or publication.
+The historical E03 checkpoint used the [E04 handoff](handoff-e04.md) for its next
+assignment. The [commit change tracker](CHANGE_TRACKER.md) records every
+implementation, fix and local delivery.
+E04–E12 were unstarted at that historical checkpoint. Nothing authorizes a GitHub push or publication.
 
 ## Phases / epics
 
@@ -276,3 +277,18 @@ Local delivery is `2265e4fd1d9f76eb2813856157dea89a80b9f216`;
 and current inputs with unchanged environment. The [tracker](CHANGE_TRACKER.md)
 records the actual hash; its documentation follow-up follows rule5. The
 [E06 handoff](handoff-e06.md) is prepared; E06–E12 and publication are not executed.
+
+
+## E06 accepted — 2026-10-23
+
+All three ordered stories and the narrow repeated-stop lifecycle repair are
+[accepted independently](reviews/e06-final-adversarial-review.md). [Final evidence](evidence/e06-final-validation.md)
+binds 279 inputs to 3,624 full-suite passes, four inherited skips, 49 deselections
+and 19 known warnings. Strict artifacts, every-member outside-Git rebuild equality,
+two clean noneditable installs, four immutable images, two actual installed loads,
+12 supervised R1 controls, four real bind probes and exact no-skip B3 pass.
+Fresh independent checks on October 23 distinguish new reruns from retained
+October 22 service receipts; all failed attempts and causal limits remain in
+[resolutions](reviews/e06-resolutions.md). Local delivery and per-file equality
+will be recorded from actual Git output. Future [E07](handoff-e07.md) is prepared
+but unstarted; no push, publication or E07–E12 execution is included.

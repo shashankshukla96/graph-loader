@@ -137,8 +137,15 @@ producer.flush()
 EOF
 ```
 
-**5. Run the bulk load.** The CLI applies the schema DDL, builds the images
-(on every `start`, retagging `:latest`, unless you pass `--skip-image-build`),
+For this unpublished development build, prepare local candidates once from the
+checkout and select their references explicitly (use a fresh suffix each build):
+
+```bash
+make build-images CANDIDATE_SUFFIX=quickstart
+. var/candidate-images-quickstart/image-overrides.sh
+```
+
+**5. Run the bulk load.** The CLI resolves compatible versioned images, applies the schema DDL,
 launches the node loaders, plans and writes the relationships, and
 exits `0` only when the result is proven:
 
@@ -216,10 +223,12 @@ Everything in planned mode (writers, buckets, chunk size, planner processes and
 memory) is derived automatically from the schema, the data volume and the Neo4j
 server; flags override each value (see [CLI](docs/CLI.md#planned-mode-tuning---edge-plan-also-the-bulk-default)
 and [USAGE section 6](docs/USAGE.md#6-planned-mode-in-depth)). Loader images
-default to `graph-loader-node:latest` / `graph-loader-edge:latest`; set
-`GRAPH_LOADER_NODE_IMAGE` / `GRAPH_LOADER_EDGE_IMAGE` to use other tags. `start`
-rebuilds the images and retags `:latest` every time unless `--skip-image-build`
-is given (use it with images from `make build-images`).
+default to matching package-version tags under `ghcr.io/shashankshukla96`.
+`GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE` and `GRAPH_LOADER_CLOCK_IMAGE`
+select explicitly compatible overrides. `start` uses local images first and pulls
+only missing images; `--skip-image-build` requires local images and never pulls.
+Runtime never builds from the caller's directory. Local development candidates
+are not registry publications; see [Docker execution](docs/DOCKER_EXECUTION.md).
 
 ## Worked examples
 

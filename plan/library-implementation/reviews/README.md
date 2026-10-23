@@ -113,3 +113,14 @@ historical. Completion/staging/actual-commit equality checks are separate.
 [Independent precommit delivery check](e05-delivery-review.md) accepts the staged
 E05 scope and all270 tested/index/current inputs. Actual commit equality follows
 the authorized local commit.
+
+
+## E06 implementation and final acceptance
+
+[Plan](e06-plan-review.md), [S1](e06-s1-review.md), [S2](e06-s2-review.md),
+[S3](e06-s3-review.md) and [resolutions](e06-resolutions.md) preserve each finding,
+repair and independent re-review. [Fresh final acceptance](e06-final-adversarial-review.md)
+on 2026-10-23 verifies all frozen E06 gates and distinguishes retained actual
+service receipts from new independent reruns. [Machine-readable checks](../evidence/e06-final-independent.json)
+record current identities and origins. Local staging and postcommit equality
+checks follow separately; E07–E12 remain unstarted.

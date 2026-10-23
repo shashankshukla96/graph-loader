@@ -8,6 +8,8 @@ CLI stop path (``_stop_exact_containers``) and the launch rollback path.
 """
 from __future__ import annotations
 
+from tests.docker_support import configure_images, IMAGE_IDS
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -74,10 +76,10 @@ def clock(monkeypatch) -> FakeClock:
 
 
 def _launch(clock: FakeClock, cid: str = "c0", **kwargs) -> InitRaceContainer:
-    client = MagicMock()
+    client = configure_images(MagicMock())
     client.containers.run.side_effect = lambda **_kw: InitRaceContainer(cid, clock, **kwargs)
     service = DockerService(client=client)
-    return service._run_container(image="graph-loader-node:latest", name=cid)
+    return service._run_container(image=IMAGE_IDS["node"], name=cid)
 
 
 def test_reproduction_an_immediate_stop_loses_the_sigterm_and_ends_in_sigkill(clock, monkeypatch) -> None:
@@ -142,7 +144,7 @@ def test_launch_rollback_stops_are_held_too(clock) -> None:
 
 
 def test_every_launcher_records_its_containers_without_changing_the_docker_call(clock, tmp_path) -> None:
-    client = MagicMock()
+    client = configure_images(MagicMock())
     launched = []
 
     def run(**kwargs):

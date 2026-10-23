@@ -1,6 +1,8 @@
 """Stream-mode node writes share the relationship writers' bucket leases."""
 from __future__ import annotations
 
+from tests.docker_support import configure_images
+
 import threading
 from pathlib import Path
 from threading import Event
@@ -287,7 +289,7 @@ def test_stream_mode_passes_the_leased_writer_to_the_loader_and_closes_it(schema
 def test_run_node_loader_passes_the_lease_settings_to_node_containers(tmp_path) -> None:
     from neo4j_graph_loader.orchestrator.docker_service import DockerService
 
-    client = MagicMock()
+    client = configure_images(MagicMock())
     service = DockerService(client=client)
     service.run_node_loader(
         node_label="Person", topic="person", mode="stream", config_path="config.yaml",

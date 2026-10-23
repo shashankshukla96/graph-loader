@@ -58,7 +58,7 @@ The CLI runs on the host. It applies the schema DDL to Neo4j, runs the planner p
 | Neo4j | **5.23 or later, Enterprise.** The compose file uses `neo4j:5-enterprise` and installs APOC, GDS and GenAI plugins on first start (internet needed once). **APOC is needed only for `--edge-classic`** (`apoc.lock.nodes`). The lease and classic writers use the `CALL (vars) { ... }` scoped-subquery syntax introduced in 5.23; planned mode does not use it and has no such lower bound ([USAGE.md section 2](USAGE.md#2-requirements-and-environment)). The target database must already exist; the CLI never creates it. |
 | Kafka | Any broker reachable from the host **and** from the loader containers. The CLI needs permission to create topics for the control topic (`__graph_loader_control`, best effort), DLQ topics (when you enable `dead_letter`) and, in planned mode, the per-run chunk topic with a raised `max.message.bytes`. Where that is not allowed, use `--edge-leases` (also zero lock waits). |
 | Topics | **Every node and relationship topic in the schema must exist and be fully published before `start`.** Bulk mode does not run the stream preflight; a missing topic surfaces as an error during the run ([troubleshooting](#16-troubleshooting)). The loader never creates data topics: the partition count is your producer's choice. The bundled compose broker has `KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"`, which is a property of that broker, not something the loader relies on. |
-| Docker | A local daemon. The CLI builds (unless `--skip-image-build`) and runs `graph-loader-node` and `graph-loader-edge`. The build context is the current directory, so **run `start` from the repository root**. `make build-images` builds `graph-loader-{node,edge,clock}:latest` (override the tag with `IMAGE_TAG=x`; point the CLI at other tags with `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE`, `GRAPH_LOADER_CLOCK_IMAGE`). The clock image is built only for `--mode stream`; bulk does not use it. Images embed `src/`: rebuild after changing code. |
+| Docker | A local daemon with daemon-visible absolute host inputs. Starts resolve matching versioned prebuilt images and never build from cwd. `--skip-image-build` requires compatible local images. See [Docker execution](DOCKER_EXECUTION.md) for candidate builds, overrides, version labels and topology. |
 | Python | 3.12 with `pip install -r requirements.txt` (pins the Neo4j driver to `neo4j>=5.20,<7`). |
 
 ### The local stack
@@ -225,7 +225,7 @@ if producer.flush(120):
 python -m neo4j_graph_loader.cli start --mode bulk --config my_graph.yaml
 ```
 
-The command blocks until the load has been verified, then exits `0`. Any failure (invalid input, writer crash, timeout, operator stop) exits `1` after stopping every container the run started. The flags below are all of `start`'s options that matter for bulk, grouped. The numeric range checks ("`--plan-writers must be 1-64`" and so on) run before any side effect; `--bulk-timeout-seconds` being positive is the exception, checked only after the DDL, the planner start and the image build.
+The command blocks until the load has been verified, then exits `0`. Any failure (invalid input, writer crash, timeout, operator stop) exits `1` after stopping every container the run started. The flags below are all of `start`'s options that matter for bulk, grouped. The numeric range checks (including positive `--bulk-timeout-seconds`) run before runtime state creation or service access.
 
 ### Core
 
@@ -234,7 +234,7 @@ The command blocks until the load has been verified, then exits `0`. Any failure
 | `--config PATH` | bundled canonical schema | Schema YAML. |
 | `--mode {bulk,stream}` | required | `bulk` for this guide. |
 | `--network NAME` | `graph-loader-net` | Docker network for every container the run starts. Must reach Kafka and Neo4j under the `LOADER_*` addresses. |
-| `--skip-image-build` | off | Use the existing `graph-loader-node` / `graph-loader-edge` images instead of building them. |
+| `--skip-image-build` | off | Require compatible local images and never pull; starts never build images. |
 | `--run-id ID` | random UUID hex | Explicit run identity: 1-128 characters, `[A-Za-z0-9][A-Za-z0-9._-]*`. Names containers, the chunk topic and rejection files. See [section 14](#14-re-running-and-recovering). |
 | `--bulk-timeout-seconds N` | `300` | Stall limit of each monitored bulk stage (must be positive). Long stages are progress-based: node draining, waiting for the edge plan (the planner's heartbeat) and the planned dispatch fail only after `N` seconds **without progress**. |
 | `--node-replicas-min-records N` | `10000` | A label whose YAML omits `replicas` gets 1 loader when its topic retains fewer records than this (`0` = always the YAML value, i.e. 1). |
@@ -415,7 +415,7 @@ validate flags and schema, resolve the edge mode
 create DLQ topics (nodes always; relationships only when not planned)
 apply schema DDL (constraints, indexes); probe Neo4j cores
 start planner processes (they capture the relationship boundary)
-build images (unless --skip-image-build)
+resolve compatible images (local-only with --skip-image-build)
 create control topic; resolve node replicas
                                                        launch node loaders for every label
    +-- per label: coverage -> boundary -> committed to boundary -> stop -> drain -> exact check -> "ready"
@@ -661,7 +661,8 @@ In planned mode Neo4j runs at about 7.5 of its 8 cores for the whole relationshi
 # 0. Services and images (from the repository root). NEO4J_PASSWORD must be set for compose.
 export NEO4J_PASSWORD=...
 docker compose up -d neo4j kafka
-make build-images
+make build-images CANDIDATE_SUFFIX=social-example
+. var/candidate-images-social-example/image-overrides.sh
 
 # 1. Environment: host side, then container side. Do not rely on .env.
 export NEO4J_URI=bolt://localhost:7687 NEO4J_USERNAME=neo4j NEO4J_DATABASE=social

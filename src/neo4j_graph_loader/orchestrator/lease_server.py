@@ -779,10 +779,15 @@ def main(argv: list[str] | None = None) -> int:
         # reset an add_signal_handler disposition to SIG_DFL, and a repeated SIGTERM during
         # teardown would exit 143. The handler is replaced by SIG_IGN once main() is done.
         signal.signal(signal.SIGTERM, lambda *_args: loop.call_soon_threadsafe(stop.set))
-        await serve(
-            args.host, args.port, bucket_count=args.buckets, stop=stop, scheme=args.scheme,
-            quiet_period_seconds=args.quiet_period_seconds, disconnect_hold_seconds=args.fence_seconds,
-        )
+        try:
+            await serve(
+                args.host, args.port, bucket_count=args.buckets, stop=stop, scheme=args.scheme,
+                quiet_period_seconds=args.quiet_period_seconds, disconnect_hold_seconds=args.fence_seconds,
+            )
+        finally:
+            # Ignore repeated stops before asyncio.run closes this loop: the
+            # outer finally runs after close, when scheduling on it would fail.
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
 
     try:
         asyncio.run(run())

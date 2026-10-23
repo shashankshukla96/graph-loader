@@ -5,6 +5,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 import docker
+from neo4j_graph_loader._images import ImageSelection, ImageSelectionError, image_reference
 from typing import Callable, List, Dict, Optional, Sequence
 from neo4j_graph_loader.loader.lease_client import (
     BUCKET_LEASE_ADDRESS_ENV, EDGE_OUTER_BATCH_ENV, LEASE_ADDRESS_ENV, LEASE_BUCKETS_ENV, LEASE_KEYED_LABELS_ENV,
@@ -150,18 +151,15 @@ def _metrics_ports_entry(env: Optional[Dict[str, str]] = None) -> Dict[str, tupl
 REJECTION_DIR = "var/rejections"
 
 def node_image() -> str:
-    """Node-loader image tag (``GRAPH_LOADER_NODE_IMAGE``, default ``graph-loader-node:latest``)."""
-    return os.environ.get("GRAPH_LOADER_NODE_IMAGE") or "graph-loader-node:latest"
+    return image_reference("node")
 
 
 def edge_image() -> str:
-    """Edge/dispatcher/writer image tag (``GRAPH_LOADER_EDGE_IMAGE``, default ``graph-loader-edge:latest``)."""
-    return os.environ.get("GRAPH_LOADER_EDGE_IMAGE") or "graph-loader-edge:latest"
+    return image_reference("edge")
 
 
 def clock_image() -> str:
-    """Global-clock image tag (``GRAPH_LOADER_CLOCK_IMAGE``, default ``graph-loader-clock:latest``)."""
-    return os.environ.get("GRAPH_LOADER_CLOCK_IMAGE") or "graph-loader-clock:latest"
+    return image_reference("clock")
 
 
 def _dns_safe_run_token(run_id: str) -> str:
@@ -358,8 +356,12 @@ def _stop_and_remove_quietly(container: object) -> None:
 
 class DockerService:
     def __init__(self, client: docker.DockerClient = None, *, runtime=None):
-        self.client = client or docker.from_env()
+        try:
+            self.client = client if client is not None else docker.from_env()
+        except Exception as exc:
+            raise ImageSelectionError("cannot access Docker daemon; check Docker endpoint and permissions") from exc
         self.runtime = runtime
+        self.images = ImageSelection(self.client)
 
     def _mount_timings(self, volumes):
         return _mount_write_timing_directory(volumes, str(self.runtime.timings) if self.runtime is not None else None)
@@ -371,16 +373,31 @@ class DockerService:
         """``containers.run`` that records the launch time for a later stop (F1)."""
         return _record_launch(self.client.containers.run(**kwargs))
 
-    def build_image(self, tag: str | None = None, dockerfile: str = "Dockerfile.node_loader"):
-        self.client.images.build(path=".", dockerfile=dockerfile, tag=tag or node_image(), rm=True)
+    def preflight_topology(self, network, *, plan_path=None):
+        from neo4j_graph_loader._docker_preflight import check
+        check(self, network, plan_path=plan_path)
 
-    def build_edge_image(self, tag: str | None = None, dockerfile: str = "Dockerfile.edge_loader"):
-        """Build the dedicated relationship-loader image."""
-        self.client.images.build(path=".", dockerfile=dockerfile, tag=tag or edge_image(), rm=True)
+    def prepare_images(self, roles, *, local_only=False):
+        self.images.local_only = local_only
+        return {role: self.images.resolve(role) for role in roles}
 
-    def build_clock_image(self, tag: str | None = None, dockerfile: str = "Dockerfile.clock"):
-        """Build the dedicated run-scoped global-clock image."""
-        self.client.images.build(path=".", dockerfile=dockerfile, tag=tag or clock_image(), rm=True)
+    def _image(self, role):
+        return self.images.resolve(role)
+
+    def build_image(self, tag: str | None = None, dockerfile: str | None = None):
+        """Retained internal name: resolve a prebuilt node image, never build cwd."""
+        return self._resolve_compat_image("node", tag, dockerfile)
+
+    def build_edge_image(self, tag: str | None = None, dockerfile: str | None = None):
+        return self._resolve_compat_image("edge", tag, dockerfile)
+
+    def build_clock_image(self, tag: str | None = None, dockerfile: str | None = None):
+        return self._resolve_compat_image("clock", tag, dockerfile)
+
+    def _resolve_compat_image(self, role, tag, dockerfile):
+        if dockerfile is not None:
+            raise ImageSelectionError("runtime Dockerfile builds are unsupported; use the checkout candidate builder explicitly")
+        return self.images.resolve(role, tag)
 
     def run_global_batch_clock(self, *, run_id: str, config_path: str,
                                fleet_edge_types: str, coordination_topic: str,
@@ -403,7 +420,7 @@ class DockerService:
         if capture_timings:
             env["GRAPH_LOADER_METRICS_SNAPSHOT_PATH"] = f"/app/write-timings/metrics-clock-{encoded}.prom"
         return self._run_container(
-            image=clock_image(), name=f"graph-loader-clock-{encoded}",
+            image=self._image("clock"), name=f"graph-loader-clock-{encoded}",
             command=["--config", "/app/runtime_schema.yaml", "--run-id", run_id,
                      "--fleet-edge-types", fleet_edge_types, "--coordination-topic", coordination_topic],
             environment=env, network=network,
@@ -460,7 +477,7 @@ class DockerService:
         if fence_seconds > 0:
             command.extend(["--fence-seconds", str(fence_seconds)])
         return self._run_container(
-            image=edge_image(),
+            image=self._image("edge"),
             name=f"graph-loader-lease-{_dns_safe_run_token(run_id)}",
             entrypoint=["python", "-m", "neo4j_graph_loader.orchestrator.lease_server"],
             command=command,
@@ -470,18 +487,19 @@ class DockerService:
                 **_metrics_labels("lease-server", env),
             },
             volumes=volumes,
-            ports=_metrics_ports_entry(env),
+            ports={f"{port}/tcp": ("127.0.0.1", None), **_metrics_ports_entry(env)},
             detach=True, init=True, remove=False,
             **_loader_resource_options(),
         )
 
     @staticmethod
     def bucket_lease_address(container, *, network: str, port: int = DEFAULT_BUCKET_LEASE_PORT,
-                             prefer_name: bool = False) -> str:
+                             prefer_name: bool = False, host: bool = False) -> str:
         """Return ``ip:port`` of a launched lease server on ``network``.
 
-        An IP works on Docker's default ``bridge`` network, which has no
-        container-name DNS; the container name is the fallback.
+        ``host=True`` uses the published loopback control port for a CLI
+        readiness client. Container callers use an internal IP or stable DNS
+        name. These addresses have different reachability on Docker Desktop.
         ``prefer_name=True`` (P5-S1 Story 5) skips the IP lookup entirely
         and returns the container's name directly, relying on the
         run's own user-defined network's embedded DNS -- required for a
@@ -490,6 +508,13 @@ class DockerService:
         (bulk's existing call site is unchanged and keeps IP-preference,
         since bulk never restarts this container mid-run).
         """
+        if host:
+            container.reload()
+            bindings = ((container.attrs.get("NetworkSettings") or {}).get("Ports") or {}).get(f"{port}/tcp") or []
+            host_port = next((item.get("HostPort") for item in bindings if item.get("HostPort")), None)
+            if not host_port:
+                raise RuntimeError("lease coordinator has no published host control port")
+            return f"127.0.0.1:{host_port}"
         if prefer_name:
             if not isinstance(container.name, str) or not container.name:
                 raise RuntimeError("bucket lease server has no name")
@@ -533,7 +558,7 @@ class DockerService:
         ports = {f"{port}/tcp": ("127.0.0.1", None)}
         ports.update(_metrics_ports_entry(env))
         return self._run_container(
-            image=edge_image(),
+            image=self._image("edge"),
             name=f"graph-loader-planned-dispatcher-{encoded_run_id}",
             entrypoint=["python", "-m", "neo4j_graph_loader.orchestrator.planned_dispatcher"],
             command=[
@@ -615,7 +640,7 @@ class DockerService:
                     f"/app/write-timings/metrics-planned-writer-{writer_id}.prom"
                 )
             launch_kwargs = dict(
-                image=edge_image(),
+                image=self._image("edge"),
                 name=f"graph-loader-edge-planned-{writer_id}-{encoded_run_id}",
                 entrypoint=["python", "-m", "neo4j_graph_loader.loader.planned_writer"],
                 command=command, environment=replica_environment, network=network,
@@ -831,7 +856,7 @@ class DockerService:
                     f"/app/write-timings/metrics-edge-{timed_type}-{replica_id}.prom"
                 )
             launch_kwargs = dict(
-                image=edge_image(), name=name, command=command,
+                image=self._image("edge"), name=name, command=command,
                 environment=replica_environment, network=network, labels=labels,
                 volumes=volumes, detach=True, init=True, remove=False,
                 ports=_metrics_ports_entry(replica_environment),
@@ -914,7 +939,7 @@ class DockerService:
                     f"/app/write-timings/metrics-retry-consumer-{replica_id}-{encoded_run_id}.prom"
                 )
             launch_kwargs = dict(
-                image=edge_image(),
+                image=self._image("edge"),
                 name=f"graph-loader-retry-{replica_id}-{encoded_run_id}",
                 entrypoint=["python", "-m", "neo4j_graph_loader.loader.retry_consumer"],
                 command=[
@@ -1035,7 +1060,7 @@ class DockerService:
                 replica_command.extend(["--run-id", run_id])
                 replica_labels["run_id"] = run_id
             launch_kwargs = dict(
-                image=node_image(),
+                image=self._image("node"),
                 name=container_name,
                 command=replica_command,
                 environment=replica_environment,

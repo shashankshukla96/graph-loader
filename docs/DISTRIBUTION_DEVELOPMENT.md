@@ -1,10 +1,11 @@
-# Local distribution development (E04)
+# Local distribution development (E06)
 
 The development artifact now contains the migrated runtime modules under
 `neo4j_graph_loader`. The supported schema/planning modules are documented in the
 [public API guide](LIBRARY_API.md). The installed `graph-loader` command and two bundled schema resources work
 without a checkout. Private writable run directories are documented in the [CLI guide](CLI_RUNTIME.md);
-checkout-free image delivery remains E06 work.
+checkout-free image selection and local candidate construction are described in
+[Docker execution](DOCKER_EXECUTION.md). Registry publication remains separate.
 Do not upload these development artifacts.
 
 ## Fresh checkout development
@@ -56,7 +57,7 @@ python3 scripts/sync_requirements.py --check  # non-mutating drift check
 consume generated `requirements.txt`, copy reviewed build inputs and runtime
 source, then install the package with isolated setuptools and `--no-deps`.
 The literal file version needs no SCM fallback. Images resolve application code
-from site-packages without PYTHONPATH. E06 implements checkout-free delivery. Before any
+from site-packages without PYTHONPATH. See the candidate builder for exact compatible labels and fresh local tags. Before any
 direct `docker build`, run the parity check explicitly. No new workflow exists.
 
 ## Build and inspect locally
@@ -82,7 +83,7 @@ The version authority is the literal `_version.py` value. Current local builds
 are `0.1.0a1.dev0`; E11 freezes the approved candidate target `0.1.0a1` at a clean
 reviewed source snapshot before building exact retained artifacts. File-based
 versioning needs no SCM fallback or Git at runtime. Release tags are created
-at the tested commit in E12; no tag or publication is part of E04.
+at the tested commit in E12; no release tag or publication is part of E06.
 
 ## Metrics and image identity
 
@@ -97,10 +98,12 @@ package-version default. No signal/logging/metrics server is started by import.
 The migrated `neo4j_graph_loader.utils.metrics` imports `.._version` from the
 single literal authority. No signal/logging/metrics server is started by import.
 
-Keep existing `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE` and
-`GRAPH_LOADER_CLOCK_IMAGE` deployment overrides. Their current checkout defaults
-and Docker build behavior are unchanged. E06 will select matching prebuilt GHCR
-images; E11 binds actual metadata/CLI/metrics/image versions and immutable bytes.
-Future image metadata reads the same file version; an override is never proof
-of compatibility. Record local image IDs before publication, and registry digests
-only after the separately authorized E11 push/re-pull/public-pull checks.
+Keep `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE` and
+`GRAPH_LOADER_CLOCK_IMAGE` deployment overrides under the exact version/component/
+image-contract policy in [Docker execution](DOCKER_EXECUTION.md). Runtime selects
+matching prebuilt versioned GHCR references, inspecting locally and pulling only
+missing images; --skip-image-build is local-only. It never builds from cwd.
+Candidate labels derive from the same literal file version; each service pins
+immutable local IDs. An override is not provenance authentication. E11 binds
+actual metadata/CLI/metrics/image versions and immutable bytes. Registry digests
+exist only after separately authorized push/re-pull/public-pull checks.

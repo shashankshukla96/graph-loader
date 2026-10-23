@@ -21,14 +21,13 @@ lint:
 test-unit:
 	python3 -m pytest tests examples/imdb/tests -m "not integration and not smoke"
 
-# Tag matches the CLI default (graph-loader-*:latest); override with IMAGE_TAG=x and
-# export GRAPH_LOADER_{NODE,EDGE,CLOCK}_IMAGE to match.
-IMAGE_TAG ?= latest
+# Local development candidates are separate from proposed release tags.
+# Choose a fresh suffix/output; the builder refuses to overwrite local tags.
+CANDIDATE_SUFFIX ?= local
+CANDIDATE_OUTPUT ?= var/candidate-images-$(CANDIDATE_SUFFIX)
 
 build-images: check-requirements
-	docker build -f Dockerfile.node_loader -t graph-loader-node:$(IMAGE_TAG) .
-	docker build -f Dockerfile.edge_loader -t graph-loader-edge:$(IMAGE_TAG) .
-	docker build -f Dockerfile.clock -t graph-loader-clock:$(IMAGE_TAG) .
+	python3 scripts/build_candidate_images.py --suffix "$(CANDIDATE_SUFFIX)" --output "$(CANDIDATE_OUTPUT)"
 
 .PHONY: monitoring-up monitoring-down monitoring-validate
 

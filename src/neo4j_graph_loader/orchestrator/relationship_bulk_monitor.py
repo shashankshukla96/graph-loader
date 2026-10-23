@@ -666,14 +666,14 @@ class RelationshipBulkMonitor:
         network's embedded DNS only resolves container names from inside
         that network, so a host process cannot reach ``prefer_name=True``'s
         name-based address at all -- confirmed against a real Docker
-        network. This call therefore always resolves by IP; there is no
+        network. This call therefore uses the published loopback host port; there is no
         restart to be transparent to, since this function only runs once,
         before ``supervise_stream`` takes over.
         """
         from neo4j_graph_loader.loader.lease_client import BucketLeaseClient
 
         address = self._docker_service.bucket_lease_address(
-            self._tracked_lease_server, network=self._lease_network, prefer_name=False,
+            self._tracked_lease_server, network=self._lease_network, prefer_name=False, host=True,
         )
         factory = client_factory or (lambda: BucketLeaseClient(address, connect_timeout_seconds=1.0))
         deadline = self._clock() + timeout_seconds

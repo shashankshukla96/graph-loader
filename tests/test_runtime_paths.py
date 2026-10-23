@@ -1,4 +1,5 @@
 """Public CLI runtime ownership/preflight and every container-role path contract."""
+from tests.docker_support import configure_images, IMAGE_IDS
 import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -182,7 +183,7 @@ def test_planner_receives_owned_plan_spill_rejections(tmp_path, monkeypatch):
 
 def test_every_launch_role_has_absolute_correctly_owned_mounts(tmp_path, monkeypatch):
     args=capture_start(monkeypatch,['--run-dir',str(tmp_path)])
-    runtime=args.runtime;client=MagicMock();service=DockerService(client=client,runtime=runtime)
+    runtime=args.runtime;client=configure_images(MagicMock());service=DockerService(client=client,runtime=runtime)
     plan=runtime.plans/'edge-plan.json';plan.write_text('{}')
     service.run_node_loader(node_label='P',topic='p',mode='bulk',config_path=args.config,run_id='owned')
     service.run_edge_loader(edge_type='E',mode='bulk',config_path=args.config,topic='e',run_id='owned')
@@ -196,6 +197,7 @@ def test_every_launch_role_has_absolute_correctly_owned_mounts(tmp_path, monkeyp
     assert len(launches) == 7
     for launch in launches:
         data=launch.kwargs;mounts=data['volumes'];env=data['environment']
+        assert data['image'] in IMAGE_IDS.values()
         assert mounts[str(runtime.timings)] == {'bind':'/app/write-timings','mode':'rw'}
         for source,target in mounts.items():
             assert Path(source).is_absolute() and Path(source).is_relative_to(runtime.root)

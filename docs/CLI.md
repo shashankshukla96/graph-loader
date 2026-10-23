@@ -55,7 +55,7 @@ container is started, except where noted.
 | `--config PATH` | bundled canonical schema | a caller schema YAML | both | Explicit caller paths take priority; no cwd config fallback. |
 | `--run-dir BASE` | OS temporary directory | a writable parent directory | both | Create a unique private persistent attempt under BASE; see [runtime paths](CLI_RUNTIME.md). |
 | `--network NAME` | `graph-loader-net` | an existing Docker network | both | The network the loader containers join; it must reach Kafka and Neo4j under the `LOADER_*` addresses. |
-| `--skip-image-build` | off | flag | both | Use already-built images (`make build-images`, or tags from `GRAPH_LOADER_*_IMAGE`) instead of building them at start. |
+| `--skip-image-build` | off | flag | both | Require matching preloaded images; never pull. Starts never build images. See [image policy](DOCKER_EXECUTION.md). |
 | `--run-id ID` | random UUID hex | 1-128 chars of `[A-Za-z0-9._-]`, starting with a letter or digit | both | Run identity. Scopes container names and labels, the planned chunk topic, the lease server and the **bulk** relationship consumer groups. Stream groups do **not** contain it; in stream mode it only lets the CLI migrate legacy run-scoped offsets (see the stream notes below). |
 | `--bulk-timeout-seconds S` | `300` | float > 0, validated before any side effect | bulk | Ignored in stream (any value is accepted there). Maximum seconds for each bulk lifecycle stage. Progress-based for node draining, waiting for the edge plan (planner heartbeat) and the planned dispatch: those fail only after `S` seconds **without progress**. |
 | `--accept-former-dlq TOPIC` | none | repeatable; a topic name | both (classic, lease, stream; not planned) | Start although `TOPIC`, a relationship type's former default DLQ name (`<topic>.dlq` or `<type>.dlq`), still holds records. Deleting the old topic is the expected step. |
@@ -242,7 +242,7 @@ protects newer values). For a multi-pair type, `--target-topic` needs
 | Code | Meaning |
 | --- | --- |
 | `0` | `start`: bulk run verified and complete; stream run stopped cleanly by SIGINT/SIGTERM (or a stream schema without relationships launched its node loaders). `stop`, `status`: when Docker is reachable. `replay-dlq`: finished (including `--dry-run`). |
-| `1` | Any failure: invalid flags or combinations (mutual exclusions, ranges, `--edge-classic` with stream, native_disjoint without `--edge-classic`, `tx_timeout_ms` below 6000 in lease modes), schema load or validation failure, Neo4j schema initialization failure, stale DLQ topics or leftovers, stream group members still alive, image build or launch failure, a bulk stage failing or timing out, an operator stop during a bulk run or before launch completed, a node loader dying in a stream run, a foreign member joining a stream group (`stage=consumer-groups reason=foreign_members`), a container that would not stop (bulk, and stream edge/retry containers), `--edge-plan` or `--edge-leases` with `--mode stream`, a stream schema with a multi-topic `precedence` type, a stream relationship type named like a node label, `--stream-clock-rotation` with a multi-pair type, an edge-loader or retry-consumer crash in a stream run. A stream node loader that fails to stop is only logged; the run still returns 0. `replay-dlq`: unknown entity, invalid filter, replay error. |
+| `1` | Any failure: invalid flags or combinations (mutual exclusions, ranges, `--edge-classic` with stream, native_disjoint without `--edge-classic`, `tx_timeout_ms` below 6000 in lease modes), schema load or validation failure, Neo4j schema initialization failure, stale DLQ topics or leftovers, stream group members still alive, image resolution or launch failure, a bulk stage failing or timing out, an operator stop during a bulk run or before launch completed, a node loader dying in a stream run, a foreign member joining a stream group (`stage=consumer-groups reason=foreign_members`), a container that would not stop (bulk, and stream edge/retry containers), `--edge-plan` or `--edge-leases` with `--mode stream`, a stream schema with a multi-topic `precedence` type, a stream relationship type named like a node label, `--stream-clock-rotation` with a multi-pair type, an edge-loader or retry-consumer crash in a stream run. A stream node loader that fails to stop is only logged; the run still returns 0. `replay-dlq`: unknown entity, invalid filter, replay error. |
 | `2` | Command-line usage error from `argparse` (unknown flag, missing `--mode`, invalid number, `--node-label` together with `--edge-type`). |
 
 A nonzero bulk result makes no claim of a successful load: inspect the run's
@@ -304,12 +304,14 @@ some derived from the host variables. "Host" below means the `start`/
 
 | Variable | Default | Read by |
 | --- | --- | --- |
-| `GRAPH_LOADER_NODE_IMAGE` | `graph-loader-node:latest` | CLI (node loaders) |
-| `GRAPH_LOADER_EDGE_IMAGE` | `graph-loader-edge:latest` | CLI (edge loaders, planned dispatcher/writers, retry consumer, lease server) |
-| `GRAPH_LOADER_CLOCK_IMAGE` | `graph-loader-clock:latest` | CLI (global clock, only with `--stream-clock-rotation`) |
+| `GRAPH_LOADER_NODE_IMAGE` | `ghcr.io/shashankshukla96/graph-loader-node:<package-version>` | CLI (node loaders) |
+| `GRAPH_LOADER_EDGE_IMAGE` | `ghcr.io/shashankshukla96/graph-loader-edge:<package-version>` | CLI (edge loaders, planned dispatcher/writers, retry consumer, lease server) |
+| `GRAPH_LOADER_CLOCK_IMAGE` | `ghcr.io/shashankshukla96/graph-loader-clock:<package-version>` | CLI (global clock, only with `--stream-clock-rotation`) |
 
-`make build-images IMAGE_TAG=x` builds all three; export the matching
-`GRAPH_LOADER_*_IMAGE` tags to use them.
+`make build-images CANDIDATE_SUFFIX=unique-name` builds all four local development
+candidates; export the matching `GRAPH_LOADER_*_IMAGE` tags from its manifest.
+Every default/override requires exact package-version, component and contract
+labels; see [Docker execution](DOCKER_EXECUTION.md).
 
 ### Run behaviour and output paths
 

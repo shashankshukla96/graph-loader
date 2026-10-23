@@ -2609,16 +2609,13 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
             logger.error("stage=launch reason=%s", exc)
             return 1
 
-    # 2. Get DB config
-    uri, user, password = get_neo4j_credentials()
-
     edge_configs = tuple(getattr(schema, "edges", ()))
     planned = bool(getattr(args, "edge_plan", None)) and bool(edge_configs)
     neo4j_cores = None
     planner = None
 
-    # Provision every configured DLQ topic before any other side effect
-    # (DDL, planner, image builds): a run that cannot durably DLQ a
+    # Reject input-topic/DLQ policy errors before image resolution. Provision
+    # DLQs after image/topology checks and before DDL/planning: a run that cannot durably DLQ a
     # malformed record must not start, and should fail fast, not after
     # minutes of unrelated work. Planned mode's writers ignore
     # `dead_letter` entirely (docs/USAGE.md section 12), so this skips
@@ -2645,6 +2642,35 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
         except Exception as exc:
             logger.error("stage=launch reason=could not check former dead-letter topics: %s", exc)
             return 1
+    # Resolve and pin every required component before service-side changes.
+    try:
+        docker_service = _docker_service_for_run(args)
+        if getattr(args, "skip_image_build", False):
+            roles = ["node"] + (["edge"] if edge_configs else [])
+            if edge_configs and args.mode == "stream" and getattr(args, "stream_clock_rotation", False):
+                roles.append("clock")
+            docker_service.prepare_images(roles, local_only=True)
+        else:
+            docker_service.build_image()
+            if edge_configs:
+                docker_service.build_edge_image()
+                if args.mode == "stream" and getattr(args, "stream_clock_rotation", False):
+                    docker_service.build_clock_image()
+    except Exception as exc:
+        logger.error("stage=image reason=%s", exc)
+        return 1
+
+    if getattr(args, "runtime", None) is not None:
+        try:
+            docker_service.preflight_topology(
+                args.network, plan_path=(args.edge_plan if getattr(args, "edge_plan", None) not in (None, AUTO_EDGE_PLAN) else None))
+        except Exception as exc:
+            logger.error("stage=docker-preflight reason=%s", exc)
+            return 1
+
+    # 2. Get DB config
+    uri, user, password = get_neo4j_credentials()
+
     try:
         _ensure_dead_letter_topics(schema, kafka_bootstrap_servers, include_edges=not planned)
         # P5-S4 Story 6: the retry consumer's own durable topics --
@@ -2700,26 +2726,6 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
             cleanups.append(lambda: planner.close(delete_topic=not keep))
     elif getattr(args, "edge_plan", None) == AUTO_EDGE_PLAN:
         args.edge_plan = None
-
-    docker_service = _docker_service_for_run(args)
-    if getattr(args, "skip_image_build", False):
-        logger.info("Using the pre-built node loader image.")
-    else:
-        logger.info("Building node loader image...")
-        try:
-            docker_service.build_image()
-        except Exception as e:
-            logger.error(f"Failed to build node loader image: {e}")
-            return 1
-        if edge_configs:
-            logger.info("Building relationship loader image...")
-            try:
-                docker_service.build_edge_image()
-                if args.mode == "stream":
-                    docker_service.build_clock_image()
-            except Exception as e:
-                logger.error(f"stage=clock Failed to build relationship loader image: {e}")
-                return 1
 
     if shutdown.is_set():
         logger.warning("stage=shutdown reason=stop requested before launch; nothing was started")
@@ -3041,7 +3047,11 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
 
 def _docker_service_for_run(args):
     runtime = getattr(args, "runtime", None)
-    return DockerService(runtime=runtime) if runtime is not None else DockerService()
+    service = getattr(args, "_docker_service", None)
+    if service is None:
+        service = DockerService(runtime=runtime) if runtime is not None else DockerService()
+        args._docker_service = service
+    return service
 
 
 def _docker_service_or_none() -> DockerService | None:
@@ -3307,7 +3317,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser_start.add_argument(
         "--skip-image-build",
         action="store_true",
-        help="use an image built earlier by an external orchestrator",
+        help="require compatible preloaded images; never pull (start never builds images)",
     )
     parser_start.add_argument(
         "--accept-former-dlq", action="append", default=None, metavar="TOPIC",

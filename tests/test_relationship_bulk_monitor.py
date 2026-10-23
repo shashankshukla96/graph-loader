@@ -843,6 +843,8 @@ def test_wait_for_lease_server_ready_uses_a_fresh_client_per_attempt():
 
     monitor.wait_for_lease_server_ready(5.0, client_factory=_FlakyThenOkClient)
     assert attempts["count"] == 4
+    monitor._docker_service.bucket_lease_address.assert_called_once_with(
+        monitor._tracked_lease_server, network=monitor._lease_network, prefer_name=False, host=True)
 
 
 def test_wait_for_lease_server_ready_honors_shutdown():

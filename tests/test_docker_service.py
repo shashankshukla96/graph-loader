@@ -1,4 +1,5 @@
 import os
+from tests.docker_support import configure_images, IMAGE_IDS
 import unittest
 import tempfile
 from pathlib import Path
@@ -9,14 +10,14 @@ from neo4j_graph_loader.utils.schema_loader import SchemaLoadError
 
 class TestDockerService(unittest.TestCase):
     def setUp(self):
-        self.mock_client = MagicMock()
+        self.mock_client = configure_images(MagicMock())
         self.service = DockerService(client=self.mock_client)
 
-    def test_build_image(self):
-        self.service.build_image(tag="test-tag", dockerfile="Test.Dockerfile")
-        self.mock_client.images.build.assert_called_once_with(
-            path=".", dockerfile="Test.Dockerfile", tag="test-tag", rm=True
-        )
+    def test_build_image_resolves_prebuilt_without_cwd_build(self):
+        assert self.service.build_image() == IMAGE_IDS["node"]
+        self.mock_client.images.build.assert_not_called()
+        self.mock_client.images.get.assert_called_once_with(
+            "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1.dev0")
 
     def test_run_node_loader(self):
         mock_container = MagicMock()
@@ -41,7 +42,7 @@ class TestDockerService(unittest.TestCase):
             call.kwargs for call in self.mock_client.containers.run.call_args_list
             if call.kwargs["labels"]["replica_id"] == "1"
         )
-        self.assertEqual(call_kwargs["image"], "graph-loader-node:latest")
+        self.assertEqual(call_kwargs["image"], IMAGE_IDS["node"])
         self.assertTrue(call_kwargs["name"].startswith("graph-loader-node-Person-"))
         self.assertEqual(call_kwargs["command"], ["--config", "/app/runtime_schema.yaml", "--node-label", "Person", "--mode", "stream", "--topic", "person_topic", "--replica-id", "1"])
         self.assertEqual(call_kwargs["network"], "test_net")
@@ -327,7 +328,7 @@ class TestDockerService(unittest.TestCase):
                 run_id="run-A", consumer_group_prefix="loader",
             )
         call = self.mock_client.containers.run.call_args.kwargs
-        assert call["image"] == "graph-loader-edge:latest"
+        assert call["image"] == IMAGE_IDS["edge"]
         assert call["remove"] is False
         assert call["labels"]["component"] == "edge-loader"
         assert call["labels"]["run_id"] == "run-A"
@@ -523,11 +524,10 @@ class TestDockerService(unittest.TestCase):
             assert not Path(rejection_dir).exists()
         self.mock_client.containers.run.assert_not_called()
 
-    def test_build_edge_image_uses_edge_dockerfile(self):
-        self.service.build_edge_image()
-        self.mock_client.images.build.assert_called_once_with(
-            path=".", dockerfile="Dockerfile.edge_loader", tag="graph-loader-edge:latest", rm=True
-        )
+    def test_build_edge_image_resolves_prebuilt_without_cwd_build(self):
+        assert self.service.build_edge_image() == IMAGE_IDS["edge"]
+        self.mock_client.images.build.assert_not_called()
+
 
     def test_run_global_clock_is_exact_and_run_scoped(self):
         self.mock_client.containers.run.return_value = MagicMock()
@@ -580,7 +580,7 @@ class TestConcurrentReplicaLaunch(unittest.TestCase):
                 started[replica_id] = container
             return container
 
-        client = MagicMock()
+        client = configure_images(MagicMock())
         client.containers.run.side_effect = run
         return client, started
 
@@ -632,7 +632,7 @@ class TestConcurrentReplicaLaunch(unittest.TestCase):
             container.remove.assert_called_once_with(force=True)
 
     def test_invalid_run_id_fails_before_any_launch(self):
-        client = MagicMock()
+        client = configure_images(MagicMock())
         with tempfile.TemporaryDirectory() as rejection_dir:
             with self.assertRaises(ValueError):
                 DockerService(client=client).run_node_loader(
@@ -646,7 +646,7 @@ class TestBucketLeaseWiring(unittest.TestCase):
     """The lease coordinator container and edge-loader lease environment."""
 
     def setUp(self):
-        self.mock_client = MagicMock()
+        self.mock_client = configure_images(MagicMock())
         self.service = DockerService(client=self.mock_client)
 
     def test_run_bucket_lease_server_reuses_edge_image_with_lease_entrypoint(self):
@@ -656,7 +656,7 @@ class TestBucketLeaseWiring(unittest.TestCase):
             )
         assert container is self.mock_client.containers.run.return_value
         call = self.mock_client.containers.run.call_args.kwargs
-        assert call["image"] == "graph-loader-edge:latest"
+        assert call["image"] == IMAGE_IDS["edge"]
         assert call["entrypoint"] == ["python", "-m", "neo4j_graph_loader.orchestrator.lease_server"]
         assert call["command"] == [
             "--host", "0.0.0.0", "--port", "7700", "--buckets", "16", "--scheme", "Genre,Region",
@@ -674,7 +674,7 @@ class TestBucketLeaseWiring(unittest.TestCase):
             "graph_loader.metrics_port": "9464", "graph_loader.kind": "lease-server",
             "graph_loader.metrics_enabled": "0",
         }
-        assert call["ports"] == {"9464/tcp": ("127.0.0.1", None)}
+        assert call["ports"] == {"7700/tcp": ("127.0.0.1", None), "9464/tcp": ("127.0.0.1", None)}
         assert call["cpuset_cpus"] == "12-15"
 
     def test_run_bucket_lease_server_name_stays_dns_safe_for_a_uuid_run_id(self):
@@ -798,7 +798,7 @@ class TestRetryConsumerWiring(unittest.TestCase):
     """P5-S4 Story 6: DockerService.run_retry_consumer."""
 
     def setUp(self):
-        self.mock_client = MagicMock()
+        self.mock_client = configure_images(MagicMock())
         self.service = DockerService(client=self.mock_client)
 
     def test_run_retry_consumer_launches_one_replica_from_the_edge_image(self):
@@ -809,7 +809,7 @@ class TestRetryConsumerWiring(unittest.TestCase):
             )
         assert containers == [self.mock_client.containers.run.return_value]
         call = self.mock_client.containers.run.call_args.kwargs
-        assert call["image"] == "graph-loader-edge:latest"
+        assert call["image"] == IMAGE_IDS["edge"]
         assert call["entrypoint"] == ["python", "-m", "neo4j_graph_loader.loader.retry_consumer"]
         assert call["command"] == [
             "--config", "/app/runtime_schema.yaml", "--run-id", "run-A",
@@ -924,7 +924,7 @@ class TestInitProcessOnEveryLaunch(unittest.TestCase):
     long-lived container runs under the Docker init (tini)."""
 
     def setUp(self):
-        self.mock_client = MagicMock()
+        self.mock_client = configure_images(MagicMock())
         self.service = DockerService(client=self.mock_client)
 
     def _all_calls_use_init(self):

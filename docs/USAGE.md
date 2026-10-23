@@ -87,7 +87,7 @@ Related docs: [CLI.md](CLI.md) (command and flag reference),
 | --- | --- |
 | Neo4j | **5.23 or later, Enterprise** (tested with 5.26, block store format). The classic and lease relationship writers (`build_apoc_locked_upsert_query` in `src/neo4j_graph_loader/loader/edge_execution.py`) use Cypher's `CALL (vars) { ... }` scoped-subquery syntax, first available in Neo4j 5.23 — an earlier server (confirmed empirically on 5.21.x) rejects the query with a Cypher syntax error. Planned mode does not use this syntax and has no such lower bound. APOC is needed only for the classic relationship modes (`apoc.lock.nodes`); planned mode does not use it. |
 | Kafka | Any broker reachable from the host **and** from the loader containers (tested with Confluent 7.7 in KRaft mode). |
-| Docker | A local Docker daemon; the CLI builds and runs the `graph-loader-node` and `graph-loader-edge` images. |
+| Docker | A local Docker daemon; the CLI resolves compatible prebuilt component images. See [Docker execution](DOCKER_EXECUTION.md). |
 | Python | 3.12, with `pip install -r requirements.txt` (the Neo4j Python driver is pinned `>=5.20,<7`). |
 
 ### Local services
@@ -128,7 +128,7 @@ project `.env` without overriding exported values.
 | `LOADER_KAFKA_BOOTSTRAP_SERVERS` | containers | Kafka address inside the Docker network (default `kafka:29092`) |
 | `LOADER_NEO4J_URI` | containers | Neo4j URI inside the Docker network (default `bolt://neo4j:7687`) |
 | `LOADER_CPUSET` | containers | CPU set for every loader, dispatcher and writer container |
-| `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE`, `GRAPH_LOADER_CLOCK_IMAGE` | CLI | Image tags (default `graph-loader-node:latest`, `graph-loader-edge:latest`, `graph-loader-clock:latest`; `make build-images` builds these defaults) |
+| `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE`, `GRAPH_LOADER_CLOCK_IMAGE` | CLI | Compatible image overrides; defaults are matching package-version tags under `ghcr.io/shashankshukla96`. See [Docker execution](DOCKER_EXECUTION.md). |
 | `GRAPH_LOADER_TIMING_DIR` | CLI | Explicit timing/metrics directory override (default `<attempt>/timings/`); plan and ledger default to `<attempt>/plans/` |
 | `GRAPH_LOADER_METRICS_ENABLED` | host and containers | `1`/`true` (default) to expose a Prometheus `/metrics` endpoint and write the `metrics-<kind>[-<name>][-<replica>].prom` snapshot in `GRAPH_LOADER_TIMING_DIR`; `0`/`false` (case-insensitive) disables both |
 | `GRAPH_LOADER_METRICS_PORT` | host and containers | Port for the metrics HTTP server (default `9464`; the host CLI binds `127.0.0.1` and falls back to an ephemeral free port, logged as a warning, if the configured port is taken) |
@@ -1000,7 +1000,7 @@ other improvements. See [section 9](#9-performance-guide).
 | `--config PATH` | bundled canonical schema | Schema YAML |
 | `--mode {bulk,stream}` | – | Bulk loads everything up to the boundary and exits; stream keeps consuming |
 | `--network NAME` | `graph-loader-net` | Docker network for all containers |
-| `--skip-image-build` | off | Use existing `graph-loader-node` / `graph-loader-edge` images instead of building them |
+| `--skip-image-build` | off | Require compatible preloaded images and never pull; starts never build images |
 | `--bulk-timeout-seconds N` | `300` | Stall limit of each monitored bulk stage. Long stages are progress-based: node draining, waiting for the edge plan (the planner's heartbeat) and the planned dispatch fail only after `N` seconds without progress, however long they run |
 | `--edge-plan [PLAN_FILE]` | the bulk default (no file) | Planned mode; with a file, load a producer-written plan |
 | `--edge-classic` | off | Classic per-type APOC-locked relationship loaders (bulk only); the one mode that can wait on locks. Exclusive with `--edge-plan` and `--edge-leases` |
@@ -1047,7 +1047,7 @@ python -m neo4j_graph_loader.cli replay-dlq --node-label Person --dry-run   # pr
 records continuously. Planned mode and the bulk-only options above do not
 apply to streaming.
 
-**Topics must exist first.** Before building images or launching any container,
+**Topics must exist first.** Before launching any container,
 `start --mode stream` checks that every node and relationship topic the schema
 declares exists on the broker. If any is missing it logs
 `missing input topics: <names>. Create or publish them first ...`, exits with
@@ -2625,9 +2625,9 @@ workflows are shipped on `main`.
 | Local-stack smoke tests | `python -m pytest tests/test_dev_environment.py -m smoke` |
 | Star-topology stress tests | `make stress-100k` or `make stress-1m` |
 
-Image builds tag `graph-loader-{node,edge,clock}:latest`, matching the CLI's
-`--skip-image-build` defaults. Override with `IMAGE_TAG=x` and matching
-`GRAPH_LOADER_*_IMAGE` variables.
+`make build-images CANDIDATE_SUFFIX=unique-name` builds four local development
+candidates. Use the exact override tags in its manifest. The CLI requires exact
+version, role and contract labels; see [Docker execution](DOCKER_EXECUTION.md).
 
 Testcontainers-backed integration tests create and remove their own Kafka
 and Neo4j containers. They skip if Docker is unavailable; inspect skips

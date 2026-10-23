@@ -196,12 +196,12 @@ def test_handle_start_aborts_before_any_side_effect_when_dlq_setup_fails(
 
     assert handle_start(args) == 1
 
-    # Not just "no container launch": nothing downstream of DLQ
-    # provisioning ran at all -- no DDL, no image build, and no run_*/
-    # start_* container-launching call of any kind (node/edge loaders,
-    # clock runner, lease server, planned dispatcher).
+    # Image resolution is now a read-only/local-first preflight (the retained
+    # build_* names do not build). Failed provisioning still prevents every
+    # ingestion side effect: no DDL, planner or container launch of any kind.
     mock_apply_schema.assert_not_called()
-    docker_instance.build_image.assert_not_called()
+    docker_instance.build_image.assert_called_once_with()
+    mock_get_driver.assert_not_called()
     launch_calls = [
         call for call in docker_instance.method_calls
         if call[0].startswith(("run_", "start_"))

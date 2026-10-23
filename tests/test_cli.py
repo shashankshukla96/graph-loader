@@ -1606,6 +1606,7 @@ def test_handle_start_cli_snapshot_write_failure_does_not_change_exit_code(mock_
     monkeypatch.setenv("GRAPH_LOADER_TIMING_DIR", str(unwritable))
     mock_load.return_value = MagicMock(nodes=[], edges=())
     args = argparse.Namespace(mode="stream", config="config.yaml", network="test_net")
+    monkeypatch.setattr("neo4j_graph_loader.cli.DockerService", lambda **kwargs: MagicMock())
 
     # Schema load succeeds trivially (empty schema); the run still exits
     # normally regardless of what happens next, and the snapshot write

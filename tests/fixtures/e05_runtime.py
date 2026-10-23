@@ -35,7 +35,14 @@ def dispatch(args):
     class Client:
         def __init__(self):
             self.containers = self
+            self.images = self
             self.calls = []
+        def get(self, reference):
+            from neo4j_graph_loader._version import __version__
+            role = next(r for r in ('node','edge','clock') if f'graph-loader-{r}:' in reference)
+            return SimpleNamespace(id='sha256:' + {'node':'1','edge':'2','clock':'3'}[role] * 64,
+                attrs={'Config': {'Labels': {'org.opencontainers.image.version': __version__,
+                    'io.graph-loader.component': role, 'io.graph-loader.image-contract': '1'}}})
         def run(self, **kwargs):
             self.calls.append(kwargs)
             return SimpleNamespace(id=str(len(self.calls)), name=kwargs['name'])

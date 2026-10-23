@@ -1,5 +1,6 @@
 """CLI/env polish: early argument validation, Docker-unreachable stop/status,
 NEO4J_USER and GRAPH_LOADER_VERSION forwarding to containers."""
+from tests.docker_support import configure_images
 import argparse
 import tempfile
 from unittest.mock import MagicMock, patch
@@ -60,7 +61,7 @@ def _env_of_launches(monkeypatch, **env):
         monkeypatch.delenv(k, raising=False)
     for k, v in env.items():
         monkeypatch.setenv(k, v)
-    client = MagicMock()
+    client = configure_images(MagicMock())
     svc = DockerService(client=client)
     with tempfile.TemporaryDirectory() as d:
         svc.run_node_loader(node_label="P", topic="t", mode="stream", config_path="c.yaml",

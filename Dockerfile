@@ -1,5 +1,13 @@
 FROM python:3.12-slim
 
+# The candidate builder supplies the literal package version; unlabeled ad-hoc
+# development builds are not selectable release candidates.
+ARG GRAPH_LOADER_VERSION
+LABEL org.opencontainers.image.version=$GRAPH_LOADER_VERSION \
+      org.opencontainers.image.source="https://github.com/shashankshukla96/graph-loader" \
+      io.graph-loader.component="cli" \
+      io.graph-loader.image-contract="1"
+
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
@@ -9,8 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Isolated setuptools reads the literal file version; no Git or path rescue.
 COPY pyproject.toml PACKAGE_README.md LICENSE MANIFEST.in ./
-COPY src/ src/
+COPY src/neo4j_graph_loader/ src/neo4j_graph_loader/
 RUN pip install --no-cache-dir --no-deps .
+RUN python -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "$GRAPH_LOADER_VERSION"
 COPY config/ config/
 COPY .env.example .env.example
 

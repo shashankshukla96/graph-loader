@@ -1,6 +1,8 @@
 """Derived scheduling parameters, YAML contract checks and the auto-planned CLI path."""
 from __future__ import annotations
 
+from tests.docker_support import configure_images
+
 import argparse
 import copy
 from datetime import date, datetime, timezone
@@ -366,7 +368,7 @@ def test_the_classic_and_planner_rejection_directories_are_one_constant() -> Non
         assert inspect.signature(method).parameters["rejection_dir"].default is None
     # No runtime context still resolves to the same legacy constant. A CLI run
     # supplies its private directory (covered by test_runtime_paths).
-    service = docker_service.DockerService(client=MagicMock())
+    service = docker_service.DockerService(client=configure_images(MagicMock()))
     assert service._rejection_directory(None) == docker_service.REJECTION_DIR
     assert service._rejection_directory("caller/rejections") == "caller/rejections"
 

@@ -1,6 +1,8 @@
 """Unit tests for the CLI's planned-edge phase (``--edge-plan``) and its launches."""
 from __future__ import annotations
 
+from tests.docker_support import configure_images, IMAGE_IDS
+
 import argparse
 import json
 from threading import Condition, Event, Thread
@@ -520,7 +522,7 @@ def test_handle_start_fails_when_the_planned_phase_fails(mock_load, mock_driver,
 
 class TestPlannedDockerLaunches:
     def setup_method(self):
-        self.client = MagicMock()
+        self.client = configure_images(MagicMock())
         self.service = DockerService(client=self.client)
 
     def test_dispatcher_mounts_the_plan_and_publishes_its_port_on_loopback(self, tmp_path):
@@ -532,7 +534,7 @@ class TestPlannedDockerLaunches:
         assert kwargs["command"][-2:] == ["--ready-labels", "A,B"]
         assert kwargs["volumes"] == {str(plan): {"bind": "/app/edge-plan.json", "mode": "ro"}}
         assert kwargs["ports"] == {"7701/tcp": ("127.0.0.1", None), "9464/tcp": ("127.0.0.1", None)}
-        assert kwargs["labels"]["component"] == "planned-dispatcher" and kwargs["image"] == "graph-loader-edge:latest"
+        assert kwargs["labels"]["component"] == "planned-dispatcher" and kwargs["image"] == IMAGE_IDS["edge"]
         assert kwargs["labels"]["graph_loader.metrics_port"] == "9464"
         assert kwargs["labels"]["graph_loader.kind"] == "planned-dispatcher"
         with pytest.raises(ValueError, match="does not exist"):

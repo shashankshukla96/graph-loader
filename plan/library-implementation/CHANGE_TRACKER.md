@@ -5,7 +5,17 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E05 repaired and independently accepted, 2026-10-21:**
+**Current gate — E06 independently accepted, 2026-10-23:**
+Clean entry `a2bc7bbd6e82350a25e9a127454452c360c1ceda`. User authorized only
+[E06 execution](execution-e06.md). [Fresh final acceptance](reviews/e06-final-adversarial-review.md)
+closes all three stories and the retained bounded repairs. [Final proof](evidence/e06-final-validation.md)
+records 3,624 full-suite passes, four inherited skips, 49 deselections and 19 known
+warnings, strict artifacts/two installs/four immutable images/two actual loads/
+12 supervised R1 controls and exact no-skip B3. Local delivery/equality will be
+recorded after the authorized commit using its actual full Git SHA.
+No E07–E12 implementation, push/upload/release tag/publication/workflow.
+
+**Prior gate — E05 repaired and independently accepted, 2026-10-21:**
 [Fresh E05 verification](reviews/e05-completion-verification-20261021.md) found
 and repaired low-priority E05-R1 symlink-loop diagnostics. The original delivery
 below remains historical. The narrow repair, five regression cases and
@@ -89,8 +99,8 @@ E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) pre
 | 2026-10-21 | `1871898ea350d0e17c0e926b3b87595fbde0c2ef` | [Delivered repair revalidation](reviews/e04-completion-verification-20261021.md): fresh 3,516 passes, four inherited skips, 49 deselections, 19 known warnings; original reproduction and static checks pass, all 259 tested/committed/current inputs agree, retained artifact/image/B3 proof audited. [Fresh independent review](reviews/e04-r1-independent-revalidation-20261021.md) approves with 221 focused passes and 7 extra public probes. | Delivered locally in `369cb0d43c6ca94ebe1c8d7a7557f5d1d31fb41d`; final report/evidence/tracker independently approved. E04 accepted and E05 handoff ready. No product change or E05 implementation. |
 | 2026-10-21 | `0638322f3b84471f63ee867861fb75b13c97760b` plus narrow E05-R1 repair | [Fresh E05 verification](reviews/e05-completion-verification-20261021.md): 3,571 passes, four inherited skips, 49 deselections, 19 known warnings; strict no-Git builds/two new installs/four new images/76 probes/12 R1 mixed cases/exact B3 passed. Independent runtime/distribution reviews and [fresh final acceptance](reviews/e05-final-revalidation-20261021.md) close R1/R2; 90 installed/image command negatives pass. | Delivered locally in `c35a6045ef39a822dcbcfcfc2c20d6b9c2227a28`; [all 270 inputs verified after commit](evidence/e05-revalidation-postcommit-20261021.json). Only runtime error normalization and five regression cases change product/test inputs; E06 remains unstarted. |
 
-E00–E05 have original accepted deliveries; current E05 revalidation/repair status
-is recorded at the top and in the new report. E06–E12 remain unstarted. Historical
+E00–E05 have original accepted deliveries; E06 is independently accepted as
+recorded at the top. E07–E12 remain unstarted. Historical
 green runs did not waive findings; new source, regressions and independent proof
 close each repair before further acceptance.
 
@@ -157,3 +167,14 @@ Actual delivery is `2265e4fd1d9f76eb2813856157dea89a80b9f216`;
 [postcommit proof](evidence/e05-postcommit.json) verifies all270 accepted inputs
 against committed/current content and modes. Rule5 applies to this follow-up
 bookkeeping commit; no tested product input changes.
+
+
+## E06 execution — 2026-10-22
+
+Approved prebuilt strategy only: local candidates/versioned selection/exact
+compatibility, per-instance immutable launches, local daemon/shared mount/service
+preflight, host/container coordinator paths and narrow repeated-stop lifecycle
+repair. Every actionable independent finding and original failed proof remains
+in [resolutions](reviews/e06-resolutions.md). All three stories are accepted;
+[Fresh final adversarial acceptance](reviews/e06-final-adversarial-review.md) is
+complete on 2026-10-23; actual local delivery/equality follows the authorized commit.

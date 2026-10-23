@@ -25,6 +25,8 @@ Regenerate (only for an intentional change, with the reason in the commit):
 """
 from __future__ import annotations
 
+from tests.docker_support import configure_images
+
 import hashlib
 import json
 import sys
@@ -123,7 +125,7 @@ def _names(entity_topic: str, dead_letter) -> list:
 def _launch_env(edge, mode: str, config_path: str) -> dict:
     from neo4j_graph_loader.orchestrator.docker_service import DockerService
 
-    client = MagicMock()
+    client = configure_images(MagicMock())
     client.containers.run.return_value = MagicMock()
     service = DockerService(client=client)
     with tempfile.TemporaryDirectory() as rejection_dir:
@@ -144,7 +146,7 @@ def _launch_env(edge, mode: str, config_path: str) -> dict:
 def _node_launch(node, mode: str, config_path: str) -> dict:
     from neo4j_graph_loader.orchestrator.docker_service import DockerService
 
-    client = MagicMock()
+    client = configure_images(MagicMock())
     client.containers.run.return_value = MagicMock()
     with tempfile.TemporaryDirectory() as rejection_dir:
         DockerService(client=client).run_node_loader(

@@ -1,0 +1,233 @@
+{
+  "outside": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo",
+  "images": [
+    {
+      "component": "cli",
+      "id": "sha256:96bf30122fe4b111d4ab5d37c6df7016c84244396dd0ef973b33f99e9cb54c9f",
+      "local_tag": "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1.dev0-e06-20261022-s2b",
+      "proposed_registry_tag": "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1.dev0",
+      "registry_digest": null,
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "cli",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/shashankshukla96/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a1.dev0"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.cli"
+      ],
+      "command": [
+        "docker",
+        "build",
+        "--file",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/Dockerfile",
+        "--build-arg",
+        "GRAPH_LOADER_VERSION=0.1.0a1.dev0",
+        "--tag",
+        "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1.dev0-e06-20261022-s2b",
+        "--iidfile",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s2b-images/cli.iid",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader"
+      ],
+      "exit_code": 0
+    },
+    {
+      "component": "node",
+      "id": "sha256:fa90ad1c97e82af1ee9bd84dfeb49bc34a82d0fedf2c9b92142a09d27c1e5608",
+      "local_tag": "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1.dev0-e06-20261022-s2b",
+      "proposed_registry_tag": "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1.dev0",
+      "registry_digest": null,
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "node",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/shashankshukla96/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a1.dev0"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.loader.node_loader"
+      ],
+      "command": [
+        "docker",
+        "build",
+        "--file",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/Dockerfile.node_loader",
+        "--build-arg",
+        "GRAPH_LOADER_VERSION=0.1.0a1.dev0",
+        "--tag",
+        "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1.dev0-e06-20261022-s2b",
+        "--iidfile",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s2b-images/node.iid",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader"
+      ],
+      "exit_code": 0
+    },
+    {
+      "component": "edge",
+      "id": "sha256:9c1f408d34f4c393f4c5bde637d47a00f2572936a62ef1a8a9ee7202281c0cb1",
+      "local_tag": "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1.dev0-e06-20261022-s2b",
+      "proposed_registry_tag": "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1.dev0",
+      "registry_digest": null,
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "edge",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/shashankshukla96/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a1.dev0"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.loader.edge_loader"
+      ],
+      "command": [
+        "docker",
+        "build",
+        "--file",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/Dockerfile.edge_loader",
+        "--build-arg",
+        "GRAPH_LOADER_VERSION=0.1.0a1.dev0",
+        "--tag",
+        "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1.dev0-e06-20261022-s2b",
+        "--iidfile",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s2b-images/edge.iid",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader"
+      ],
+      "exit_code": 0
+    },
+    {
+      "component": "clock",
+      "id": "sha256:c7124d63b895dfe529a296998431a4bfc8630681938e1d9f15abede35e73d3f4",
+      "local_tag": "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1.dev0-e06-20261022-s2b",
+      "proposed_registry_tag": "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1.dev0",
+      "registry_digest": null,
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "clock",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/shashankshukla96/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a1.dev0"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.orchestrator.clock_runner"
+      ],
+      "command": [
+        "docker",
+        "build",
+        "--file",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/Dockerfile.clock",
+        "--build-arg",
+        "GRAPH_LOADER_VERSION=0.1.0a1.dev0",
+        "--tag",
+        "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1.dev0-e06-20261022-s2b",
+        "--iidfile",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s2b-images/clock.iid",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "commands": [
+    {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/dev/bin/python",
+        "-m",
+        "venv",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/env"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo",
+      "exit_code": 0,
+      "log": "s2b-clean-venv.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/env/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s2b-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo",
+      "exit_code": 0,
+      "log": "s2b-clean-install.log",
+      "sha256": "42703620101ad460146238714b93f62c40a07416af0f5bac6158af0e4a0a0d5b"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/env/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo",
+      "exit_code": 0,
+      "log": "s2b-clean-pip-check.log",
+      "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/env/bin/python",
+        "-I",
+        "-c",
+        "from neo4j_graph_loader.orchestrator.docker_service import DockerService\nfrom pathlib import Path\nimport neo4j_graph_loader._images as m\nassert 'site-packages' in m.__file__\ns=DockerService()\nassert s.prepare_images(['node','edge','clock'],local_only=True)=={'node': 'sha256:fa90ad1c97e82af1ee9bd84dfeb49bc34a82d0fedf2c9b92142a09d27c1e5608', 'edge': 'sha256:9c1f408d34f4c393f4c5bde637d47a00f2572936a62ef1a8a9ee7202281c0cb1', 'clock': 'sha256:c7124d63b895dfe529a296998431a4bfc8630681938e1d9f15abede35e73d3f4'}\nprint('installed site-packages; matching local image IDs pinned')\n"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo",
+      "exit_code": 0,
+      "log": "s2b-clean-resolve.log",
+      "sha256": "96223e7f55ecd8d687c3c56199ad691f74e455bbdf282b352c9bb5cde23233ce"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--skip-image-build",
+        "--run-dir",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/missing"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo",
+      "exit_code": 1,
+      "log": "s2b-clean-missing.log",
+      "sha256": "0cfd2f30d47b3e47e8598f353290a7a8cc3040da49fb2309a684124a0a321423"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--skip-image-build",
+        "--run-dir",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/incompatible"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo",
+      "exit_code": 1,
+      "log": "s2b-clean-incompatible.log",
+      "sha256": "467325dead732d422669277229db6598df1fb5421e2d6d0dde17ece11f5f2a85"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--skip-image-build",
+        "--run-dir",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo/daemon"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s2b-installed-vp52oaeo",
+      "exit_code": 1,
+      "log": "s2b-clean-daemon.log",
+      "sha256": "ee47408db6b934282c67b86f55a659c34a1f65b3c62c4656b6ddeeffc26b86e5"
+    }
+  ]
+}

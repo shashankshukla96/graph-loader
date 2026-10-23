@@ -1339,3 +1339,32 @@ def test_sigterm_storm_to_the_lease_server_process_still_exits_zero() -> None:
         finally:
             if proc.poll() is None:
                 proc.kill()
+
+
+def test_sigterm_after_real_asyncio_shutdown_preserves_success(monkeypatch):
+    """A repeated stop after loop.close must not turn successful shutdown into rc1."""
+    import os
+    import signal
+
+    original_run = asyncio.run
+    original_serve = lease_server.serve
+    loops = []
+
+    async def stopping_serve(*args, **kwargs):
+        loop = asyncio.get_running_loop()
+        loops.append(loop)
+        timer = loop.call_later(0.02, os.kill, os.getpid(), signal.SIGTERM)
+        try:
+            return await original_serve(*args, **kwargs)
+        finally:
+            timer.cancel()
+
+    def repeated_stop_after_loop_close(coroutine):
+        result = original_run(coroutine)
+        assert loops[0].is_closed()
+        os.kill(os.getpid(), signal.SIGTERM)
+        return result
+
+    monkeypatch.setattr(lease_server, 'serve', stopping_serve)
+    monkeypatch.setattr(asyncio, 'run', repeated_stop_after_loop_close)
+    assert lease_server.main(['--host', '127.0.0.1', '--port', '0']) == 0

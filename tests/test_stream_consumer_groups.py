@@ -6,6 +6,8 @@ Bulk groups stay run-scoped and phase-derived; every bulk path is pinned below.
 """
 from __future__ import annotations
 
+from tests.docker_support import configure_images
+
 import argparse
 import hashlib
 import logging
@@ -28,7 +30,7 @@ from neo4j_graph_loader.utils.schema_loader import load_schema
 
 def _launch_group(*, mode: str, run_id: str | None, edge_type: str = "WORKS_AT", topics=("works",),
                   prefix: str = "loader", **kwargs) -> list[str]:
-    client = MagicMock()
+    client = configure_images(MagicMock())
     client.containers.run.return_value = MagicMock()
     with tempfile.TemporaryDirectory() as rejection_dir:
         DockerService(client=client).run_edge_loader(
@@ -111,7 +113,7 @@ def test_stream_launcher_and_monitor_agree_for_shipped_schemas(path) -> None:
 
 def test_stream_slot_gated_launch_keeps_a_run_scoped_clock_group() -> None:
     """Deprecated clock path: the work group is stable, the coordination (clock) group stays per run."""
-    client = MagicMock()
+    client = configure_images(MagicMock())
     client.containers.run.return_value = MagicMock()
     schema = SimpleNamespace(edges=(SimpleNamespace(type="WORKS_AT", nodes=SimpleNamespace(
         source="Person", target="Company", is_self_referencing=False)),))
@@ -210,7 +212,7 @@ def test_bulk_relationship_edge_launches_and_monitors_run_scoped(monitor_cls) ->
         nodes=SimpleNamespace(source="Person", target="Company", is_self_referencing=False),
         endpoint_labels=frozenset({"Person", "Company"}), has_self_reference=False,
     )
-    client = MagicMock()
+    client = configure_images(MagicMock())
     client.containers.run.return_value = MagicMock()
     args = argparse.Namespace(config="config.yaml", network="net", bulk_timeout_seconds=1)
     with tempfile.TemporaryDirectory() as rejection_dir, \

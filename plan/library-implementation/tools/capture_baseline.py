@@ -21,7 +21,8 @@ FILES = {"requirements.txt", "requirements-dev.txt", "pyproject.toml", "Makefile
          "plan/library-implementation/tools/capture_baseline.py",
          "plan/library-implementation/tools/run_dlq_proof.py",
          "plan/library-implementation/tools/verify_e03_artifacts.py",
-         "plan/library-implementation/tools/run_e04_fault.py"}
+         "plan/library-implementation/tools/run_e04_fault.py",
+         "plan/library-implementation/tools/run_e06_service_proof.py"}
 UNTRACKED_INPUTS = [
     "tests/test_library_preflight.py", "tests/test_dlq_proof_harness.py", "tests/fixtures",
     "src/neo4j_graph_loader", "PACKAGE_README.md", "MANIFEST.in", "requirements-build.txt",
@@ -30,6 +31,9 @@ UNTRACKED_INPUTS = [
     "docs/LIBRARY_API.md", "tests/test_public_api.py", "tests/test_public_lifecycle.py",
     "tests/test_planner_transport.py", "tests/test_public_cancellation.py",
     "tests/test_public_cleanup.py", "tests/test_installed_cli.py", "tests/test_cli_resources.py", "tests/test_runtime_paths.py", "docs/CLI_RUNTIME.md",
+    "plan/library-implementation/tools/run_e06_service_proof.py",
+    "scripts/build_candidate_images.py", "tests/test_candidate_images.py", "tests/docker_support.py", "tests/test_image_selection.py",
+    "tests/test_docker_topology.py", "docs/DOCKER_EXECUTION.md",
     "tests/test_planner_imports.py", "tests/fixtures/e04_faults.py",
     "plan/library-implementation/tools/run_e04_fault.py",
     "plan/library-implementation/tools/capture_baseline.py",

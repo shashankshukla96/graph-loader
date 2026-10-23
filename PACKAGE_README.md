@@ -19,8 +19,10 @@ canonical schema. Neither command nor imports load `.env` files implicitly. Star
 `--run-dir BASE` selects its parent. Explicit plan/spill/timing paths retain
 priority. Attempts persist after shutdown for diagnostics and worker ownership.
 See the [CLI guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/CLI_RUNTIME.md).
-Full CLI orchestration still expects the repository as its image build context and a local Docker
-service; checkout-free image delivery is also later work.
+Starts resolve matching versioned component images, using compatible local images
+first and pulling missing images unless `--skip-image-build` requests local-only
+execution. No checkout Dockerfile is used at runtime. Local development candidates
+are not published images; see the repository Docker execution guide.
 
 Python 3.12 is the development baseline. Native development checks and local
 image smoke checks do not establish the future supported platform/service

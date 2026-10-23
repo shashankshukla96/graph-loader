@@ -58,8 +58,7 @@ timing directories read-write at `/app/runtime_schema.yaml`, `/app/edge-plan.jso
 Docker daemon: use a local daemon or shared filesystem with matching host paths.
 E05 does not translate files to remote Docker hosts.
 
-Full CLI orchestration still builds images from the current checkout unless
-`--skip-image-build` is supplied with compatible local images/explicit environment
-image overrides. Checkout-free image selection and registry delivery remain E06.
-Help, version, schema commands and runtime state preparation are checkout-independent;
-this does not claim a complete checkout-free service ingestion proof.
+Starts resolve matching versioned prebuilt images independently of cwd. Missing
+images are pulled unless --skip-image-build requests compatible local images
+only; runtime never builds Dockerfiles. See [Docker execution](DOCKER_EXECUTION.md)
+for exact version/label policy, candidate builds and supported topology.

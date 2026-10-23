@@ -1,0 +1,713 @@
+{
+  "token": "e06d79eed9ab41b",
+  "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+  "python": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/python",
+  "images": [
+    {
+      "component": "cli",
+      "id": "sha256:6403a9df86d5491867f78f9c0b5076a9bb2f5360ef4d4331baa0eafca151a5a8",
+      "local_tag": "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1.dev0-e06-20261022-s3b",
+      "proposed_registry_tag": "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1.dev0",
+      "registry_digest": null,
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "cli",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/shashankshukla96/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a1.dev0"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.cli"
+      ],
+      "command": [
+        "docker",
+        "build",
+        "--file",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/Dockerfile",
+        "--build-arg",
+        "GRAPH_LOADER_VERSION=0.1.0a1.dev0",
+        "--tag",
+        "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1.dev0-e06-20261022-s3b",
+        "--iidfile",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3b-images/cli.iid",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader"
+      ],
+      "exit_code": 0
+    },
+    {
+      "component": "node",
+      "id": "sha256:9694143102a54599cb70f37a0859ae86fac257728e9ec297f6e43833191c3325",
+      "local_tag": "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1.dev0-e06-20261022-s3b",
+      "proposed_registry_tag": "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1.dev0",
+      "registry_digest": null,
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "node",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/shashankshukla96/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a1.dev0"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.loader.node_loader"
+      ],
+      "command": [
+        "docker",
+        "build",
+        "--file",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/Dockerfile.node_loader",
+        "--build-arg",
+        "GRAPH_LOADER_VERSION=0.1.0a1.dev0",
+        "--tag",
+        "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1.dev0-e06-20261022-s3b",
+        "--iidfile",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3b-images/node.iid",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader"
+      ],
+      "exit_code": 0
+    },
+    {
+      "component": "edge",
+      "id": "sha256:3955f8364e5ef22191da8694a5aec4bcb55635537015deac1c98c7959485a699",
+      "local_tag": "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1.dev0-e06-20261022-s3b",
+      "proposed_registry_tag": "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1.dev0",
+      "registry_digest": null,
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "edge",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/shashankshukla96/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a1.dev0"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.loader.edge_loader"
+      ],
+      "command": [
+        "docker",
+        "build",
+        "--file",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/Dockerfile.edge_loader",
+        "--build-arg",
+        "GRAPH_LOADER_VERSION=0.1.0a1.dev0",
+        "--tag",
+        "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1.dev0-e06-20261022-s3b",
+        "--iidfile",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3b-images/edge.iid",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader"
+      ],
+      "exit_code": 0
+    },
+    {
+      "component": "clock",
+      "id": "sha256:eb28367567d4c2991e85e6aa003afce52a36a1e9f3b7f3ecc6f438381873100b",
+      "local_tag": "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1.dev0-e06-20261022-s3b",
+      "proposed_registry_tag": "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1.dev0",
+      "registry_digest": null,
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "clock",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/shashankshukla96/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a1.dev0"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.orchestrator.clock_runner"
+      ],
+      "command": [
+        "docker",
+        "build",
+        "--file",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/Dockerfile.clock",
+        "--build-arg",
+        "GRAPH_LOADER_VERSION=0.1.0a1.dev0",
+        "--tag",
+        "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1.dev0-e06-20261022-s3b",
+        "--iidfile",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3b-images/clock.iid",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "graph": [
+    {
+      "source": 0,
+      "target": 0,
+      "seq": 0
+    },
+    {
+      "source": 1,
+      "target": 0,
+      "seq": 1
+    },
+    {
+      "source": 2,
+      "target": 0,
+      "seq": 2
+    },
+    {
+      "source": 3,
+      "target": 0,
+      "seq": 3
+    },
+    {
+      "source": 4,
+      "target": 0,
+      "seq": 4
+    },
+    {
+      "source": 5,
+      "target": 0,
+      "seq": 5
+    },
+    {
+      "source": 6,
+      "target": 0,
+      "seq": 6
+    },
+    {
+      "source": 7,
+      "target": 0,
+      "seq": 7
+    },
+    {
+      "source": 8,
+      "target": 0,
+      "seq": 8
+    },
+    {
+      "source": 9,
+      "target": 0,
+      "seq": 9
+    },
+    {
+      "source": 10,
+      "target": 0,
+      "seq": 10
+    },
+    {
+      "source": 11,
+      "target": 0,
+      "seq": 11
+    }
+  ],
+  "node_count": 13,
+  "default_database_nodes": 0,
+  "offsets": [
+    {
+      "label": "Leaf",
+      "topic": "e06d79eed9ab41b-leaf",
+      "committed": 12,
+      "end": 12
+    },
+    {
+      "label": "Hub",
+      "topic": "e06d79eed9ab41b-hub",
+      "committed": 1,
+      "end": 1
+    }
+  ],
+  "delivered_source_offsets": [
+    [
+      "e06d79eed9ab41b-hub",
+      0,
+      0
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      0
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      1
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      2
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      3
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      4
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      5
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      6
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      7
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      8
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      9
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      10
+    ],
+    [
+      "e06d79eed9ab41b-leaf",
+      0,
+      11
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      0
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      1
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      2
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      3
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      4
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      5
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      6
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      7
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      8
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      9
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      10
+    ],
+    [
+      "e06d79eed9ab41b-edges",
+      0,
+      11
+    ]
+  ],
+  "plan": {
+    "format": "graph-loader-edge-plan/1",
+    "plan_id": "e06d79eed9ab41b",
+    "topic": "graph-loader-edge-chunks-e06d79eed9ab41b",
+    "partitions": 4,
+    "settings": {
+      "buckets": 2,
+      "hub_degree": 500,
+      "chunk_rows": 500,
+      "max_chunk_bytes": 8388608,
+      "max_message_bytes": 16777216,
+      "c0": 0.003,
+      "c1": 1.5e-05,
+      "planner_workers": 1
+    },
+    "resources": {
+      "buckets": 2,
+      "labels": [
+        "Hub",
+        "Leaf"
+      ],
+      "hubs": {}
+    },
+    "types": {
+      "POINTS_AT": {
+        "source": "Leaf",
+        "target": "Hub",
+        "rows": 12,
+        "chunks": 2,
+        "units": 2
+      }
+    },
+    "chunks": [
+      [
+        0,
+        "POINTS_AT",
+        [
+          0,
+          2
+        ],
+        6,
+        0,
+        0,
+        -1,
+        0,
+        "POINTS_AT:2:0:0:0",
+        519
+      ],
+      [
+        1,
+        "POINTS_AT",
+        [
+          0,
+          3
+        ],
+        6,
+        1,
+        0,
+        -1,
+        1,
+        "POINTS_AT:3:0:0:0",
+        523
+      ]
+    ],
+    "stats": {
+      "resources": 4,
+      "hubs": 0,
+      "chunks": 2,
+      "units": 2,
+      "rows": 12,
+      "max_chunk_message_bytes": 523,
+      "mean_chunk_message_bytes": 521.0,
+      "scan_seconds": 0.794,
+      "scan_records_per_second": 15.1,
+      "hub_seconds": 0.066,
+      "emit_seconds": 1.02,
+      "lanes": [
+        {
+          "rows": 12,
+          "seconds": 0.532,
+          "memory_mb": 16,
+          "spilled_bytes": 0,
+          "row_flushes": 0,
+          "key_windows": 1,
+          "keys_interned": 13,
+          "streamed_cells": 0,
+          "peak_rss_mb": 104304.0
+        }
+      ],
+      "source": "kafka",
+      "boundary_records": 12,
+      "type_topics": {
+        "POINTS_AT": [
+          "e06d79eed9ab41b-edges"
+        ]
+      },
+      "boundary": {
+        "e06d79eed9ab41b-edges": [
+          [
+            0,
+            0,
+            12
+          ]
+        ]
+      }
+    }
+  },
+  "attempt": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3e-service/load/graph-loader-_51g4m0n",
+  "installed_load": true,
+  "service_versions": {
+    "neo4j": "5.26-enterprise",
+    "kafka": "7.7.0"
+  },
+  "negatives": [
+    {
+      "case": "credentials",
+      "phase": "neo4j-auth",
+      "exit_code": 1
+    },
+    {
+      "case": "database",
+      "phase": "neo4j-database",
+      "exit_code": 1
+    },
+    {
+      "case": "container-neo4j",
+      "phase": "neo4j-connect",
+      "exit_code": 1
+    },
+    {
+      "case": "container-kafka",
+      "phase": "kafka-bootstrap",
+      "exit_code": 1
+    },
+    {
+      "case": "network",
+      "exit_code": 1
+    },
+    {
+      "case": "advertised-metadata",
+      "exit_code": 1,
+      "phase": "kafka-metadata"
+    },
+    {
+      "case": "missing-daemon-bind",
+      "exit_code": "Docker API rejection",
+      "client_path_not_created": true
+    }
+  ],
+  "lease_host_and_container": true,
+  "owned_application_cleanup": true,
+  "infrastructure_ids": [
+    "088fe908ee0657f60802a204b1448cf10b8506cd0588506aabd42576f76c27b7",
+    "102d89b6982125f14c16efdbdb1239806383e9b36bf496cb90c113dac43174aa",
+    "bd37bb5ad91bc48336c56ce3e4ae26492faf37fc8e4e75a869282636f3f28fe4"
+  ],
+  "network_id": "1f948ec8eaff0388dbcd97abf4e5b45b9f1594d6a38d3ce5370de2d3920afeec",
+  "infrastructure_removed": true,
+  "commands": [
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/python",
+        "-I",
+        "-c",
+        "import pathlib,neo4j_graph_loader,importlib.metadata as m; p=pathlib.Path(neo4j_graph_loader.__file__); assert 'site-packages' in str(p); assert m.version('neo4j-graph-loader') == '0.1.0a1.dev0'; print(p)"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 0,
+      "timeout": false,
+      "seconds": 0.047334416000012425,
+      "log": "installed-origin.log",
+      "sha256": "66b0864914abd2a45c4c5fe724a5a25152dce06f4ccbe95e948176ec36a2473c"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--config",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7/schema.yaml",
+        "--skip-image-build",
+        "--network",
+        "24be3dc6-6391-421a-8337-3a40a343513e",
+        "--bulk-timeout-seconds",
+        "60",
+        "--run-id",
+        "e06d79eed9ab41b",
+        "--run-dir",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3e-service/load",
+        "--plan-workers",
+        "1",
+        "--plan-writers",
+        "1",
+        "--plan-memory-mb",
+        "16"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 0,
+      "timeout": false,
+      "seconds": 17.880589792000137,
+      "log": "tiny-load.log",
+      "sha256": "aa5ec5ea2bfa84569ec668d256c12b4596a92c537cec648156f86c663ff6c30e"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--config",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7/schema.yaml",
+        "--skip-image-build",
+        "--network",
+        "24be3dc6-6391-421a-8337-3a40a343513e",
+        "--bulk-timeout-seconds",
+        "60",
+        "--run-id",
+        "e06d79eed9ab41b",
+        "--run-dir",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3e-service/credentials"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 1,
+      "timeout": false,
+      "seconds": 0.685999000000038,
+      "log": "credentials.log",
+      "sha256": "2c709fb597d4082c2b6be2b42cb52c6103fdf2339839b24871746f7a7b6ffccb"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--config",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7/schema.yaml",
+        "--skip-image-build",
+        "--network",
+        "24be3dc6-6391-421a-8337-3a40a343513e",
+        "--bulk-timeout-seconds",
+        "60",
+        "--run-id",
+        "e06d79eed9ab41b",
+        "--run-dir",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3e-service/database"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 1,
+      "timeout": false,
+      "seconds": 0.6585694589998639,
+      "log": "database.log",
+      "sha256": "4f83655eab33f93df7998deea315db6e719bc7a96e59e7d92dbeddd919eec5df"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--config",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7/schema.yaml",
+        "--skip-image-build",
+        "--network",
+        "24be3dc6-6391-421a-8337-3a40a343513e",
+        "--bulk-timeout-seconds",
+        "60",
+        "--run-id",
+        "e06d79eed9ab41b",
+        "--run-dir",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3e-service/container-neo4j"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 1,
+      "timeout": false,
+      "seconds": 0.6465947499998492,
+      "log": "container-neo4j.log",
+      "sha256": "1c948e8836251b4507c04cf11aa394bb666acacb7add84a8fcc6ff0af859161a"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--config",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7/schema.yaml",
+        "--skip-image-build",
+        "--network",
+        "24be3dc6-6391-421a-8337-3a40a343513e",
+        "--bulk-timeout-seconds",
+        "60",
+        "--run-id",
+        "e06d79eed9ab41b",
+        "--run-dir",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3e-service/container-kafka"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 1,
+      "timeout": false,
+      "seconds": 0.652195249999977,
+      "log": "container-kafka.log",
+      "sha256": "f64ef75fad061d559378a9dc60dd136fa394413192174abb7519606f27bffa67"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--config",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7/schema.yaml",
+        "--skip-image-build",
+        "--network",
+        "24be3dc6-6391-421a-8337-3a40a343513e",
+        "--bulk-timeout-seconds",
+        "60",
+        "--network",
+        "e06d79eed9ab41b-missing",
+        "--run-dir",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3e-service/network"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 1,
+      "timeout": false,
+      "seconds": 0.31425737500012474,
+      "log": "network.log",
+      "sha256": "a2a9d2f3f46a1270ab441b4ac9cbb70f0b4cc5e052592169d52772d9561b687b"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/graph-loader",
+        "start",
+        "--mode",
+        "bulk",
+        "--config",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7/schema.yaml",
+        "--skip-image-build",
+        "--network",
+        "24be3dc6-6391-421a-8337-3a40a343513e",
+        "--bulk-timeout-seconds",
+        "60",
+        "--run-id",
+        "e06d79eed9ab41b",
+        "--run-dir",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e06-validation-20261022/s3e-service/metadata"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 1,
+      "timeout": false,
+      "seconds": 1.029830875000016,
+      "log": "metadata.log",
+      "sha256": "5ad3b270137ea1650fee0c7f7cdfe685c30035ee62bf3e057a092d2d98370a42"
+    },
+    {
+      "command": [
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-s3b-installed-om0zohas/env/bin/python",
+        "-I",
+        "-c",
+        "import os,time,subprocess,json\nfrom neo4j_graph_loader.orchestrator.docker_service import DockerService\nfrom neo4j_graph_loader.loader.lease_client import BucketLeaseClient\ns=DockerService();s.prepare_images(['edge'],local_only=True)\nc=s.run_bucket_lease_server(run_id='e06d79eed9ab41b',bucket_count=4,network='24be3dc6-6391-421a-8337-3a40a343513e')\ntry:\n host=s.bucket_lease_address(c,network='24be3dc6-6391-421a-8337-3a40a343513e',host=True)\n internal=s.bucket_lease_address(c,network='24be3dc6-6391-421a-8337-3a40a343513e',prefer_name=True)\n deadline=time.monotonic()+15\n while True:\n  client=BucketLeaseClient(host,bucket_count=4,connect_timeout_seconds=1)\n  try:\n   if client.ping():break\n  except Exception:\n   if time.monotonic()>deadline:raise\n  finally:client.close()\n  time.sleep(.1)\n payload='from neo4j_graph_loader.loader.lease_client import BucketLeaseClient; c=BucketLeaseClient('+repr(internal)+',bucket_count=4); assert c.ping(); c.close()'\n result=s.client.containers.run(s._image('edge'),entrypoint=['python','-I','-c'],command=[payload],network='24be3dc6-6391-421a-8337-3a40a343513e',remove=True)\n print(json.dumps({'host':host,'container':internal,'host_and_container_ping':True}))\nfinally:c.remove(force=True)\n"
+      ],
+      "cwd": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e06-service-cwd-d0q_z6q7",
+      "exit_code": 0,
+      "timeout": false,
+      "seconds": 0.7281126670000049,
+      "log": "lease-addresses.log",
+      "sha256": "7b78aa315119ec57ba0df32abda07bbdc04d2aeb601443dad1615373b0cb9faa"
+    }
+  ]
+}

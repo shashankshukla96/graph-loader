@@ -725,7 +725,7 @@
       "scope": "Implement only the D06 deployment strategy. Construct candidates locally; registry/image publication still requires a separate user instruction.",
       "exit_gate": "A wheel-driven tiny load runs away from the checkout with the selected local candidate images/build context, explicit mount paths and reachable services.",
       "review_status": "approved",
-      "implementation_status": "not started",
+      "implementation_status": "complete",
       "features": [
         {
           "id": "E06.F1",
@@ -754,7 +754,7 @@
                 "Build required images and inspect entry points/version labels; verify no context file is missing."
               ],
               "evidence": "evidence/E06.F1.S1.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E06.F1.S2",
@@ -779,7 +779,7 @@
                 "Run installed CLI outside checkout with preloaded images and --skip-image-build; test missing images, overrides and daemon-unavailable cases."
               ],
               "evidence": "evidence/E06.F1.S2.md",
-              "status": "planned"
+              "status": "complete"
             }
           ]
         },
@@ -811,7 +811,7 @@
                 "Test remote-service configuration and bind-mount failures; installing the wheel alone starts no infrastructure."
               ],
               "evidence": "evidence/E06.F2.S1.md",
-              "status": "planned"
+              "status": "complete"
             }
           ]
         }
