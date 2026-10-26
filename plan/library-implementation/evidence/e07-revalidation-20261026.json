@@ -10500,5 +10500,13 @@
     "Padded tiny load reuses node consumer groups; whitespace-default case is actual preflight only; tiny inputs do not force planner spill",
     "Expected librdkafka diagnostics during negative/owned-broker teardown are retained without filtering",
     "No private dotenv/remoteIMDb/global Docker cleanup/push/upload/tag/publication or E08 implementation"
-  ]
+  ],
+  "delivery": {
+    "commit": "2927a847c6f27f86086191b87773af4edae4026a",
+    "postcommit_equality": "evidence/e07-revalidation-postcommit-20261026.json",
+    "all_tested_current_committed_contents_sizes_modes_equal": true,
+    "tested_input_count": 307,
+    "environment_unchanged": true,
+    "followup": "Documentation/evidence only; own hash from Git history under tracker rule5."
+  }
 }

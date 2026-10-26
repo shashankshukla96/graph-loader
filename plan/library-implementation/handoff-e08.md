@@ -2,9 +2,11 @@
 
 **Latest gate, 2026-10-26:** amended E07 repairs and fresh proof are
 [independently approved](reviews/e07-final-revalidation-20261026.md):3,751 full
-checkout passes and7,298installed passes. Local repair delivery and307-input
-postcommit equality remain pending in the [tracker](CHANGE_TRACKER.md); E08
-must wait for them and the user's execution request. Preserve the
+checkout passes and7,298installed passes. Local repair delivery is
+`2927a847c6f27f86086191b87773af4edae4026a`; [all307 postcommit equality](evidence/e07-revalidation-postcommit-20261026.json)
+verifies tested/committed/current bytes, sizes, modes and unchanged environment.
+The [tracker](CHANGE_TRACKER.md) records actual delivery. E08 handoff is ready;
+execute E08 only when the user requests it. Preserve the
 [current repair report](reviews/e07-completion-verification-20261026.md).
 Original delivery identity below remains historical.
 

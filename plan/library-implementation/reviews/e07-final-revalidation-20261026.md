@@ -2,8 +2,9 @@
 
 **Approved for local delivery. No actionable finding remains in the actual E07
 source, narrow repairs, complete fresh proof, machine evidence or reviewed final
-observations/handoff scope. Actual local commit and postcommit equality are still
-required; E08 execution and publication remain outside this acceptance.**
+observations/handoff scope. Local repair commit and postcommit equality are now
+independently verified below; E08 execution and publication remain outside this
+acceptance.**
 
 This fresh reviewer independently reads the actual E07 epic, execution and
 revalidation plans, handoffs, runner/guard/pytest/inventory code and baseline
@@ -32,7 +33,7 @@ Independent checks:
   original assertion baselines, staged closure/import edges and hashes remain
   identical to entry. The old runner test AST is an exact prefix of the new one.
 - All **307** final frozen input bytes/sizes/executable flags match current
-  files. Application `src` is byte-identical to the E06 baseline. Current source
+  files. Application `src` is byte-identical to the E06 baseline. Tested precommit source
   identity is `995e8d9cf5a89fc31eddf8d5e8c80b633e91114483097d0627fa0997df726317`,
   environment identity `ae2f84a14eebdcb4c6fef629ef822b72fcb62658806808a5e2bc8c43794a5cc3`,
   inventory `ea0a618d1f62df26ddb616ceb7db162c6aa85fc63a85bfdcbb73a066c5fbbf93`.
@@ -157,3 +158,39 @@ The index was empty at this inspection. Staging and local commit of these exact
 paths are approved; actual commit/current/tested equality remains the next gate.
 The exact path list and inspected hashes are in
 `var/e07-final-audit-20261026/precommit-audit.json`.
+
+
+## Independent postcommit closure and recording scope
+
+Actual local repair commit is
+`2927a847c6f27f86086191b87773af4edae4026a`, with parent
+`91d765d18d5711402764bb5be51e3cd9c3bbed89`. This reviewer independently reads
+its tree and actual blobs. All14 committed paths and their content hashes/sizes
+match the approved precommit snapshot. Every one of the307 frozen tested inputs
+is byte-identical to its actual committed blob and current file; size and
+100644/100755 Git executable mode agree individually. No product/test/inventory
+change follows the main commit.
+
+A fresh independent capture reproduces the complete tested environment and
+all307 identical file records. Only HEAD changes the aggregate source identity:
+postcommit `f9208477e217afd47fae9231e3523fad6c828d97ac81efd1fdc059fea7054675`;
+tested precommit `995e8d9cf5a89fc31eddf8d5e8c80b633e91114483097d0627fa0997df726317`.
+Environment stays
+`ae2f84a14eebdcb4c6fef629ef822b72fcb62658806808a5e2bc8c43794a5cc3`.
+The actual delivery manifest hash and every row of the new
+[postcommit evidence](../evidence/e07-revalidation-postcommit-20261026.json)
+match independent checks. All348 final proof size/hash bindings remain valid.
+Own exact blob/mode/environment results are retained in
+`var/e07-final-audit-20261026/postcommit-audit.json`, `postcommit-current.json`,
+`postcommit_audit.py` and `postcommit-audit.log`.
+
+The delivery-recording diff accurately records the full actual repair SHA,
+completed307-input equality and E08 readiness while preserving its unstarted,
+user-authorized execution condition. It changes documentation/evidence only.
+The following **eight-file recording follow-up is approved**: tracker, plan
+README, current E07 machine evidence, new E07 postcommit evidence, E07 execution
+record, E08 handoff, E07 completion report and this final independent report.
+Do not include product/tests/inventory or operational outputs. Its own SHA is
+obtained from Git history without recursive self-hashing. The implementation,
+complete fresh proof, actual local delivery and307-input equality gates are
+closed. No push, upload, tag, publication or E08 execution is approved.

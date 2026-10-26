@@ -4,8 +4,9 @@
 are [independently accepted](reviews/e07-final-revalidation-20261026.md):3,751
 checkout passes and7,298installed passes. [Current report](reviews/e07-completion-verification-20261026.md)
 preserves the two findings, red/green repair history and unchanged application
-bytes. Local repair delivery/equality remain pending in the
-[tracker](CHANGE_TRACKER.md); E08 is unstarted. Original acceptance below is historical.
+bytes. Local repair `2927a847c6f27f86086191b87773af4edae4026a` and [all307 equality](evidence/e07-revalidation-postcommit-20261026.json)
+are recorded in the [tracker](CHANGE_TRACKER.md); E08 handoff is ready and
+execution is unstarted. Original acceptance below is historical.
 
 **Original E07 delivery (historical), 2026-10-26:** [E07](epics/e07.md) is independently accepted and
 locally delivered in `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`.

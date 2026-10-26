@@ -5,7 +5,7 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E07 revalidation independently accepted, local repair delivery pending, 2026-10-26:**
+**Current gate — E07 revalidation independently accepted and delivered locally, 2026-10-26:**
 [Fresh completion](reviews/e07-completion-verification-20261026.md) and
 [final independent approval](reviews/e07-final-revalidation-20261026.md) close
 interruption cleanup/receipt loss and unsupported forkpty provenance bypass.
@@ -13,8 +13,11 @@ Original red evidence remains. Fresh proof passes **3,751 checkout tests**,
 four inherited skips/49deselections/19known warnings; **all16 installed lanes**
 pass **7,298 tests** with two intentional skips. Strict archives/two bare installs,
 76 fresh image checks/four binds/12R1/exact B3/new owned service proof pass.
-All307 tested inputs/environment match before/after. Actual local commit and
-postcommit equality remain pending. E08 is unstarted; no push/publication.
+Local repair delivery is `2927a847c6f27f86086191b87773af4edae4026a`. [All307 postcommit equality](evidence/e07-revalidation-postcommit-20261026.json)
+verifies tested/current/actual committed blob contents, sizes and modes, plus
+unchanged environment. This documentation-only follow-up records the actual SHA
+under rule5; its own hash is in Git history. E08 handoff is ready and execution
+is unstarted; no push/publication.
 
 **Original E07 delivery acceptance (historical):**
 All ordered [E07 stories](epics/e07.md), [rebuilt parity](reviews/e07-f2-review.md)
@@ -85,7 +88,7 @@ E06–E12, upload, push, tag and publication remain unstarted/unauthorized.
 
 | Date | Epic / change | Exact local commit | What changed | Verification / evidence |
 | --- | --- | --- | --- | --- |
-| 2026-10-26 | E07 delivered-code revalidation | Pending actual local commit | Bounded interrupt cleanup/durable receipts and early unsupported forkpty rejection; five added checkout-tool regressions with frozen inventory refresh. Application bytes unchanged. | [Fresh report](reviews/e07-completion-verification-20261026.md), [machine proof](evidence/e07-revalidation-20261026.json), [independent acceptance](reviews/e07-final-revalidation-20261026.md); local delivery/equality pending. |
+| 2026-10-26 | E07 delivered-code revalidation | `2927a847c6f27f86086191b87773af4edae4026a` | Bounded interrupt cleanup/durable receipts and early unsupported forkpty rejection; five added checkout-tool regressions with frozen inventory refresh. Application bytes unchanged. | [Fresh report](reviews/e07-completion-verification-20261026.md), [machine proof](evidence/e07-revalidation-20261026.json), [independent acceptance](reviews/e07-final-revalidation-20261026.md); [all307 postcommit equality](evidence/e07-revalidation-postcommit-20261026.json) passes. |
 | 2026-10-26 | E07 installed regression runner and artifact parity | `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7` | Eight installed lanes, frozen per-ID/helper closure, parent/child provenance and strict wheel/rebuilt parity. | [Original validation](evidence/e07-final-validation.md), [original equality](evidence/e07-postcommit.json); subsequent revalidation qualifies acceptance. |
 | 2026-10-26 | E07 original delivery bookkeeping | `91d765d18d5711402764bb5be51e3cd9c3bbed89` | Recorded original actual delivery/equality and conditioned E08 handoff; documentation only. | [E08 handoff](handoff-e08.md), Git history; subsequent findings retained. |
 | 2026-10-23 | E06 revalidation repair and fresh acceptance | `c15c43c5c4eb7c6fe6920489fd5835a91bf72377` | Shared database selection in topology probe; inherited index acknowledgement/replay ordering repair with bounded overlapping-call history. First repair rejected for compaction and retained. | [Execution/finding history](execution-e06-revalidation.md); amended source independently passes 159 index/boundary controls and 290 E06 checks; [fresh final acceptance](reviews/e06-final-audit-resume-20261023.md) and [3,713-pass/full proof](evidence/e06-revalidation-20261023.json) pass. [All279 postcommit equality](evidence/e06-revalidation-postcommit-20261023.json) passes. |

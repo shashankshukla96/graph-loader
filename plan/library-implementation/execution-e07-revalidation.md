@@ -78,5 +78,6 @@ archives/two bare installs/11 archive negatives; unchanged immutable images with
 all pass. All owned objects removed. [Completion report](reviews/e07-completion-verification-20261026.md)
 and [machine proof](evidence/e07-revalidation-20261026.json) preserve exact counts,
 commands, red/superseded results and limits. [Fresh final independent acceptance](reviews/e07-final-revalidation-20261026.md)
-now passes with no actionable issue. Actual local delivery/equality remain
-pending; E08 is not executed.
+now passes with no actionable issue. Actual local repair delivery is
+`2927a847c6f27f86086191b87773af4edae4026a`; [all307 tested/committed/current equality](evidence/e07-revalidation-postcommit-20261026.json)
+and unchanged environment pass. E08 is not executed.

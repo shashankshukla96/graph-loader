@@ -2,7 +2,7 @@
 
 **Independently accepted: both repairs and complete fresh E07 proof.**
 [Fresh final approval](e07-final-revalidation-20261026.md) finds no actionable issue.
-Local delivery and307-input postcommit equality remain pending. No E08 implementation or publication.
+Local delivery is `2927a847c6f27f86086191b87773af4edae4026a`; [all307 equality](../evidence/e07-revalidation-postcommit-20261026.json) passes. No E08 implementation or publication.
 
 Entry was clean `91d765d18d5711402764bb5be51e3cd9c3bbed89`; original E07
 implementation is `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`, E06 baseline
@@ -60,7 +60,7 @@ relabeled as current execution.
 A [fresh zero-history final auditor](e07-final-revalidation-20261026.md) separately
 reviews the actual repair and inventory, executes its own37 controls and freshly
 collects3,804IDs, and audits final artifacts, receipts, images and documents.
-Whole-proof acceptance is complete; local delivery/equality remain required.
+Whole-proof acceptance and local delivery/equality are complete.
 
 ## Identity and retained original evidence
 
@@ -139,8 +139,8 @@ Fresh final auditor independently rechecks all16 raw execution receipts, every
 staged/generated file, current tools, all944 installed payload files, actual
 child startup/create/PID/origin/exec evidence and zero matching owned survivors.
 It also verifies exact image/live/B3 receipts and absence of owned service
-objects. Final independent document/machine consistency acceptance is complete; local
-delivery/equality remain separate gates.
+objects. Final independent document/machine consistency acceptance and local delivery/
+equality are complete.
 
 ## Scope and delivery
 
@@ -153,9 +153,10 @@ No malicious-code sandbox or maximum-backlog throughput guarantee is added.
 Docker Desktop was initially stopped; opening it restored the local daemon
 without settings changes. All service resources belong to the new proof run.
 
-After fresh independent final approval, inspect staging and commit locally,
-then record actual SHA and all307 tested/current/committed blob content, size and
-mode equality plus unchanged environment. Use a documentation-only follow-up
-under tracker rule5; its own hash comes from Git history without recursion.
-The conditioned E08 handoff must preserve these regressions and all unsupported/
-unproved support/service boundaries; executing E08 still requires user request.
+Fresh independent final approval and staging inspection pass. Local repair
+commit is `2927a847c6f27f86086191b87773af4edae4026a`. [Postcommit proof](../evidence/e07-revalidation-postcommit-20261026.json)
+checks all 307 actual committed blobs against tested/current content, size
+and executable mode; environment remains unchanged. The documentation-only
+follow-up records actual identity under tracker rule5, with its own SHA from
+Git history. The conditioned E08 handoff is ready and preserves all new controls
+and unsupported/unproved boundaries; E08 execution still requires user request.
