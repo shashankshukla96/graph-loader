@@ -60,10 +60,10 @@ def _entrypoint_with_fake_kafka(tmp_path: Path, body: str) -> subprocess.Complet
     fake = tmp_path / "confluent_kafka"
     fake.mkdir()
     (fake / "__init__.py").write_text(textwrap.dedent(body), encoding="utf-8")
-    env = {"PATH": os.environ.get("PATH", ""), "PYTHONPATH": os.pathsep.join([str(tmp_path), str(PROJECT_ROOT)])}
+    env = {"PATH": os.environ.get("PATH", ""), "PYTHONPATH": str(tmp_path)}
     return subprocess.run(
         [sys.executable, "-m", "neo4j_graph_loader.loader.node_loader", "--node-label", "Person"],
-        cwd=PROJECT_ROOT, env=env, capture_output=True, text=True, timeout=60,
+        cwd=tmp_path, env=env, capture_output=True, text=True, timeout=60,
     )
 
 

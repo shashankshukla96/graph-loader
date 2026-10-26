@@ -5,7 +5,19 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E06 revalidation independently accepted and delivered locally, 2026-10-23:**
+**Current gate — E07 independently accepted for local delivery, 2026-10-25:**
+Clean entry `5c3f72b6cd16d0e14ac931f220a3f73eb7e5a02d`. All ordered
+[E07 stories](epics/e07.md), [rebuilt parity](reviews/e07-f2-review.md) and
+[fresh final adversarial review](reviews/e07-final-adversarial-review.md) are accepted.
+[Final validation](evidence/e07-final-validation.md) records 3,746 checkout passes,
+all16 installed original/rebuilt lanes (7,298 passes/two intentional core skips),
+four rebuilt immutable images, all12 supervised R1 controls, installed tiny
+service proof and exact no-skip B3. Source307/environment identities are unchanged.
+All rejected proofs and repairs remain retained. Local commit and actual
+per-file tested/committed/current equality recording remain; the full SHA will
+be read from Git after delivery. E08–E12 and publication remain separate.
+
+**Prior gate — E06 revalidation independently accepted and delivered locally, 2026-10-23:**
 [Fresh completion report](reviews/e06-completion-verification-20261023.md) records
 the shared database normalization repair and inherited parked-index ordering
 repair. The first index repair was rejected for a compaction gap; its green proof

@@ -974,7 +974,9 @@ def test_no_old_lease_setting_names_used_internally_in_src() -> None:
     ``bucket_lease_*``/``BUCKET_LEASE`` identifiers, not the deprecated
     aliases -- only the alias *definitions* themselves may still mention the
     old names."""
-    root = Path(__file__).resolve().parents[1] / "src" / "neo4j_graph_loader"
+    from installed_support import application_root
+
+    root = application_root()
     old_names = re.compile(
         r"\bDEFAULT_LEASE_PORT\b|\bDEFAULT_LEASE_BUCKETS\b|\bDEFAULT_LEASE_OUTER_BATCH_SIZE\b|"
         r"\bDEFAULT_LEASE_KEYED_MAX_NODES\b"
@@ -999,7 +1001,9 @@ def test_lease_address_env_string_only_referenced_where_expected() -> None:
     referenced in lease_client.py (definition + fallback resolution) and
     docker_service.py (the dual-set), never re-implemented ad hoc
     elsewhere."""
-    root = Path(__file__).resolve().parents[1] / "src" / "neo4j_graph_loader"
+    from installed_support import application_root
+
+    root = application_root()
     allowed_files = {"loader/lease_client.py", "orchestrator/docker_service.py"}
     violations = []
     for path in root.rglob("*.py"):

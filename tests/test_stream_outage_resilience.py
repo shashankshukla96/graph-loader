@@ -1354,16 +1354,20 @@ def test_the_ride_out_is_reachable_only_from_the_stream_entrypoints() -> None:
     never constructs it), and each constructs it in exactly one place, gated on --mode
     stream with a leased writer. The planner, dispatcher, planned writers, bulk monitors
     and the CLI never reference it."""
-    src = ROOT / "src" / "neo4j_graph_loader"
+    from installed_support import application_root
+
+    src = application_root()
     importers = sorted(
-        str(path.relative_to(ROOT)) for path in src.rglob("*.py")
+        str(path.relative_to(src)) for path in src.rglob("*.py")
         if path.name != "write_outage.py" and "write_outage" in path.read_text()
         and ("from neo4j_graph_loader.loader.write_outage import" in path.read_text() or "import write_outage" in path.read_text())
     )
-    assert importers == ["src/neo4j_graph_loader/loader/edge_loader.py", "src/neo4j_graph_loader/loader/node_loader.py"]
+    assert importers == ["loader/edge_loader.py", "loader/node_loader.py"]
     for name in ("planned_writer.py", "edge_planner.py", "planned_dispatcher.py", "planned_edges.py",
                  "bulk_monitor.py", "relationship_bulk_monitor.py", "cli.py"):
-        for path in src.rglob(name):
+        paths = list(src.rglob(name))
+        assert paths, 'application scan target must exist: ' + name
+        for path in paths:
             assert "write_outage" not in path.read_text() and "StreamWriteOutage" not in path.read_text(), path
     for module, gate in (
         ("edge_loader.py", 'args.mode == "stream" and not args.slot_gating and lease_mode_settings(os.environ) is not None'),

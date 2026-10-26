@@ -23,7 +23,11 @@ FILES = {"requirements.txt", "requirements-dev.txt", "pyproject.toml", "Makefile
          "plan/library-implementation/tools/verify_e03_artifacts.py",
          "plan/library-implementation/tools/run_e04_fault.py",
          "plan/library-implementation/tools/run_e06_service_proof.py"}
+FILES.add("plan/library-implementation/test-inventory.json")
+FILES.add("plan/library-implementation/tools/render_plan.py")
 UNTRACKED_INPUTS = [
+    "scripts/verify_installed.py", "scripts/installed_guard.py", "scripts/installed_pytest.py",
+    "scripts/freeze_installed_inventory.py", "tests/test_installed_runner.py", "tests/test_installed_inventory.py", "tests/installed_support.py",
     "tests/test_library_preflight.py", "tests/test_dlq_proof_harness.py", "tests/fixtures",
     "src/neo4j_graph_loader", "PACKAGE_README.md", "MANIFEST.in", "requirements-build.txt",
     "scripts/sync_requirements.py", "tests/test_distribution_foundation.py",

@@ -315,7 +315,9 @@ def test_cardinality_guard_checker_allows_known_good_patterns():
 
 
 def test_cardinality_guard_no_unsafe_labels_call_under_src():
-    src_root = Path(__file__).resolve().parent.parent / "src"
+    from installed_support import application_root
+
+    src_root = application_root()
     violations: list[str] = []
     for path in sorted(src_root.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -410,7 +412,9 @@ def test_metrics_entrypoint_guard_allows_current_call_sites():
 
 
 def test_metrics_entrypoint_guard_no_violations_under_src():
-    src_root = Path(__file__).resolve().parent.parent / "src"
+    from installed_support import application_root
+
+    src_root = application_root()
     violations: list[str] = []
     for path in sorted(src_root.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -481,7 +485,9 @@ def _scan_per_record_loop_metrics_calls(tree: ast.AST, filename: str) -> list[st
 
 
 def test_cardinality_guard_no_per_record_loop_metrics_call():
-    src_root = Path(__file__).resolve().parent.parent / "src"
+    from installed_support import application_root
+
+    src_root = application_root()
     violations: list[str] = []
     for path in sorted(src_root.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

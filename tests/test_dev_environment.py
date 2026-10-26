@@ -77,7 +77,7 @@ def _setting(name: str, dotenv_values: Mapping[str, str], default: str) -> str:
     return dotenv_values.get(name, default)
 
 
-DOTENV_VALUES = _parse_dotenv(DOTENV_PATH)
+DOTENV_VALUES: dict[str, str] = {}
 NEO4J_URI = _setting("NEO4J_URI", DOTENV_VALUES, "bolt://localhost:7687")
 NEO4J_USERNAME = _setting("NEO4J_USERNAME", DOTENV_VALUES, "neo4j")
 # No default password: guessing the compose default ("changeme") against a shared Neo4j fails its
@@ -85,6 +85,38 @@ NEO4J_USERNAME = _setting("NEO4J_USERNAME", DOTENV_VALUES, "neo4j")
 NEO4J_PASSWORD = _setting("NEO4J_PASSWORD", DOTENV_VALUES, "")
 NEO4J_DATABASE = _setting("NEO4J_DATABASE", DOTENV_VALUES, "neo4j")
 KAFKA_BOOTSTRAP = _setting("KAFKA_BOOTSTRAP_SERVERS", DOTENV_VALUES, "localhost:9092")
+
+
+@pytest.fixture(autouse=True)
+def _smoke_settings(request, monkeypatch):
+    """Read developer credentials only when an actual smoke check is executed."""
+    if request.node.get_closest_marker("smoke") is None:
+        return
+    values = _parse_dotenv(DOTENV_PATH)
+    for attribute, variable, default in (
+        ("NEO4J_URI", "NEO4J_URI", "bolt://localhost:7687"),
+        ("NEO4J_USERNAME", "NEO4J_USERNAME", "neo4j"),
+        ("NEO4J_PASSWORD", "NEO4J_PASSWORD", ""),
+        ("NEO4J_DATABASE", "NEO4J_DATABASE", "neo4j"),
+        ("KAFKA_BOOTSTRAP", "KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+    ):
+        monkeypatch.setattr(sys.modules[__name__], attribute, _setting(variable, values, default))
+
+
+def test_import_does_not_read_private_dotenv(monkeypatch):
+    """Collection and unit checks must not load a developer's credentials."""
+    import runpy
+
+    read_text = Path.read_text
+
+    def guarded(path, *args, **kwargs):
+        if path == DOTENV_PATH:
+            raise AssertionError("test collection read the private dotenv")
+        return read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", guarded)
+    namespace = runpy.run_path(__file__)
+    assert namespace["DOTENV_VALUES"] == {}
 
 
 def _require_neo4j_password() -> None:

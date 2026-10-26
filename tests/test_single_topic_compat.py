@@ -299,10 +299,9 @@ def test_the_golden_pins_real_dlq_names_and_an_order_by_edge(golden) -> None:
 
 def test_every_tracked_schema_with_only_topic_keys_is_covered() -> None:
     """A new shipped single-topic schema must be added to ``SCHEMAS`` (and the golden re-recorded)."""
-    import subprocess
+    from installed_support import tracked_reference_files
 
-    tracked = subprocess.run(["git", "ls-files", "config", "examples"], cwd=ROOT, capture_output=True, text=True,
-                             check=True).stdout.split()
+    tracked = tracked_reference_files(ROOT)
     shipped = {p for p in tracked if p.endswith("graph_schema.yaml")}
     multi_topic_variants = {p for p in shipped if "multi_topic" in p}
     assert shipped - multi_topic_variants <= set(SCHEMAS), sorted(shipped - set(SCHEMAS))

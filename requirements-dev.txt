@@ -4,5 +4,6 @@
 -r requirements-build.txt
 -r examples/imdb/requirements.txt
 pytest>=8.0,<10
+psutil>=6,<8
 testcontainers[neo4j,kafka]>=4.8,<5
 ruff==0.16.9

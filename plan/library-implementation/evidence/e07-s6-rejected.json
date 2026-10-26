@@ -1,0 +1,112 @@
+{
+  "status": "rejected; pytest247pass is not lane acceptance",
+  "run": {
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+      "--lane",
+      "public-contracts",
+      "--wheel",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+      "--inventory",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+      "--output",
+      "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run",
+      "--timeout",
+      "600"
+    ],
+    "exit_code": 1,
+    "hard_timeout": false,
+    "elapsed_seconds": 29.38707408299979,
+    "output": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run",
+    "inventory_sha256": "96073799e61bc2d636a7d601ca08dd0979d74996a10dd124e8f22100fe24f4b4",
+    "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run/result.json"
+  },
+  "source_sha256": "55d87589889862a16303f458d034d1316e2e303a7666f684d17a262ecfd2c048",
+  "result_error": "missing or violated Python child provenance",
+  "missing_children": [
+    {
+      "child_created": 1792891580.149974,
+      "child_pid": 6380,
+      "command": [
+        "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run/environment/bin/python",
+        "-c",
+        "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=8, pipe_handle=10)",
+        "--multiprocessing-fork"
+      ],
+      "created": 1792891580.020505,
+      "kind": "python_child",
+      "method": "multiprocessing_spawn",
+      "pid": 6378,
+      "ppid": 6377,
+      "tick": 2293663509083
+    },
+    {
+      "child_created": 1792891588.062748,
+      "child_pid": 6432,
+      "command": [
+        "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run/environment/bin/python",
+        "-c",
+        "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=8, pipe_handle=10)",
+        "--multiprocessing-fork"
+      ],
+      "created": 1792891587.92703,
+      "kind": "python_child",
+      "method": "multiprocessing_spawn",
+      "pid": 6430,
+      "ppid": 6429,
+      "tick": 2301575736250
+    },
+    {
+      "child_created": 1792891588.064389,
+      "child_pid": 6433,
+      "command": [
+        "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run/environment/bin/python",
+        "-c",
+        "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=8, pipe_handle=13)",
+        "--multiprocessing-fork"
+      ],
+      "created": 1792891587.92703,
+      "kind": "python_child",
+      "method": "multiprocessing_spawn",
+      "pid": 6430,
+      "ppid": 6429,
+      "tick": 2301577611125
+    }
+  ],
+  "parent_processes": [
+    {
+      "argv": [
+        "-m",
+        "public-gap",
+        "timeout",
+        "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-42/test_process_submission_anchor0/gap/client.json"
+      ],
+      "created": 1792891580.020505,
+      "kind": "process",
+      "pid": 6378,
+      "ppid": 6377,
+      "prefix": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run/environment",
+      "site": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run/environment/lib/python3.12/site-packages",
+      "tick": 2293566923750
+    },
+    {
+      "argv": [
+        "-m",
+        "public-startup",
+        "timeout",
+        "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-42/test_public_fault_reaps_every_10/fault/client.json"
+      ],
+      "created": 1792891587.92703,
+      "kind": "process",
+      "pid": 6430,
+      "ppid": 6429,
+      "prefix": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run/environment",
+      "site": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s6-public-first-ex_d2l32/run/environment/lib/python3.12/site-packages",
+      "tick": 2301475747208
+    }
+  ],
+  "retained_receipts": "var/e07-validation-20261024/s6-rejected-first-receipts",
+  "origin_guard_sha256": "bcca55cf4c4e34e2f9921cd0d8682e596ee7d6102494fd20ebd665a1126d5b0f",
+  "scope": "public-gap synthetic deadline and public-startup intentional second Process.start failure terminate newly spawned children before current site-hook completes. Missing startup receipts remain failures."
+}

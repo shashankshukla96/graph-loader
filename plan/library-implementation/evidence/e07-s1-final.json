@@ -1,0 +1,1229 @@
+{
+  "outside": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4",
+  "cases": [
+    {
+      "case": "positive",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-positive-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive"
+      ],
+      "exit_code": 0,
+      "result": {
+        "status": "passed",
+        "lane": "probe",
+        "wheel": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "wheel_sha256": "cdd73ac361c99a8c73a15c929d150ce7d5e75d9446e1229dba5a1614cd494feb",
+        "inventory_sha256": "037a1b0adaebfa4faeee1a0affab2932928d655b6cdecf89fb86d2229759590e",
+        "stage_files": {
+          "tests/fixtures/e07_probe.py": "82d86625bcdc3b9adf335d499424775fc30a950c3629b6c59c18be51f36672a2",
+          "tests/conftest.py": "e8c1246c63ba755c665f8b93e37d52ccddccde730b6e6361dcbdd36f580381dd",
+          "tests/it_scratch_db.py": "3a91cfb867d1b85cd90b3c8e753ea0b50b9d3d751f3c3c25e374112685af38ed"
+        },
+        "test_ids": [
+          "tests/fixtures/e07_probe.py::test_installed_parent",
+          "tests/fixtures/e07_probe.py::test_installed_actual_multiprocessing[spawn]",
+          "tests/fixtures/e07_probe.py::test_installed_actual_multiprocessing[fork]",
+          "tests/fixtures/e07_probe.py::test_installed_minimal_environment_child",
+          "tests/fixtures/e07_probe.py::test_installed_env_wrapper",
+          "tests/fixtures/e07_probe.py::test_installed_posix_spawn",
+          "tests/fixtures/e07_probe.py::test_installed_fork_exec",
+          "tests/fixtures/e07_probe.py::test_installed_console_child"
+        ],
+        "python": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/environment/bin/python",
+        "work": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.9986162499999409,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.097343958000238,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 1.7769953749993874,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/pytest.log",
+            "log_sha256": "0aa50fd8c38ce26a02a4945028d828d9eb76b5067dd4476d8dba6b3831109161",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/environment/bin/python",
+              "-I",
+              "-m",
+              "pip",
+              "check"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.19969683300041652,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/positive/pip-check.log",
+            "log_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          }
+        ],
+        "provenance_processes": [
+          12013,
+          12015,
+          12016,
+          12017,
+          12018,
+          12019,
+          12020,
+          12021,
+          12022
+        ],
+        "expected_python_children": [
+          12015,
+          12016,
+          12017,
+          12018,
+          12019,
+          12020,
+          12021,
+          12022
+        ],
+        "runner_tools": {
+          "verify_installed.py": "188b2ff4aaa77e00e755de6faa8b3f9e0516560918428e5bdbafbd3f64b75572",
+          "installed_guard.py": "bcca55cf4c4e34e2f9921cd0d8682e596ee7d6102494fd20ebd665a1126d5b0f",
+          "installed_pytest.py": "6dd5ec6cbb9a814282e8355e58f37eabb8466890a8dac921d591f90e8dd15d70"
+        },
+        "payload_members": 59,
+        "collect_only": false,
+        "distribution_files": {
+          "neo4j_graph_loader-0.1.0a1.dev0.dist-info/licenses/LICENSE": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+          "neo4j_graph_loader-0.1.0a1.dev0.dist-info/METADATA": "8751157706ff14bdca5dabd8f4372e0af48b3b97580f7544c8e58d4559428934",
+          "neo4j_graph_loader-0.1.0a1.dev0.dist-info/WHEEL": "98e75747d0b7c0c568bfb71263c3d8f970b3a374a6996087bc642be5cb09a1aa",
+          "neo4j_graph_loader-0.1.0a1.dev0.dist-info/entry_points.txt": "123e1d841afb138913dff6990f55a2d7e16ac9c055850df3edc0c638d348c806",
+          "neo4j_graph_loader-0.1.0a1.dev0.dist-info/top_level.txt": "0483b546775315a974b1439e714ba2f7b733e10fc2cd4f4fd0b72dace037ca5e",
+          "neo4j_graph_loader-0.1.0a1.dev0.dist-info/RECORD": "62dfcd9c15ba11979652f7b0565b9139107e65b6f5437b4145f31dfb37691319"
+        }
+      },
+      "log_sha256": "c68e37ac5f1db55f591ad60e48e12f5e8b963b7b3b192b51d66a2b019a53b277"
+    },
+    {
+      "case": "wrong-origin",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-wrong-origin-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin"
+      ],
+      "exit_code": 1,
+      "result": {
+        "status": "failed",
+        "error": "missing or violated Python child provenance",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.9980583329997899,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.0550543749995995,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.9818271250005637,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/wrong-origin/pytest.log",
+            "log_sha256": "36ee6125777253800df314c891baf72e42248a17540db95c6bdb02de742e24de",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          }
+        ]
+      },
+      "log_sha256": "8a56079664e995d0a676a8312c090c2af13dd0b3910a50f1eec17faf7efa451a"
+    },
+    {
+      "case": "missing-child-guard",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-missing-child-guard-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard"
+      ],
+      "exit_code": 1,
+      "result": {
+        "status": "failed",
+        "error": "missing or violated Python child provenance",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.9581383750000896,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.815781334000349,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.9341698329999417,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-child-guard/pytest.log",
+            "log_sha256": "93c97c10af4fc8b54296201243c032c5e8295479ca6b4adc06019033d6f9e282",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          }
+        ]
+      },
+      "log_sha256": "8a56079664e995d0a676a8312c090c2af13dd0b3910a50f1eec17faf7efa451a"
+    },
+    {
+      "case": "env-wrapper",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-env-wrapper-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper"
+      ],
+      "exit_code": 1,
+      "result": {
+        "status": "failed",
+        "error": "command failed; retained output: /private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/pytest.log",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 1.0025635000001785,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.3681195419994765,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/stage",
+            "exit_code": 86,
+            "timeout": false,
+            "elapsed_seconds": 0.8591482500005441,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/env-wrapper/pytest.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          }
+        ]
+      },
+      "log_sha256": "2364e360a0506483c7b52f4296ebcd26dd682075dd05bd9ac5f32e5e6dbb4a02"
+    },
+    {
+      "case": "posix-spawn",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-posix-spawn-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn"
+      ],
+      "exit_code": 1,
+      "result": {
+        "status": "failed",
+        "error": "command failed; retained output: /private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/pytest.log",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 1.0042718340000647,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.187456874999953,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/stage",
+            "exit_code": 86,
+            "timeout": false,
+            "elapsed_seconds": 0.8371273330003532,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/posix-spawn/pytest.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          }
+        ]
+      },
+      "log_sha256": "46ae94349aa50d79ec041095f29386bb510f6d511ce04af1a8210841e24ffd9f"
+    },
+    {
+      "case": "mp-spawn",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-mp-spawn-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn"
+      ],
+      "exit_code": 1,
+      "result": {
+        "status": "failed",
+        "error": "command failed; retained output: /private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/pytest.log",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 1.0117208339997887,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.539869292000731,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/stage",
+            "exit_code": 86,
+            "timeout": false,
+            "elapsed_seconds": 0.8847090420003951,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/mp-spawn/pytest.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          }
+        ]
+      },
+      "log_sha256": "7bbe83f3a4eeea50cd35b20f13319c8ebf981e07b4f105eeab6e8d9e7a245208"
+    },
+    {
+      "case": "fork-exec",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-fork-exec-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec"
+      ],
+      "exit_code": 1,
+      "result": {
+        "status": "failed",
+        "error": "missing fresh post-exec Python provenance",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 1.0071196669996425,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.724812707999263,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.9073825840005156,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/fork-exec/pytest.log",
+            "log_sha256": "93c97c10af4fc8b54296201243c032c5e8295479ca6b4adc06019033d6f9e282",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          }
+        ]
+      },
+      "log_sha256": "34c290c7f3e6380d8eb71a14ad53b2fb2951eb1df489c5ba57d972f6d1b6c595"
+    },
+    {
+      "case": "detached",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-detached-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached"
+      ],
+      "exit_code": 1,
+      "result": {
+        "status": "failed",
+        "error": "command failed; retained output: /private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/pytest.log",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.9602376250004454,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.0835750420001204,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 1.46771416699994,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/detached/pytest.log",
+            "log_sha256": "d2d744b6b2df2bbb0d73cb7a43f6675bd03881bc2a2c2a74e54ecf18667789e2",
+            "owned_cleanup": {
+              "leftover_owned": [
+                {
+                  "pid": 12098,
+                  "created": 1792797580.859576
+                }
+              ],
+              "cleanup_errors": []
+            }
+          }
+        ]
+      },
+      "log_sha256": "b731ad6eb055b03f0e7f663738472ba412324c279649f196000f8900e35c21a9"
+    },
+    {
+      "case": "early-exit",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-early-exit-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit"
+      ],
+      "exit_code": 1,
+      "result": {
+        "status": "failed",
+        "error": "[Errno 2] No such file or directory: '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/pytest.json'",
+        "commands": [
+          {
+            "command": [
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+              "-I",
+              "-m",
+              "venv",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/environment"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 1.0054238749999058,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/venv.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/environment/bin/python",
+              "-m",
+              "pip",
+              "install",
+              "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+              "pytest>=8,<10",
+              "testcontainers[neo4j,kafka]>=4.8,<5",
+              "psutil>=6,<8"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 4.714850667000064,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/install.log",
+            "log_sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          },
+          {
+            "command": [
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/environment/bin/python",
+              "-I",
+              "-c",
+              "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect)\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/stage",
+              "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/run.json"
+            ],
+            "cwd": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/stage",
+            "exit_code": 0,
+            "timeout": false,
+            "elapsed_seconds": 0.8469261250002091,
+            "log": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/early-exit/pytest.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "owned_cleanup": {
+              "leftover_owned": [],
+              "cleanup_errors": []
+            }
+          }
+        ]
+      },
+      "log_sha256": "a68c4c4f4bad73b22e81e0995e54fc0148fa23181950894cb917d6f758e7a4e0"
+    },
+    {
+      "case": "missing-module",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-module/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-positive-inventory.json"
+      ],
+      "exit_code": 1,
+      "stderr": "installed runner failed: wheel contains missing or unexpected archive members\n",
+      "mutated_sha256": "74f72f31eeb156af6108ed7f50cb1ba49638ce70a4bf356008fe8e37e11908e6"
+    },
+    {
+      "case": "missing-resource",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-resource/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-positive-inventory.json"
+      ],
+      "exit_code": 1,
+      "stderr": "installed runner failed: wheel contains missing or unexpected archive members\n",
+      "mutated_sha256": "b9ca60d278d4f0bfaf9c1a03173f8dd79de874faea7b6fa799bc0bef4b0b66bc"
+    },
+    {
+      "case": "missing-metadata-dependencies",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/missing-metadata-dependencies/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-positive-inventory.json"
+      ],
+      "exit_code": 1,
+      "stderr": "installed runner failed: wheel metadata differs from frozen distribution contract\n",
+      "mutated_sha256": "5bede509821dfa516534b9a2d861abd019f6213af8a482d0368d28ea1b0335f0"
+    },
+    {
+      "case": "git-directory",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-positive-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/owned-git/output"
+      ],
+      "exit_code": 1,
+      "stderr": "installed runner failed: staging must be outside every Git checkout/worktree\n",
+      "output_created": false
+    },
+    {
+      "case": "git-pointer",
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+        "--lane",
+        "probe",
+        "--wheel",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "--inventory",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-positive-inventory.json",
+        "--output",
+        "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/owned-linked/output"
+      ],
+      "exit_code": 1,
+      "stderr": "installed runner failed: staging must be outside every Git checkout/worktree\n",
+      "output_created": false
+    }
+  ],
+  "strict_artifact_inspection": {
+    "version": "0.1.0a1.dev0",
+    "runtime_modules": {
+      "neo4j_graph_loader/__init__.py": "bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189",
+      "neo4j_graph_loader/__main__.py": "2b4c81c50a4eb397b47e80df991ce4436ebae6f9d200ce6b4c2b7a9dd1503c40",
+      "neo4j_graph_loader/_docker_preflight.py": "364ffffe8638e634e9e8904f8b756aae465d519b8c8be3926381511a88b53445",
+      "neo4j_graph_loader/_images.py": "a53f0d3a173c00bf24f7aca551d86a1ceb4b1258655f5b4fc70e6cb456bcf55e",
+      "neo4j_graph_loader/_resources.py": "c19cf2cdebc7f4c311aa80b9799682b17a9426b675cc71f97590f2d003692551",
+      "neo4j_graph_loader/_runtime.py": "2f968ec88bc4abee8645ba4228bfdb98e3ebe3139abc2dd994592a6276c15969",
+      "neo4j_graph_loader/_version.py": "8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312",
+      "neo4j_graph_loader/cli.py": "613e7114ab1f64f463fe6e6972a42f7477c3bc061478b15fc102a879c1533ff6",
+      "neo4j_graph_loader/loader/__init__.py": "b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5",
+      "neo4j_graph_loader/loader/_planner_transport.py": "00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b",
+      "neo4j_graph_loader/loader/control.py": "3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0",
+      "neo4j_graph_loader/loader/dead_letter.py": "d3e73a59e0ec40f67b6a1514482b2a6023910d456a5a013e2a47e5d8da84bdaf",
+      "neo4j_graph_loader/loader/dead_letter_replay.py": "9b2849fde02035284c4e79444095e5df759f2ca4ec12833fa5e10a4d18a7dc34",
+      "neo4j_graph_loader/loader/edge_execution.py": "4120e956753e7939c38465aacfa3cc79421ded9cdcb0f2105d4f1b9ca33bb368",
+      "neo4j_graph_loader/loader/edge_loader.py": "c0a31401082ff20bffa060cc1df04f33ff60fb93671a1214509cf236d9280a43",
+      "neo4j_graph_loader/loader/edge_plan.py": "247be9b892a345dfdb9d942c649e97ea6086005232519d6dadf2e084fefe027f",
+      "neo4j_graph_loader/loader/edge_planner.py": "0d8b1066b9a0352a489cf270073a8ed67cc1c389ed61f13b02907f747bf559a8",
+      "neo4j_graph_loader/loader/edge_records.py": "77af7e275820b67836c63263122b5b3bd1bfd265df34d8873ea27534740c6769",
+      "neo4j_graph_loader/loader/edge_spill.py": "25e992f7546b7e2b97fe7366b7f808711c383f14140e09e9cb6f5bed4969c657",
+      "neo4j_graph_loader/loader/fenced_tx.py": "975727da0aac63e9b9296ee53c2870d2d5df1b632ea0a9398324c75662523076",
+      "neo4j_graph_loader/loader/lease_client.py": "cbfd38f4caa2c95bbc805941995c34adbaaeedbde07bf861b2b31cc406bcc26c",
+      "neo4j_graph_loader/loader/mix_and_batch.py": "ac274ea29a54b04429a35daec78bfd9037adf33c7377f25b903fef36746e38f3",
+      "neo4j_graph_loader/loader/node_loader.py": "9f9a40052bd63776be6b54eebe93cc4cc66020b4d5e2e06845fc9e0e365be112",
+      "neo4j_graph_loader/loader/parked_pair_index.py": "9e7e20cb91c4cbca576df9e5f6b0ae25badcc0d2763ad8ac537cf7c91a36ff07",
+      "neo4j_graph_loader/loader/planned_writer.py": "f692006ff969653a5f76f8102df356604073c0cad75c8eb32f640ff660837d2c",
+      "neo4j_graph_loader/loader/record_validation.py": "f1be5d81f2c32e9cff5feba34bda1df1822975cd83066d3456d8e7b367b3e657",
+      "neo4j_graph_loader/loader/retry_consumer.py": "bc4a85d832982bbef1b045967e4fecfd9a1fc13e2ab568a97d8007de2c695034",
+      "neo4j_graph_loader/loader/slot_admission.py": "a9256795d69b8ee545b928c7a522c8cdf3a3668dc54f97e55eb88389a013f77b",
+      "neo4j_graph_loader/loader/write_errors.py": "78fa720e3b87d38950ca590382485bc27cd616f232b68b1534402a257791c643",
+      "neo4j_graph_loader/loader/write_outage.py": "15cda9941b3f6e4f628fff5c3d1ec3ddab43fd67272e7858b1f6eda535d749a4",
+      "neo4j_graph_loader/loader/write_timing_capture.py": "bcbe6f8a6b7a6dd57bdf61f7585474e90cac37eb219e1456e7f85ba11e979165",
+      "neo4j_graph_loader/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "neo4j_graph_loader/models/schema.py": "70cd58404a891d1dd2090a8c729162dfc97b4def3a6d203894b17bd93eeb5a19",
+      "neo4j_graph_loader/orchestrator/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "neo4j_graph_loader/orchestrator/auto_settings.py": "4df5265ada5e7ed8de8b06797229173e2284ac4b6583824598eb6bb361f97167",
+      "neo4j_graph_loader/orchestrator/bulk_monitor.py": "42d98167b0d37383e2825c596df13c50ae13e67f792a68026f6a41758ae4e894",
+      "neo4j_graph_loader/orchestrator/clock_runner.py": "2aee05e58300065eda13fa7d0355fb14f42c73fe36fdc99af29cb973ac675152",
+      "neo4j_graph_loader/orchestrator/coordination.py": "9bf85d360a1e82ae4e5f4ad851189894d82a495bdee194f50b98935d20aa5456",
+      "neo4j_graph_loader/orchestrator/dependency_manager.py": "483988d6f4b2612bb2e2de581e3cbc867b786e84dca19e9b8adf416c247940f4",
+      "neo4j_graph_loader/orchestrator/docker_service.py": "c8e9696fea01375dbe8b83f749e1f77ae5ab584cc8fcbab72b09826d02ccf5a4",
+      "neo4j_graph_loader/orchestrator/fleet_contract.py": "1610a109c91780c199e99afcf65ff3d83be0f271088e54b9285a2f7b19435a6d",
+      "neo4j_graph_loader/orchestrator/isolation.py": "2fb6d6c64d622a39f0d6d0fcfd11b2806a8d3cffd6972286e62b1e6406391a88",
+      "neo4j_graph_loader/orchestrator/lease_server.py": "37b25e19d72adf49546095ad32b3b6adafd27a860f76ba7cb67322d12f7594a0",
+      "neo4j_graph_loader/orchestrator/planned_dispatcher.py": "03bd4739aaf99edfac5d73c67cf0da32718377724f2df7dd420625ea64183fcc",
+      "neo4j_graph_loader/orchestrator/planned_edges.py": "315a3271f275692f215ab2a3349170f8414560857374b539e6b46a18e76e5cc5",
+      "neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py": "a2eebfc02bb7233f6d48d405a06dee203cfc0b02b961dd343fc46b1194e36a25",
+      "neo4j_graph_loader/orchestrator/rotation.py": "6f8c9c6bd401e922a00f674f6925375f063dbae3138a2694303fc94e0976d652",
+      "neo4j_graph_loader/orchestrator/schema_initializer.py": "d6bdc9fe4b03f79ea6ee428dd733349ac8acb2d4cf57f0fe386f2a97356ade48",
+      "neo4j_graph_loader/orchestrator/stream_groups.py": "96304f18abf56d83fd97f0bd1740dfe2a7f3a4d2662bc815d97b45a87a13a831",
+      "neo4j_graph_loader/planning.py": "3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a",
+      "neo4j_graph_loader/schema.py": "7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e",
+      "neo4j_graph_loader/utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "neo4j_graph_loader/utils/consumer_groups.py": "0ad3b73442d25a4c77f9903a223ba119488b7772a81062b830bef1af9eed9d88",
+      "neo4j_graph_loader/utils/cypher_generator.py": "c1e9719dc781b7a39b12d7199a811f6bebb5bdfee04c85f6cb836499262b04f8",
+      "neo4j_graph_loader/utils/metrics.py": "6fb61ce5cb818b495be08e97a5f8871d1d30e4d5733841d8c4e5f13fb7717e7c",
+      "neo4j_graph_loader/utils/neo4j_session.py": "879e4d59aa572766d70d6ab7492ca66b28aae0628e2f69db5f31c920b260d2d3",
+      "neo4j_graph_loader/utils/schema_loader.py": "49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f"
+    },
+    "resources": {
+      "neo4j_graph_loader/data/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
+      "neo4j_graph_loader/data/social_schema.yaml": "fd558b4bb65671b9cda6514280d23e37a93adebd04e240d938c36173d3f98c74"
+    },
+    "wheel_inventory": [
+      "neo4j_graph_loader/__init__.py",
+      "neo4j_graph_loader/__main__.py",
+      "neo4j_graph_loader/_docker_preflight.py",
+      "neo4j_graph_loader/_images.py",
+      "neo4j_graph_loader/_resources.py",
+      "neo4j_graph_loader/_runtime.py",
+      "neo4j_graph_loader/_version.py",
+      "neo4j_graph_loader/cli.py",
+      "neo4j_graph_loader/planning.py",
+      "neo4j_graph_loader/schema.py",
+      "neo4j_graph_loader/data/graph_schema.yaml",
+      "neo4j_graph_loader/data/social_schema.yaml",
+      "neo4j_graph_loader/loader/__init__.py",
+      "neo4j_graph_loader/loader/_planner_transport.py",
+      "neo4j_graph_loader/loader/control.py",
+      "neo4j_graph_loader/loader/dead_letter.py",
+      "neo4j_graph_loader/loader/dead_letter_replay.py",
+      "neo4j_graph_loader/loader/edge_execution.py",
+      "neo4j_graph_loader/loader/edge_loader.py",
+      "neo4j_graph_loader/loader/edge_plan.py",
+      "neo4j_graph_loader/loader/edge_planner.py",
+      "neo4j_graph_loader/loader/edge_records.py",
+      "neo4j_graph_loader/loader/edge_spill.py",
+      "neo4j_graph_loader/loader/fenced_tx.py",
+      "neo4j_graph_loader/loader/lease_client.py",
+      "neo4j_graph_loader/loader/mix_and_batch.py",
+      "neo4j_graph_loader/loader/node_loader.py",
+      "neo4j_graph_loader/loader/parked_pair_index.py",
+      "neo4j_graph_loader/loader/planned_writer.py",
+      "neo4j_graph_loader/loader/record_validation.py",
+      "neo4j_graph_loader/loader/retry_consumer.py",
+      "neo4j_graph_loader/loader/slot_admission.py",
+      "neo4j_graph_loader/loader/write_errors.py",
+      "neo4j_graph_loader/loader/write_outage.py",
+      "neo4j_graph_loader/loader/write_timing_capture.py",
+      "neo4j_graph_loader/models/__init__.py",
+      "neo4j_graph_loader/models/schema.py",
+      "neo4j_graph_loader/orchestrator/__init__.py",
+      "neo4j_graph_loader/orchestrator/auto_settings.py",
+      "neo4j_graph_loader/orchestrator/bulk_monitor.py",
+      "neo4j_graph_loader/orchestrator/clock_runner.py",
+      "neo4j_graph_loader/orchestrator/coordination.py",
+      "neo4j_graph_loader/orchestrator/dependency_manager.py",
+      "neo4j_graph_loader/orchestrator/docker_service.py",
+      "neo4j_graph_loader/orchestrator/fleet_contract.py",
+      "neo4j_graph_loader/orchestrator/isolation.py",
+      "neo4j_graph_loader/orchestrator/lease_server.py",
+      "neo4j_graph_loader/orchestrator/planned_dispatcher.py",
+      "neo4j_graph_loader/orchestrator/planned_edges.py",
+      "neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py",
+      "neo4j_graph_loader/orchestrator/rotation.py",
+      "neo4j_graph_loader/orchestrator/schema_initializer.py",
+      "neo4j_graph_loader/orchestrator/stream_groups.py",
+      "neo4j_graph_loader/utils/__init__.py",
+      "neo4j_graph_loader/utils/consumer_groups.py",
+      "neo4j_graph_loader/utils/cypher_generator.py",
+      "neo4j_graph_loader/utils/metrics.py",
+      "neo4j_graph_loader/utils/neo4j_session.py",
+      "neo4j_graph_loader/utils/schema_loader.py",
+      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/licenses/LICENSE",
+      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/METADATA",
+      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/WHEEL",
+      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/entry_points.txt",
+      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/top_level.txt",
+      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/RECORD"
+    ],
+    "sdist_inventory": [
+      "LICENSE",
+      "MANIFEST.in",
+      "PACKAGE_README.md",
+      "PKG-INFO",
+      "pyproject.toml",
+      "setup.cfg",
+      "src/neo4j_graph_loader.egg-info/PKG-INFO",
+      "src/neo4j_graph_loader.egg-info/SOURCES.txt",
+      "src/neo4j_graph_loader.egg-info/dependency_links.txt",
+      "src/neo4j_graph_loader.egg-info/entry_points.txt",
+      "src/neo4j_graph_loader.egg-info/requires.txt",
+      "src/neo4j_graph_loader.egg-info/top_level.txt",
+      "src/neo4j_graph_loader/__init__.py",
+      "src/neo4j_graph_loader/__main__.py",
+      "src/neo4j_graph_loader/_docker_preflight.py",
+      "src/neo4j_graph_loader/_images.py",
+      "src/neo4j_graph_loader/_resources.py",
+      "src/neo4j_graph_loader/_runtime.py",
+      "src/neo4j_graph_loader/_version.py",
+      "src/neo4j_graph_loader/cli.py",
+      "src/neo4j_graph_loader/data/graph_schema.yaml",
+      "src/neo4j_graph_loader/data/social_schema.yaml",
+      "src/neo4j_graph_loader/loader/__init__.py",
+      "src/neo4j_graph_loader/loader/_planner_transport.py",
+      "src/neo4j_graph_loader/loader/control.py",
+      "src/neo4j_graph_loader/loader/dead_letter.py",
+      "src/neo4j_graph_loader/loader/dead_letter_replay.py",
+      "src/neo4j_graph_loader/loader/edge_execution.py",
+      "src/neo4j_graph_loader/loader/edge_loader.py",
+      "src/neo4j_graph_loader/loader/edge_plan.py",
+      "src/neo4j_graph_loader/loader/edge_planner.py",
+      "src/neo4j_graph_loader/loader/edge_records.py",
+      "src/neo4j_graph_loader/loader/edge_spill.py",
+      "src/neo4j_graph_loader/loader/fenced_tx.py",
+      "src/neo4j_graph_loader/loader/lease_client.py",
+      "src/neo4j_graph_loader/loader/mix_and_batch.py",
+      "src/neo4j_graph_loader/loader/node_loader.py",
+      "src/neo4j_graph_loader/loader/parked_pair_index.py",
+      "src/neo4j_graph_loader/loader/planned_writer.py",
+      "src/neo4j_graph_loader/loader/record_validation.py",
+      "src/neo4j_graph_loader/loader/retry_consumer.py",
+      "src/neo4j_graph_loader/loader/slot_admission.py",
+      "src/neo4j_graph_loader/loader/write_errors.py",
+      "src/neo4j_graph_loader/loader/write_outage.py",
+      "src/neo4j_graph_loader/loader/write_timing_capture.py",
+      "src/neo4j_graph_loader/models/__init__.py",
+      "src/neo4j_graph_loader/models/schema.py",
+      "src/neo4j_graph_loader/orchestrator/__init__.py",
+      "src/neo4j_graph_loader/orchestrator/auto_settings.py",
+      "src/neo4j_graph_loader/orchestrator/bulk_monitor.py",
+      "src/neo4j_graph_loader/orchestrator/clock_runner.py",
+      "src/neo4j_graph_loader/orchestrator/coordination.py",
+      "src/neo4j_graph_loader/orchestrator/dependency_manager.py",
+      "src/neo4j_graph_loader/orchestrator/docker_service.py",
+      "src/neo4j_graph_loader/orchestrator/fleet_contract.py",
+      "src/neo4j_graph_loader/orchestrator/isolation.py",
+      "src/neo4j_graph_loader/orchestrator/lease_server.py",
+      "src/neo4j_graph_loader/orchestrator/planned_dispatcher.py",
+      "src/neo4j_graph_loader/orchestrator/planned_edges.py",
+      "src/neo4j_graph_loader/orchestrator/relationship_bulk_monitor.py",
+      "src/neo4j_graph_loader/orchestrator/rotation.py",
+      "src/neo4j_graph_loader/orchestrator/schema_initializer.py",
+      "src/neo4j_graph_loader/orchestrator/stream_groups.py",
+      "src/neo4j_graph_loader/planning.py",
+      "src/neo4j_graph_loader/schema.py",
+      "src/neo4j_graph_loader/utils/__init__.py",
+      "src/neo4j_graph_loader/utils/consumer_groups.py",
+      "src/neo4j_graph_loader/utils/cypher_generator.py",
+      "src/neo4j_graph_loader/utils/metrics.py",
+      "src/neo4j_graph_loader/utils/neo4j_session.py",
+      "src/neo4j_graph_loader/utils/schema_loader.py"
+    ],
+    "artifacts": [
+      {
+        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "size": 453904,
+        "sha256": "cdd73ac361c99a8c73a15c929d150ce7d5e75d9446e1229dba5a1614cd494feb"
+      },
+      {
+        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0.tar.gz",
+        "size": 426669,
+        "sha256": "84b33a4dbe1ad9a974cbc5ee2bd7d0f87f880c89f7928e7747ee4d9810cdd4d2"
+      }
+    ]
+  },
+  "default_temporary_git_rejection": {
+    "case": "default-TMPDIR-git-ancestry",
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+      "--lane",
+      "probe",
+      "--wheel",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+      "--inventory",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-positive-inventory.json"
+    ],
+    "TMPDIR": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s1-repairc-q4rmu4i4/owned-git",
+    "exit_code": 1,
+    "stderr": "installed runner failed: staging must be outside every Git checkout/worktree\n",
+    "no_output_created": true
+  },
+  "ownership_rejections": {
+    "cases": [
+      {
+        "case": "existing-directory",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "probe",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairb-positive-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-output-repair-rdcb4w5c/previous"
+        ],
+        "exit_code": 1,
+        "stderr": "installed runner failed: output must be a new directory outside checkout\n",
+        "sentinel_sha256_unchanged": "7b182918078c4b5ec241d28589d9a5d25477837e23ef827c0284e94b20aaa013",
+        "mode_unchanged": true
+      },
+      {
+        "case": "existing-symlink",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "probe",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairb-positive-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-output-repair-rdcb4w5c/alias"
+        ],
+        "exit_code": 1,
+        "stderr": "installed runner failed: output must be a new directory outside checkout\n",
+        "sentinel_sha256_unchanged": "7b182918078c4b5ec241d28589d9a5d25477837e23ef827c0284e94b20aaa013",
+        "mode_unchanged": true
+      },
+      {
+        "case": "existing-checkout-output",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "probe",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairb-positive-inventory.json",
+          "--output",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/owned-existing-output-control"
+        ],
+        "exit_code": 1,
+        "stderr": "installed runner failed: output must be a new directory outside checkout\n",
+        "sentinel_sha256_unchanged": "40061c44d3323cee4cad63dfb308bf206ff422ae8dc00857c962b67802902d9f",
+        "mode_unchanged": true
+      }
+    ]
+  },
+  "development_safety_tests": {
+    "passed": 23,
+    "log": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-repairc-unit.log"
+  },
+  "actual_positive_test_ids": 8,
+  "actual_negative_invocations": 17,
+  "new_test_only_dependency": "psutil>=6,<8",
+  "runtime_dependency_changes": false
+}

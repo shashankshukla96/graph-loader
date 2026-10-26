@@ -1,18 +1,21 @@
 # Library implementation plan
 
-**Current gate, 2026-10-23:** E06 delivered-code repairs and fresh full proof are
-[independently accepted](reviews/e06-final-audit-resume-20261023.md) after
-3,713 full test passes. The first repair's green result was rejected for a
-compaction defect; [current report](reviews/e06-completion-verification-20261023.md)
-preserves that history. Local delivery `c15c43c5c4eb7c6fe6920489fd5835a91bf72377` and
-[all279-input equality](evidence/e06-revalidation-postcommit-20261023.json) are recorded in the
-[tracker](CHANGE_TRACKER.md); E07 handoff is ready and execution has not started. Original acceptance below
-remains historical.
+**Current gate, 2026-10-25:** All ordered [E07 stories](epics/e07.md), including
+[rebuilt-artifact parity](reviews/e07-f2-review.md), are independently accepted.
+The [final proof](evidence/e07-final-validation.md) records 3,746 checkout passes,
+all 16 original/rebuilt installed lanes and retained image/service/R1/B3 gates.
+[Fresh final adversarial acceptance](reviews/e07-final-adversarial-review.md) is
+complete; local delivery and actual postcommit equality recording remain pending. Latest E06
+repair delivery remains `c15c43c5c4eb7c6fe6920489fd5835a91bf72377`; its
+[279-input equality](evidence/e06-revalidation-postcommit-20261023.json) is preserved.
+See the [tracker](CHANGE_TRACKER.md). E08–E12 remain unstarted; publication is separate.
+Original acceptance notes below remain historical.
 
 Prepared 2026-10-15; latest E06 acceptance 2026-10-23. **All 13 epic decompositions remain approved by the [fresh independent plan audit](reviews/fresh-audit-02.md). E00–E04 are accepted. [E04-R1](reviews/e04-completion-verification-20261020.md) reopened S3/S4 after the original delivery; the [repair evidence](evidence/e04-r1-repair.md) and [fresh final review](reviews/e04-r1-final-review.md) now close that finding. [E05 delivered-code revalidation](reviews/e05-completion-verification-20261021.md) repairs two low-priority findings and is independently accepted after 3,571 test passes; [E06 final independent acceptance](reviews/e06-final-adversarial-review.md) closes all three stories after frozen full/artifact/image/service/R1/B3 validation. E07–E12 have not started. Historical failures, reviews and results are preserved.**
 
 This decomposes the [library/PyPI checklist](../../docs/PYPI_LIBRARY_CHECKLIST.md)
-into **13 phase epics, 26 features and 54 stories**. It is a planning deliverable;
+into **13 phase epics, 26 features and 60 stories** (including the six independently
+reviewed E07 overflow/repair stories). It is a planning deliverable;
 implementation and release approval remain separate. No push or publication is
 authorized by this plan. Existing source changes and the loaded IMDb graph must
 be preserved.

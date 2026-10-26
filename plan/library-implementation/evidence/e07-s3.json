@@ -1,0 +1,661 @@
+{
+  "date": "2026-10-24",
+  "status": "prepared for independent S3 review; collection only, no legacy ports",
+  "source_sha256": "d599fad296d569bade49a3cf44aa995954cb411134fc9e509373aa7e8a9a1103",
+  "environment_sha256": "ae2f84a14eebdcb4c6fef629ef822b72fcb62658806808a5e2bc8c43794a5cc3",
+  "source_inputs": 297,
+  "inventory_sha256": "b3b78e1cf08a39e3e73b5c95e86ad8de5108c4efe0d0b59f36dabd429b8b7891",
+  "collected_ids": 3797,
+  "test_files": 124,
+  "dispositions": {
+    "service": 48,
+    "installed": 3647,
+    "checkout-development": 102
+  },
+  "lanes": {
+    "core": {
+      "owner": "E07.F1.S2",
+      "files": 12,
+      "ids": 454,
+      "full_collected_ids": 454,
+      "staged_files": 32,
+      "fixture_counts": {
+        ".yaml": 8,
+        ".py": 20,
+        ".json": 4
+      },
+      "extra_test_requirements": [],
+      "estimate_days": 1
+    },
+    "safety": {
+      "owner": "E07.F1.S4",
+      "files": 18,
+      "ids": 1335,
+      "full_collected_ids": 1335,
+      "staged_files": 40,
+      "fixture_counts": {
+        ".yaml": 8,
+        ".py": 28,
+        ".json": 4
+      },
+      "extra_test_requirements": [],
+      "estimate_days": 1.5
+    },
+    "cli-runtime": {
+      "owner": "E07.F1.S5",
+      "files": 11,
+      "ids": 636,
+      "full_collected_ids": 636,
+      "staged_files": 29,
+      "fixture_counts": {
+        ".yaml": 8,
+        ".py": 17,
+        ".json": 4
+      },
+      "extra_test_requirements": [],
+      "estimate_days": 1.5
+    },
+    "public-contracts": {
+      "owner": "E07.F1.S6",
+      "files": 13,
+      "ids": 244,
+      "full_collected_ids": 244,
+      "staged_files": 36,
+      "fixture_counts": {
+        ".yaml": 8,
+        ".py": 24,
+        ".json": 4
+      },
+      "extra_test_requirements": [],
+      "estimate_days": 1
+    },
+    "writer-runtime": {
+      "owner": "E07.F1.S7",
+      "files": 16,
+      "ids": 540,
+      "full_collected_ids": 541,
+      "staged_files": 36,
+      "fixture_counts": {
+        ".yaml": 8,
+        ".py": 24,
+        ".json": 4
+      },
+      "extra_test_requirements": [],
+      "estimate_days": 1.5
+    },
+    "orchestration-runtime": {
+      "owner": "E07.F1.S8",
+      "files": 18,
+      "ids": 282,
+      "full_collected_ids": 284,
+      "staged_files": 42,
+      "fixture_counts": {
+        ".yaml": 8,
+        ".py": 30,
+        ".json": 4
+      },
+      "extra_test_requirements": [],
+      "estimate_days": 1.5
+    },
+    "example-contracts": {
+      "owner": "E07.F1.S9",
+      "files": 8,
+      "ids": 115,
+      "full_collected_ids": 115,
+      "staged_files": 32,
+      "fixture_counts": {
+        ".yaml": 8,
+        ".md": 1,
+        ".py": 19,
+        ".json": 4
+      },
+      "extra_test_requirements": [
+        "pandas>=2.2,<3",
+        "python-dotenv>=1,<2"
+      ],
+      "estimate_days": 1.5
+    },
+    "service-helper-unit": {
+      "owner": "E07.F1.S10",
+      "files": 6,
+      "ids": 41,
+      "full_collected_ids": 47,
+      "staged_files": 27,
+      "fixture_counts": {
+        ".yaml": 8,
+        ".py": 15,
+        ".json": 4
+      },
+      "extra_test_requirements": [],
+      "estimate_days": 0.5
+    }
+  },
+  "installed_collection": {
+    "inventory_sha256": "b3b78e1cf08a39e3e73b5c95e86ad8de5108c4efe0d0b59f36dabd429b8b7891",
+    "outside": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4",
+    "cases": [
+      {
+        "lane": "core",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "core",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/core",
+          "--collect-only"
+        ],
+        "exit_code": 0,
+        "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/core/result.json",
+        "receipt_files": {
+          "result.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/core/result.json",
+            "sha256": "b2c104d7d01aa16c81d297ab2f499f5adfe719868dfcff2f8f04fa02a701590f",
+            "bytes": 57803
+          },
+          "pytest.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/core/pytest.json",
+            "sha256": "736dcade5c65d56cd2d6445acf1e83ad276ff368a2dbf21655ac178125846890",
+            "bytes": 96806
+          },
+          "provenance.jsonl": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/core/provenance.jsonl",
+            "sha256": "ce0ec55c5d40c6e55ea19cd7ae1edc6b6608baa22e60eb5fdc9c295f1d616854",
+            "bytes": 21352
+          },
+          "pytest.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/core/pytest.log",
+            "sha256": "5e70bbd64399494a5e2407274b43f35168ffcd470b67bbf10d2b87f1a2549600",
+            "bytes": 45104
+          },
+          "pip-check.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/core/pip-check.log",
+            "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "bytes": 30
+          },
+          "install.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/core/install.log",
+            "sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "bytes": 6743
+          },
+          "venv.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/core/venv.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "run.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/core/run.json",
+            "sha256": "3d54db11fd77a80f5d9b6b0584cd101ec0f86f31fce1e502c4c1dfbf26832c93",
+            "bytes": 99817
+          }
+        }
+      },
+      {
+        "lane": "safety",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "safety",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/safety",
+          "--collect-only"
+        ],
+        "exit_code": 0,
+        "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/safety/result.json",
+        "receipt_files": {
+          "result.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/safety/result.json",
+            "sha256": "51f8969ca72337c372028705b4e26b29f083f9bf139e8692d0413588194e09ad",
+            "bytes": 158756
+          },
+          "pytest.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/safety/pytest.json",
+            "sha256": "215f10a4ee1be3234fa1391e62f56c8d6a6c1b3952d233c3d0a3d42564692d1e",
+            "bytes": 296928
+          },
+          "provenance.jsonl": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/safety/provenance.jsonl",
+            "sha256": "5eacd00355a81d1b76dea879223540e3609cf5055f8a21b1722ac78e746c228b",
+            "bytes": 21053
+          },
+          "pytest.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/safety/pytest.log",
+            "sha256": "4e7a9930f5abbea5c9e13d03c50ecd5c6f7667559680ddaba9f557624e0063db",
+            "bytes": 139059
+          },
+          "pip-check.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/safety/pip-check.log",
+            "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "bytes": 30
+          },
+          "install.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/safety/install.log",
+            "sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "bytes": 6743
+          },
+          "venv.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/safety/venv.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "run.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/safety/run.json",
+            "sha256": "81303178163905d761a364e46904847d181f8a5f83215268bbeac2afe8e49b9a",
+            "bytes": 294715
+          }
+        }
+      },
+      {
+        "lane": "cli-runtime",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "cli-runtime",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/cli-runtime",
+          "--collect-only"
+        ],
+        "exit_code": 0,
+        "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/cli-runtime/result.json",
+        "receipt_files": {
+          "result.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/cli-runtime/result.json",
+            "sha256": "9ddeea2abe68622d282c7c8c3c0da1ae0356db134a19334dc290586ffb703faa",
+            "bytes": 72822
+          },
+          "pytest.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/cli-runtime/pytest.json",
+            "sha256": "6b225659de9a00b88913afe236e24763c78ffd3d6057d9013cbd01c0cc52cbd7",
+            "bytes": 127296
+          },
+          "provenance.jsonl": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/cli-runtime/provenance.jsonl",
+            "sha256": "93d64e0e4061438913860a0ae99d5c17ffd3749ad39caae5f5b722e89ebdab63",
+            "bytes": 19189
+          },
+          "pytest.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/cli-runtime/pytest.log",
+            "sha256": "1c2e063da3df34883ae42887b599505b4fa906c0253fde6eb2979edafbb1aa49",
+            "bytes": 59147
+          },
+          "pip-check.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/cli-runtime/pip-check.log",
+            "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "bytes": 30
+          },
+          "install.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/cli-runtime/install.log",
+            "sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "bytes": 6743
+          },
+          "venv.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/cli-runtime/venv.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "run.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/cli-runtime/run.json",
+            "sha256": "876ef8f74b4d0e2c511ab38c98b5fbcd737a9a0b8d2f4bf23c3fcc3f2650be6b",
+            "bytes": 127989
+          }
+        }
+      },
+      {
+        "lane": "public-contracts",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "public-contracts",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/public-contracts",
+          "--collect-only"
+        ],
+        "exit_code": 0,
+        "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/public-contracts/result.json",
+        "receipt_files": {
+          "result.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/public-contracts/result.json",
+            "sha256": "f21b1dadf06913424afdf3e4577c1642fd84d9b252c948a3b16f4caf68a4d125",
+            "bytes": 89085
+          },
+          "pytest.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/public-contracts/pytest.json",
+            "sha256": "a9066df57d7586ea8371fdd4da4ab359617b47caa0f5b48a76d93377499d6ea4",
+            "bytes": 158130
+          },
+          "provenance.jsonl": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/public-contracts/provenance.jsonl",
+            "sha256": "2d2786e393c11fe68003a10d75cde4599b7cf8fa9dabdc373f1ecde6e34e5ab0",
+            "bytes": 19340
+          },
+          "pytest.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/public-contracts/pytest.log",
+            "sha256": "9d210a79dd6529070ece64abd3463338c54bb305984639547f158cc21396b87f",
+            "bytes": 67014
+          },
+          "pip-check.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/public-contracts/pip-check.log",
+            "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "bytes": 30
+          },
+          "install.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/public-contracts/install.log",
+            "sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "bytes": 6743
+          },
+          "venv.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/public-contracts/venv.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "run.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/public-contracts/run.json",
+            "sha256": "71197a89aa425a1b3f55b8765ca994860bfc07d23bb37a575ad5e5924f1d06d9",
+            "bytes": 163582
+          }
+        }
+      },
+      {
+        "lane": "writer-runtime",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "writer-runtime",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/writer-runtime",
+          "--collect-only"
+        ],
+        "exit_code": 0,
+        "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/writer-runtime/result.json",
+        "receipt_files": {
+          "result.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/writer-runtime/result.json",
+            "sha256": "a603e34d66280768532ddd4c79943577647ae53b884c6e2ae453b78d58144cbb",
+            "bytes": 63971
+          },
+          "pytest.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/writer-runtime/pytest.json",
+            "sha256": "7faa93b6c8fc424ee0e3cfc88730a313ce9a93656ad72c361ce5a4da6e5b7ca3",
+            "bytes": 108295
+          },
+          "provenance.jsonl": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/writer-runtime/provenance.jsonl",
+            "sha256": "9e442868805ebee4b1dba1955f49fcf8778256e08bc6b84cb953bb13702af042",
+            "bytes": 22768
+          },
+          "pytest.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/writer-runtime/pytest.log",
+            "sha256": "33a281fac505b098ae2171cca85042f892cead3b7e8cbc6a3f80ea4bec1b528e",
+            "bytes": 50058
+          },
+          "pip-check.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/writer-runtime/pip-check.log",
+            "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "bytes": 30
+          },
+          "install.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/writer-runtime/install.log",
+            "sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "bytes": 6743
+          },
+          "venv.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/writer-runtime/venv.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "run.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/writer-runtime/run.json",
+            "sha256": "803b50d3f6465d90305a378e3abe8dac659316dacc55795758e7df5b5ae71deb",
+            "bytes": 110846
+          }
+        }
+      },
+      {
+        "lane": "orchestration-runtime",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "orchestration-runtime",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/orchestration-runtime",
+          "--collect-only"
+        ],
+        "exit_code": 0,
+        "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/orchestration-runtime/result.json",
+        "receipt_files": {
+          "result.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/orchestration-runtime/result.json",
+            "sha256": "050216ca84cf97f4c8abeac32badd2fe8a0f34784b1c4914f7b4f61894e216e1",
+            "bytes": 40224
+          },
+          "pytest.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/orchestration-runtime/pytest.json",
+            "sha256": "ee8426ca7411c6f59621b2a0ea8adf667cc45a3377e54c0df971bda7d1514608",
+            "bytes": 59578
+          },
+          "provenance.jsonl": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/orchestration-runtime/provenance.jsonl",
+            "sha256": "247a1006c6928892da4b3e69964cb19f5661015cb533cb1afba928e4d97dac0b",
+            "bytes": 21419
+          },
+          "pytest.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/orchestration-runtime/pytest.log",
+            "sha256": "94dd5c85aecd8af376cea8316d5fef1beb2b898e732471427aa378fbc8ecaea4",
+            "bytes": 27435
+          },
+          "pip-check.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/orchestration-runtime/pip-check.log",
+            "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "bytes": 30
+          },
+          "install.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/orchestration-runtime/install.log",
+            "sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "bytes": 6743
+          },
+          "venv.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/orchestration-runtime/venv.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "run.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/orchestration-runtime/run.json",
+            "sha256": "6802e1553fd9f935acf0ffad90887c3e77589e9e755e0c899eef80711ed60e60",
+            "bytes": 65881
+          }
+        }
+      },
+      {
+        "lane": "example-contracts",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "example-contracts",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/example-contracts",
+          "--collect-only"
+        ],
+        "exit_code": 0,
+        "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/example-contracts/result.json",
+        "receipt_files": {
+          "result.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/example-contracts/result.json",
+            "sha256": "a0caa6ac20ace136d57757874506c51a90447526e243c283856a21445d4711e7",
+            "bytes": 22365
+          },
+          "pytest.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/example-contracts/pytest.json",
+            "sha256": "e82a80eb4a1d824c9bf3b11c43e6f13387aba9ff52ad2b02808368e36067941b",
+            "bytes": 25206
+          },
+          "provenance.jsonl": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/example-contracts/provenance.jsonl",
+            "sha256": "864db2196ae6b5b22efd92e3f422f3dba64d8ba8cfa5539400d033a31a76d3b9",
+            "bytes": 12535
+          },
+          "pytest.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/example-contracts/pytest.log",
+            "sha256": "d8f9c8265c06cb64fce8f20e83fa982b864c1d90cfdba864e001c5379bfb395a",
+            "bytes": 11749
+          },
+          "pip-check.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/example-contracts/pip-check.log",
+            "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "bytes": 30
+          },
+          "install.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/example-contracts/install.log",
+            "sha256": "e7de169fe097e616e0d2cc1ac43cf3480f7db8220cc60b57250626abff2e3729",
+            "bytes": 7482
+          },
+          "venv.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/example-contracts/venv.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "run.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/example-contracts/run.json",
+            "sha256": "62d9407efac924a9e2adde54a0ca9540c691f2ae77385a2b8712c6f907fd6b9b",
+            "bytes": 32110
+          }
+        }
+      },
+      {
+        "lane": "service-helper-unit",
+        "command": [
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/scripts/verify_installed.py",
+          "--lane",
+          "service-helper-unit",
+          "--wheel",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+          "--inventory",
+          "/Users/shashank/Desktop/Code/Graph/graph-loader/plan/library-implementation/test-inventory.json",
+          "--output",
+          "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/service-helper-unit",
+          "--collect-only"
+        ],
+        "exit_code": 0,
+        "result": "/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-s3-egxjhhk4/service-helper-unit/result.json",
+        "receipt_files": {
+          "result.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/service-helper-unit/result.json",
+            "sha256": "b323d03e00425207b01f93f66960c355eaa32435ea71a163e4258994fbaf823f",
+            "bytes": 13087
+          },
+          "pytest.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/service-helper-unit/pytest.json",
+            "sha256": "fda7ffb6f6bcaaff8c511e804b8ecc80372001be0def4edbd01524da5cd8b8fd",
+            "bytes": 10132
+          },
+          "provenance.jsonl": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/service-helper-unit/provenance.jsonl",
+            "sha256": "372eeab6f90c11a7fc7d780cac6f628820374ebbd21d32c1d0a4702f42740ec8",
+            "bytes": 22177
+          },
+          "pytest.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/service-helper-unit/pytest.log",
+            "sha256": "ad213b282743c039c7815c52abfbcd094dd7439822ecc376a1ec15aa84ea76b0",
+            "bytes": 3557
+          },
+          "pip-check.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/service-helper-unit/pip-check.log",
+            "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+            "bytes": 30
+          },
+          "install.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/service-helper-unit/install.log",
+            "sha256": "75832bf8d10365d4a6bd973b409a22bcf58dc89570edf349d9bc8dcea3e7b5b3",
+            "bytes": 6743
+          },
+          "venv.log": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/service-helper-unit/venv.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "run.json": {
+            "retained": "var/e07-validation-20261024/s3-owned-receipts/service-helper-unit/run.json",
+            "sha256": "2950e60816be62b581050754423de630a952d29265b32642f0e7861306d484b6",
+            "bytes": 15573
+          }
+        }
+      }
+    ]
+  },
+  "tool_tests": {
+    "command": [
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+      "-m",
+      "pytest",
+      "tests/test_installed_inventory.py",
+      "tests/test_installed_runner.py",
+      "tests/test_dev_environment.py",
+      "-q",
+      "-m",
+      "not smoke"
+    ],
+    "exit_code": 0,
+    "passed": 33,
+    "deselected_smoke": 4,
+    "log_sha256": "dc187b638219f035c0790fcbf7b715c79b3b69bf379b680a66b7d28a6a979926"
+  },
+  "negative_controls": {
+    "actual_deselection": {
+      "command": [
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
+        "-I",
+        "-c",
+        "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader",
+        "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261024/s3-actual-deselected.json",
+        "-k",
+        "not test_schema_validation"
+      ],
+      "collected_ids": 3642,
+      "expected_ids": 3797,
+      "error": "source IDs/order disappeared, changed or were deselected",
+      "rejected": true
+    },
+    "original_dotenv": {
+      "original_reproduced_without_reading_private_file": true,
+      "attempts": [
+        "private dotenv access blocked before reading"
+      ]
+    }
+  },
+  "private_dotenv_constraint_breach": "Original eager developer-test import loaded private dotenv in earlier discovery collections. No values printed; no write. Repaired lazy smoke-only read; subsequent collection/unit checks do not read it. Original reproduced with access blocked before reading."
+}

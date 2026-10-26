@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "title": "Library implementation epics",
-  "date": "2026-10-21",
+  "date": "2026-10-25",
   "source_checklist": "../../docs/PYPI_LIBRARY_CHECKLIST.md",
-  "status": "E00-E05 accepted; E04-R1 closed; E06-E12 not started",
+  "status": "E00-E07 accepted; E08-E12 not started",
   "epics": [
     {
       "id": "E00",
@@ -827,7 +827,7 @@
       "scope": "Keep test fixtures/reference helpers explicit; do not rewrite all tests or weaken assertions just to make packaging pass.",
       "exit_gate": "Wheel and sdist-built wheel pass the installed regression selection, with import provenance proven in parent and child processes.",
       "review_status": "approved",
-      "implementation_status": "not started",
+      "implementation_status": "complete",
       "features": [
         {
           "id": "E07.F1",
@@ -858,7 +858,7 @@
                 "Run from a temp directory using a fresh wheel install; deliberately omit a runtime module/resource and prove the runner detects the failure."
               ],
               "evidence": "evidence/E07.F1.S1.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E07.F1.S3",
@@ -885,7 +885,7 @@
                 "Compare the current initial inventory scale (fresh audit AST counts: core 253, safety 688, CLI/runtime 308 test functions before parametrization) to actual collected IDs and helper closure. These are discovery inputs, not test pass evidence or a requirement to rewrite every test."
               ],
               "evidence": "evidence/E07.F1.S3.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E07.F1.S2",
@@ -910,7 +910,7 @@
                 "Assert installed import provenance in both direct tests and spawned source/planner subprocesses; compare selected test counts/assertions to the inventory."
               ],
               "evidence": "evidence/E07.F1.S2.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E07.F1.S4",
@@ -935,7 +935,7 @@
                 "Compare collected/executed IDs to the selected inventory and record justified skips."
               ],
               "evidence": "evidence/E07.F1.S4.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E07.F1.S5",
@@ -960,7 +960,159 @@
                 "Verify parent/child module paths and test IDs; repeat a deliberately missing-module/resource negative control."
               ],
               "evidence": "evidence/E07.F1.S5.md",
-              "status": "planned"
+              "status": "complete"
+            },
+            {
+              "id": "E07.F1.S11",
+              "title": "Synchronize startup provenance for immediately terminated children",
+              "estimate_days": 0.5,
+              "checklist": [
+                "V2",
+                "V5"
+              ],
+              "depends_on": [
+                "E07.F1.S5"
+              ],
+              "changes": [
+                "Test-only installed guard launch/startup receipt synchronization across existing supported child APIs; explicit immediate-termination controls"
+              ],
+              "acceptance": [
+                "Every supported actual child must supply a fresh matching PID/OS-creation/startup receipt before its creation API returns to the caller. Do not waive absent child provenance.",
+                "Retain every original E04 deadline/cancellation/cleanup/startup-failure assertion and all application source bytes; no timeout expansion or source rescue.",
+                "Bound the test-only startup synchronization, retain original red receipts and rerun all accepted S1 positive/negative controls plus real immediate-termination cases."
+              ],
+              "validation": [
+                "Reproduce public-gap/public-startup missing receipts; actual original pytest passes must still yield runner failure.",
+                "Run fresh installed parent/spawn/fork/env/POSIX/exec/console and missing-guard/detached/negative controls, then all247 public IDs with exact250 full-ID disposition.",
+                "Fresh independent review accepts this bounded repair before S6 runtime acceptance."
+              ],
+              "evidence": "evidence/E07.F1.S11.md",
+              "status": "complete"
+            },
+            {
+              "id": "E07.F1.S6",
+              "title": "Port the frozen public-contracts regression lane",
+              "estimate_days": 1,
+              "checklist": [
+                "V5"
+              ],
+              "depends_on": [
+                "E07.F1.S11"
+              ],
+              "changes": [
+                "Frozen public-contracts file/ID/helper selection; location-only installed adaptations"
+              ],
+              "acceptance": [
+                "Retain every frozen runtime ID and assertion; only reviewed per-ID checkout/service dispositions may omit execution.",
+                "Stage the recursive finite helper/reference closure, prove target-wheel application origins in parents and actual children, and preserve the independent checkout suite.",
+                "Keep live E09 guarantees open; no dataset, private environment or application-source rescue."
+              ],
+              "validation": [
+                "python scripts/verify_installed.py --lane public-contracts --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json",
+                "Compare exact source-to-installed IDs, outcomes and source assertion changes; fresh independent review before the next story."
+              ],
+              "evidence": "evidence/E07.F1.S6.md",
+              "status": "complete"
+            },
+            {
+              "id": "E07.F1.S7",
+              "title": "Port the frozen writer-runtime regression lane",
+              "estimate_days": 1.5,
+              "checklist": [
+                "V5"
+              ],
+              "depends_on": [
+                "E07.F1.S6"
+              ],
+              "changes": [
+                "Frozen writer-runtime file/ID/helper selection; location-only installed adaptations"
+              ],
+              "acceptance": [
+                "Retain every frozen runtime ID and assertion; only reviewed per-ID checkout/service dispositions may omit execution.",
+                "Stage the recursive finite helper/reference closure, prove target-wheel application origins in parents and actual children, and preserve the independent checkout suite.",
+                "Keep live E09 guarantees open; no dataset, private environment or application-source rescue."
+              ],
+              "validation": [
+                "python scripts/verify_installed.py --lane writer-runtime --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json",
+                "Compare exact source-to-installed IDs, outcomes and source assertion changes; fresh independent review before the next story."
+              ],
+              "evidence": "evidence/E07.F1.S7.md",
+              "status": "complete"
+            },
+            {
+              "id": "E07.F1.S8",
+              "title": "Port the frozen orchestration-runtime regression lane",
+              "estimate_days": 1.5,
+              "checklist": [
+                "V5"
+              ],
+              "depends_on": [
+                "E07.F1.S7"
+              ],
+              "changes": [
+                "Frozen orchestration-runtime file/ID/helper selection; location-only installed adaptations"
+              ],
+              "acceptance": [
+                "Retain every frozen runtime ID and assertion; only reviewed per-ID checkout/service dispositions may omit execution.",
+                "Stage the recursive finite helper/reference closure, prove target-wheel application origins in parents and actual children, and preserve the independent checkout suite.",
+                "Keep live E09 guarantees open; no dataset, private environment or application-source rescue."
+              ],
+              "validation": [
+                "python scripts/verify_installed.py --lane orchestration-runtime --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json",
+                "Compare exact source-to-installed IDs, outcomes and source assertion changes; fresh independent review before the next story."
+              ],
+              "evidence": "evidence/E07.F1.S8.md",
+              "status": "complete"
+            },
+            {
+              "id": "E07.F1.S9",
+              "title": "Port the frozen example-contracts regression lane",
+              "estimate_days": 1.5,
+              "checklist": [
+                "V5"
+              ],
+              "depends_on": [
+                "E07.F1.S8"
+              ],
+              "changes": [
+                "Frozen example-contracts file/ID/helper selection; location-only installed adaptations"
+              ],
+              "acceptance": [
+                "Retain every frozen runtime ID and assertion; only reviewed per-ID checkout/service dispositions may omit execution.",
+                "Stage the recursive finite helper/reference closure, prove target-wheel application origins in parents and actual children, and preserve the independent checkout suite.",
+                "Keep live E09 guarantees open; no dataset, private environment or application-source rescue."
+              ],
+              "validation": [
+                "python scripts/verify_installed.py --lane example-contracts --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json",
+                "Compare exact source-to-installed IDs, outcomes and source assertion changes; fresh independent review before the next story."
+              ],
+              "evidence": "evidence/E07.F1.S9.md",
+              "status": "complete"
+            },
+            {
+              "id": "E07.F1.S10",
+              "title": "Port the frozen service-helper-unit regression lane",
+              "estimate_days": 0.5,
+              "checklist": [
+                "V5"
+              ],
+              "depends_on": [
+                "E07.F1.S9"
+              ],
+              "changes": [
+                "Frozen service-helper-unit file/ID/helper selection; location-only installed adaptations"
+              ],
+              "acceptance": [
+                "Retain every frozen runtime ID and assertion; only reviewed per-ID checkout/service dispositions may omit execution.",
+                "Stage the recursive finite helper/reference closure, prove target-wheel application origins in parents and actual children, and preserve the independent checkout suite.",
+                "Keep live E09 guarantees open; no dataset, private environment or application-source rescue."
+              ],
+              "validation": [
+                "python scripts/verify_installed.py --lane service-helper-unit --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json",
+                "Compare exact source-to-installed IDs, outcomes and source assertion changes; fresh independent review before the next story."
+              ],
+              "evidence": "evidence/E07.F1.S10.md",
+              "status": "complete"
             }
           ]
         },
@@ -979,7 +1131,7 @@
                 "P5"
               ],
               "depends_on": [
-                "E07.F1.S5"
+                "E07.F1.S10"
               ],
               "changes": [
                 "Build/inspection runner; artifact inventory allow/deny rules; isolated smoke checks"
@@ -994,7 +1146,7 @@
                 "Install each wheel in separate clean environments, run pip check, and compare metadata/resource/module inventories."
               ],
               "evidence": "evidence/E07.F2.S1.md",
-              "status": "planned"
+              "status": "complete"
             }
           ]
         }

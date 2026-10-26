@@ -60,7 +60,7 @@ def main():
     assert inventory['inventory_owner'] in stories
     for lane in inventory['lanes'].values():
         assert lane['owner'] in stories
-        for relative in lane.get('current_test_files', []) + lane.get('reference_files', []):
+        for relative in lane.get('current_test_files', []) + list(lane.get('reference_files', [])):
             assert (REPO / relative).is_file(), ('Missing current test/reference', relative)
     for relative in inventory['initial_helper_config_fixture_closure']:
         assert (REPO / relative).is_file(), ('Missing current fixture/helper', relative)

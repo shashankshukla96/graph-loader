@@ -2044,10 +2044,11 @@ def test_handle_start_schema_load_failure(mock_load):
     assert exit_code == 1
 
 
+@patch("neo4j_graph_loader.cli.DockerService")
 @patch("neo4j_graph_loader.cli.apply_schema")
 @patch("neo4j_graph_loader.cli.get_neo4j_driver")
 @patch("neo4j_graph_loader.cli.load_schema")
-def test_handle_start_init_failure(mock_load, mock_get_driver, mock_apply_schema):
+def test_handle_start_init_failure(mock_load, mock_get_driver, mock_apply_schema, mock_docker, caplog):
     args = argparse.Namespace(mode="bulk", config="config.yaml")
     mock_get_driver.side_effect = SchemaInitializationError("DB offline")
 
@@ -2055,7 +2056,10 @@ def test_handle_start_init_failure(mock_load, mock_get_driver, mock_apply_schema
 
     assert exit_code == 1
     mock_load.assert_called_once()
+    mock_docker.return_value.build_image.assert_called_once()
+    mock_get_driver.assert_called_once()
     mock_apply_schema.assert_not_called()
+    assert "Schema initialization failed: DB offline" in caplog.text
 
 
 @patch("neo4j_graph_loader.cli.DockerService")
