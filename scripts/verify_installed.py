@@ -160,33 +160,58 @@ def cleanup_owned(provenance):
 
 def run(command, *, cwd, env, log, timeout, receipts, provenance=None):
     started = time.monotonic()
+    interruption = None
+    timed_out = False
+    cleanup_errors = []
     with log.open('wb') as output:
         process = subprocess.Popen(command, cwd=cwd, env=env, stdout=output,
                                    stderr=subprocess.STDOUT, start_new_session=True)
-        timed_out = False
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
+        except BaseException as exc:
+            interruption = exc
+        finally:
+            def attempt(operation):
+                nonlocal interruption
+                try:
+                    operation()
+                except ProcessLookupError:
+                    pass
+                except BaseException as exc:
+                    cleanup_errors.append(type(exc).__name__)
+                    if not isinstance(exc, Exception) and interruption is None:
+                        interruption = exc
+
+            if timed_out or interruption is not None:
+                attempt(lambda: os.killpg(process.pid, signal.SIGTERM))
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass  # The unconditional group kill below supplies escalation.
+                except BaseException as exc:
+                    cleanup_errors.append(type(exc).__name__)
+                    if interruption is None:
+                        interruption = exc
+            # Reclaim grandchildren even when the direct command already exited.
+            attempt(lambda: os.killpg(process.pid, signal.SIGKILL))
+            attempt(lambda: process.wait(timeout=5))
             try:
-                os.killpg(process.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait(timeout=5)
-        # A successful supervisor must not leave grandchildren in its group.
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    cleanup=cleanup_owned(provenance)
-    row = {'command': command, 'cwd': str(cwd), 'exit_code': process.returncode,
-           'timeout': timed_out, 'elapsed_seconds': time.monotonic() - started,
-           'log': str(log), 'log_sha256': sha(log.read_bytes()), 'owned_cleanup':cleanup}
-    receipts.append(row)
+                cleanup = cleanup_owned(provenance)
+            except BaseException as exc:
+                cleanup = {'leftover_owned': [], 'cleanup_errors': [type(exc).__name__]}
+                if not isinstance(exc, Exception) and interruption is None:
+                    interruption = exc
+            cleanup['cleanup_errors'].extend(cleanup_errors)
+            row = {'command': command, 'cwd': str(cwd), 'exit_code': process.returncode,
+                   'timeout': timed_out, 'elapsed_seconds': time.monotonic() - started,
+                   'log': str(log), 'log_sha256': sha(log.read_bytes()), 'owned_cleanup': cleanup}
+            if interruption is not None:
+                row['interruption'] = type(interruption).__name__
+            receipts.append(row)
+    if interruption is not None:
+        raise interruption
     if timed_out or process.returncode or cleanup['leftover_owned'] or cleanup['cleanup_errors']:
         raise RuntimeError('command failed; retained output: ' + str(log))
 
@@ -333,9 +358,14 @@ raise SystemExit(pytest.main(args,plugins=[plugin]))
         (work/'result.json').write_text(json.dumps(result, indent=2)+'\n')
         print(json.dumps({'status': 'passed', 'result': str(work/'result.json'), 'test_ids': len(lane['test_ids'])}))
         return 0
-    except Exception as exc:
+    except BaseException as exc:
+        result = {'status': 'failed', 'error': str(exc), 'commands': receipts}
+        if not isinstance(exc, Exception):
+            result['interruption'] = type(exc).__name__
         if owned and work and work.is_dir():
-            (work/'result.json').write_text(json.dumps({'status':'failed','error':str(exc),'commands':receipts},indent=2)+'\n')
+            (work/'result.json').write_text(json.dumps(result, indent=2)+'\n')
+        if not isinstance(exc, Exception):
+            raise
         print('installed runner failed: ' + str(exc), file=sys.stderr)
         return 1
 

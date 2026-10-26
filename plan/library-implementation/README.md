@@ -1,6 +1,13 @@
 # Library implementation plan
 
-**Current gate, 2026-10-26:** [E07](epics/e07.md) is independently accepted and
+**Current gate — 2026-10-26:** E07 delivered-code repairs and complete fresh proof
+are [independently accepted](reviews/e07-final-revalidation-20261026.md):3,751
+checkout passes and7,298installed passes. [Current report](reviews/e07-completion-verification-20261026.md)
+preserves the two findings, red/green repair history and unchanged application
+bytes. Local repair delivery/equality remain pending in the
+[tracker](CHANGE_TRACKER.md); E08 is unstarted. Original acceptance below is historical.
+
+**Original E07 delivery (historical), 2026-10-26:** [E07](epics/e07.md) is independently accepted and
 locally delivered in `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`.
 [Final validation](evidence/e07-final-validation.md) records 3,746 checkout passes,
 all 16 installed original/rebuilt lanes and retained artifact/image/service/R1/B3

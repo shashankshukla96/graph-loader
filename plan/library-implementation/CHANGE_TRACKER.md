@@ -5,7 +5,18 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E07 accepted and delivered locally, 2026-10-26:**
+**Current gate — E07 revalidation independently accepted, local repair delivery pending, 2026-10-26:**
+[Fresh completion](reviews/e07-completion-verification-20261026.md) and
+[final independent approval](reviews/e07-final-revalidation-20261026.md) close
+interruption cleanup/receipt loss and unsupported forkpty provenance bypass.
+Original red evidence remains. Fresh proof passes **3,751 checkout tests**,
+four inherited skips/49deselections/19known warnings; **all16 installed lanes**
+pass **7,298 tests** with two intentional skips. Strict archives/two bare installs,
+76 fresh image checks/four binds/12R1/exact B3/new owned service proof pass.
+All307 tested inputs/environment match before/after. Actual local commit and
+postcommit equality remain pending. E08 is unstarted; no push/publication.
+
+**Original E07 delivery acceptance (historical):**
 All ordered [E07 stories](epics/e07.md), [rebuilt parity](reviews/e07-f2-review.md)
 and [fresh final adversarial review](reviews/e07-final-adversarial-review.md) are
 accepted. Main delivery is `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`.
@@ -74,6 +85,9 @@ E06–E12, upload, push, tag and publication remain unstarted/unauthorized.
 
 | Date | Epic / change | Exact local commit | What changed | Verification / evidence |
 | --- | --- | --- | --- | --- |
+| 2026-10-26 | E07 delivered-code revalidation | Pending actual local commit | Bounded interrupt cleanup/durable receipts and early unsupported forkpty rejection; five added checkout-tool regressions with frozen inventory refresh. Application bytes unchanged. | [Fresh report](reviews/e07-completion-verification-20261026.md), [machine proof](evidence/e07-revalidation-20261026.json), [independent acceptance](reviews/e07-final-revalidation-20261026.md); local delivery/equality pending. |
+| 2026-10-26 | E07 installed regression runner and artifact parity | `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7` | Eight installed lanes, frozen per-ID/helper closure, parent/child provenance and strict wheel/rebuilt parity. | [Original validation](evidence/e07-final-validation.md), [original equality](evidence/e07-postcommit.json); subsequent revalidation qualifies acceptance. |
+| 2026-10-26 | E07 original delivery bookkeeping | `91d765d18d5711402764bb5be51e3cd9c3bbed89` | Recorded original actual delivery/equality and conditioned E08 handoff; documentation only. | [E08 handoff](handoff-e08.md), Git history; subsequent findings retained. |
 | 2026-10-23 | E06 revalidation repair and fresh acceptance | `c15c43c5c4eb7c6fe6920489fd5835a91bf72377` | Shared database selection in topology probe; inherited index acknowledgement/replay ordering repair with bounded overlapping-call history. First repair rejected for compaction and retained. | [Execution/finding history](execution-e06-revalidation.md); amended source independently passes 159 index/boundary controls and 290 E06 checks; [fresh final acceptance](reviews/e06-final-audit-resume-20261023.md) and [3,713-pass/full proof](evidence/e06-revalidation-20261023.json) pass. [All279 postcommit equality](evidence/e06-revalidation-postcommit-20261023.json) passes. |
 | 2026-10-23 | E06 original delivery evidence | `e78970cb310a7a265ae6af5db958edc613f1d923` | Recorded original delivery hash, 279-input postcommit equality and E07 handoff. Documentation only; subsequent revalidation qualifies that original acceptance. | [Historical proof](evidence/e06-final-validation.md), [E07 handoff](handoff-e07.md). |
 | 2026-10-23 | E06.F1.S1, E06.F1.S2, E06.F2.S1 local delivery | `a034420f98a57d17c7591b23eb1011d7bc346d25` | Matching prebuilt component candidates, deterministic compatible image selection pinned to immutable IDs, strict shared mounts/service/coordinator preflight and narrow repeated-stop lifecycle repair. | [Final acceptance](reviews/e06-final-adversarial-review.md), [staged delivery](reviews/e06-delivery-review.md), [final proof](evidence/e06-final-validation.md), [279-input postcommit equality](evidence/e06-postcommit.json): 3,624 passes, four inherited skips, 49 deselections, 19 known warnings; strict artifacts/two installs/four images/two loads/12R1/exact B3 pass. |
@@ -134,8 +148,8 @@ E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) pre
 | 2026-10-21 | `1871898ea350d0e17c0e926b3b87595fbde0c2ef` | [Delivered repair revalidation](reviews/e04-completion-verification-20261021.md): fresh 3,516 passes, four inherited skips, 49 deselections, 19 known warnings; original reproduction and static checks pass, all 259 tested/committed/current inputs agree, retained artifact/image/B3 proof audited. [Fresh independent review](reviews/e04-r1-independent-revalidation-20261021.md) approves with 221 focused passes and 7 extra public probes. | Delivered locally in `369cb0d43c6ca94ebe1c8d7a7557f5d1d31fb41d`; final report/evidence/tracker independently approved. E04 accepted and E05 handoff ready. No product change or E05 implementation. |
 | 2026-10-21 | `0638322f3b84471f63ee867861fb75b13c97760b` plus narrow E05-R1 repair | [Fresh E05 verification](reviews/e05-completion-verification-20261021.md): 3,571 passes, four inherited skips, 49 deselections, 19 known warnings; strict no-Git builds/two new installs/four new images/76 probes/12 R1 mixed cases/exact B3 passed. Independent runtime/distribution reviews and [fresh final acceptance](reviews/e05-final-revalidation-20261021.md) close R1/R2; 90 installed/image command negatives pass. | Delivered locally in `c35a6045ef39a822dcbcfcfc2c20d6b9c2227a28`; [all 270 inputs verified after commit](evidence/e05-revalidation-postcommit-20261021.json). Only runtime error normalization and five regression cases change product/test inputs; E06 remains unstarted. |
 
-E00–E06 have accepted local deliveries; exact E06 identity and equality are
-recorded at the top. E07–E12 remain unstarted. Historical
+E00–E07 have historical local deliveries; current E07 repair acceptance and
+delivery/equality status are recorded at the top. E08–E12 remain unstarted. Historical
 green runs did not waive findings; new source, regressions and independent proof
 close each repair before further acceptance.
 

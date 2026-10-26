@@ -1,5 +1,13 @@
 # E08 next-agent handoff — advertised support matrix
 
+**Latest gate, 2026-10-26:** amended E07 repairs and fresh proof are
+[independently approved](reviews/e07-final-revalidation-20261026.md):3,751 full
+checkout passes and7,298installed passes. Local repair delivery and307-input
+postcommit equality remain pending in the [tracker](CHANGE_TRACKER.md); E08
+must wait for them and the user's execution request. Preserve the
+[current repair report](reviews/e07-completion-verification-20261026.md).
+Original delivery identity below remains historical.
+
 Prepared 2026-10-26. **E08 is not started or authorized by this E07 delivery.**
 Begin only when the user requests E08 after reading actual HEAD/status, the
 [tracker](CHANGE_TRACKER.md), canonical [E08](epics/e08.md), backlog,
@@ -26,6 +34,16 @@ was identified, without printing values or changing the file. The lazy
 smoke-only fixture and blocked-read regression repair it. Never execute developer
 smoke checks or reintroduce that import-time read. All subsequent audited E07
 checks report no prohibited file/service attempt.
+
+The delivered-code revalidation also preserves five new checkout-tool controls:
+SIGINT must clean the owned command/group and retain its command receipt even
+when cleanup reports an error; owned main manifests must survive KeyboardInterrupt/
+SystemExit while those interruption types propagate unchanged. Reject unsupported
+`os.forkpty` before child creation, rather than allowing an unaccounted Python
+child. Preserve all prior supported Popen/spawn/fork/exec startup-origin checks.
+Refreshed source inventory has3,804 IDs across124files: the original3,799 IDs/
+dispositions and all eight installed lanes remain unchanged; five new IDs are
+checkout tooling only. Never count a rejection as an installed regression pass.
 
 ## Preserve the installed runner and exact coverage
 
@@ -56,8 +74,8 @@ non-UTF8 complete rows fail while cleanup retains other valid owned identities.
 All six actual immediate-termination APIs and all prior positive/negative,
 metadata, ownership, detached/timeout and interruption controls remain required.
 
-The frozen inventory contains 3,799 collected IDs in 124 files: 3,650 installed
-unit, 48 explicit E09 service and 101 checkout development IDs. All original
+The refreshed frozen inventory contains 3,804 collected IDs in124files:3,650
+installed unit,48 explicit E09 service and106checkout development IDs. All original
 assertion/source baselines and recursive dynamic fixture/reference closure are
 retained. Automatic freeze refuses silent ID loss/reordering or disposition
 changes. Preserve test-only pandas/python-dotenv/psutil outside runtime artifacts.
@@ -142,19 +160,20 @@ SHA and tested/committed/current per-file equality in a documentation-only follo
 
 ## E07 proof is historical, not a future fixed total
 
-E07's final full checkout actually reports 3,746 passes, four inherited skips,
-49 deselections and 19 known CPython fork warnings (15 subset/four planner,
-A5/E08). Each final wheel accounts for all 3,650 installed selections: 3,649 passes
-and one intentional core skip; 16 environments total. All 65 wheel members are
-equal across original/rebuilt wheels; finite 71-file sdist deliberately excludes
-checkout test/runner/plan tooling. Fresh bare runtime-only probes, four rebuilt
-local immutable images/76 checks/four actual RO/RW bind probes, all 12 R1 controls,
-exact B3 one pass/no skip, and installed 13-node/12-edge tiny service proof pass.
-Expected negative/broker-teardown Kafka diagnostics remain retained without filtering.
-These totals, local IDs and two-platform observations are dated evidence, not
-support-matrix completion, general E09 acceptance or publication. Preserve all
-raw proof under `var/e07-validation-20261023/`, `var/e07-validation-20261024/`,
-`var/e07-validation-20261025/` and the 2026-10-26 delivery audit. The main final
-source identity is precommit `f94b1e9e68d6bcb750752782d15c253a4b4fa28325d52ae09129c56e1e5adcf6`;
-HEAD/tracking metadata changes its aggregate after commit, while all 307 tested
-file bytes/sizes/Git modes and environment remain equal as independently recorded.
+E07's repaired final full checkout reports3,751passes, four inherited skips,
+49deselections and19known CPython fork warnings (15subset/fourplanner,A5/E08).
+Each fresh final wheel accounts for3,650installed selections:3,649passes and
+one intentional core skip,16environments total. All65wheel members are equal;
+the finite71-file sdist excludes checkout test/runner/plan tooling. Fresh bare
+runtime-only probes,76checks on four unchanged immutable E07images/four actual
+RO/RW probes, all12R1controls, exact no-skip B3 and fresh installed13-node/12-edge
+service proof pass. All74image build inputs match; old build receipts are not
+new builds. Expected negative/broker-teardown diagnostics remain unfiltered.
+These are dated observations, not support-matrix completion, general E09
+acceptance or publication. Preserve original `var/e07-validation-20261023/`,
+`var/e07-validation-20261024/`, `var/e07-validation-20261025/` and new
+`var/e07-revalidation-20261026/` raw proof, including original failed controls.
+The repaired tested source is `995e8d9cf5a89fc31eddf8d5e8c80b633e91114483097d0627fa0997df726317`;
+aggregate identity changes with HEAD, while direct307input byte/size/mode and
+environment equality control delivery. [Current evidence](evidence/e07-revalidation-20261026.json)
+and [tracker](CHANGE_TRACKER.md) record actual acceptance/delivery status.

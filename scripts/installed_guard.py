@@ -193,6 +193,8 @@ def _start():
         if event == 'os.exec':
             validate_launch(args[0],args[1])
             record('exec', command=[os.fsdecode(x) for x in args[1]])
+        elif event == 'os.forkpty':
+            fatal('os.forkpty is unsupported; use an instrumented Python child')
         elif event == 'os.system':
             fatal('os.system is unsupported; use an instrumented Python child')
     sys.addaudithook(audit)

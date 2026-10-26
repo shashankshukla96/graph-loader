@@ -1,5 +1,11 @@
 # E07 final validation — 2026-10-25
 
+**Historical delivery proof:** subsequent delivered-code review found and repaired
+two E07 tooling defects. [Fresh completion](../reviews/e07-completion-verification-20261026.md)
+and [independent approval](../reviews/e07-final-revalidation-20261026.md) now
+control the gate. Original results below remain historical; current local repair
+delivery/equality are in the [tracker](../CHANGE_TRACKER.md).
+
 **Independently accepted and delivered locally.** [Fresh final adversarial review](../reviews/e07-final-adversarial-review.md)
 finds no actionable issue. All ordered stories, including [F2](../reviews/e07-f2-review.md),
 are accepted. Main delivery is `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`.

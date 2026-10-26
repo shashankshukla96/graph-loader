@@ -16351,6 +16351,26 @@
       "kind": "checkout-development",
       "reason": "Developer installed-runner adversarial controls; retained checkout plus actual isolated positive/negative runner proof."
     },
+    "tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[False]": {
+      "kind": "checkout-development",
+      "reason": "Developer installed-runner adversarial controls; retained checkout plus actual isolated positive/negative runner proof."
+    },
+    "tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[True]": {
+      "kind": "checkout-development",
+      "reason": "Developer installed-runner adversarial controls; retained checkout plus actual isolated positive/negative runner proof."
+    },
+    "tests/test_installed_runner.py::test_main_persists_owned_failure_manifest_and_preserves_interruption[KeyboardInterrupt]": {
+      "kind": "checkout-development",
+      "reason": "Developer installed-runner adversarial controls; retained checkout plus actual isolated positive/negative runner proof."
+    },
+    "tests/test_installed_runner.py::test_main_persists_owned_failure_manifest_and_preserves_interruption[SystemExit]": {
+      "kind": "checkout-development",
+      "reason": "Developer installed-runner adversarial controls; retained checkout plus actual isolated positive/negative runner proof."
+    },
+    "tests/test_installed_runner.py::test_installed_guard_rejects_forkpty_before_creating_an_untracked_child": {
+      "kind": "checkout-development",
+      "reason": "Developer installed-runner adversarial controls; retained checkout plus actual isolated positive/negative runner proof."
+    },
     "tests/test_isolation.py::test_empty_and_shared_only_plans_are_canonical": {
       "kind": "installed",
       "lane": "orchestration-runtime",
@@ -29709,10 +29729,15 @@
         "tests/test_installed_runner.py::test_cleanup_failure_cannot_yield_a_successful_command",
         "tests/test_installed_runner.py::test_cleanup_never_signals_a_reused_or_foreign_identity",
         "tests/test_installed_runner.py::test_rejected_existing_output_preserves_previous_result[False]",
-        "tests/test_installed_runner.py::test_rejected_existing_output_preserves_previous_result[True]"
+        "tests/test_installed_runner.py::test_rejected_existing_output_preserves_previous_result[True]",
+        "tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[False]",
+        "tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[True]",
+        "tests/test_installed_runner.py::test_main_persists_owned_failure_manifest_and_preserves_interruption[KeyboardInterrupt]",
+        "tests/test_installed_runner.py::test_main_persists_owned_failure_manifest_and_preserves_interruption[SystemExit]",
+        "tests/test_installed_runner.py::test_installed_guard_rejects_forkpty_before_creating_an_untracked_child"
       ],
       "categories": {
-        "checkout-development": 24
+        "checkout-development": 29
       }
     },
     "tests/test_isolation.py": {
@@ -40676,6 +40701,11 @@
       "tests/test_installed_runner.py::test_cleanup_never_signals_a_reused_or_foreign_identity",
       "tests/test_installed_runner.py::test_rejected_existing_output_preserves_previous_result[False]",
       "tests/test_installed_runner.py::test_rejected_existing_output_preserves_previous_result[True]",
+      "tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[False]",
+      "tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[True]",
+      "tests/test_installed_runner.py::test_main_persists_owned_failure_manifest_and_preserves_interruption[KeyboardInterrupt]",
+      "tests/test_installed_runner.py::test_main_persists_owned_failure_manifest_and_preserves_interruption[SystemExit]",
+      "tests/test_installed_runner.py::test_installed_guard_rejects_forkpty_before_creating_an_untracked_child",
       "tests/test_isolation.py::test_empty_and_shared_only_plans_are_canonical",
       "tests/test_isolation.py::test_self_reference_and_mixed_types_are_partitioned_deterministically",
       "tests/test_isolation.py::test_multiple_self_reference_phases_and_shuffled_input_are_lexical",
@@ -42967,12 +42997,12 @@
       "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]",
       "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
     ],
-    "sha256": "ba5260337b5e269f519ae22dbe28855e764259d86df6a2a80ff5bd8b8b9059ba",
+    "sha256": "0ff35c79865ad4b73c725b9eaa86bd2dc72f2505cd8809eba568f53dbe9cdf50",
     "files": 124,
     "counts": {
       "service": 48,
       "installed": 3650,
-      "checkout-development": 101
+      "checkout-development": 106
     },
     "command": [
       "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/dev/bin/python",
@@ -42980,7 +43010,7 @@
       "-c",
       "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
       "/Users/shashank/Desktop/Code/Graph/graph-loader",
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261024/s11-final-collection.json"
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-revalidation-20261026/repair-collection.json"
     ]
   },
   "artifact_contract": {
@@ -43190,14 +43220,14 @@
     ],
     "artifacts": [
       {
-        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+        "path": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-revalidation-20261026-2g5mlp39/artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
         "size": 453904,
-        "sha256": "cdd73ac361c99a8c73a15c929d150ce7d5e75d9446e1229dba5a1614cd494feb"
+        "sha256": "27398e128e33063694657e21a123f7d9902367df29aeda18a0439e13bde50f3c"
       },
       {
-        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e07-validation-20261023/s1-artifacts/neo4j_graph_loader-0.1.0a1.dev0.tar.gz",
-        "size": 426669,
-        "sha256": "84b33a4dbe1ad9a974cbc5ee2bd7d0f87f880c89f7928e7747ee4d9810cdd4d2"
+        "path": "/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/graph-loader-e07-revalidation-20261026-2g5mlp39/artifacts/neo4j_graph_loader-0.1.0a1.dev0.tar.gz",
+        "size": 426643,
+        "sha256": "79ec72dc8ab6ac924316f2d0600289f5be9555f889359da81ab66de66bc46aa2"
       }
     ]
   },

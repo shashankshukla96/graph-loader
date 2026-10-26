@@ -167,3 +167,127 @@ def test_rejected_existing_output_preserves_previous_result(tmp_path,symlink):
         output=tmp_path/'alias';output.symlink_to(existing,target_is_directory=True)
     assert main(['--lane','probe','--wheel',str(wheel),'--inventory',str(inventory_path),'--output',str(output)])==1
     assert sentinel.read_bytes()==before
+
+
+@pytest.mark.parametrize('cleanup_raises', [False, True])
+def test_interrupted_supervisor_reaps_owned_child_and_retains_receipt(tmp_path, cleanup_raises):
+    import os
+    import signal
+
+    root = Path(__file__).resolve().parents[1]
+    identity = tmp_path/'child.json'
+    result_path = tmp_path/'interrupted.json'
+    code = '''import json,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from scripts import verify_installed as runner
+if sys.argv[4]=='True':
+ def fail_cleanup(_path):raise RuntimeError('controlled cleanup failure')
+ runner.cleanup_owned=fail_cleanup
+receipts=[]
+worker='import json,os,time,psutil;from pathlib import Path;Path('+repr(sys.argv[2])+').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)'
+try:
+ runner.run([sys.executable,'-c',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix('.log'),timeout=20,receipts=receipts)
+except KeyboardInterrupt:
+ Path(sys.argv[3]).write_text(json.dumps({'interrupt_preserved':True,'receipts':receipts}))
+'''
+    supervisor = subprocess.Popen([sys.executable, '-I', '-c', code, str(root), str(identity),
+                                    str(result_path), str(cleanup_raises)], start_new_session=True)
+    child = None
+    created = None
+    try:
+        deadline = time.monotonic()+5
+        while not identity.exists() and time.monotonic()<deadline:
+            time.sleep(.01)
+        row = json.loads(identity.read_text())
+        child = psutil.Process(row['pid'])
+        created = row['created']
+        assert child.create_time() == created
+        os.kill(supervisor.pid, signal.SIGINT)
+        supervisor.wait(timeout=10)
+        assert supervisor.returncode == 0
+        result = json.loads(result_path.read_text())
+        assert result['interrupt_preserved']
+        assert not child.is_running() or child.status() == psutil.STATUS_ZOMBIE
+        [receipt] = result['receipts']
+        assert receipt['interruption'] == 'KeyboardInterrupt'
+        assert receipt['exit_code'] is not None and receipt['exit_code'] != 0
+        assert bool(receipt['owned_cleanup']['cleanup_errors']) == cleanup_raises
+    finally:
+        if child is not None and child.is_running() and child.create_time() == created:
+            try:
+                child.kill()
+                child.wait(timeout=5)
+            except psutil.NoSuchProcess:
+                pass
+        if supervisor.poll() is None:
+            supervisor.kill()
+            supervisor.wait(timeout=5)
+
+
+@pytest.mark.parametrize('interruption', [KeyboardInterrupt, SystemExit])
+def test_main_persists_owned_failure_manifest_and_preserves_interruption(tmp_path, monkeypatch, interruption):
+    import hashlib
+    import zipfile
+
+    from scripts import verify_installed as runner
+
+    root = tmp_path/'checkout'
+    (root/'tests').mkdir(parents=True)
+    fixture = b'def test_probe(): pass\n'
+    (root/'tests/test_probe.py').write_bytes(fixture)
+    monkeypatch.setattr(runner, 'ROOT', root)
+    data = inventory()
+    data['package_version'] = '0.1.0a1.dev0'
+    data['lanes']['probe']['stage_files']['tests/test_probe.py'] = hashlib.sha256(fixture).hexdigest()
+    payload = {path: b'# fixture\n' for path in data['package_payload']}
+    dist = 'neo4j_graph_loader-0.1.0a1.dev0.dist-info/'
+    metadata = {dist+name: b'' for name in ('WHEEL', 'top_level.txt', 'RECORD', 'licenses/LICENSE', 'entry_points.txt')}
+    metadata[dist+'METADATA'] = b'Name: neo4j-graph-loader\nVersion: 0.1.0a1.dev0\n'
+    data['package_payload'] = {path: hashlib.sha256(value).hexdigest() for path, value in payload.items()}
+    data['distribution_files'] = {path: hashlib.sha256(value).hexdigest() for path, value in metadata.items()}
+    wheel = tmp_path/'fixture.whl'
+    with zipfile.ZipFile(wheel, 'w') as archive:
+        for path, value in (payload | metadata).items():
+            archive.writestr(path, value)
+    inventory_path = tmp_path/'inventory.json'
+    inventory_path.write_text(json.dumps(data))
+    output = tmp_path/'owned-output'
+    def interrupt(*_args, **kwargs):
+        kwargs['receipts'].append({'interruption': interruption.__name__})
+        raise interruption('controlled interruption')
+    monkeypatch.setattr(runner, 'run', interrupt)
+    with pytest.raises(interruption, match='controlled interruption'):
+        runner.main(['--lane', 'probe', '--wheel', str(wheel), '--inventory', str(inventory_path), '--output', str(output)])
+    result = json.loads((output/'result.json').read_text())
+    assert result['status'] == 'failed' and result['interruption'] == interruption.__name__
+    assert result['commands'] == [{'interruption': interruption.__name__}]
+
+
+def test_installed_guard_rejects_forkpty_before_creating_an_untracked_child(tmp_path):
+    import os
+
+    if not hasattr(os, 'forkpty'):
+        pytest.skip('forkpty is unavailable on this platform')
+    root = Path(__file__).resolve().parents[1]
+    log = tmp_path/'provenance.jsonl'
+    (tmp_path/'_e07_guard_config.json').write_text(json.dumps({
+        'prefix': sys.prefix, 'payload': {}, 'provenance_log': str(log)}))
+    guard = tmp_path/'guard.py'
+    guard.write_bytes((root/'scripts/installed_guard.py').read_bytes())
+    code = '''import os,runpy,signal,sys,sysconfig
+from pathlib import Path
+site=Path(sys.argv[1]);get_paths=sysconfig.get_paths
+sysconfig.get_paths=lambda *a,**kw:{**get_paths(*a,**kw),'purelib':str(site)}
+runpy.run_path(str(site/'guard.py'))
+pid,fd=os.forkpty()
+if pid==0:os._exit(0)
+os.kill(pid,signal.SIGTERM);os.waitpid(pid,0);os.close(fd)
+'''
+    result = subprocess.run([sys.executable, '-I', '-c', code, str(tmp_path)],
+                            capture_output=True, text=True, timeout=10)
+    assert result.returncode == 86, result.stderr
+    rows = [json.loads(line) for line in log.read_text().splitlines()]
+    assert any(row['kind'] == 'violation' and 'forkpty' in row['message'] for row in rows)
+    assert {row['pid'] for row in rows} == {rows[0]['pid']}
+    assert not any(row['kind'] == 'python_child' for row in rows)
