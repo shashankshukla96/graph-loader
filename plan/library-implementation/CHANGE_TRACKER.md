@@ -5,17 +5,19 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E07 independently accepted for local delivery, 2026-10-25:**
-Clean entry `5c3f72b6cd16d0e14ac931f220a3f73eb7e5a02d`. All ordered
-[E07 stories](epics/e07.md), [rebuilt parity](reviews/e07-f2-review.md) and
-[fresh final adversarial review](reviews/e07-final-adversarial-review.md) are accepted.
+**Current gate — E07 accepted and delivered locally, 2026-10-26:**
+All ordered [E07 stories](epics/e07.md), [rebuilt parity](reviews/e07-f2-review.md)
+and [fresh final adversarial review](reviews/e07-final-adversarial-review.md) are
+accepted. Main delivery is `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`.
+[Postcommit equality](evidence/e07-postcommit.json) verifies all **307** tested/
+committed/current inputs by bytes, sizes and Git modes, with unchanged environment.
 [Final validation](evidence/e07-final-validation.md) records 3,746 checkout passes,
-all16 installed original/rebuilt lanes (7,298 passes/two intentional core skips),
-four rebuilt immutable images, all12 supervised R1 controls, installed tiny
-service proof and exact no-skip B3. Source307/environment identities are unchanged.
-All rejected proofs and repairs remain retained. Local commit and actual
-per-file tested/committed/current equality recording remain; the full SHA will
-be read from Git after delivery. E08–E12 and publication remain separate.
+all 16 original/rebuilt installed lanes (7,298 passes/two intentional core skips),
+four rebuilt immutable images, all 12 supervised R1 controls, installed tiny
+service proof and exact no-skip B3. Original rejected proofs and repairs remain.
+This documentation-only follow-up records actual delivery under rule 5; its own
+identity comes from Git history without recursive self-hashing. The conditioned
+[E08 handoff](handoff-e08.md) is ready; E08–E12 and publication remain separate.
 
 **Prior gate — E06 revalidation independently accepted and delivered locally, 2026-10-23:**
 [Fresh completion report](reviews/e06-completion-verification-20261023.md) records
@@ -214,3 +216,18 @@ complete on 2026-10-23. Main delivery is `a034420f98a57d17c7591b23eb1011d7bc346d
 [postcommit proof](evidence/e06-postcommit.json) verifies all 279 inputs. Only
 documentation/evidence changes in this follow-up; no tested input changes. E07
 remains unstarted with a [conditioned handoff](handoff-e07.md).
+
+
+## E07 delivered locally — 2026-10-26
+
+Clean entry `5c3f72b6cd16d0e14ac931f220a3f73eb7e5a02d`; the isolated installed
+runner, exhaustive inventory, ordered bounded ports and rebuilt-sdist parity
+are independently accepted. All original failure and repair evidence is retained.
+Actual main delivery: `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`.
+[Postcommit equality](evidence/e07-postcommit.json) independently records every
+one of the 307 tested input bytes, sizes and Git modes against actual committed
+blobs and current files; the development environment is unchanged. This follow-up
+changes documentation/evidence only, with no tested input mutation. The enclosing
+follow-up SHA is resolved through Git log under rule 5. See [final validation](evidence/e07-final-validation.md),
+[final acceptance](reviews/e07-final-adversarial-review.md) and [E08 handoff](handoff-e08.md).
+No E08 execution, Git push, upload, tag, workflow or publication is authorized.

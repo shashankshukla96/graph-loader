@@ -1,10 +1,13 @@
 # E07 final validation — 2026-10-25
 
-**Independently accepted for local delivery.** [Fresh final adversarial review](../reviews/e07-final-adversarial-review.md)
+**Independently accepted and delivered locally.** [Fresh final adversarial review](../reviews/e07-final-adversarial-review.md)
 finds no actionable issue. All ordered stories, including [F2](../reviews/e07-f2-review.md),
-are accepted. [F2 narrative](E07.F2.S1.md) and [machine proof](e07-f2.json) retain
-exact validation. Local delivery and actual postcommit equality are the remaining
-recording steps; no future SHA is invented.
+are accepted. Main delivery is `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`.
+[Postcommit equality](e07-postcommit.json), recorded on 2026-10-26, verifies all
+307 tested/committed/current inputs by bytes, sizes and Git modes, with unchanged
+environment. [F2 narrative](E07.F2.S1.md) and [machine proof](e07-f2.json) retain
+exact validation. This follow-up changes documentation/evidence only; its own
+identity comes from Git history without recursive self-hashing.
 
 ## Result and scope
 
@@ -164,8 +167,12 @@ operational data and self-hashed evidence are excluded. Exact commands, exits,
 origins, IDs and 154 hash-bound final receipt/proof files are referenced in
 [e07-f2.json](e07-f2.json), with additional accepted story/reviewer proof retained.
 
-Final independent acceptance is complete. E07 status is complete; render and
-validate local links, inspect staging and commit locally. Then record the actual
-full delivery SHA and per-file tested/committed/current bytes, sizes and Git modes
-plus unchanged environment in a documentation-only follow-up. Resolve that
-follow-up's own identity from Git history, without recursive self-hashing.
+Final independent acceptance, status/render/link/staging checks and local main
+delivery are complete. Actual delivery: `9b1ddd2ff24f3d86b1a19aa35ea188c66e6155d7`.
+[The postcommit proof](e07-postcommit.json) records all 307 tested/committed/current
+bytes, sizes and Git modes plus unchanged environment. Aggregate source identity
+changes with HEAD and tracking metadata after commit; direct per-file equality
+is the delivery criterion. The documentation-only follow-up records actual
+identity and the conditioned [E08 handoff](../handoff-e08.md); its own SHA is
+resolved from Git history without recursion. E08 is not executed or authorized
+by this delivery.
