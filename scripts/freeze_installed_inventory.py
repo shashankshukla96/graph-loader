@@ -33,6 +33,7 @@ EXTRA_LANES = {
         planned_harness self_reference_isolation_e2e'''),
 }
 CHECKOUT = {
+    'support_matrix': 'Checkout dependency-matrix tooling controls; retained checkout plus actual bare and installed platform/dependency cells.',
     'distribution_foundation': 'Packaging/dependency-generation developer checks; retained checkout suite plus mandatory strict artifact and two bare-install proof.',
     'candidate_images': 'Checkout image-builder input/ownership tests; retained checkout plus mandatory four rebuilt immutable image and read-only probes.',
     'dev_environment': 'Developer dotenv/settings helpers; synthetic unit fixtures retained. Actual smoke IDs remain service-only.',
@@ -205,7 +206,7 @@ def freeze(data, collection, wheel):
     policy = file_policy(data)
     result = json.loads(json.dumps(data))
     result.update(schema_version=1, status='executable inventory; original pre-port baseline retained; acceptance recorded in story reviews', package_version='0.1.0a1.dev0',
-                  test_requirements=['pytest>=8,<10', 'testcontainers[neo4j,kafka]>=4.8,<5', 'psutil>=6,<8'])
+                  test_requirements=['pytest==9.1.1', 'testcontainers[neo4j,kafka]>=4.8,<5', 'psutil>=6,<8'])
     with zipfile.ZipFile(wheel) as archive:
         result['package_payload'] = {n: sha(archive.read(n)) for n in archive.namelist() if n.startswith('neo4j_graph_loader/')}
         result['distribution_files'] = {n: sha(archive.read(n)) for n in archive.namelist() if '.dist-info/' in n}

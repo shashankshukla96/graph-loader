@@ -73,6 +73,34 @@ def test_public_errors_remain_in_the_approved_plan_family():
     assert issubclass(EdgePlanTimeoutError,EdgePlanError)
 
 
+@pytest.mark.parametrize('workers', [1, 4])
+@pytest.mark.parametrize('context,scenario', [
+    ('spawn', 'success'), ('spawn', 'nonpicklable'), ('spawn', 'source-error'), ('spawn', 'worker-exit'),
+    ('inline', 'success'), ('inline', 'nonpicklable'), ('inline', 'source-error'),
+])
+def test_external_public_source_clients_preserve_data_errors_context_and_cleanup(tmp_path, workers, context, scenario):
+    output = tmp_path/'external'
+    command = [sys.executable, str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'), 'external-'+scenario,
+               '--context', context, '--workers', str(workers), '--hard-timeout', '180',
+               '--python', sys.executable, '--output', str(output)]
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=200)
+    assert result.returncode == 0, result.stdout+result.stderr+(output/'client.log').read_text()
+    supervisor = json.loads((output/'supervisor.json').read_text())
+    client = json.loads((output/'client.json').read_text())
+    assert not supervisor['timeout'] and not supervisor['emergency_group_cleanup'] and supervisor['exit_code'] == 0
+    assert client['status'] == 'observed' and client['context'] == context and client['workers'] == workers
+    assert client['caller_method_after'] == client['caller_method']
+    assert client['operation_cleanup_upper_seconds'] < 10
+    if scenario == 'success' or (scenario == 'nonpicklable' and context == 'inline'):
+        assert client['rows'] == 192 and client['planner_workers'] == workers and len(client['source_identities']) == 64
+    else:
+        assert client['error'] and client['message']
+        if scenario == 'source-error':
+            assert 'external source sentinel failure' in client['cause']
+        if scenario == 'worker-exit':
+            assert client['observed_exit_code'] == 37 and client['fault_source_identity']['order'] == 0
+
+
 @pytest.mark.parametrize('scenario',['public-blocked','public-partial','public-send'])
 @pytest.mark.parametrize('mode',['timeout','cancel'])
 def test_public_process_waits_observe_errors_under_an_external_supervisor(tmp_path,scenario,mode):

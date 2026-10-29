@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from functools import partial
 import json
 import logging
 import multiprocessing
@@ -52,6 +53,7 @@ def tsv_chunks(
     verbose: bool,
     ordered_key: str | None = None,
     stop_after: str | None = None,
+    chunk_rows: int | None = None,
 ) -> Iterable[pd.DataFrame]:
     """Read large TSVs with Pandas' C parser in bounded, vectorized chunks."""
     started = time.monotonic()
@@ -63,7 +65,7 @@ def tsv_chunks(
         dtype=str,
         keep_default_na=False,
         na_filter=False,
-        chunksize=CHUNK_ROWS,
+        chunksize=CHUNK_ROWS if chunk_rows is None else chunk_rows,
     )
     for chunk_number, frame in enumerate(reader, start=1):
         scanned += len(frame)
@@ -482,21 +484,23 @@ Selector = Callable[[pd.DataFrame], "pd.Series | np.ndarray"]
 Summary = tuple[dict[str, int], dict[str, int]]
 
 
-def collect_ids(path: Path, key: str, columns: Sequence[str], select: Selector, *, verbose: bool) -> KeySet:
+def collect_ids(path: Path, key: str, columns: Sequence[str], select: Selector, *, verbose: bool,
+                chunk_rows: int | None = None) -> KeySet:
     """The IDs of the selected rows of a ``title.basics``/``name.basics`` file."""
     ids = KeySet()
-    for frame in tsv_chunks(path, list(columns), f"selected IDs from {path.name}", verbose=verbose):
+    for frame in tsv_chunks(path, list(columns), f"selected IDs from {path.name}", verbose=verbose, chunk_rows=chunk_rows):
         ids.add(frame.loc[np.asarray(select(frame), dtype=bool), key])
     ids.freeze()
     return ids
 
 
-def derive_source(input_dir: Path, destination: Path, name: str, titles: KeySet, people: KeySet, *, verbose: bool) -> Summary:
+def derive_source(input_dir: Path, destination: Path, name: str, titles: KeySet, people: KeySet, *, verbose: bool,
+                  source_spec=None, chunk_rows: int | None = None) -> Summary:
     """Stream one source file into the graph files it produces."""
-    derive, columns, kinds = SOURCES[name]
+    derive, columns, kinds = SOURCES[name] if source_spec is None else source_spec
     out = GraphOutput(destination, kinds)
     try:
-        for frame in tsv_chunks(input_dir / name, list(columns), f"graph from {name}", verbose=verbose):
+        for frame in tsv_chunks(input_dir / name, list(columns), f"graph from {name}", verbose=verbose, chunk_rows=chunk_rows):
             derive(frame, out, titles, people)
     finally:
         out.close()
@@ -513,10 +517,15 @@ def _run_in_child(connection, task: Callable[[], Summary]) -> None:
 
 
 def _start_child(context, name: str, task: Callable[[], object]) -> tuple[object, multiprocessing.Process]:
-    """Fork a process running ``task``; it inherits the parent's ID sets without copying them."""
+    """Start an importable task; spawn serializes its explicit per-call inputs."""
     receiver, sender = context.Pipe(duplex=False)
     process = context.Process(target=_run_in_child, args=(sender, task), name=f"graph-{name}")
-    process.start()
+    try:
+        process.start()
+    except BaseException:
+        receiver.close()
+        sender.close()
+        raise
     sender.close()
     logger.info("Started %s in process %s", name, process.pid)
     return receiver, process
@@ -524,9 +533,12 @@ def _start_child(context, name: str, task: Callable[[], object]) -> tuple[object
 
 def _child_result(name: str, receiver, process: multiprocessing.Process) -> object:
     try:
-        status, payload = receiver.recv()
-    except EOFError:
-        status, payload = "error", "process exited without a result"
+        try:
+            status, payload = receiver.recv()
+        except EOFError:
+            status, payload = "error", "process exited without a result"
+    finally:
+        receiver.close()
     process.join()
     if status != "ok":
         raise RuntimeError(f"{name} failed (exit code {process.exitcode}):\n{payload}")
@@ -535,8 +547,8 @@ def _child_result(name: str, receiver, process: multiprocessing.Process) -> obje
 
 
 def _derive_in_processes(tasks: dict[str, Callable[[], Summary]], jobs: int) -> Iterable[Summary]:
-    """Run ``tasks`` in at most ``jobs`` forked processes, yielding results as they finish."""
-    context = multiprocessing.get_context("fork")
+    """Run importable ``tasks`` in at most ``jobs`` spawned processes."""
+    context = multiprocessing.get_context("spawn")
     pending, running = list(tasks), {}
     try:
         while pending or running:
@@ -548,7 +560,8 @@ def _derive_in_processes(tasks: dict[str, Callable[[], Summary]], jobs: int) -> 
                 name, process = running.pop(receiver)
                 yield _child_result(f"graph from {name}", receiver, process)
     finally:
-        for _, process in running.values():
+        for receiver, (_, process) in running.items():
+            receiver.close()
             process.terminate()
             process.join()
 
@@ -569,29 +582,35 @@ def derive_graph(
     those files become nodes, and only nodes may be relationship endpoints.
 
     A first pass collects the two ID sets; then every source file is derived
-    independently.  With ``jobs > 1`` they run concurrently in forked
-    processes, each writing only its own output files, so the result is
+    independently. With ``jobs > 1`` importable selectors and converter tasks
+    run in spawned processes. ID sets are serialized/copied into each worker;
+    budget memory for those copies or use ``jobs=1``. Each worker writes only
+    its own output files, so the result is
     byte-identical to ``jobs=1``.  Returns ``(selected counts, records
     written per graph file)``.
     """
     started = time.monotonic()
 
-    def collect_people() -> KeySet:
-        return collect_ids(input_dir / "name.basics.tsv", "nconst", PERSON_COLUMNS, select_people, verbose=verbose)
+    collect_people = partial(collect_ids, input_dir / "name.basics.tsv", "nconst", PERSON_COLUMNS,
+                             select_people, verbose=verbose, chunk_rows=CHUNK_ROWS)
 
     if jobs == 1:
-        titles, people = collect_ids(input_dir / "title.basics.tsv", "tconst", TITLE_COLUMNS, select_titles, verbose=verbose), collect_people()
+        titles, people = collect_ids(input_dir / "title.basics.tsv", "tconst", TITLE_COLUMNS, select_titles,
+                                    verbose=verbose, chunk_rows=CHUNK_ROWS), collect_people()
     else:  # collect the person IDs in a child while this process collects the title IDs
-        receiver, process = _start_child(multiprocessing.get_context("fork"), "person ID selection", collect_people)
+        receiver, process = _start_child(multiprocessing.get_context("spawn"), "person ID selection", collect_people)
         try:
             titles = collect_ids(input_dir / "title.basics.tsv", "tconst", TITLE_COLUMNS, select_titles, verbose=verbose)
         except BaseException:
+            receiver.close()
             process.terminate()
             process.join()
             raise
         people = _child_result("person ID selection", receiver, process)
     logger.info("Selected %s title ID(s) and %s person ID(s) in %.1fs", f"{len(titles):,}", f"{len(people):,}", time.monotonic() - started)
-    tasks = {name: (lambda name=name: derive_source(input_dir, destination, name, titles, people, verbose=verbose)) for name in SOURCES}
+    tasks = {name: partial(derive_source, input_dir, destination, name, titles, people,
+                          verbose=verbose, source_spec=spec, chunk_rows=CHUNK_ROWS)
+             for name, spec in SOURCES.items()}
     summaries = (task() for task in tasks.values()) if jobs == 1 else _derive_in_processes(tasks, jobs)
     seen: dict[str, int] = {}
     records: dict[str, int] = {}
@@ -603,13 +622,22 @@ def derive_graph(
     return counts, {relative: records[relative] for relative, _ in GRAPH_FILES.values()}
 
 
+def selected_ids(frame: pd.DataFrame, *, key: str, values: set[str]) -> pd.Series:
+    """Importable selection with explicit caller-owned IDs."""
+    return frame[key].isin(values)
+
+
+def all_rows(frame: pd.DataFrame) -> np.ndarray:
+    return np.ones(len(frame), dtype=bool)
+
+
 def graph_subset(input_dir: Path, destination: Path, titles: set[str], people: set[str], *, verbose: bool = False, jobs: int = 1) -> dict[str, int]:
     """Create graph-oriented node and relationship TSVs for the selected IDs."""
     # Credits can refer to IDs absent from the corresponding IMDb basics file.
     # Only IDs that will actually become nodes may be used as edge endpoints.
     counts, _ = derive_graph(
         input_dir, destination,
-        lambda frame: frame["tconst"].isin(titles), lambda frame: frame["nconst"].isin(people),
+        partial(selected_ids, key="tconst", values=titles), partial(selected_ids, key="nconst", values=people),
         verbose=verbose, jobs=jobs,
     )
     return counts
@@ -647,7 +675,7 @@ def export_all(input_dir: Path, output: Path, include_adult: bool, *, verbose: b
     """
     counts, records = derive_graph(
         input_dir, output / "graph",
-        lambda frame: eligible_titles(frame, include_adult), lambda frame: np.ones(len(frame), dtype=bool),
+        partial(eligible_titles, include_adult=include_adult), all_rows,
         verbose=verbose, jobs=jobs,
     )
     return {"mode": "all", "include_adult": include_adult, "source_copies": False, "selected": counts, "records": records}
@@ -727,7 +755,7 @@ def main() -> int:
     logger.info("Deriving graph node and relationship TSVs from filtered source copies")
     counts, records = derive_graph(
         output / "source", output / "graph",
-        lambda frame: frame["tconst"].isin(titles), lambda frame: frame["nconst"].isin(people),
+        partial(selected_ids, key="tconst", values=titles), partial(selected_ids, key="nconst", values=people),
         verbose=args.verbose, jobs=jobs,
     )
     manifest = {

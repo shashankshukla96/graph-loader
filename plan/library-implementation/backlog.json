@@ -1162,7 +1162,7 @@
       "scope": "Only expand the matrix through a revised support decision and matching tests; no broad OS-independent claim by assumption.",
       "exit_gate": "Every advertised matrix cell passes or is removed from the contract; unavailable environments are a release blocker, not a silent skip.",
       "review_status": "approved",
-      "implementation_status": "not started",
+      "implementation_status": "complete; final independently accepted2026-10-28; local delivery/equality pending",
       "features": [
         {
           "id": "E08.F1",
@@ -1184,9 +1184,9 @@
                 "Support matrix runner; constraints files for test lanes; resolution reports"
               ],
               "acceptance": [
-                "Resolve approved minimum and current dependency sets for base and each supported extra combination.",
+                "Resolve approved minimum and current dependency sets for the eight mandatory dependencies. D05 offers no extras or pure-driver fallback; conditional extra cases are not applicable.",
                 "Keep paired Neo4j/Rust versions coherent and preserve the <7 fence; test acceleration absence/fallback if offered.",
-                "Base-only imports and supported APIs work without optional packages; missing-extra errors identify the needed extra.",
+                "Base-only imports and supported APIs work with the mandatory runtime closure and without development/test tooling. D05 offers no missing-extra API.",
                 "Prove optional dependency absence in a NEW base-only virtualenv without system-site packages, inherited PYTHONPATH, development requirements, testcontainers, shared conftest or optional test plugins. Assert each D05-optional package is actually absent before running standalone public import/call/missing-extra probes; do not demand absence of dependencies D05 keeps mandatory. Run test-rich regression lanes separately."
               ],
               "validation": [
@@ -1195,7 +1195,7 @@
                 "Use plain isolated python -c/client scripts in the base-only environment, not repository pytest collection that eagerly imports Docker/testcontainers. Record importlib.util.find_spec absence checks and installed package inventory before the smoke probes."
               ],
               "evidence": "evidence/E08.F1.S1.md",
-              "status": "planned"
+              "status": "complete; independently accepted2026-10-28"
             }
           ]
         },
@@ -1228,7 +1228,7 @@
                 "Record warnings plus cancellation/worker cleanup on each supported platform; test Docker Desktop only where advertised."
               ],
               "evidence": "evidence/E08.F2.S1.md",
-              "status": "planned"
+              "status": "complete; independently accepted2026-10-28"
             }
           ]
         }

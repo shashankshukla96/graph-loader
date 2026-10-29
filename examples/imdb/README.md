@@ -98,12 +98,12 @@ It cannot be combined with `--titles`, `--offset` or the budgets.
 
 The conversion first collects the selected title and person IDs, then streams
 each source file independently. `--jobs` (default 4 with `--all`, 1 otherwise)
-derives that many files concurrently in forked processes; the output is
-byte-identical for any `--jobs`. ID sets and deduplicated node keys are held
-as 128-bit digests in sorted NumPy arrays (16 bytes per key), so the whole
-conversion stays at a few GB of RAM. Measured on this host (8 cores): about
-5 minutes (310 s) and a 4.5 GiB peak RSS summed across all processes for `--all --include-adult`,
-producing 16 GB of TSVs (94M nodes, 467M relationship records).
+derives files concurrently using explicit spawn; output remains byte-identical
+for any `--jobs`. ID sets use 128-bit digests in sorted NumPy arrays (16 bytes per
+key). Spawn copies those sets into each worker; use `--jobs 1` to avoid those
+copies. See the spawn memory notes below. The previous fork implementation was
+measured on this 8-core host at 310 seconds and 4.5 GiB summed peak RSS for
+`--all --include-adult`, producing 16 GB of TSVs (94M nodes, 467M relationships).
 
 ## Quick start: the fastest load
 
@@ -402,3 +402,15 @@ That alias is compatible with the local project's existing non-null
 `:Person.name` constraint.
 
 See [model.md](model.md) for the source-to-graph mapping.
+
+### Spawn memory and embedding notes
+
+Spawn serializes the selected ID sets and converter configuration into each
+worker. Budget a separate copy per active process plus serialization buffers,
+including the selected people result returned to the parent. Use `--jobs 1`
+when those copies exceed available memory. Programmatic parallel selectors and
+converters must be importable and picklable; local closures remain usable with
+`jobs=1`. The caller-selected process method of an embedding application is
+preserved. The historical fork timing/RSS figures above do not measure spawn's
+copy/serialization costs. Tiny local TSV tests validate the spawn change; no
+full IMDb conversion or new production performance/memory measurement is claimed.

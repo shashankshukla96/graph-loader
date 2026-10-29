@@ -1,0 +1,9 @@
+# Dated coherent current direct resolution from the fresh E08 development lane.
+neo4j==6.4.1
+neo4j-rust-ext==6.4.1.0
+confluent-kafka==2.16.0
+pydantic==2.14.1
+PyYAML==6.0.3
+docker==7.2.0
+numpy==2.5.4
+prometheus-client==0.26.0

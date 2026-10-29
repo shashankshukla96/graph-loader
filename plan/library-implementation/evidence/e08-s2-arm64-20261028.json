@@ -1,0 +1,1573 @@
+{
+  "status": "all native arm64 minimum/current S2 observations successful; independent S2 review pending",
+  "release_acceptance": false,
+  "interpreter": "CPython3.12.14",
+  "host_interpreter": "CPython3.12.14",
+  "daemon_architecture": "aarch64",
+  "execution": "native Linux arm64 Docker Desktop VM",
+  "totals": {
+    "passed": 7344,
+    "skipped": 2,
+    "bare_environments": 2,
+    "installed_environments": 16,
+    "process_cases": 268
+  },
+  "matrix": {
+    "minimum": {
+      "image": {
+        "path": "var/e08-completion-20261028/native-arm64-proof/minimum/image.json",
+        "sha256": "f8a878fd8a0a99e0ceaea79eb9b0a181673376d03b3b0bc36b17d87c5156578e",
+        "size": 2159
+      },
+      "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+      "context_manifest": {
+        "path": "var/e08-completion-20261028/native-arm64-proof/minimum/context-manifest.json",
+        "sha256": "b02600fc7d436e4e08c28da8c808e165cd5926c9ece5bb2144c41bc06e92105e",
+        "size": 22356
+      },
+      "constraints": {
+        "path": "var/e08-completion-20261028/native-arm64-proof/minimum/context/bundle/constraints.txt",
+        "sha256": "1c07d271a544409c548c9706640f7cd41d351fb0ac567e42d118293406433d2b",
+        "size": 530
+      },
+      "wheelhouse_manifest": {
+        "path": "var/e08-completion-20261028/native-arm64-proof/minimum/context/bundle/wheelhouse.json",
+        "sha256": "e1c334fea0db030fd360e3a392317f1599a9e2334c3d7414e34bbadf1cc84581",
+        "size": 3761
+      },
+      "cells": [
+        {
+          "cell": "bare",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/bare/observation/result.json",
+            "sha256": "c39f6e342aa73ac331956f85b3f4cf58dfb64d04e8775a855b665f6ba9c3733c",
+            "size": 97678
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/bare/controller.json",
+            "sha256": "ea960557934154fb57d6900269056ebe4e57a5d7f05e2f2eadee454185d4a90d",
+            "size": 26114
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/bare/volume.json",
+            "sha256": "993ac6c04ed2c6db662008b72fe29fa5ea1076f96f9cea57032cfe7c2e709a76",
+            "size": 361
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/bare/export-equality.json",
+            "sha256": "b74bcdb8c459769d8027d54ce31a1fbde3912540823589b5c8455c18e9c199a2",
+            "size": 15629
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/bare/controller.json",
+            "sha256": "431445b8e9aaacdfe54ead52bdbc2b2d525800579cc74dcc63c122b60f69428d",
+            "size": 37109
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "optional_absence": {
+            "pytest": true,
+            "testcontainers": true,
+            "pandas": true,
+            "dotenv": true,
+            "build": true,
+            "twine": true,
+            "psutil": true
+          },
+          "active_rust": "/evidence/observation/bare/lib/python3.12/site-packages/neo4j/_rust.cpython-312-aarch64-linux-gnu.so",
+          "driver": "6.0.0",
+          "extension": "6.0.0.0",
+          "versions": {
+            "neo4j-rust-ext": "6.0.0.0",
+            "requests": "2.34.2",
+            "PyYAML": "6.0.1",
+            "docker": "7.1.0",
+            "urllib3": "2.8.0",
+            "pydantic": "2.7.0",
+            "pytz": "2026.5",
+            "pip": "25.0.1",
+            "neo4j": "6.0.0",
+            "idna": "3.20",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "annotated-types": "0.8.0",
+            "pydantic_core": "2.18.1",
+            "certifi": "2026.10.23",
+            "confluent-kafka": "2.5.0",
+            "charset-normalizer": "3.5.2",
+            "prometheus_client": "0.20.0",
+            "numpy": "1.26.0",
+            "typing_extensions": "4.16.0"
+          },
+          "import_modules": 57,
+          "payload_members": 59,
+          "public_commands": 38
+        },
+        {
+          "cell": "core",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/core/observation/result.json",
+            "sha256": "460f863d4a70e0d845dca2eff03a1f7fcd3d06f6bbc3ca37ce190f9e1ead819e",
+            "size": 67164
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/core/controller.json",
+            "sha256": "a8aa0e9f7f3712c769c04ee34099f586c73abe75b2872305dd2ba3e801112ed6",
+            "size": 26299
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/core/volume.json",
+            "sha256": "e398b790ec8831cc29cab83b423f724dd7725b440524f7ac6f2bb5fa0122beb0",
+            "size": 361
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/core/export-equality.json",
+            "sha256": "934537d13538e06938c31354e49e424409a3ff6174300f8e90a31c5bed170429",
+            "size": 19263
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/core/controller.json",
+            "sha256": "1ace0c8aab87dc605c2e33942ef528149c8275f9a010aca7b159ace20742d9b3",
+            "size": 37109
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/core/observation/installed/result.json",
+            "sha256": "92ed6dc655b0de0a8c60daea4e54c4281fdcdbf4fe985bb5ed8987060132fd1d",
+            "size": 64071
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/core/observation/installed/pytest.json",
+            "sha256": "5ae2d763b7a4deb1a26345e31f60e711bc566f95e890b92db68597e86a1c7854",
+            "size": 314611
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/core/observation/installed/provenance.jsonl",
+            "sha256": "c6b46a875a7da1536c15facd4af2c94047eb4209aef32972f72dc2a8a85a1e54",
+            "size": 63461
+          },
+          "passed": 453,
+          "skipped": 1,
+          "selected": 454,
+          "installed_versions": {
+            "pyyaml": "6.0.1",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.5.0",
+            "docker": "7.1.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.0.0",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.0.0.0",
+            "numpy": "1.26.0",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.20.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.7.0",
+            "pydantic-core": "2.18.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 7,
+          "expected_python_children": 5
+        },
+        {
+          "cell": "safety",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/safety/observation/result.json",
+            "sha256": "b56e856262bcb2fcd262c78015e9b07ca7612e8fdfd7623193b576bcc74810bc",
+            "size": 169984
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/safety/controller.json",
+            "sha256": "cfd8485823f3a952991a7accc7ff4a6cb342301f05c8ff944a8f76e45a2a00df",
+            "size": 26378
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/safety/volume.json",
+            "sha256": "e6c84d202ef878a1ebf0022cf11738a796c28031731d9506bd641df38788d3c2",
+            "size": 365
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/safety/export-equality.json",
+            "sha256": "b8587791331ec5c2a622105b77d9a6c07809dbabf00f9ef4153fee8d6a14b58a",
+            "size": 20250
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/safety/controller.json",
+            "sha256": "47e49bb6926c338af2492c53c250b8817f5224bcca1201066916571116b99ec9",
+            "size": 37201
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/safety/observation/installed/result.json",
+            "sha256": "9fc76cc886f4a88a772b4d01e5e5df321772c2a0e73bf54090a99964da71a4e4",
+            "size": 165088
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/safety/observation/installed/pytest.json",
+            "sha256": "80af8d6bdcb9c2ca952cfe8528c393f5c78279274d21af69fe432837cb45355d",
+            "size": 943270
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/safety/observation/installed/provenance.jsonl",
+            "sha256": "4001a5b3e29aa91b924ad18e253dfd850f16627dc1872be23940b3ac70a34375",
+            "size": 45010
+          },
+          "passed": 1335,
+          "skipped": 0,
+          "selected": 1335,
+          "installed_versions": {
+            "pyyaml": "6.0.1",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.5.0",
+            "docker": "7.1.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.0.0",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.0.0.0",
+            "numpy": "1.26.0",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.20.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.7.0",
+            "pydantic-core": "2.18.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 12,
+          "expected_python_children": 10
+        },
+        {
+          "cell": "cli-runtime",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/cli-runtime/observation/result.json",
+            "sha256": "794503c0c25bc23a214e54ab6ff964c611ed31dfebefc7d5bcca99376d6dabd9",
+            "size": 82398
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/cli-runtime/controller.json",
+            "sha256": "5788baf44e98c3cc20d37621ac39e84551d82e2ecfe0ee99ae8bc220b1df53a3",
+            "size": 26577
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/cli-runtime/volume.json",
+            "sha256": "39b15e2e6f8a3407228512a713c585353872a237798c23a21241fc179f020272",
+            "size": 375
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/cli-runtime/export-equality.json",
+            "sha256": "90c6f86a6b1e486691fba98645262d02d3183af1094a56da96afed8d7b2f4f95",
+            "size": 18870
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/cli-runtime/controller.json",
+            "sha256": "1e046eb73c95cbdb9049d42b1e9c8cac5192bfe8c1dbb8f56223bdbc1692a67e",
+            "size": 37397
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/cli-runtime/observation/installed/result.json",
+            "sha256": "55aef6216bdf396db5f2770ec26eb1f90fd2b2b1485d1352c46a4b8b89430751",
+            "size": 78941
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/cli-runtime/observation/installed/pytest.json",
+            "sha256": "05441f3447c593d308dcff42414b9ef07b1c139ef6ddf0e21daa2b9a6d58c7b8",
+            "size": 428095
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/cli-runtime/observation/installed/provenance.jsonl",
+            "sha256": "c13306fc9cb6fe7fdbbbc04c21de2e9df5bf1e270eced6db2fa2cc99d8b5094c",
+            "size": 22045
+          },
+          "passed": 636,
+          "skipped": 0,
+          "selected": 636,
+          "installed_versions": {
+            "pyyaml": "6.0.1",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.5.0",
+            "docker": "7.1.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.0.0",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.0.0.0",
+            "numpy": "1.26.0",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.20.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.7.0",
+            "pydantic-core": "2.18.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 5,
+          "expected_python_children": 3
+        },
+        {
+          "cell": "public-contracts",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/public-contracts/observation/result.json",
+            "sha256": "35dd84cd765f4f9e334e689c5db5da912e782677f9cb93baf511cbaaa22f393f",
+            "size": 107506
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/public-contracts/controller.json",
+            "sha256": "3f8c66712fde14c64edccb309fc6f88b7360a4a691c7e9cf5248b84cf22334c8",
+            "size": 26929
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/public-contracts/volume.json",
+            "sha256": "6a1f1ab329c174b6670609496ed95c489b054ea85827be04b395d90fb2850269",
+            "size": 385
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/public-contracts/export-equality.json",
+            "sha256": "b9fbeaf22cc9b7d82fec2a40d6c2cc22435152e4e664cfb319de41eac01420a5",
+            "size": 864958
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/public-contracts/controller.json",
+            "sha256": "25c9084e6db7a0da17911c50b72cea52d0b588c01a2e40c6add24a03e8764393",
+            "size": 37599
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/public-contracts/observation/installed/result.json",
+            "sha256": "3307dcce99f69445a56a5f45cae9986f6986729d3e9530c6127982a297c1fbbc",
+            "size": 103682
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/public-contracts/observation/installed/pytest.json",
+            "sha256": "f6cd712638bf42ff1bd8cf151b1b16cdef8af14592a8024ceed2a2ee0568c5b8",
+            "size": 348236
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/public-contracts/observation/installed/provenance.jsonl",
+            "sha256": "91d29bc3791f6f27855136031e57f940655850d3582b6a37c8705a81b89ebb80",
+            "size": 1209925
+          },
+          "passed": 269,
+          "skipped": 0,
+          "selected": 269,
+          "installed_versions": {
+            "pyyaml": "6.0.1",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.5.0",
+            "docker": "7.1.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.0.0",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.0.0.0",
+            "numpy": "1.26.0",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.20.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.7.0",
+            "pydantic-core": "2.18.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 256,
+          "expected_python_children": 254,
+          "process_envelope": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/public-contracts/observation/installed/process-envelope/result.json",
+            "sha256": "c18c33358c3aac5bb62bceea04fb57ae049651c1a7de10815f524ba8330f1c73",
+            "size": 2364813
+          },
+          "process_cases": 134
+        },
+        {
+          "cell": "writer-runtime",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/writer-runtime/observation/result.json",
+            "sha256": "4c94747ac4813f4146f154929f4489b07dcb15fa81afafbf977edef34031d251",
+            "size": 73161
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/writer-runtime/controller.json",
+            "sha256": "9a57def8c0477379d5571b37eadb4997fa9728c5f76b6f0b1054b1982e329d36",
+            "size": 26692
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/writer-runtime/volume.json",
+            "sha256": "af22c080b60d2ffbb463d18a7213f4c9995990a2f1d43c3084c7f5982014efe9",
+            "size": 381
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/writer-runtime/export-equality.json",
+            "sha256": "1d94574f55deb0c530a443cecb5e7a251f2df41da9a03a0aab55e3bee3ab7eb8",
+            "size": 19612
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/writer-runtime/controller.json",
+            "sha256": "5346cea2d6098a6cdcf229f35e0eaf9bf83d695718c9a2cece9977918bc4e1ed",
+            "size": 37513
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/writer-runtime/observation/installed/result.json",
+            "sha256": "c349f8c400e08798e177ce2289766d88456d53c784bd509d5e085391230bf4a3",
+            "size": 69892
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/writer-runtime/observation/installed/pytest.json",
+            "sha256": "6c0328042fb81391dc6e51230e15b755645199315fa23b24da9c4db17c5c24c8",
+            "size": 363637
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/writer-runtime/observation/installed/provenance.jsonl",
+            "sha256": "43d51022802c1a62e335e361db27ddc173e05dc347f086353a810c33449d4bfe",
+            "size": 18412
+          },
+          "passed": 540,
+          "skipped": 0,
+          "selected": 540,
+          "installed_versions": {
+            "pyyaml": "6.0.1",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.5.0",
+            "docker": "7.1.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.0.0",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.0.0.0",
+            "numpy": "1.26.0",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.20.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.7.0",
+            "pydantic-core": "2.18.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 2,
+          "expected_python_children": 0
+        },
+        {
+          "cell": "orchestration-runtime",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/orchestration-runtime/observation/result.json",
+            "sha256": "ac10b376b55194a9cd1d9676382627af1a351e789f63553c9fa045fc17082f9d",
+            "size": 48916
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/orchestration-runtime/controller.json",
+            "sha256": "de628162db08112aa10304f29a4e7eeebfd51b457608d0cd43238053f014b290",
+            "size": 26987
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/orchestration-runtime/volume.json",
+            "sha256": "23282a563d443e305ab54c42306450cd4f3a5916bf3f53e1a91f7e4f53860fe2",
+            "size": 395
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/orchestration-runtime/export-equality.json",
+            "sha256": "63e2d271580da6cc2845888f740200f0828030c17bdba0c2bccdcbf88aa62629",
+            "size": 20502
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/orchestration-runtime/controller.json",
+            "sha256": "0470cd3e0ac780ab33b539b20358641876ec625e2c4ff272ae91b159ca5a0889",
+            "size": 37804
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/orchestration-runtime/observation/installed/result.json",
+            "sha256": "9d4ea21dd8f703f008db6e170d78d2f46f0dc72382fd6420a5e1b380dec64878",
+            "size": 46135
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/orchestration-runtime/observation/installed/pytest.json",
+            "sha256": "787b5d587c9406952350cda636a9d1edeb518a76d9a747d1fc789de9abb79976",
+            "size": 194145
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/orchestration-runtime/observation/installed/provenance.jsonl",
+            "sha256": "ced33c334eb46814e75c4b3f6b4799df39446fa42b9b16db50c7323961791a36",
+            "size": 18052
+          },
+          "passed": 282,
+          "skipped": 0,
+          "selected": 282,
+          "installed_versions": {
+            "pyyaml": "6.0.1",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.5.0",
+            "docker": "7.1.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.0.0",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.0.0.0",
+            "numpy": "1.26.0",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.20.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.7.0",
+            "pydantic-core": "2.18.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 2,
+          "expected_python_children": 0
+        },
+        {
+          "cell": "example-contracts",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/example-contracts/observation/result.json",
+            "sha256": "02116ed71002f1920bf511c8b9870ef609a0b97e83e5d767a4327bed98141f3f",
+            "size": 32073
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/example-contracts/controller.json",
+            "sha256": "1d169078b66b1198b7fb1dc0fb725e1d5ed0ac92aacc21fb7f2db508b7f267dc",
+            "size": 26828
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/example-contracts/volume.json",
+            "sha256": "da58040419e670779e386c0b9c113b73872378a495b04ee8c6dc326dd047d9e7",
+            "size": 387
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/example-contracts/export-equality.json",
+            "sha256": "6278746683891bab92734cf280bb0e8d5b5cc83324f28a7522063fdeba160fa4",
+            "size": 19230
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/example-contracts/controller.json",
+            "sha256": "324c709f882e72cabe01b816865bc0b6c4e770bd65b48b18ebc20ca8e5c21b41",
+            "size": 37644
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/example-contracts/observation/installed/result.json",
+            "sha256": "871e5e6ccccd7ca5642ddc436f58ab35edb4518df97698b8cf1aafebb0c56023",
+            "size": 29423
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/example-contracts/observation/installed/pytest.json",
+            "sha256": "a63269ac958074ed5871a94fc411a338487aef6265247c390f94daade4af623c",
+            "size": 81351
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/example-contracts/observation/installed/provenance.jsonl",
+            "sha256": "ec7d5f5872f84e4a010db0372b38641fb14a997f7275e537d0683ed2794b506e",
+            "size": 92099
+          },
+          "passed": 116,
+          "skipped": 0,
+          "selected": 116,
+          "installed_versions": {
+            "pyyaml": "6.0.1",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.5.0",
+            "docker": "7.1.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.0.0",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.0.0.0",
+            "numpy": "1.26.0",
+            "packaging": "26.3",
+            "pandas": "2.3.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.20.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.7.0",
+            "pydantic-core": "2.18.1",
+            "pytest": "9.1.1",
+            "python-dateutil": "3.0.0",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "six": "1.17.0",
+            "testcontainers": "4.15.0",
+            "typing-extensions": "4.16.0",
+            "tzdata": "2026.5",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 56,
+          "expected_python_children": 54
+        },
+        {
+          "cell": "service-helper-unit",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/service-helper-unit/observation/result.json",
+            "sha256": "2591eb41590779c02519b1953bde42802881718f495da0d98f22dd093f4508d5",
+            "size": 21191
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/controllers/service-helper-unit/controller.json",
+            "sha256": "9bb87f0e122a82fa9b03ba7b926d512501a4ee7a0cbab66a2cbf93d531855131",
+            "size": 26910
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/service-helper-unit/volume.json",
+            "sha256": "3e6935eb1c981115fd39c21ae4cf36272cb33a89f271635f4b9af7ac2d27da3d",
+            "size": 391
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/service-helper-unit/export-equality.json",
+            "sha256": "c8a3bf3ac03fc42155a428dfa79b15776ddd28521b0457d7f2011944f3471b0f",
+            "size": 18603
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/export-verification/service-helper-unit/controller.json",
+            "sha256": "2d7ef799218b919731f810b0c2c9919c900d0c7304ba7d0019fcbd7830c48f05",
+            "size": 37729
+          },
+          "image_id": "sha256:ef2c3aec762326dc9eb75495639cbffd6935bc83c1a711ba82a94d7be7cfa43c",
+          "bundle_manifest_sha256": "4fda2d6c84c2b6d0eefc0b06b621459fa0ba4c8e5bcf49a8764a6005ac94b7bb",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/service-helper-unit/observation/installed/result.json",
+            "sha256": "85c9b91c6424d20d707aeda5628d3ea76d23199aac4611b8ff00a5ef89aefef3",
+            "size": 18928
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/service-helper-unit/observation/installed/pytest.json",
+            "sha256": "0768f4a5e8d49c4f9ead8ed859a9c8137ac44f24a92d6e5f8a8fa82216c84e8c",
+            "size": 29242
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/minimum/cells/service-helper-unit/observation/installed/provenance.jsonl",
+            "sha256": "80f942565201f30d21449728469a0a82a515994d66a0bc04e99b2836c0345c9b",
+            "size": 18051
+          },
+          "passed": 41,
+          "skipped": 0,
+          "selected": 41,
+          "installed_versions": {
+            "pyyaml": "6.0.1",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.5.0",
+            "docker": "7.1.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.0.0",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.0.0.0",
+            "numpy": "1.26.0",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.20.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.7.0",
+            "pydantic-core": "2.18.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 2,
+          "expected_python_children": 0
+        }
+      ]
+    },
+    "current": {
+      "image": {
+        "path": "var/e08-completion-20261028/native-arm64-proof/current/image.json",
+        "sha256": "6f8af476a06f0329ca7ac9b0cc24f35ae5311aa96a407cfa5f600f7b60ae652d",
+        "size": 2159
+      },
+      "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+      "context_manifest": {
+        "path": "var/e08-completion-20261028/native-arm64-proof/current/context-manifest.json",
+        "sha256": "30edf71b09a902d04b6b889b961ef8cbfb9ad52073a955ef4d2c864d401177b1",
+        "size": 22513
+      },
+      "constraints": {
+        "path": "var/e08-completion-20261028/native-arm64-proof/current/context/bundle/constraints.txt",
+        "sha256": "a73fae29f35f5790dcd337c7681ec6eaa14460c9e28b4dd704bb574e069d681f",
+        "size": 556
+      },
+      "wheelhouse_manifest": {
+        "path": "var/e08-completion-20261028/native-arm64-proof/current/context/bundle/wheelhouse.json",
+        "sha256": "8b96f31eb7399c76706ca92481695e9ffa75e53d07b13648657086bfbbc2f488",
+        "size": 3902
+      },
+      "cells": [
+        {
+          "cell": "bare",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/bare/observation/result.json",
+            "sha256": "503f3e063f7a1883eb51b75bc3fcc567ef100d7c01706d24dd95722531366578",
+            "size": 97719
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/bare/controller.json",
+            "sha256": "1f68c854f4d13b94896abbebe11a1dfa21e0d5ce86aaffa199218ceb6fe20b51",
+            "size": 26125
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/bare/volume.json",
+            "sha256": "654422134d38b074f86bd54910f574d65038598c54dfad3ba410bae667622041",
+            "size": 361
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/bare/export-equality.json",
+            "sha256": "114c3b44bc3b91a72f67246802f28ee3b4908d6f61c82249211d13ff8c44aecf",
+            "size": 15629
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/bare/controller.json",
+            "sha256": "0f6b41db85c8b37fee467a3ace83c2025e975c3d176300c41dd223e47d275df6",
+            "size": 37100
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "optional_absence": {
+            "pytest": true,
+            "testcontainers": true,
+            "pandas": true,
+            "dotenv": true,
+            "build": true,
+            "twine": true,
+            "psutil": true
+          },
+          "active_rust": "/evidence/observation/bare/lib/python3.12/site-packages/neo4j/_rust.cpython-312-aarch64-linux-gnu.so",
+          "driver": "6.4.1",
+          "extension": "6.4.1.0",
+          "versions": {
+            "confluent-kafka": "2.16.0",
+            "requests": "2.34.2",
+            "urllib3": "2.8.0",
+            "typing-inspection": "0.4.4",
+            "neo4j": "6.4.1",
+            "prometheus_client": "0.26.0",
+            "pytz": "2026.5",
+            "pydantic_core": "2.50.1",
+            "pip": "25.0.1",
+            "PyYAML": "6.0.3",
+            "idna": "3.20",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "annotated-types": "0.8.0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "docker": "7.2.0",
+            "certifi": "2026.10.23",
+            "pydantic": "2.14.1",
+            "charset-normalizer": "3.5.2",
+            "numpy": "2.5.4",
+            "typing_extensions": "4.16.0"
+          },
+          "import_modules": 57,
+          "payload_members": 59,
+          "public_commands": 38
+        },
+        {
+          "cell": "core",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/core/observation/result.json",
+            "sha256": "e62f0413233a3c0dc7c6778d7129b28b473ad8b212df4437851571f3ccc56620",
+            "size": 67389
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/core/controller.json",
+            "sha256": "7c548d7fc0a90f748a5962fbf1dcd69c6642c22888e86a9208ad24c517c1f534",
+            "size": 26289
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/core/volume.json",
+            "sha256": "7104178d31d7073f11b319373c27a0429c5994686452437935873ba2fe644335",
+            "size": 361
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/core/export-equality.json",
+            "sha256": "bbd1cec663bd228d11691d3ff43b2a8c7723ec8c3561ce2c73fd46ef8ccf9f96",
+            "size": 19425
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/core/controller.json",
+            "sha256": "7c482b7654c9ddd4af85f6ccd767f6277dd43c764d80207cb591558134aff949",
+            "size": 37114
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/core/observation/installed/result.json",
+            "sha256": "52f2df33488e6c16e2c60d3118dd56477bdeaa5880a3a94be3a14cfdc5831aa7",
+            "size": 64290
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/core/observation/installed/pytest.json",
+            "sha256": "5ae2d763b7a4deb1a26345e31f60e711bc566f95e890b92db68597e86a1c7854",
+            "size": 314611
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/core/observation/installed/provenance.jsonl",
+            "sha256": "500a7ec4af496c7dcd43fb79130896035203e9f66ea22a6cde374b66a4225fb6",
+            "size": 63649
+          },
+          "passed": 453,
+          "skipped": 1,
+          "selected": 454,
+          "installed_versions": {
+            "pyyaml": "6.0.3",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.16.0",
+            "docker": "7.2.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.4.1",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "numpy": "2.5.4",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.26.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.14.1",
+            "pydantic-core": "2.50.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-inspection": "0.4.4",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 7,
+          "expected_python_children": 5
+        },
+        {
+          "cell": "safety",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/safety/observation/result.json",
+            "sha256": "202df833ee091e25ed81a7d4ac2066c105f1427c8a71d80854728666a988153c",
+            "size": 170208
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/safety/controller.json",
+            "sha256": "5e0d51084e4ecda64834b05f8c80cdef2b6ed6af1a9b449f5c0cbbff24f0b677",
+            "size": 26370
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/safety/volume.json",
+            "sha256": "4c1d276fcd90512a0b7ceecf73cde5abdbd7efe9989ee5ec2a7cb3ccaa8a08ca",
+            "size": 365
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/safety/export-equality.json",
+            "sha256": "4314fa6625e62af515e1025958f0bec488b9e68b48d22d462ad0043944370e3b",
+            "size": 20412
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/safety/controller.json",
+            "sha256": "0987fb0e2c2fd4a8a05f4a01aa94ad0b2b868ccf1200206f86473462a08e3594",
+            "size": 37188
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/safety/observation/installed/result.json",
+            "sha256": "6eaf1faaf85a28f94c39e108ff1307602690d1cccbea8d6017b7ccc43a414f79",
+            "size": 165307
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/safety/observation/installed/pytest.json",
+            "sha256": "80af8d6bdcb9c2ca952cfe8528c393f5c78279274d21af69fe432837cb45355d",
+            "size": 943270
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/safety/observation/installed/provenance.jsonl",
+            "sha256": "c2758f903a40f52659afca3abaed3df7c7b0d02e2f5eae4149065d81ad0ece2e",
+            "size": 45224
+          },
+          "passed": 1335,
+          "skipped": 0,
+          "selected": 1335,
+          "installed_versions": {
+            "pyyaml": "6.0.3",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.16.0",
+            "docker": "7.2.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.4.1",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "numpy": "2.5.4",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.26.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.14.1",
+            "pydantic-core": "2.50.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-inspection": "0.4.4",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 12,
+          "expected_python_children": 10
+        },
+        {
+          "cell": "cli-runtime",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/cli-runtime/observation/result.json",
+            "sha256": "ce05e74abdb64dd472f56c2ac76fb8aad44c181867e7ccef1131930e786237e2",
+            "size": 82635
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/cli-runtime/controller.json",
+            "sha256": "5f1fcba03bce4e973a5c8b1b88a5a42762b7c11c90ff833d4e2619cea18c9f0d",
+            "size": 26568
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/cli-runtime/volume.json",
+            "sha256": "008db85999e868ae65df0e54ae3e22f8bad873c12092df9ff7a2d87f8870aff6",
+            "size": 375
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/cli-runtime/export-equality.json",
+            "sha256": "4fd7bf7f6789e1d2f2150c8c6dad87c2c302c81edcebc95490d1b16dc8ecbd8f",
+            "size": 19032
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/cli-runtime/controller.json",
+            "sha256": "71673f4e33ebbd40dc246a591f8bede5e4cea3ab5a10882416b1faadc5ab497d",
+            "size": 37398
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/cli-runtime/observation/installed/result.json",
+            "sha256": "10bef63eaf72f30987c32d750fd8c1e3093e79438c296b2b6aa58785eec5856b",
+            "size": 79172
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/cli-runtime/observation/installed/pytest.json",
+            "sha256": "05441f3447c593d308dcff42414b9ef07b1c139ef6ddf0e21daa2b9a6d58c7b8",
+            "size": 428095
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/cli-runtime/observation/installed/provenance.jsonl",
+            "sha256": "6a142eac450ca73ac3e0b39f87ead9178f696302aa034902aaecbf2e5e6c9216",
+            "size": 22126
+          },
+          "passed": 636,
+          "skipped": 0,
+          "selected": 636,
+          "installed_versions": {
+            "pyyaml": "6.0.3",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.16.0",
+            "docker": "7.2.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.4.1",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "numpy": "2.5.4",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.26.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.14.1",
+            "pydantic-core": "2.50.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-inspection": "0.4.4",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 5,
+          "expected_python_children": 3
+        },
+        {
+          "cell": "public-contracts",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/public-contracts/observation/result.json",
+            "sha256": "8f5e1390cadebb1784e17b77df8fec73f89562ff9a4348838544f6714617b626",
+            "size": 107730
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/public-contracts/controller.json",
+            "sha256": "1bb17053cfeb02e0f8e1e01a839fdcc65a363cc31013f644e9f96365c2108750",
+            "size": 26925
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/public-contracts/volume.json",
+            "sha256": "8fb8033f18fd8d65fdb14630c6d9f5d87daea581762dc51bf9f423c8e9c27e35",
+            "size": 385
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/public-contracts/export-equality.json",
+            "sha256": "7fe91daef6a0519e50f3d9f53d4c938a25e6ce2a6bb7dfb92ed54b3c6371bd39",
+            "size": 867694
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/public-contracts/controller.json",
+            "sha256": "df949bbc2c2b838f7641de6c9444415df394b4692d577c4d467a1b44325c76d7",
+            "size": 37598
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/public-contracts/observation/installed/result.json",
+            "sha256": "83c4908f17a8c2dce9c1080e61a897640e60058fa4203f89df48fa4e68915192",
+            "size": 103901
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/public-contracts/observation/installed/pytest.json",
+            "sha256": "f6cd712638bf42ff1bd8cf151b1b16cdef8af14592a8024ceed2a2ee0568c5b8",
+            "size": 348236
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/public-contracts/observation/installed/provenance.jsonl",
+            "sha256": "bb62666d109a719f4f0f593d26b8ab1b2ea3d50469e952943db1d78612f20dba",
+            "size": 1212491
+          },
+          "passed": 269,
+          "skipped": 0,
+          "selected": 269,
+          "installed_versions": {
+            "pyyaml": "6.0.3",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.16.0",
+            "docker": "7.2.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.4.1",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "numpy": "2.5.4",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.26.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.14.1",
+            "pydantic-core": "2.50.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-inspection": "0.4.4",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 256,
+          "expected_python_children": 254,
+          "process_envelope": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/public-contracts/observation/installed/process-envelope/result.json",
+            "sha256": "7779544752868dd716b615acd605cb93b6d7011360bf9314aa02cf5788630653",
+            "size": 2369360
+          },
+          "process_cases": 134
+        },
+        {
+          "cell": "writer-runtime",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/writer-runtime/observation/result.json",
+            "sha256": "2df83664ead1120d1e28a15d068619efaf226b1a695952b0e2f0eef6bf89fbe2",
+            "size": 73386
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/writer-runtime/controller.json",
+            "sha256": "a3868a2c24117312bc78dc66fe558c5b2e0034f50438fd7ec068148be0d6440d",
+            "size": 26692
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/writer-runtime/volume.json",
+            "sha256": "1e0c7d89c4ce9265321c2eba928473f2b2984e22984de27120ad11211e85f6a9",
+            "size": 381
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/writer-runtime/export-equality.json",
+            "sha256": "7051503585f8c1b4f786d2403e41e2f16d0df4dbe5069622b8c71a131e7cb1dc",
+            "size": 19774
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/writer-runtime/controller.json",
+            "sha256": "9eb49d204cf2ade0a5c650ae87db13a84134d1e79217ab71240bb60fa6a38c6e",
+            "size": 37532
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/writer-runtime/observation/installed/result.json",
+            "sha256": "cfc8194853f0f020aab7b55e74216fd1ea0421f1530ddfda153540ba6cd26eab",
+            "size": 70111
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/writer-runtime/observation/installed/pytest.json",
+            "sha256": "6c0328042fb81391dc6e51230e15b755645199315fa23b24da9c4db17c5c24c8",
+            "size": 363637
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/writer-runtime/observation/installed/provenance.jsonl",
+            "sha256": "410d8e29324a80d6307fa78c8d69b8ab7c46c7acdfa692f342c941e6b528ac64",
+            "size": 18411
+          },
+          "passed": 540,
+          "skipped": 0,
+          "selected": 540,
+          "installed_versions": {
+            "pyyaml": "6.0.3",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.16.0",
+            "docker": "7.2.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.4.1",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "numpy": "2.5.4",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.26.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.14.1",
+            "pydantic-core": "2.50.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-inspection": "0.4.4",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 2,
+          "expected_python_children": 0
+        },
+        {
+          "cell": "orchestration-runtime",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/orchestration-runtime/observation/result.json",
+            "sha256": "cc95272e930c5bfd1bda9f55b120d7a253a0df196785f0c3c9c2f67f997d2bfc",
+            "size": 49143
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/orchestration-runtime/controller.json",
+            "sha256": "a3c15394b77c78f20cab8263328f6614794103d502ba7ebcd6ccca95a5b13154",
+            "size": 26990
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/orchestration-runtime/volume.json",
+            "sha256": "8a4497da53dfa63cec7f20320ac19df3962747eeb5663193e10b1b51180df40f",
+            "size": 395
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/orchestration-runtime/export-equality.json",
+            "sha256": "a4d0975c87b764bcccf74481b433fcaca105875b8a1565ee0fd230966a376259",
+            "size": 20664
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/orchestration-runtime/controller.json",
+            "sha256": "6704afecdfa4705f4046e1150af061bb06f7fc40d185a7cda085c9d16d83f6ba",
+            "size": 37809
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/orchestration-runtime/observation/installed/result.json",
+            "sha256": "9b00dd397c5b83af44116931f4a7426f5eab1276123fca4ce1748bfef6591a74",
+            "size": 46355
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/orchestration-runtime/observation/installed/pytest.json",
+            "sha256": "787b5d587c9406952350cda636a9d1edeb518a76d9a747d1fc789de9abb79976",
+            "size": 194145
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/orchestration-runtime/observation/installed/provenance.jsonl",
+            "sha256": "205ad7a9812a309bad47ff85028fd10222a6ace122ae3e4a22f01df08394c130",
+            "size": 18052
+          },
+          "passed": 282,
+          "skipped": 0,
+          "selected": 282,
+          "installed_versions": {
+            "pyyaml": "6.0.3",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.16.0",
+            "docker": "7.2.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.4.1",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "numpy": "2.5.4",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.26.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.14.1",
+            "pydantic-core": "2.50.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-inspection": "0.4.4",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 2,
+          "expected_python_children": 0
+        },
+        {
+          "cell": "example-contracts",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/example-contracts/observation/result.json",
+            "sha256": "6a4a7687d8708f44c1f59dafe8141e4aa0c1394e40cd7907edc097620090f6b4",
+            "size": 32298
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/example-contracts/controller.json",
+            "sha256": "0fe6a94a6f1d08dd4766acee3bdf7c15516473b07b0ebe1b0f928f20952a028a",
+            "size": 26827
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/example-contracts/volume.json",
+            "sha256": "dcd90e8418731de5606f58beccb22fe5b3f8ff0f83edf0759b30f439511d3df2",
+            "size": 387
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/example-contracts/export-equality.json",
+            "sha256": "2368f3f3f972069b68e3b7fb972209a264fd68e9720feb1793a2fff4c448dcb3",
+            "size": 19392
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/example-contracts/controller.json",
+            "sha256": "77590fb0da68e654fe0cc043f29b61d2918b94b36be28ea5e1cb95863bb53907",
+            "size": 37640
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/example-contracts/observation/installed/result.json",
+            "sha256": "c64e8487e038b03d3b3e325754f3782c8934c8e7f901593ed143cc29d1761d87",
+            "size": 29642
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/example-contracts/observation/installed/pytest.json",
+            "sha256": "a63269ac958074ed5871a94fc411a338487aef6265247c390f94daade4af623c",
+            "size": 81351
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/example-contracts/observation/installed/provenance.jsonl",
+            "sha256": "c14571660110a909040716a6c79c35391f23db65ca2e517d0a2adebcaad128aa",
+            "size": 92097
+          },
+          "passed": 116,
+          "skipped": 0,
+          "selected": 116,
+          "installed_versions": {
+            "pyyaml": "6.0.3",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.16.0",
+            "docker": "7.2.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.4.1",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "numpy": "2.5.4",
+            "packaging": "26.3",
+            "pandas": "2.3.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.26.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.14.1",
+            "pydantic-core": "2.50.1",
+            "pytest": "9.1.1",
+            "python-dateutil": "3.0.0",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "six": "1.17.0",
+            "testcontainers": "4.15.0",
+            "typing-inspection": "0.4.4",
+            "typing-extensions": "4.16.0",
+            "tzdata": "2026.5",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 56,
+          "expected_python_children": 54
+        },
+        {
+          "cell": "service-helper-unit",
+          "result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/service-helper-unit/observation/result.json",
+            "sha256": "c65c821c3bbf0d912f26075527762312aa965c16c1d0e9edc4d416f14c8dd0df",
+            "size": 21416
+          },
+          "controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/controllers/service-helper-unit/controller.json",
+            "sha256": "3433707adb5f4ba1144f33f2a9e3ec8528dd68409c3c4a4bd8f8aefdee7eefc6",
+            "size": 26903
+          },
+          "volume": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/service-helper-unit/volume.json",
+            "sha256": "72aef3abf96b43618d975678a9506269c8ca67ac4b3766b636a717673e0b4785",
+            "size": 391
+          },
+          "export_equality": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/service-helper-unit/export-equality.json",
+            "sha256": "1758e9336b2c1b87e6a2c0a9efb3340f34eaefa8c9056276e12c16caf9b1f496",
+            "size": 18765
+          },
+          "export_controller": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/export-verification/service-helper-unit/controller.json",
+            "sha256": "e36c86088cf57010dde9d66cff0c65e611caa39a15335d59df363077e05fc336",
+            "size": 37726
+          },
+          "image_id": "sha256:3d3a7fa59f78304e915321cf3d8b5bab193ce861129319345391436e537d7d66",
+          "bundle_manifest_sha256": "6a069ebfb0b7fced780f1710b976f6a4a595bd6116bf0ba93d274c0e03a766c9",
+          "installed_result": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/service-helper-unit/observation/installed/result.json",
+            "sha256": "f93f8b469b59a9c0bbcc8c8a3b19e46edf5ff691fd4e1766a6dcc4a8849aa979",
+            "size": 19147
+          },
+          "pytest_receipt": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/service-helper-unit/observation/installed/pytest.json",
+            "sha256": "0768f4a5e8d49c4f9ead8ed859a9c8137ac44f24a92d6e5f8a8fa82216c84e8c",
+            "size": 29242
+          },
+          "provenance": {
+            "path": "var/e08-completion-20261028/native-arm64-proof/current/cells/service-helper-unit/observation/installed/provenance.jsonl",
+            "sha256": "0307f9cef9de13cb9d19ea841361ec4c7adc1f0d972bea866fec760e41722a4c",
+            "size": 18051
+          },
+          "passed": 41,
+          "skipped": 0,
+          "selected": 41,
+          "installed_versions": {
+            "pyyaml": "6.0.3",
+            "pygments": "2.21.0",
+            "annotated-types": "0.8.0",
+            "certifi": "2026.10.23",
+            "charset-normalizer": "3.5.2",
+            "confluent-kafka": "2.16.0",
+            "docker": "7.2.0",
+            "idna": "3.20",
+            "iniconfig": "2.3.1",
+            "neo4j": "6.4.1",
+            "neo4j-graph-loader": "0.1.0a1.dev0",
+            "neo4j-rust-ext": "6.4.1.0",
+            "numpy": "2.5.4",
+            "packaging": "26.3",
+            "pip": "25.0.1",
+            "pluggy": "1.7.0",
+            "prometheus-client": "0.26.0",
+            "psutil": "7.2.2",
+            "pydantic": "2.14.1",
+            "pydantic-core": "2.50.1",
+            "pytest": "9.1.1",
+            "python-dotenv": "1.2.4",
+            "pytz": "2026.5",
+            "requests": "2.34.2",
+            "testcontainers": "4.15.0",
+            "typing-inspection": "0.4.4",
+            "typing-extensions": "4.16.0",
+            "urllib3": "2.8.0",
+            "wrapt": "2.5.1"
+          },
+          "process_identities": 2,
+          "expected_python_children": 0
+        }
+      ]
+    }
+  },
+  "aggregate": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/results.json",
+    "sha256": "286aa815173f52230fa2541a772c432b493e58f33d0c49cb5c0282d1f2e3721b",
+    "size": 1649
+  },
+  "watchdog": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/run-result.json",
+    "sha256": "fa5309fd320ba329c390419fa0bd931a7731af596521cb009e4e0c15ca46f890",
+    "size": 453
+  },
+  "export_watchdog": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/export-watchdog-result.json",
+    "sha256": "2658dd03596e6cc04165ac0cd379e28fa3564a39a51d9dd96caaea878bc07d9d",
+    "size": 453
+  },
+  "archive_verification": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/archive-verification.json",
+    "sha256": "22f676e0f055efbfad8afdb57c4ef25597eb1ec6c07b3519c3d65a4d5a502e64",
+    "size": 2187
+  },
+  "archive_index": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/native-archive-files.json",
+    "sha256": "f15de7f4e8b87ecae4bdaebfc11f86d36eea8d1b87cbe260af70275134a9532c",
+    "size": 2898228
+  },
+  "archive": {
+    "path": "var/e08-completion-20261028/native-arm64-proof.tar.gz",
+    "sha256": "d5ca322bcee8de95e49107995041fd5a525bf362c535973d08953f8cded140c7",
+    "size": 100112744
+  },
+  "launch": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/watchdog-launch.json",
+    "sha256": "3dc56c7abda01f06dcd0b5493035f260e8d1f5047a9a38189565d71c53f9f241",
+    "size": 1031
+  },
+  "export_launch": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/export-watchdog-launch.json",
+    "sha256": "ae6a172b25eb38f66450575827a8e6e3296b33bc925f6f2138ff411959a4ec7c",
+    "size": 914
+  },
+  "docker_wrapper": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/docker",
+    "sha256": "2d1058d9e2057833a326f858d1841d11a5d2e7d572826d8966f62d4a5f2ea92c",
+    "size": 109
+  },
+  "daemon": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/daemon-info.log",
+    "sha256": "d7415915b2fd549956b9faccc0e80a161058263e0fa79040b0ce2a3a257c73f1",
+    "size": 10181
+  },
+  "base_image": {
+    "path": "var/e08-completion-20261028/native-arm64-proof/base-image.log",
+    "sha256": "5bd9c7680566c97830dd4f7b7b3829c94bc00a9ae1a02353cd8fc092a6de0ef5",
+    "size": 1981
+  },
+  "inventory": {
+    "path": "plan/library-implementation/test-inventory.json",
+    "sha256": "c774c0f0c6009a36843afc9c2da0720af50feca64266971fd1bf7927acb3cfbc",
+    "size": 4938630
+  },
+  "limitations": [
+    "S2 acceptance requires fresh independent review of actual current-source cells on both native architectures.",
+    "All final E08 retention/delivery gates remain open.",
+    "Local image IDs are test-only observations; no image/package publication or release acceptance."
+  ]
+}

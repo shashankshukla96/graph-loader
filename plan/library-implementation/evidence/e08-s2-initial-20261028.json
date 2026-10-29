@@ -1,0 +1,163 @@
+{
+  "status": "partial S2 only; focused warning/client repairs accepted; full worker/fault/native and final gates open",
+  "head": "4b246f3ab953bd9f7d266a682ac9fff39bd32032",
+  "source_manifest": {
+    "path": "plan/library-implementation/evidence/e08-s2-initial-manifest-20261028.json",
+    "sha256": "ddec6abda6f6c265ca95b44fac9db10d24f0ecd9ab0379bd303c097f37709a43",
+    "size": 81530
+  },
+  "inventory": {
+    "path": "plan/library-implementation/test-inventory.json",
+    "sha256": "2c5211d0edafee49c732540623167159116af7ff6d823389633f62e59359b7c5",
+    "size": 4927165
+  },
+  "source_collection": {
+    "ids": 3856,
+    "files": 125,
+    "installed": 3665,
+    "service": 48,
+    "checkout": 143,
+    "result": {
+      "path": "var/e08-process-20261028/source-collection-v3.json",
+      "sha256": "5b5a7ca5ebe96c5cce7deb28651b82ca0ac7b9bc0be600d0278ba09b2a318907",
+      "size": 2158757
+    },
+    "audit": {
+      "path": "var/e08-process-20261028/source-collection-v3-audit.json",
+      "sha256": "a09ac248c412b5d02b41b8073343f79b8dec58d7fa83587e7723972de85c531e",
+      "size": 70
+    },
+    "commands": {
+      "path": "var/e08-process-20261028/source-collection-v3-commands.json",
+      "sha256": "9ffb82fd0ba53867a0b60da10c1f6f05ab95da104a1fc1c2dce2f6abe6706664",
+      "size": 2094
+    }
+  },
+  "reviews": {
+    "e08-s1-global-review-20261028.md": {
+      "path": "plan/library-implementation/reviews/e08-s1-global-review-20261028.md",
+      "sha256": "412a4ef0a4ba3fff5d4dda3be28415a63c291dbbb96f863e50ffb6b3a4ff0f82",
+      "size": 12117
+    },
+    "e08-warning-fix-review-20261028.md": {
+      "path": "plan/library-implementation/reviews/e08-warning-fix-review-20261028.md",
+      "sha256": "502f03ddee14bc6952781b6991360bf9b2783d021efd833b3b202a03b47ccf58",
+      "size": 10177
+    },
+    "e08-external-client-review-20261028.md": {
+      "path": "plan/library-implementation/reviews/e08-external-client-review-20261028.md",
+      "sha256": "42891cd37af3567ba2fbb3ba2145a8110a5242562b675dd0f5f63c1f15c1835d",
+      "size": 16867
+    }
+  },
+  "focused": {
+    "warnings-before-v1": {
+      "log": {
+        "path": "var/e08-process-20261028/warnings-before-v1.log",
+        "sha256": "5341d06c5812e5ef3c55c35e2cedebf0c074a54c5adb666df145259f590c229a",
+        "size": 603
+      },
+      "audit": {
+        "path": "var/e08-process-20261028/warnings-before-v1-audit.json",
+        "sha256": "06cf04dbcfd903e5a995743aba3bf0547caea941edee2dbffaa686732f755d44",
+        "size": 101
+      },
+      "commands": {
+        "path": "var/e08-process-20261028/warnings-before-v1-commands.json",
+        "sha256": "2552b6df6d39641d6b5941b388b5478e8454fb55fc509fb9b6da1265d6f99729",
+        "size": 1862
+      }
+    },
+    "warnings-after-v2": {
+      "log": {
+        "path": "var/e08-process-20261028/warnings-after-v2.log",
+        "sha256": "5caefd978763f3d19ae057107cfb3ac70a189bbc3a89b601c6c41bfbfc8b431c",
+        "size": 99
+      },
+      "audit": {
+        "path": "var/e08-process-20261028/warnings-after-v2-audit.json",
+        "sha256": "06cf04dbcfd903e5a995743aba3bf0547caea941edee2dbffaa686732f755d44",
+        "size": 101
+      },
+      "commands": {
+        "path": "var/e08-process-20261028/warnings-after-v2-commands.json",
+        "sha256": "0565ef56a1a8d548b0b5cedef9fc8c5acded538dec0dab4903856a5a6b53d143",
+        "size": 1907
+      }
+    },
+    "external-and-warning-v2": {
+      "log": {
+        "path": "var/e08-process-20261028/external-and-warning-v2.log",
+        "sha256": "9279884b9769b39babfc98c65d938190a097d0e4eab33c5240fc87b209e9a978",
+        "size": 100
+      },
+      "audit": {
+        "path": "var/e08-process-20261028/external-and-warning-v2-audit.json",
+        "sha256": "06cf04dbcfd903e5a995743aba3bf0547caea941edee2dbffaa686732f755d44",
+        "size": 101
+      },
+      "commands": {
+        "path": "var/e08-process-20261028/external-and-warning-v2-commands.json",
+        "sha256": "928b651a25a8a70ec95788456e232bfe33162e637014ddeb9329f8434a7e7aa4",
+        "size": 1963
+      }
+    }
+  },
+  "installed": {
+    "public-contracts": {
+      "selected": 261,
+      "result": {
+        "path": "/private/tmp/graph-loader-e08-s2-installed-20261028/public-contracts-v2/result.json",
+        "sha256": "a1984aa2a3af7115dfc367e0de72c2a5d5ecdfbd3c605be232f14a04ae9c5a0b",
+        "size": 98402
+      },
+      "pytest": {
+        "path": "/private/tmp/graph-loader-e08-s2-installed-20261028/public-contracts-v2/pytest.json",
+        "sha256": "3a03ee34465970a7857ef85fb778094dc77d4e7c90d686538ee9e3f53bd42142",
+        "size": 342474
+      },
+      "log": {
+        "path": "/private/tmp/graph-loader-e08-s2-installed-20261028/public-contracts-v2/pytest.log",
+        "sha256": "1e1850cee12538b9df930a3e294b350233de76071f39f7ebf05dec20ac621192",
+        "size": 341
+      },
+      "provenance": {
+        "path": "/private/tmp/graph-loader-e08-s2-installed-20261028/public-contracts-v2/provenance.jsonl",
+        "sha256": "4106faf05aabbb04f0bd256bd8ea7a48bfdf896add6195ba98bf072afe991600",
+        "size": 1043388
+      },
+      "platform": "macOS arm64 fresh noneditable environment"
+    },
+    "example-contracts": {
+      "selected": 116,
+      "result": {
+        "path": "/private/tmp/graph-loader-e08-s2-installed-20261028/example-contracts-v1/result.json",
+        "sha256": "865637de3ebc93bff439d9fd5da96bec896cc9f57d3d07b2b2b7051ef0e7051c",
+        "size": 26640
+      },
+      "pytest": {
+        "path": "/private/tmp/graph-loader-e08-s2-installed-20261028/example-contracts-v1/pytest.json",
+        "sha256": "a63269ac958074ed5871a94fc411a338487aef6265247c390f94daade4af623c",
+        "size": 81351
+      },
+      "log": {
+        "path": "/private/tmp/graph-loader-e08-s2-installed-20261028/example-contracts-v1/pytest.log",
+        "sha256": "e6625fad98ef9903ca1008df1c5d966be60b944f852547d51c1420ed0e785e9c",
+        "size": 180
+      },
+      "provenance": {
+        "path": "/private/tmp/graph-loader-e08-s2-installed-20261028/example-contracts-v1/provenance.jsonl",
+        "sha256": "f6c1e62b02293f4178b0bdabeecf16d90aebf56abe4d4d60c35fab92b8363174",
+        "size": 109410
+      },
+      "platform": "macOS arm64 fresh noneditable environment"
+    }
+  },
+  "native_S2": "not yet executed; initial noneditable controls below are macOS observations",
+  "remaining_design": {
+    "path": "plan/library-implementation/e08-process-matrix-design.md",
+    "sha256": "38ceac968a9007e86ac71eedfd325154649f6768bfc51dcad2e5994a5ef1e50f",
+    "size": 4715
+  },
+  "delivery": "no E08 completion/delivery commit, staging, push or publication"
+}

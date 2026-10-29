@@ -1,0 +1,9 @@
+# E08 reviewed floors: typed Neo4j pool errors require6.0; PyYAML requires6.0.1.
+neo4j==6.0.0
+neo4j-rust-ext==6.0.0.0
+confluent-kafka==2.5.0
+pydantic==2.7.0
+PyYAML==6.0.1
+docker==7.1.0
+numpy==1.26.0
+prometheus-client==0.20.0

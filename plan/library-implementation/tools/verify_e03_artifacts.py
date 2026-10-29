@@ -88,8 +88,9 @@ def inspect(wheel, sdist):
                           for p in (wheel, sdist)]}
 
 
-def probe(python, modules, cwd):
+def probe(python, modules, cwd, *, command_runner=None):
     """Application imports must resolve exclusively from a clean site-packages."""
+    execute = command_runner or subprocess.run
     code = '''
 import hashlib, importlib, importlib.metadata as metadata, json, logging, pathlib, socket, subprocess, sys, sysconfig, threading
 before = logging.getLogger().level, list(logging.getLogger().handlers)
@@ -122,7 +123,7 @@ print(json.dumps({'version': package.__version__, 'origins': origins, 'site': st
     names = [n.removesuffix('.py').replace('/', '.').removesuffix('.__init__') for n in modules]
     code = code.replace('NAMES', repr(names)).replace('DIGESTS', repr(modules))
     env = {k: v for k, v in os.environ.items() if k not in {"PYTHONPATH", "PYTHONHOME", "GRAPH_LOADER_VERSION"}}
-    result = subprocess.run([str(python), "-I", "-c", code], cwd=cwd, env=env,
+    result = execute([str(python), "-I", "-c", code], cwd=cwd, env=env,
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
     record = {"import_command": [str(python), "-I", "-c", code],
@@ -134,12 +135,12 @@ except ModuleNotFoundError as e: assert e.name == 'src', e
 else: raise AssertionError('old namespace imported')
 '''
         command = [str(python), "-I", "-c", reject]
-        child = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
+        child = execute(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
         assert child.returncode == 0, child.stdout + child.stderr
         record["old_imports"].append({"module": old, "command": command, "exit_code": child.returncode})
     for component in COMPONENTS:
         command = [str(python), "-I", "-m", "neo4j_graph_loader." + component, "--help"]
-        child = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
+        child = execute(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
         assert child.returncode == 0 and "usage:" in child.stdout.lower(), (command, child.stdout, child.stderr)
         record["helps"].append({"command": command, "exit_code": child.returncode,
                                "stdout_sha256": sha(child.stdout.encode()), "stderr": child.stderr})
@@ -149,7 +150,7 @@ else: raise AssertionError('old namespace imported')
         for prefix in ([str(python.parent / "graph-loader")], [str(python), "-I", "-m", "neo4j_graph_loader"],
                        [str(python), "-I", "-m", "neo4j_graph_loader.cli"]):
             command = [*prefix, *arguments]
-            child = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
+            child = execute(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
             assert child.returncode == expected, (command, child.stdout, child.stderr)
             observations.append((child.stdout, child.stderr))
         assert len(set(observations)) == 1, arguments
@@ -160,7 +161,7 @@ else: raise AssertionError('old namespace imported')
     for fixture in ("e04_imports.py", "e04_public_example.py", "e05_resources.py", "e05_runtime.py"):
         content = (ROOT / "tests/fixtures" / fixture).read_text()
         command = [str(python), "-I", "-c", content]
-        child = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
+        child = execute(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
         assert child.returncode == 0, child.stdout + child.stderr
         record["public_examples"].append({"fixture": fixture, "code_sha256": sha(content.encode()),
                                           "command": command, "exit_code": child.returncode,

@@ -9,6 +9,37 @@ import pytest
 ROOT=Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.parametrize('workers', [2, 8])
+@pytest.mark.parametrize('scenario', ['public-many', 'public-partial', 'public-send', 'public-cold'])
+def test_explicit_process_faults_prove_peer_activation_and_cleanup(tmp_path, workers, scenario):
+    output = tmp_path/'matrix'
+    result = subprocess.run([sys.executable, str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'),
+        scenario, '--context', 'spawn', '--workers', str(workers), '--mode', 'timeout',
+        '--hard-timeout', '180', '--python', sys.executable, '--output', str(output)],
+        cwd=ROOT, capture_output=True, text=True, timeout=200)
+    assert result.returncode == 0, result.stdout+result.stderr+(output/'client.log').read_text()
+    client = json.loads((output/'client.json').read_text())
+    supervisor = json.loads((output/'supervisor.json').read_text())
+    assert not supervisor['timeout'] and not supervisor['emergency_group_cleanup']
+    assert client['requested_workers'] == client['actual_workers'] == len(set(client['child_pids'])) == workers
+    assert client['production_children_dead'] and client['production_endpoints_closed']
+    assert not client['lock_exists'] and not client['spill_exists'] and not client['heartbeat_alive']
+    assert 0 <= client['observed_lateness'] < .3
+    if scenario == 'public-cold':
+        assert not client['prepared_transport'] and client['excluded_fixture_preparation_seconds'] == 0
+    else:
+        assert client['prepared_transport']
+        assert client['blocked_peer_count'] == client['expected_blocked_peers']
+        assert client['partial_reply_peer_count'] == client['expected_partial_reply_peers']
+        if scenario == 'public-many':
+            assert all((output/f'blocked-peer-{i}').exists() for i in range(workers))
+        if scenario == 'public-partial':
+            assert all((output/f'partial-reply-ready-{i}').exists() for i in range(workers))
+        if scenario == 'public-send':
+            assert client['degrees_write_sizes'] and client['fault_activated']
+            assert all(row['encoded_frame_bytes'] > row['socket_send_buffer'] for row in client['degrees_write_sizes'])
+
+
 @pytest.mark.parametrize('scenario,mode',[
     (scenario,mode) for scenario in ('public-blocked','public-partial','public-send','public-many')
     for mode in ('timeout','cancel')

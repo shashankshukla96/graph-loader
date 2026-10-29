@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import json
+import multiprocessing
 from pathlib import Path
 import random
 import subprocess
@@ -403,16 +404,39 @@ def test_character_parsing_matches_json_semantics() -> None:
     assert list(zip(positions.tolist(), names.tolist())) == expected
 
 
+def broken_crew_converter(*_args) -> None:
+    """Importable worker failure; keep the original injected source error."""
+    raise ValueError("broken crew chunk")
+
+
 def test_parallel_derivation_fails_closed_when_a_source_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     write_tricky_dataset(tmp_path / "source")
 
-    def broken(*_args) -> None:
-        raise ValueError("broken crew chunk")
-
     _, columns, kinds = build_subset.SOURCES["title.crew.tsv"]
-    monkeypatch.setitem(build_subset.SOURCES, "title.crew.tsv", (broken, columns, kinds))
+    monkeypatch.setitem(build_subset.SOURCES, "title.crew.tsv", (broken_crew_converter, columns, kinds))
     with pytest.raises(RuntimeError, match="(?s)title.crew.tsv.*broken crew chunk"):
         build_subset.graph_subset(tmp_path / "source", tmp_path / "graph", {"tt0001"}, {"nm0001"}, jobs=2)
+
+
+def record_crew_chunks(frame, out, titles, people) -> None:
+    """Observe the real child configuration, then retain the normal converter."""
+    path = Path(out.sinks["directed"]._file.name).with_suffix(".chunks.jsonl")
+    with path.open("a") as stream:
+        stream.write(json.dumps({"rows": len(frame), "method": multiprocessing.get_start_method()}) + "\n")
+    build_subset.derive_crew(frame, out, titles, people)
+
+
+def test_spawned_derivation_preserves_parent_chunk_config_and_converter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    write_tricky_dataset(tmp_path / "source")
+    monkeypatch.setattr(build_subset, "CHUNK_ROWS", 2)
+    _, columns, kinds = build_subset.SOURCES["title.crew.tsv"]
+    monkeypatch.setitem(build_subset.SOURCES, "title.crew.tsv", (record_crew_chunks, columns, kinds))
+    method = multiprocessing.get_start_method()
+    build_subset.graph_subset(tmp_path / "source", tmp_path / "graph", {"tt0001", "tt0002"}, {"nm0001"}, jobs=2)
+    chunks = [json.loads(line) for line in (tmp_path / "graph/relationships/directed.chunks.jsonl").read_text().splitlines()]
+    assert len(chunks) > 1 and all(0 < row["rows"] <= 2 for row in chunks)
+    assert all(row["method"] == "spawn" for row in chunks)
+    assert multiprocessing.get_start_method(allow_none=True) == method
 
 
 def test_tsv_sink_quotes_exactly_like_csv_dict_writer(tmp_path: Path) -> None:

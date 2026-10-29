@@ -26,6 +26,10 @@ FILES = {"requirements.txt", "requirements-dev.txt", "pyproject.toml", "Makefile
 FILES.add("plan/library-implementation/test-inventory.json")
 FILES.add("plan/library-implementation/tools/render_plan.py")
 UNTRACKED_INPUTS = [
+    "scripts/installed_dependencies.py", "scripts/support_matrix.py", "tests/test_support_matrix.py",
+    "tests/fixtures/e08_base_probe.py", "config/support-matrix",
+    "scripts/matrix_docker.py",
+    "docs/SUPPORT_MATRIX_VALIDATION.md",
     "scripts/verify_installed.py", "scripts/installed_guard.py", "scripts/installed_pytest.py",
     "scripts/freeze_installed_inventory.py", "tests/test_installed_runner.py", "tests/test_installed_inventory.py", "tests/installed_support.py",
     "tests/test_library_preflight.py", "tests/test_dlq_proof_harness.py", "tests/fixtures",

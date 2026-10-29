@@ -5,7 +5,28 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E07 revalidation independently accepted and delivered locally, 2026-10-26:**
+**Current gate — E08 independently accepted, local delivery pending,2026-10-28:**
+[Fresh final adversarial review](reviews/e08-final-adversarial-review-20261028.md)
+accepts the exact implementation and all actual validation gates with no open
+finding. Both ordered stories are complete; [full S2 review](reviews/e08-s2-full-review-20261028.md)
+checks36 current native observations,14,688 installed passes/four intentional
+core skips and536 process cases across arm64/amd64 minimum/current sets.
+[Final validation](evidence/e08-final-validation.md) and [machine proof](evidence/e08-final.json)
+record3,820 checkout passes/four inherited skips/49 deselections/zero warnings,
+all16 final-wheel lanes7,344 passes/two core skips, strict fresh archives/true
+no-Git rebuild/all65 member equality/two bare installs, four actual image builds
+from78 inputs/76 runtime checks/four binds/12 original uninstrumented R1/exact
+no-skip B3 and fresh installed13-node/12-edge service proof with cleanup.
+All319 tested inputs and development environment remain unchanged. Reviewed
+PyYAML/paired-driver floors, warning/source/transport fixes, every rejected or
+superseded result and isolated final-harness recovery controls are retained.
+No placeholder delivery identity is claimed: staging inspection, actual local
+commit and tested/Git/current per-file equality are the remaining delivery steps.
+[E09 handoff](handoff-e09.md) is conditioned on completed E08 delivery and a new
+user request. E09–E12, push, upload, Git tag, workflow and publication remain
+unexecuted. Prior E08 progress is retained in story/review/raw evidence.
+
+**Prior gate — E07 revalidation independently accepted and delivered locally, 2026-10-26:**
 [Fresh completion](reviews/e07-completion-verification-20261026.md) and
 [final independent approval](reviews/e07-final-revalidation-20261026.md) close
 interruption cleanup/receipt loss and unsupported forkpty provenance bypass.
@@ -16,8 +37,8 @@ pass **7,298 tests** with two intentional skips. Strict archives/two bare instal
 Local repair delivery is `2927a847c6f27f86086191b87773af4edae4026a`. [All307 postcommit equality](evidence/e07-revalidation-postcommit-20261026.json)
 verifies tested/current/actual committed blob contents, sizes and modes, plus
 unchanged environment. This documentation-only follow-up records the actual SHA
-under rule5; its own hash is in Git history. E08 handoff is ready and execution
-is unstarted; no push/publication.
+under rule5; its own hash is in Git history. This gate authorized the conditioned
+E08 handoff; subsequent execution is recorded above. No push/publication.
 
 **Original E07 delivery acceptance (historical):**
 All ordered [E07 stories](epics/e07.md), [rebuilt parity](reviews/e07-f2-review.md)
@@ -152,7 +173,8 @@ E05–E12 and publication remain out of scope; [E05 handoff](handoff-e05.md) pre
 | 2026-10-21 | `0638322f3b84471f63ee867861fb75b13c97760b` plus narrow E05-R1 repair | [Fresh E05 verification](reviews/e05-completion-verification-20261021.md): 3,571 passes, four inherited skips, 49 deselections, 19 known warnings; strict no-Git builds/two new installs/four new images/76 probes/12 R1 mixed cases/exact B3 passed. Independent runtime/distribution reviews and [fresh final acceptance](reviews/e05-final-revalidation-20261021.md) close R1/R2; 90 installed/image command negatives pass. | Delivered locally in `c35a6045ef39a822dcbcfcfc2c20d6b9c2227a28`; [all 270 inputs verified after commit](evidence/e05-revalidation-postcommit-20261021.json). Only runtime error normalization and five regression cases change product/test inputs; E06 remains unstarted. |
 
 E00–E07 have historical local deliveries; current E07 repair acceptance and
-delivery/equality status are recorded at the top. E08–E12 remain unstarted. Historical
+delivery/equality status are recorded at the top. E08 execution is recorded above;
+E09–E12 remain unstarted. Historical
 green runs did not waive findings; new source, regressions and independent proof
 close each repair before further acceptance.
 
@@ -247,4 +269,6 @@ blobs and current files; the development environment is unchanged. This follow-u
 changes documentation/evidence only, with no tested input mutation. The enclosing
 follow-up SHA is resolved through Git log under rule 5. See [final validation](evidence/e07-final-validation.md),
 [final acceptance](reviews/e07-final-adversarial-review.md) and [E08 handoff](handoff-e08.md).
-No E08 execution, Git push, upload, tag, workflow or publication is authorized.
+At that original E07 gate, E08 execution was not authorized; subsequent user
+authorization is recorded above. Git push, upload, tag, workflow and publication
+remain unauthorized.

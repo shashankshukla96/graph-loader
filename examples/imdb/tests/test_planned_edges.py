@@ -262,7 +262,7 @@ def test_chunk_messages_respect_the_byte_budget(imdb_files, tmp_path) -> None:
 
 def test_process_planner_writes_a_valid_plan_or_a_failure_marker(imdb_files, tmp_path) -> None:
     settings = PlanSettings(buckets=2, hub_degree=12, chunk_rows=4, topic="chunks", partitions=2, workers=2)
-    context = multiprocessing.get_context("fork")
+    context = multiprocessing.get_context("spawn")
     result = imdb_edge_planner(SCHEMA, files_for(imdb_files), settings, "kafka:1", context=context,
                                producer_class=FakeProducer).finish(tmp_path / "plan.json")
     plan, digest = read_plan_file(tmp_path / "plan.json")

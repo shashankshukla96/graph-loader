@@ -59,7 +59,7 @@ The CLI runs on the host. It applies the schema DDL to Neo4j, runs the planner p
 | Kafka | Any broker reachable from the host **and** from the loader containers. The CLI needs permission to create topics for the control topic (`__graph_loader_control`, best effort), DLQ topics (when you enable `dead_letter`) and, in planned mode, the per-run chunk topic with a raised `max.message.bytes`. Where that is not allowed, use `--edge-leases` (also zero lock waits). |
 | Topics | **Every node and relationship topic in the schema must exist and be fully published before `start`.** Bulk mode does not run the stream preflight; a missing topic surfaces as an error during the run ([troubleshooting](#16-troubleshooting)). The loader never creates data topics: the partition count is your producer's choice. The bundled compose broker has `KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"`, which is a property of that broker, not something the loader relies on. |
 | Docker | A local daemon with daemon-visible absolute host inputs. Starts resolve matching versioned prebuilt images and never build from cwd. `--skip-image-build` requires compatible local images. See [Docker execution](DOCKER_EXECUTION.md) for candidate builds, overrides, version labels and topology. |
-| Python | 3.12 with `pip install -r requirements.txt` (pins the Neo4j driver to `neo4j>=5.20,<7`). |
+| Python | 3.12 with `pip install -r requirements.txt` (bounds the Neo4j driver to `neo4j>=6.0,<7`, with its matching mandatory Rust extension). |
 
 ### The local stack
 

@@ -2,6 +2,7 @@
 """Externally supervise only one owned E04 fault client/process group."""
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -19,9 +20,29 @@ def main():
     parser.add_argument('--python',default=sys.executable)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--hard-timeout',type=float,default=20)
+    parser.add_argument('--context',choices=('spawn','inline'),help='explicit E08 client context; legacy faults keep their defaults')
+    parser.add_argument('--workers',type=int,help='explicit E08 measured worker count')
     args=parser.parse_args()
+    if not math.isfinite(args.hard_timeout) or not 0 < args.hard_timeout <= 3600:
+        parser.error('--hard-timeout must be positive, finite and at most3600 seconds')
+    if args.workers is not None and not 1 <= args.workers <= 64:
+        parser.error('--workers must be in the measured1–64 range')
+    external=args.scenario.startswith('external-')
+    if external and (args.context is None or args.workers is None):
+        parser.error('external clients require explicit --context and --workers')
+    if not external:
+        if (args.context is None)!=(args.workers is None):
+            parser.error('fault context and workers must be provided together')
+        if args.context is not None and args.context!='spawn':
+            parser.error('framed process faults require spawn; use external clients for inline')
+        if args.workers is not None and (args.scenario=='public-startup' or args.scenario.startswith('public-mixed-error')) and args.workers<2:
+            parser.error('second-worker and mixed-peer faults require at least two workers')
     args.output.mkdir(parents=True,exist_ok=False)
-    command=[args.python,'-m','tests.fixtures.e04_faults',args.scenario,args.mode,str(args.output/'client.json')]
+    command=([args.python,'-m','tests.fixtures.e08_process_clients',args.context,str(args.workers),
+              args.scenario.removeprefix('external-'),str(args.output)] if external else
+             [args.python,'-m','tests.fixtures.e04_faults',args.scenario,args.mode,str(args.output/'client.json')])
+    if not external and args.workers is not None:
+        command.extend(['--context',args.context,'--workers',str(args.workers)])
     env={k:v for k,v in os.environ.items() if k not in {'PYTHONPATH','PYTHONHOME'}}
     started=time.monotonic(); expired=False; emergency=False
     with (args.output/'client.log').open('w') as log:

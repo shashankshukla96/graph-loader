@@ -1,0 +1,909 @@
+{
+  "status": "resolved native Linux arm64; installed regression acceptance pending",
+  "lanes": {
+    "minimum": {
+      "constraints": "config/support-matrix/minimum-linux-arm64-20261027.txt",
+      "constraints_sha256": "106d3634b16ad30485a1aa5e0f04189192c6329092ba5ae4d342675425c2d8f2",
+      "resolution_report_sha256": "c9495c3af6b3f14486059f43fb276a3d82f11503e25cb7afc94449bdf0012108",
+      "artifacts": [
+        {
+          "name": "neo4j-graph-loader",
+          "version": "0.1.0a1.dev0",
+          "download": {
+            "url": "file:///input/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=a804d26a8130ee7fcc06256327257b7a94476896bac6b151b68f1136c6b52391",
+              "hashes": {
+                "sha256": "a804d26a8130ee7fcc06256327257b7a94476896bac6b151b68f1136c6b52391"
+              }
+            }
+          }
+        },
+        {
+          "name": "pytest",
+          "version": "9.2.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/51/39/1f5d8c8877a0fa327db959c19341d4be61660de1ab6b7391f9eb805bcd67/pytest-9.2.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588",
+              "hashes": {
+                "sha256": "07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588"
+              }
+            }
+          }
+        },
+        {
+          "name": "testcontainers",
+          "version": "4.15.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/00/7e/424aac8b355597835deb333e757a0e94b5ccf38ad00f07fe6ed1f4e17c88/testcontainers-4.15.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=8796c14e76604031ad39cf0ed3b8e9806283a1fbf5270965c2b1c594caa31b74",
+              "hashes": {
+                "sha256": "8796c14e76604031ad39cf0ed3b8e9806283a1fbf5270965c2b1c594caa31b74"
+              }
+            }
+          }
+        },
+        {
+          "name": "psutil",
+          "version": "7.2.2",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/63/65/37648c0c158dc222aba51c089eb3bdfa238e621674dc42d48706e639204f/psutil-7.2.2-cp36-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=b0726cecd84f9474419d67252add4ac0cd9811b04d61123054b9fb6f57df6e9e",
+              "hashes": {
+                "sha256": "b0726cecd84f9474419d67252add4ac0cd9811b04d61123054b9fb6f57df6e9e"
+              }
+            }
+          }
+        },
+        {
+          "name": "pandas",
+          "version": "2.3.3",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/57/56/cf2dbe1a3f5271370669475ead12ce77c61726ffd19a35546e31aa8edf4e/pandas-2.3.3-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=ecaf1e12bdc03c86ad4a7ea848d66c685cb6851d807a26aa245ca3d2017a1908",
+              "hashes": {
+                "sha256": "ecaf1e12bdc03c86ad4a7ea848d66c685cb6851d807a26aa245ca3d2017a1908"
+              }
+            }
+          }
+        },
+        {
+          "name": "python-dotenv",
+          "version": "1.2.4",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/60/d1/38f3a3405989a89ac18390803e70c6ad7c7760da4f9b83cbeca0c44a0c72/python_dotenv-1.2.4-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc",
+              "hashes": {
+                "sha256": "42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc"
+              }
+            }
+          }
+        },
+        {
+          "name": "confluent-kafka",
+          "version": "2.5.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/ac/85/281e3ae99b77e0364da2e67167cdd4882d9755487bbbd9fffa7bd758e7a8/confluent_kafka-2.5.0-cp312-cp312-manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=fb863f76605e9bbbb1d7f02abf05899cf1435421aa721a5be212c600bd054aa3",
+              "hashes": {
+                "sha256": "fb863f76605e9bbbb1d7f02abf05899cf1435421aa721a5be212c600bd054aa3"
+              }
+            }
+          }
+        },
+        {
+          "name": "docker",
+          "version": "7.1.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/e3/26/57c6fb270950d476074c087527a558ccb6f4436657314bfb6cdf484114c4/docker-7.1.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0",
+              "hashes": {
+                "sha256": "c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0"
+              }
+            }
+          }
+        },
+        {
+          "name": "iniconfig",
+          "version": "2.3.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7",
+              "hashes": {
+                "sha256": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7"
+              }
+            }
+          }
+        },
+        {
+          "name": "neo4j",
+          "version": "6.0.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/96/de/51209c1d47bc4b2384d9e698d4f8a23eb0f24417312e067185f9e2ed12b2/neo4j-6.0.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=708bf2ad34d470fe56f7e8d27164d5a44c6aa9345de28f0356c83040dd75e0f4",
+              "hashes": {
+                "sha256": "708bf2ad34d470fe56f7e8d27164d5a44c6aa9345de28f0356c83040dd75e0f4"
+              }
+            }
+          }
+        },
+        {
+          "name": "neo4j-rust-ext",
+          "version": "6.0.0.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/e4/b8/0b882c71e35e0bc540f59c12d43d0d2d4dd441f2347e8d5ed3bc932b8450/neo4j_rust_ext-6.0.0.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=6f5a33f9c9ca3a68bad45277c48c73406d0fa3194689dd2a2348d325a491e309",
+              "hashes": {
+                "sha256": "6f5a33f9c9ca3a68bad45277c48c73406d0fa3194689dd2a2348d325a491e309"
+              }
+            }
+          }
+        },
+        {
+          "name": "numpy",
+          "version": "1.26.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/2f/70/c071b2347e339f572f5aa61f649b70167e5dd218e3da3dc600c9b08154b9/numpy-1.26.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=e5e18e5b14a7560d8acf1c596688f4dfd19b4f2945b245a71e5af4ddb7422feb",
+              "hashes": {
+                "sha256": "e5e18e5b14a7560d8acf1c596688f4dfd19b4f2945b245a71e5af4ddb7422feb"
+              }
+            }
+          }
+        },
+        {
+          "name": "packaging",
+          "version": "26.3",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+              "hashes": {
+                "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+              }
+            }
+          }
+        },
+        {
+          "name": "pluggy",
+          "version": "1.7.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/40/9e/2b38731e0fc536806f16490e1a12d7f0dc2a1235aa8cc07bcc75416a7daa/pluggy-1.7.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec",
+              "hashes": {
+                "sha256": "7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec"
+              }
+            }
+          }
+        },
+        {
+          "name": "prometheus_client",
+          "version": "0.20.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/c7/98/745b810d822103adca2df8decd4c0bbe839ba7ad3511af3f0d09692fc0f0/prometheus_client-0.20.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=cde524a85bce83ca359cc837f28b8c0db5cac7aa653a588fd7e84ba061c329e7",
+              "hashes": {
+                "sha256": "cde524a85bce83ca359cc837f28b8c0db5cac7aa653a588fd7e84ba061c329e7"
+              }
+            }
+          }
+        },
+        {
+          "name": "pydantic",
+          "version": "2.7.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/16/ca/330c4f3bd983bb24ac12c7fd1e08c26c8aed70bc64498cf38c770321067f/pydantic-2.7.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=9dee74a271705f14f9a1567671d144a851c675b072736f0a7b2608fd9e495352",
+              "hashes": {
+                "sha256": "9dee74a271705f14f9a1567671d144a851c675b072736f0a7b2608fd9e495352"
+              }
+            }
+          }
+        },
+        {
+          "name": "pydantic_core",
+          "version": "2.18.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/24/02/79d6165dd8c33ee69901f0d7ef568658e586f765ac11da25cf6bb5b2c6fb/pydantic_core-2.18.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=a3982b0a32d0a88b3907e4b0dc36809fda477f0757c59a505d4e9b455f384b8b",
+              "hashes": {
+                "sha256": "a3982b0a32d0a88b3907e4b0dc36809fda477f0757c59a505d4e9b455f384b8b"
+              }
+            }
+          }
+        },
+        {
+          "name": "Pygments",
+          "version": "2.21.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+              "hashes": {
+                "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9"
+              }
+            }
+          }
+        },
+        {
+          "name": "python-dateutil",
+          "version": "3.0.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/5a/17/cebee01d1c0c1441174cf0456ddc91b280d79acb65340c05e41d77866ee8/python_dateutil-3.0.0-py2.py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=3c79630202e4152c6add678446984236efe4f57e84d8e892aab0637bab82e9fd",
+              "hashes": {
+                "sha256": "3c79630202e4152c6add678446984236efe4f57e84d8e892aab0637bab82e9fd"
+              }
+            }
+          }
+        },
+        {
+          "name": "pytz",
+          "version": "2026.5",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/4f/ef/c66110d46fb800dda0bf33164182dfadabe26a90e4476844d502a23dca8e/pytz-2026.5-py2.py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=e658af3757f9e26a9d25dd2aff38335acd92bc9104f890a894b2c1ba28311b03",
+              "hashes": {
+                "sha256": "e658af3757f9e26a9d25dd2aff38335acd92bc9104f890a894b2c1ba28311b03"
+              }
+            }
+          }
+        },
+        {
+          "name": "PyYAML",
+          "version": "6.0.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/c7/4c/4a2908632fc980da6d918b9de9c1d9d7d7e70b2672b1ad5166ed27841ef7/PyYAML-6.0.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=a08c6f0fe150303c1c6b71ebcd7213c2858041a7e01975da3a99aed1e7a378ef",
+              "hashes": {
+                "sha256": "a08c6f0fe150303c1c6b71ebcd7213c2858041a7e01975da3a99aed1e7a378ef"
+              }
+            }
+          }
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+              "hashes": {
+                "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+              }
+            }
+          }
+        },
+        {
+          "name": "tzdata",
+          "version": "2026.5",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/94/21/1e5995a1c920cce14e4bffae20c665ec10e7ed03ab25e006cd741092b718/tzdata-2026.5-py2.py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac",
+              "hashes": {
+                "sha256": "b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac"
+              }
+            }
+          }
+        },
+        {
+          "name": "urllib3",
+          "version": "2.8.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+              "hashes": {
+                "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3"
+              }
+            }
+          }
+        },
+        {
+          "name": "wrapt",
+          "version": "2.5.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/b3/d5/3d4ad322af74d3ab2a14f69ba844cdd3edefb555edfc1c1976ec0112d5c4/wrapt-2.5.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=d6d274ec50a5b208be75596dc44ea253e65deaa6ee3a600babc86dafbb957dfc",
+              "hashes": {
+                "sha256": "d6d274ec50a5b208be75596dc44ea253e65deaa6ee3a600babc86dafbb957dfc"
+              }
+            }
+          }
+        },
+        {
+          "name": "annotated-types",
+          "version": "0.8.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+              "hashes": {
+                "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0"
+              }
+            }
+          }
+        },
+        {
+          "name": "requests",
+          "version": "2.34.2",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+              "hashes": {
+                "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0"
+              }
+            }
+          }
+        },
+        {
+          "name": "six",
+          "version": "1.17.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+              "hashes": {
+                "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
+              }
+            }
+          }
+        },
+        {
+          "name": "certifi",
+          "version": "2026.10.23",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+              "hashes": {
+                "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1"
+              }
+            }
+          }
+        },
+        {
+          "name": "charset-normalizer",
+          "version": "3.5.2",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/c9/87/2fea8c13dc24b3ca9c6f803a5b2dfdeae73eb4f9e12c7885ed908ff0433c/charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=b91363207bd9dc966a691e959bb47f64b30f7ac4b072be9968b366982f7db77c",
+              "hashes": {
+                "sha256": "b91363207bd9dc966a691e959bb47f64b30f7ac4b072be9968b366982f7db77c"
+              }
+            }
+          }
+        },
+        {
+          "name": "idna",
+          "version": "3.20",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+              "hashes": {
+                "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c"
+              }
+            }
+          }
+        }
+      ],
+      "wheelhouse": {
+        "schema_version": 1,
+        "files": {
+          "PyYAML-6.0.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "a08c6f0fe150303c1c6b71ebcd7213c2858041a7e01975da3a99aed1e7a378ef",
+          "annotated_types-0.8.0-py3-none-any.whl": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+          "certifi-2026.10.23-py3-none-any.whl": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+          "charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl": "b91363207bd9dc966a691e959bb47f64b30f7ac4b072be9968b366982f7db77c",
+          "confluent_kafka-2.5.0-cp312-cp312-manylinux_2_28_aarch64.whl": "fb863f76605e9bbbb1d7f02abf05899cf1435421aa721a5be212c600bd054aa3",
+          "docker-7.1.0-py3-none-any.whl": "c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0",
+          "idna-3.20-py3-none-any.whl": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+          "iniconfig-2.3.1-py3-none-any.whl": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7",
+          "neo4j-6.0.0-py3-none-any.whl": "708bf2ad34d470fe56f7e8d27164d5a44c6aa9345de28f0356c83040dd75e0f4",
+          "neo4j_rust_ext-6.0.0.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "6f5a33f9c9ca3a68bad45277c48c73406d0fa3194689dd2a2348d325a491e309",
+          "numpy-1.26.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "e5e18e5b14a7560d8acf1c596688f4dfd19b4f2945b245a71e5af4ddb7422feb",
+          "packaging-26.3-py3-none-any.whl": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+          "pandas-2.3.3-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl": "ecaf1e12bdc03c86ad4a7ea848d66c685cb6851d807a26aa245ca3d2017a1908",
+          "pluggy-1.7.0-py3-none-any.whl": "7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec",
+          "prometheus_client-0.20.0-py3-none-any.whl": "cde524a85bce83ca359cc837f28b8c0db5cac7aa653a588fd7e84ba061c329e7",
+          "psutil-7.2.2-cp36-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl": "b0726cecd84f9474419d67252add4ac0cd9811b04d61123054b9fb6f57df6e9e",
+          "pydantic-2.7.0-py3-none-any.whl": "9dee74a271705f14f9a1567671d144a851c675b072736f0a7b2608fd9e495352",
+          "pydantic_core-2.18.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "a3982b0a32d0a88b3907e4b0dc36809fda477f0757c59a505d4e9b455f384b8b",
+          "pygments-2.21.0-py3-none-any.whl": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+          "pytest-9.2.0-py3-none-any.whl": "07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588",
+          "python_dateutil-3.0.0-py2.py3-none-any.whl": "3c79630202e4152c6add678446984236efe4f57e84d8e892aab0637bab82e9fd",
+          "python_dotenv-1.2.4-py3-none-any.whl": "42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc",
+          "pytz-2026.5-py2.py3-none-any.whl": "e658af3757f9e26a9d25dd2aff38335acd92bc9104f890a894b2c1ba28311b03",
+          "requests-2.34.2-py3-none-any.whl": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+          "six-1.17.0-py2.py3-none-any.whl": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+          "testcontainers-4.15.0-py3-none-any.whl": "8796c14e76604031ad39cf0ed3b8e9806283a1fbf5270965c2b1c594caa31b74",
+          "typing_extensions-4.16.0-py3-none-any.whl": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+          "tzdata-2026.5-py2.py3-none-any.whl": "b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac",
+          "urllib3-2.8.0-py3-none-any.whl": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+          "wrapt-2.5.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl": "d6d274ec50a5b208be75596dc44ea253e65deaa6ee3a600babc86dafbb957dfc"
+        }
+      }
+    },
+    "current": {
+      "constraints": "config/support-matrix/current-linux-arm64-20261027.txt",
+      "constraints_sha256": "02ef90f03f694876924b9ae79b4bca29a71cdc4908f2d6d7cd271b2d19e52597",
+      "resolution_report_sha256": "d4516042403eed17468dd0566fb4611827452f0cef594af7db5622e7dbc16684",
+      "artifacts": [
+        {
+          "name": "neo4j-graph-loader",
+          "version": "0.1.0a1.dev0",
+          "download": {
+            "url": "file:///input/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=a804d26a8130ee7fcc06256327257b7a94476896bac6b151b68f1136c6b52391",
+              "hashes": {
+                "sha256": "a804d26a8130ee7fcc06256327257b7a94476896bac6b151b68f1136c6b52391"
+              }
+            }
+          }
+        },
+        {
+          "name": "pytest",
+          "version": "9.2.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/51/39/1f5d8c8877a0fa327db959c19341d4be61660de1ab6b7391f9eb805bcd67/pytest-9.2.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588",
+              "hashes": {
+                "sha256": "07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588"
+              }
+            }
+          }
+        },
+        {
+          "name": "testcontainers",
+          "version": "4.15.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/00/7e/424aac8b355597835deb333e757a0e94b5ccf38ad00f07fe6ed1f4e17c88/testcontainers-4.15.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=8796c14e76604031ad39cf0ed3b8e9806283a1fbf5270965c2b1c594caa31b74",
+              "hashes": {
+                "sha256": "8796c14e76604031ad39cf0ed3b8e9806283a1fbf5270965c2b1c594caa31b74"
+              }
+            }
+          }
+        },
+        {
+          "name": "psutil",
+          "version": "7.2.2",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/63/65/37648c0c158dc222aba51c089eb3bdfa238e621674dc42d48706e639204f/psutil-7.2.2-cp36-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=b0726cecd84f9474419d67252add4ac0cd9811b04d61123054b9fb6f57df6e9e",
+              "hashes": {
+                "sha256": "b0726cecd84f9474419d67252add4ac0cd9811b04d61123054b9fb6f57df6e9e"
+              }
+            }
+          }
+        },
+        {
+          "name": "pandas",
+          "version": "2.3.3",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/57/56/cf2dbe1a3f5271370669475ead12ce77c61726ffd19a35546e31aa8edf4e/pandas-2.3.3-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=ecaf1e12bdc03c86ad4a7ea848d66c685cb6851d807a26aa245ca3d2017a1908",
+              "hashes": {
+                "sha256": "ecaf1e12bdc03c86ad4a7ea848d66c685cb6851d807a26aa245ca3d2017a1908"
+              }
+            }
+          }
+        },
+        {
+          "name": "python-dotenv",
+          "version": "1.2.4",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/60/d1/38f3a3405989a89ac18390803e70c6ad7c7760da4f9b83cbeca0c44a0c72/python_dotenv-1.2.4-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc",
+              "hashes": {
+                "sha256": "42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc"
+              }
+            }
+          }
+        },
+        {
+          "name": "confluent-kafka",
+          "version": "2.16.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/49/6b/8d1c4dac153fbfd5c00a86c1301a0c2f3a37618ce7b68bf224690e015cfc/confluent_kafka-2.16.0-cp312-cp312-manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=0eabaccf63c08791db84d00e0ed800b9429a4765c0fa9cf462c3c64bc354a4b3",
+              "hashes": {
+                "sha256": "0eabaccf63c08791db84d00e0ed800b9429a4765c0fa9cf462c3c64bc354a4b3"
+              }
+            }
+          }
+        },
+        {
+          "name": "docker",
+          "version": "7.2.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/75/23/529140fe1aab80fc6992f93a706deec709140a6397439139a054e1515c45/docker-7.2.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=a3f45fdeb9165e2d25d9a1d02ddf3bc70fb572cf5ebbf9b58558c22caf29b71f",
+              "hashes": {
+                "sha256": "a3f45fdeb9165e2d25d9a1d02ddf3bc70fb572cf5ebbf9b58558c22caf29b71f"
+              }
+            }
+          }
+        },
+        {
+          "name": "iniconfig",
+          "version": "2.3.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7",
+              "hashes": {
+                "sha256": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7"
+              }
+            }
+          }
+        },
+        {
+          "name": "neo4j",
+          "version": "6.4.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/07/69/3036bdcacfba561c6ef4b00fe72529e0a1b6241a6b2de82572a0940a276b/neo4j-6.4.1-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=f56a281c74355522fc2642df8919bec450115431531b8f3f6fe1cc17acb57a27",
+              "hashes": {
+                "sha256": "f56a281c74355522fc2642df8919bec450115431531b8f3f6fe1cc17acb57a27"
+              }
+            }
+          }
+        },
+        {
+          "name": "neo4j-rust-ext",
+          "version": "6.4.1.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/49/39/3bf92ac463ebad9dcccede51071ce593a8e16703c8939cb02eea016b5214/neo4j_rust_ext-6.4.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=07fc1a44161c1bed483b2acf29ca363ab7412932d6808a443424ea57b6c6c4f8",
+              "hashes": {
+                "sha256": "07fc1a44161c1bed483b2acf29ca363ab7412932d6808a443424ea57b6c6c4f8"
+              }
+            }
+          }
+        },
+        {
+          "name": "numpy",
+          "version": "2.5.4",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/dc/96/8319e2457ae4333c62c815c7006b869a4f60985c1e01024c2f8c6c040fe5/numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=fe4d21ab149f15e4e6043dfb0de87e6e5f34ac176cde83060e9802981fca2ac2",
+              "hashes": {
+                "sha256": "fe4d21ab149f15e4e6043dfb0de87e6e5f34ac176cde83060e9802981fca2ac2"
+              }
+            }
+          }
+        },
+        {
+          "name": "packaging",
+          "version": "26.3",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+              "hashes": {
+                "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+              }
+            }
+          }
+        },
+        {
+          "name": "pluggy",
+          "version": "1.7.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/40/9e/2b38731e0fc536806f16490e1a12d7f0dc2a1235aa8cc07bcc75416a7daa/pluggy-1.7.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec",
+              "hashes": {
+                "sha256": "7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec"
+              }
+            }
+          }
+        },
+        {
+          "name": "prometheus_client",
+          "version": "0.26.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/eb/a3/b69efbf4143b5b9859b977770bbbabcc2796b702fa69dc40271e45cd5a56/prometheus_client-0.26.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=fa93d06737aa02bacd05794768508bb97d2fbee28cb3bca04eaae92f0ca953d6",
+              "hashes": {
+                "sha256": "fa93d06737aa02bacd05794768508bb97d2fbee28cb3bca04eaae92f0ca953d6"
+              }
+            }
+          }
+        },
+        {
+          "name": "pydantic",
+          "version": "2.14.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/35/ea/a56b9fe5066f3537b7882f77e9c5dfb26d8c2eefdaed9b5fc73d57b4dc22/pydantic-2.14.1-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=9195d967ec791692a04438115466764fb8b9a27b31f14a760437694f40d6b454",
+              "hashes": {
+                "sha256": "9195d967ec791692a04438115466764fb8b9a27b31f14a760437694f40d6b454"
+              }
+            }
+          }
+        },
+        {
+          "name": "pydantic_core",
+          "version": "2.50.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/d2/2d/862a7d115305cc621358e51ba13f296e0ffdf4fbd984be9f63bc7862730b/pydantic_core-2.50.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=c18db21573bd2c6489f9a544b7499f0df2853958c568e5e783536ee1f690af41",
+              "hashes": {
+                "sha256": "c18db21573bd2c6489f9a544b7499f0df2853958c568e5e783536ee1f690af41"
+              }
+            }
+          }
+        },
+        {
+          "name": "Pygments",
+          "version": "2.21.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+              "hashes": {
+                "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9"
+              }
+            }
+          }
+        },
+        {
+          "name": "python-dateutil",
+          "version": "3.0.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/5a/17/cebee01d1c0c1441174cf0456ddc91b280d79acb65340c05e41d77866ee8/python_dateutil-3.0.0-py2.py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=3c79630202e4152c6add678446984236efe4f57e84d8e892aab0637bab82e9fd",
+              "hashes": {
+                "sha256": "3c79630202e4152c6add678446984236efe4f57e84d8e892aab0637bab82e9fd"
+              }
+            }
+          }
+        },
+        {
+          "name": "pytz",
+          "version": "2026.5",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/4f/ef/c66110d46fb800dda0bf33164182dfadabe26a90e4476844d502a23dca8e/pytz-2026.5-py2.py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=e658af3757f9e26a9d25dd2aff38335acd92bc9104f890a894b2c1ba28311b03",
+              "hashes": {
+                "sha256": "e658af3757f9e26a9d25dd2aff38335acd92bc9104f890a894b2c1ba28311b03"
+              }
+            }
+          }
+        },
+        {
+          "name": "PyYAML",
+          "version": "6.0.3",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/ed/23/7a778b6bd0b9a8039df8b1b1d80e2e2ad78aa04171592c8a5c43a56a6af4/pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=9149cad251584d5fb4981be1ecde53a1ca46c891a79788c0df828d2f166bda28",
+              "hashes": {
+                "sha256": "9149cad251584d5fb4981be1ecde53a1ca46c891a79788c0df828d2f166bda28"
+              }
+            }
+          }
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+              "hashes": {
+                "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+              }
+            }
+          }
+        },
+        {
+          "name": "tzdata",
+          "version": "2026.5",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/94/21/1e5995a1c920cce14e4bffae20c665ec10e7ed03ab25e006cd741092b718/tzdata-2026.5-py2.py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac",
+              "hashes": {
+                "sha256": "b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac"
+              }
+            }
+          }
+        },
+        {
+          "name": "urllib3",
+          "version": "2.8.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+              "hashes": {
+                "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3"
+              }
+            }
+          }
+        },
+        {
+          "name": "wrapt",
+          "version": "2.5.1",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/b3/d5/3d4ad322af74d3ab2a14f69ba844cdd3edefb555edfc1c1976ec0112d5c4/wrapt-2.5.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=d6d274ec50a5b208be75596dc44ea253e65deaa6ee3a600babc86dafbb957dfc",
+              "hashes": {
+                "sha256": "d6d274ec50a5b208be75596dc44ea253e65deaa6ee3a600babc86dafbb957dfc"
+              }
+            }
+          }
+        },
+        {
+          "name": "annotated-types",
+          "version": "0.8.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+              "hashes": {
+                "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0"
+              }
+            }
+          }
+        },
+        {
+          "name": "requests",
+          "version": "2.34.2",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+              "hashes": {
+                "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0"
+              }
+            }
+          }
+        },
+        {
+          "name": "six",
+          "version": "1.17.0",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+              "hashes": {
+                "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
+              }
+            }
+          }
+        },
+        {
+          "name": "typing-inspection",
+          "version": "0.4.4",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/67/81/4add07e5172b7ac40d8ed5ff580409a7801a4fe26d529bdd915401dabfbe/typing_inspection-0.4.4-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+              "hashes": {
+                "sha256": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147"
+              }
+            }
+          }
+        },
+        {
+          "name": "certifi",
+          "version": "2026.10.23",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+              "hashes": {
+                "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1"
+              }
+            }
+          }
+        },
+        {
+          "name": "charset-normalizer",
+          "version": "3.5.2",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/c9/87/2fea8c13dc24b3ca9c6f803a5b2dfdeae73eb4f9e12c7885ed908ff0433c/charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+            "archive_info": {
+              "hash": "sha256=b91363207bd9dc966a691e959bb47f64b30f7ac4b072be9968b366982f7db77c",
+              "hashes": {
+                "sha256": "b91363207bd9dc966a691e959bb47f64b30f7ac4b072be9968b366982f7db77c"
+              }
+            }
+          }
+        },
+        {
+          "name": "idna",
+          "version": "3.20",
+          "download": {
+            "url": "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl",
+            "archive_info": {
+              "hash": "sha256=ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+              "hashes": {
+                "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c"
+              }
+            }
+          }
+        }
+      ],
+      "wheelhouse": {
+        "schema_version": 1,
+        "files": {
+          "annotated_types-0.8.0-py3-none-any.whl": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+          "certifi-2026.10.23-py3-none-any.whl": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+          "charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl": "b91363207bd9dc966a691e959bb47f64b30f7ac4b072be9968b366982f7db77c",
+          "confluent_kafka-2.16.0-cp312-cp312-manylinux_2_28_aarch64.whl": "0eabaccf63c08791db84d00e0ed800b9429a4765c0fa9cf462c3c64bc354a4b3",
+          "docker-7.2.0-py3-none-any.whl": "a3f45fdeb9165e2d25d9a1d02ddf3bc70fb572cf5ebbf9b58558c22caf29b71f",
+          "idna-3.20-py3-none-any.whl": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+          "iniconfig-2.3.1-py3-none-any.whl": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7",
+          "neo4j-6.4.1-py3-none-any.whl": "f56a281c74355522fc2642df8919bec450115431531b8f3f6fe1cc17acb57a27",
+          "neo4j_rust_ext-6.4.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "07fc1a44161c1bed483b2acf29ca363ab7412932d6808a443424ea57b6c6c4f8",
+          "numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl": "fe4d21ab149f15e4e6043dfb0de87e6e5f34ac176cde83060e9802981fca2ac2",
+          "packaging-26.3-py3-none-any.whl": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+          "pandas-2.3.3-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl": "ecaf1e12bdc03c86ad4a7ea848d66c685cb6851d807a26aa245ca3d2017a1908",
+          "pluggy-1.7.0-py3-none-any.whl": "7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec",
+          "prometheus_client-0.26.0-py3-none-any.whl": "fa93d06737aa02bacd05794768508bb97d2fbee28cb3bca04eaae92f0ca953d6",
+          "psutil-7.2.2-cp36-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl": "b0726cecd84f9474419d67252add4ac0cd9811b04d61123054b9fb6f57df6e9e",
+          "pydantic-2.14.1-py3-none-any.whl": "9195d967ec791692a04438115466764fb8b9a27b31f14a760437694f40d6b454",
+          "pydantic_core-2.50.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "c18db21573bd2c6489f9a544b7499f0df2853958c568e5e783536ee1f690af41",
+          "pygments-2.21.0-py3-none-any.whl": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+          "pytest-9.2.0-py3-none-any.whl": "07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588",
+          "python_dateutil-3.0.0-py2.py3-none-any.whl": "3c79630202e4152c6add678446984236efe4f57e84d8e892aab0637bab82e9fd",
+          "python_dotenv-1.2.4-py3-none-any.whl": "42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc",
+          "pytz-2026.5-py2.py3-none-any.whl": "e658af3757f9e26a9d25dd2aff38335acd92bc9104f890a894b2c1ba28311b03",
+          "pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl": "9149cad251584d5fb4981be1ecde53a1ca46c891a79788c0df828d2f166bda28",
+          "requests-2.34.2-py3-none-any.whl": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+          "six-1.17.0-py2.py3-none-any.whl": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+          "testcontainers-4.15.0-py3-none-any.whl": "8796c14e76604031ad39cf0ed3b8e9806283a1fbf5270965c2b1c594caa31b74",
+          "typing_extensions-4.16.0-py3-none-any.whl": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+          "typing_inspection-0.4.4-py3-none-any.whl": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+          "tzdata-2026.5-py2.py3-none-any.whl": "b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac",
+          "urllib3-2.8.0-py3-none-any.whl": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+          "wrapt-2.5.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl": "d6d274ec50a5b208be75596dc44ea253e65deaa6ee3a600babc86dafbb957dfc"
+        }
+      }
+    }
+  }
+}

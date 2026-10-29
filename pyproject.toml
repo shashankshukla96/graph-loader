@@ -6,12 +6,12 @@ build-backend = "setuptools.build_meta"
 name = "neo4j-graph-loader"
 dynamic = ["version"]
 dependencies = [
-    "neo4j>=5.20,<7",
+    "neo4j>=6.0,<7",
     "confluent-kafka>=2.5,<3",
     "pydantic>=2.7,<3",
-    "PyYAML>=6.0,<7",
+    "PyYAML>=6.0.1,<7",
     "docker>=7.1.0,<8",
-    "neo4j-rust-ext>=5.20,<7",
+    "neo4j-rust-ext>=6.0,<7",
     "numpy>=1.26,<3",
     "prometheus-client>=0.20,<1",
 ]

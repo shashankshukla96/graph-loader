@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 from email.parser import BytesParser
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -16,6 +18,16 @@ import time
 import zipfile
 
 import psutil
+
+if __package__:
+    from .installed_dependencies import read_constraints, read_wheelhouse, verify_versions
+else:
+    # Also support existing supervisors loading this file through a module spec.
+    _spec = importlib.util.spec_from_file_location('installed_dependencies', Path(__file__).with_name('installed_dependencies.py'))
+    _dependencies = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_dependencies)
+    read_constraints, read_wheelhouse, verify_versions = (
+        _dependencies.read_constraints, _dependencies.read_wheelhouse, _dependencies.verify_versions)
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = Path(__file__).resolve().parent
@@ -158,14 +170,18 @@ def cleanup_owned(provenance):
     return {'leftover_owned':leftover,'cleanup_errors':errors}
 
 
-def run(command, *, cwd, env, log, timeout, receipts, provenance=None):
+def run(command, *, cwd, env, log, timeout, receipts, provenance=None, stderr_log=None, allowed_exit_codes=(0,)):
+    if not allowed_exit_codes or any(type(code) is not int or not 0 <= code <= 255 for code in allowed_exit_codes):
+        raise ValueError('explicit finite nonnegative exit codes are required')
     started = time.monotonic()
     interruption = None
     timed_out = False
     cleanup_errors = []
-    with log.open('wb') as output:
+    with ExitStack() as streams:
+        output = streams.enter_context(log.open('wb'))
+        errors = streams.enter_context(stderr_log.open('wb')) if stderr_log else subprocess.STDOUT
         process = subprocess.Popen(command, cwd=cwd, env=env, stdout=output,
-                                   stderr=subprocess.STDOUT, start_new_session=True)
+                                   stderr=errors, start_new_session=True)
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -209,11 +225,235 @@ def run(command, *, cwd, env, log, timeout, receipts, provenance=None):
                    'log': str(log), 'log_sha256': sha(log.read_bytes()), 'owned_cleanup': cleanup}
             if interruption is not None:
                 row['interruption'] = type(interruption).__name__
+            if stderr_log is not None:
+                row.update(stderr_log=str(stderr_log), stderr_sha256=sha(stderr_log.read_bytes()))
+            if allowed_exit_codes != (0,):
+                row['allowed_exit_codes'] = list(allowed_exit_codes)
             receipts.append(row)
     if interruption is not None:
         raise interruption
-    if timed_out or process.returncode or cleanup['leftover_owned'] or cleanup['cleanup_errors']:
+    if timed_out or process.returncode not in allowed_exit_codes or cleanup['leftover_owned'] or cleanup['cleanup_errors']:
         raise RuntimeError('command failed; retained output: ' + str(log))
+
+
+def validate_wheel(wheel, data):
+    """Require the same frozen application/distribution contract in every lane."""
+    if wheel.suffix != '.whl':
+        raise ValueError('an explicit wheel file is required')
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+        if len(names) != len(set(names)):
+            raise ValueError('duplicate wheel member')
+        actual = {n: sha(archive.read(n)) for n in names if n.startswith('neo4j_graph_loader/')}
+        version = data['package_version']
+        dist = f'neo4j_graph_loader-{version}.dist-info'
+        allowed = set(data['package_payload']) | {f'{dist}/{n}' for n in (
+            'METADATA', 'WHEEL', 'top_level.txt', 'RECORD', 'licenses/LICENSE', 'entry_points.txt')}
+        if set(names) != allowed:
+            raise ValueError('wheel contains missing or unexpected archive members')
+        metadata = BytesParser().parsebytes(archive.read(f'{dist}/METADATA'))
+        if metadata['Name'] != 'neo4j-graph-loader' or metadata['Version'] != version or metadata.get_all('Provides-Extra'):
+            raise ValueError('unexpected wheel identity or extras')
+        distribution={n:sha(archive.read(n)) for n in names if n.startswith(dist+'/')}
+        if distribution != data.get('distribution_files'):
+            raise ValueError('wheel metadata differs from frozen distribution contract')
+    if actual != data['package_payload']:
+        raise ValueError('wheel payload differs from frozen application inventory')
+    return actual, version, distribution
+
+
+def validate_provenance(path, *, config=None, site=None):
+    """Require receipt-bound startup/import/child and post-exec identities."""
+    provenance = [json.loads(line) for line in path.read_text().splitlines()]
+    processes = {row['pid'] for row in provenance if row['kind'] == 'process'}
+    expected = {row['child_pid'] for row in provenance if row['kind'] == 'python_child'}
+    if expected - processes or any(row['kind'] == 'violation' for row in provenance):
+        raise RuntimeError('missing or violated Python child provenance')
+    last_start = {}
+    for row in provenance:
+        if row['kind'] == 'process':
+            last_start[(row['pid'], row['created'])] = row['tick']
+    if any(row['kind'] == 'exec' and row['tick'] >= last_start.get((row['pid'], row['created']), -1) for row in provenance):
+        raise RuntimeError('missing fresh post-exec Python provenance')
+    if any(row['kind'] == 'python_child' and row['child_created'] is not None and
+           (row['child_pid'], row['child_created']) not in last_start for row in provenance):
+        raise RuntimeError('child process creation identity differs from provenance')
+    if not any(row['kind'] == 'module' for row in provenance):
+        raise RuntimeError('no application import provenance observed')
+    if config is not None:
+        for row in provenance:
+            if row['kind'] == 'process' and (Path(row['prefix']).resolve() != Path(config['prefix']).resolve()
+                                           or Path(row['site']).resolve() != site.resolve()):
+                raise RuntimeError('case startup differs from target environment/site')
+            if row['kind'] == 'module':
+                origin = Path(row['origin'])
+                if (not origin.is_relative_to(site) or
+                        config['payload'].get(origin.relative_to(site).as_posix()) != row['sha256'] or
+                        (row['pid'], row['created']) not in last_start):
+                    raise RuntimeError('case application origin/hash/identity differs from installed payload')
+            if row['kind'] == 'python_child' and not any(
+                    start['kind'] == 'process' and start['pid'] == row['child_pid']
+                    and start['ppid'] == row['pid'] and start['tick'] >= row['launch_tick']
+                    and (row['child_created'] is None or start['created'] == row['child_created'])
+                    for start in provenance):
+                raise RuntimeError('case child startup is not bound to its parent/launch/creation identity')
+    return processes, expected
+
+
+def process_cases():
+    """Explicit measured points; no claim about unmeasured interior counts."""
+    normal = [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64]
+    failure = [1, 2, 4, 8, 64]
+    cases = []
+    for context in ('spawn', 'inline'):
+        cases.extend(dict(scenario='external-success', context=context, workers=n, mode='timeout') for n in normal)
+    for n in failure:
+        for scenario in ('external-nonpicklable', 'external-source-error', 'external-worker-exit'):
+            cases.append(dict(scenario=scenario, context='spawn', workers=n, mode='timeout'))
+        cases.append(dict(scenario='external-source-error', context='inline', workers=n, mode='timeout'))
+        for scenario in ('private-recv', 'private-send', 'public-blocked', 'public-partial', 'public-send', 'public-many'):
+            for mode in ('timeout', 'cancel'):
+                cases.append(dict(scenario=scenario, context='spawn', workers=n, mode=mode))
+        for scenario in ('public-cold', 'public-stop', 'public-source-error', 'public-gap'):
+            cases.append(dict(scenario=scenario, context='spawn', workers=n, mode='timeout'))
+        if n >= 2:
+            for scenario in ('public-startup', 'public-mixed-error-default', 'public-mixed-error-timeout'):
+                cases.append(dict(scenario=scenario, context='spawn', workers=n, mode='timeout'))
+    return cases
+
+
+def validate_fault_children(observed, case, rows, processes, expected):
+    """Bind actual workers; retain truthful import evidence during early cleanup."""
+    children = observed['child_pids']
+    actual = 2 if case['scenario'] == 'public-startup' else case['workers']
+    if len(children) != actual or len(set(children)) != actual:
+        raise RuntimeError('fault child identities differ from actual launched workers')
+    partial_start = case['scenario'] == 'public-startup'
+    cold_timeout = case['scenario'] == 'public-cold'
+    if partial_start and (observed['clock_anchor'] is not None or observed['error'] != 'RuntimeError'
+                          or 'second process started then failed' not in observed['failure_marker']):
+        raise RuntimeError('partial-startup observation does not establish the intended second-start failure')
+    if cold_timeout and (observed['clock_anchor'] is None or observed['prepared_transport']
+                         or observed['error'] != 'EdgePlanTimeoutError' or observed['configured_timeout'] != .8):
+        raise RuntimeError('cold timeout observation does not establish its unmodified operation clock')
+    imports = {}
+    for pid in children:
+        if pid == observed['client_pid'] or pid not in processes or pid not in expected or not any(
+                item['kind'] == 'python_child' and item['pid'] == observed['client_pid'] and item['child_pid'] == pid
+                for item in rows):
+            raise RuntimeError('fault child identities lack bound target launch/startup provenance')
+        modules = [item['module'] for item in rows if item['kind'] == 'module' and item['pid'] == pid]
+        # The second start intentionally raises immediately after its audited
+        # Python startup. Cleanup can kill either child before an application
+        # import. Prefix/site and complete payload were verified at startup;
+        # never manufacture an import record for code it did not execute.
+        # The separate cold-deadline case can likewise terminate a booting
+        # child; its ordinary clock/error contract is checked above.
+        if 'neo4j_graph_loader.planning' not in modules and not (partial_start or cold_timeout):
+            raise RuntimeError('fault child lacks actual installed planning-module import provenance')
+        imports[str(pid)] = modules
+    return {'actual_child_imports': imports, 'partial_second_start': partial_start, 'cold_timeout': cold_timeout,
+            'children_without_application_import_receipt': [int(pid) for pid, modules in imports.items()
+                                                            if 'neo4j_graph_loader.planning' not in modules]}
+
+
+def run_process_envelope(python, stage, work, env, site, config, stage_files):
+    """Execute frozen clients with isolated per-case guard logs, restoring config."""
+    directory = work/'process-envelope'
+    directory.mkdir(mode=0o700)
+    config_path = site/'_e07_guard_config.json'
+    original = config_path.read_bytes()
+    results = []
+    failure = None
+    try:
+        for case in process_cases():
+            label = f"{case['scenario']}-{case['context']}-{case['workers']}-{case['mode']}"
+            output = directory/label
+            output.mkdir(mode=0o700)
+            provenance = output/'provenance.jsonl'
+            case_config = {**config, 'provenance_log': str(provenance)}
+            commands = []
+            row = {**case, 'label': label}
+            try:
+                if any(sha((stage/name).read_bytes()) != digest or (stage/name).is_symlink()
+                       for name, digest in stage_files.items()):
+                    raise RuntimeError('process client stage differs from frozen fixture closure')
+                config_path.write_text(json.dumps(case_config))
+                run([str(python), str(stage/'plan/library-implementation/tools/run_e04_fault.py'),
+                     case['scenario'], '--context', case['context'], '--workers', str(case['workers']),
+                     '--mode', case['mode'], '--hard-timeout', '180', '--python', str(python),
+                     '--output', str(output/'client')], cwd=stage, env=env,
+                    log=output/'command.log', timeout=200, receipts=commands, provenance=provenance)
+                controller = json.loads((output/'client/supervisor.json').read_text())
+                observed = json.loads((output/'client/client.json').read_text())
+                if controller['exit_code'] or controller['timeout'] or controller['emergency_group_cleanup']:
+                    raise RuntimeError('case required emergency supervision or failed')
+                processes, expected = validate_provenance(provenance, config=case_config, site=site)
+                provenance_rows = [json.loads(line) for line in provenance.read_text().splitlines()]
+                client_pid = observed['client_pid']
+                if client_pid not in processes:
+                    raise RuntimeError('case client lacks an actual target startup identity')
+                if case['scenario'].startswith('external-'):
+                    if observed['status'] != 'observed' or observed['workers'] != case['workers'] or observed['context'] != case['context']:
+                        raise RuntimeError('external client observation differs from explicit cell')
+                    successful = case['scenario'] == 'external-success'
+                    if observed['caller_method'] != observed['caller_method_after'] or observed['operation_cleanup_upper_seconds'] >= 10:
+                        raise RuntimeError('external caller method or cleanup contract failed')
+                    if successful and (len(observed['source_identities']) != 64 or observed['rows'] != 192 or observed['planner_workers'] != case['workers']):
+                        raise RuntimeError('external success lacks complete source/data/worker observation')
+                    identities = [observed['client_pid'], *[source['pid'] for source in observed['source_identities']]]
+                    created_workers = sorted({item['child_pid'] for item in provenance_rows
+                        if item['kind'] == 'python_child' and item['pid'] == client_pid
+                        and '--multiprocessing-fork' in item.get('command', [])})
+                    if (case['context'] == 'inline' and created_workers) or len(created_workers) > case['workers']:
+                        raise RuntimeError('external client created workers outside its explicit context/capacity')
+                    if case['context'] == 'spawn' and case['scenario'] != 'external-nonpicklable' and len(created_workers) != case['workers']:
+                        raise RuntimeError('external process worker count differs from requested capacity')
+                    row.update(requested_parallelism=case['workers'], actual_created_process_workers=len(created_workers),
+                               actual_process_worker_pids=created_workers,
+                               initial_submission_failure=case['scenario'] == 'external-nonpicklable')
+                    if any(pid not in processes or not any(
+                            item['kind'] == 'module' and item['pid'] == pid and item['module'] == 'neo4j_graph_loader.planning'
+                            for item in provenance_rows) for pid in identities):
+                        raise RuntimeError('external source identity lacks actual installed planning-module provenance')
+                else:
+                    actual = 2 if case['scenario'] == 'public-startup' else case['workers']
+                    if observed['actual_workers'] != actual or observed['context'] != 'spawn':
+                        raise RuntimeError('fault observation differs from actual launched workers')
+                    row['worker_provenance'] = validate_fault_children(observed, case, provenance_rows, processes, expected)
+                    if case['scenario'].startswith('public-'):
+                        if not observed['production_children_dead'] or not observed['production_endpoints_closed'] or observed['active_child_pids']:
+                            raise RuntimeError('fault case left production resources alive')
+                        if observed['prepared_transport'] and (observed['blocked_peer_count'] != observed['expected_blocked_peers']
+                                or observed['partial_reply_peer_count'] != observed['expected_partial_reply_peers']):
+                            raise RuntimeError('prepared fault peer activation incomplete')
+                    elif not observed['children_dead'] or not observed['endpoints_closed'] or not observed['fixture_timer_dead']:
+                        raise RuntimeError('private case cleanup incomplete')
+                row.update(status='passed', observation=observed, processes=sorted(processes), expected_children=sorted(expected))
+            except BaseException as error:
+                row.update(status='failed', error=str(error), interruption=type(error).__name__)
+                raise
+            finally:
+                row['commands'] = commands
+                results.append(row)
+                (output/'result.json').write_text(json.dumps(row, indent=2)+'\n')
+                (directory/'result.json').write_text(json.dumps({'cases': results, 'complete': False}, indent=2)+'\n')
+    except BaseException as error:
+        failure = error
+        raise
+    finally:
+        try:
+            config_path.write_bytes(original)
+            if config_path.read_bytes() != original:
+                raise RuntimeError('target provenance configuration was not restored')
+            (directory/'guard-configuration.json').write_text(json.dumps({'restored': True, 'sha256': sha(original)})+'\n')
+        except BaseException as error:
+            if failure is None or not isinstance(error, Exception):
+                raise
+            failure.add_note('target guard restoration failed: '+str(error))
+    result = {'cases': results, 'complete': True, 'guard_configuration_restored': True}
+    (directory/'result.json').write_text(json.dumps(result, indent=2)+'\n')
+    return result
 
 
 def main(argv=None):
@@ -224,37 +464,27 @@ def main(argv=None):
     parser.add_argument('--output', type=Path, help='new output directory, outside the checkout')
     parser.add_argument('--collect-only', action='store_true')
     parser.add_argument('--timeout', type=float, default=900)
+    parser.add_argument('--constraints', type=Path, help='exact finite name==version pins for runtime and test tools')
+    parser.add_argument('--wheelhouse', type=Path, help='offline directory containing only manifested dependency wheels')
+    parser.add_argument('--wheelhouse-manifest', type=Path, help='version1 files/hash JSON; required with --wheelhouse')
+    parser.add_argument('--process-envelope', action='store_true', help='explicit full E08 process matrix after public-contracts regression')
     args = parser.parse_args(argv)
     if not 0 < args.timeout <= 3600:
         parser.error('--timeout must be positive and at most3600 seconds')
+    if args.process_envelope and (args.lane != 'public-contracts' or args.collect_only):
+        parser.error('--process-envelope requires an executed public-contracts lane')
     receipts = []
     work = None
     owned = False
     try:
+        if bool(args.wheelhouse) != bool(args.wheelhouse_manifest) or (args.wheelhouse and not args.constraints):
+            raise ValueError('offline wheelhouse requires constraints and its explicit hash manifest')
+        constraints = read_constraints(args.constraints) if args.constraints else None
+        wheelhouse = read_wheelhouse(args.wheelhouse, args.wheelhouse_manifest, constraints['pins']) if args.wheelhouse else None
         data = json.loads(args.inventory.read_text())
         lane = validate_inventory(data, args.lane)
         wheel = args.wheel.resolve(strict=True)
-        if wheel.suffix != '.whl':
-            raise ValueError('an explicit wheel file is required')
-        with zipfile.ZipFile(wheel) as archive:
-            names = archive.namelist()
-            if len(names) != len(set(names)):
-                raise ValueError('duplicate wheel member')
-            actual = {n: sha(archive.read(n)) for n in names if n.startswith('neo4j_graph_loader/')}
-            version = data['package_version']
-            dist = f'neo4j_graph_loader-{version}.dist-info'
-            allowed = set(data['package_payload']) | {f'{dist}/{n}' for n in (
-                'METADATA', 'WHEEL', 'top_level.txt', 'RECORD', 'licenses/LICENSE', 'entry_points.txt')}
-            if set(names) != allowed:
-                raise ValueError('wheel contains missing or unexpected archive members')
-            metadata = BytesParser().parsebytes(archive.read(f'{dist}/METADATA'))
-            if metadata['Name'] != 'neo4j-graph-loader' or metadata['Version'] != version or metadata.get_all('Provides-Extra'):
-                raise ValueError('unexpected wheel identity or extras')
-            distribution={n:sha(archive.read(n)) for n in names if n.startswith(dist+'/')}
-            if distribution != data.get('distribution_files'):
-                raise ValueError('wheel metadata differs from frozen distribution contract')
-        if actual != data['package_payload']:
-            raise ValueError('wheel payload differs from frozen application inventory')
+        actual, version, distribution = validate_wheel(wheel, data)
         if args.output:
             requested = args.output.absolute()
             work = requested.parent.resolve() / requested.name
@@ -295,8 +525,32 @@ def main(argv=None):
         requirements = data.get('test_requirements', []) + lane.get('extra_test_requirements', [])
         if not requirements or any(not isinstance(r, str) or r.startswith('-') for r in requirements):
             raise ValueError('explicit runner test requirements are required')
-        run([str(python), '-m', 'pip', 'install', str(wheel), *requirements],
+        install_options = []
+        dependency_inputs = None
+        if constraints:
+            frozen_constraints = work/'constraints.txt'
+            frozen_constraints.write_bytes(constraints['content'])
+            install_options = ['--constraint', str(frozen_constraints), '--report', str(work/'install-report.json')]
+            dependency_inputs = {k: v for k, v in constraints.items() if k != 'content'}
+            if wheelhouse:
+                frozen_wheels = work/'wheelhouse'
+                frozen_wheels.mkdir(mode=0o700)
+                for name, content in wheelhouse['contents'].items():
+                    (frozen_wheels/name).write_bytes(content)
+                install_options += ['--no-index', '--find-links', str(frozen_wheels), '--only-binary=:all:']
+                dependency_inputs['wheelhouse'] = {k: v for k, v in wheelhouse.items() if k != 'contents'}
+        run([str(python), '-m', 'pip', *(['--isolated'] if constraints else []), 'install',
+             *install_options, str(wheel), *requirements],
             cwd=stage, env=env, log=work/'install.log', timeout=600, receipts=receipts)
+        if constraints:
+            inventory_code = '''import importlib.metadata,json,sys
+from pathlib import Path
+Path(sys.argv[1]).write_text(json.dumps({d.metadata['Name']:d.version for d in importlib.metadata.distributions()},sort_keys=True))
+'''
+            run([str(python), '-I', '-c', inventory_code, str(work/'installed-versions.json')],
+                cwd=stage, env=env, log=work/'versions.log', timeout=30, receipts=receipts)
+            dependency_inputs['installed_versions'] = verify_versions(
+                json.loads((work/'installed-versions.json').read_text()), constraints['pins'], version)
         site_result = subprocess.check_output([str(python), '-I', '-c',
             'import sysconfig;print(sysconfig.get_paths()["purelib"])'], cwd=stage, env=env, text=True, timeout=30)
         site = Path(site_result.strip())
@@ -327,22 +581,8 @@ raise SystemExit(pytest.main(args,plugins=[plugin]))
         pytest_receipt=json.loads((work/'pytest.json').read_text())
         if pytest_receipt['errors'] or pytest_receipt['collected']!=lane['test_ids'] or pytest_receipt['pytest_exit_code']:
             raise RuntimeError('missing or failed final pytest receipt')
-        provenance = [json.loads(line) for line in (work/'provenance.jsonl').read_text().splitlines()]
-        processes = {row['pid'] for row in provenance if row['kind'] == 'process'}
-        expected = {row['child_pid'] for row in provenance if row['kind'] == 'python_child'}
-        if expected - processes or any(row['kind'] == 'violation' for row in provenance):
-            raise RuntimeError('missing or violated Python child provenance')
-        last_start={}
-        for row in provenance:
-            if row['kind']=='process':
-                last_start[(row['pid'],row['created'])]=row['tick']
-        if any(row['kind']=='exec' and row['tick']>=last_start.get((row['pid'],row['created']),-1) for row in provenance):
-            raise RuntimeError('missing fresh post-exec Python provenance')
-        if any(row['kind']=='python_child' and row['child_created'] is not None and
-               (row['child_pid'],row['child_created']) not in last_start for row in provenance):
-            raise RuntimeError('child process creation identity differs from provenance')
-        if not any(row['kind'] == 'module' for row in provenance):
-            raise RuntimeError('no application import provenance observed')
+        processes, expected = validate_provenance(work/'provenance.jsonl')
+        envelope = run_process_envelope(python, stage, work, env, site, config, lane['stage_files']) if args.process_envelope else None
         run([str(python), '-I', '-m', 'pip', 'check'], cwd=stage, env=env,
             log=work/'pip-check.log', timeout=60, receipts=receipts)
         result = {'status': 'passed', 'lane': args.lane, 'wheel': str(wheel),
@@ -350,8 +590,14 @@ raise SystemExit(pytest.main(args,plugins=[plugin]))
                   'stage_files': lane['stage_files'], 'test_ids': lane['test_ids'],
                   'python': str(python), 'work': str(work), 'commands': receipts,
                   'provenance_processes': sorted(processes), 'expected_python_children': sorted(expected),
-                  'runner_tools': {p.name: sha(p.read_bytes()) for p in (Path(__file__), TOOLS/'installed_guard.py', TOOLS/'installed_pytest.py')},
+                  'runner_tools': {p.name: sha(p.read_bytes()) for p in (Path(__file__), TOOLS/'installed_guard.py', TOOLS/'installed_pytest.py', TOOLS/'installed_dependencies.py')},
                   'payload_members': len(actual), 'collect_only': args.collect_only}
+        if dependency_inputs is not None:
+            result['dependency_inputs'] = dependency_inputs
+        if envelope is not None:
+            path = work/'process-envelope/result.json'
+            result['process_envelope'] = {'path': str(path), 'sha256': sha(path.read_bytes()),
+                                          'cases': len(envelope['cases']), 'complete': envelope['complete']}
         result['generated_stage_files'] = {name: sha((stage/name).read_bytes())
                                            for name in ('pytest.ini', 'e07-stage-files.json')}
         result['distribution_files']=distribution
