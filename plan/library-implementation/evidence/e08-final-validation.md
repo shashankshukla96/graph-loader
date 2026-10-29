@@ -1,7 +1,10 @@
 # E08 final validation — 2026-10-28
 
-**Final implementation and all actual execution gates are independently accepted.
-Local delivery and actual committed/current equality are pending.** The two ordered stories are independently accepted.
+**E08 is independently accepted and delivered locally** in
+`410ae7fc413227058ea34a01992fde1183da9fa9`. [Postcommit proof](e08-postcommit-20261028.json)
+verifies all319 tested/committed/current inputs by bytes, sizes and exact Git
+modes, with the development environment unchanged. The two ordered stories are
+independently accepted.
 No E09 execution, push, package/image upload, Git tag, workflow or publication.
 
 [Full machine proof](e08-final.json) retains actual commands, exits, origins,
@@ -134,13 +137,14 @@ suppressed or counted as a project-owned fork warning. Expected librdkafka
 negative/owned-broker-teardown disconnect diagnostics remain unfiltered. Required
 infrastructure gates have no silent skip.
 
-## Remaining acceptance and delivery boundary
+## Acceptance and delivery record
 
 [Fresh final adversarial acceptance](../reviews/e08-final-adversarial-review-20261028.md)
 records no actionable finding. Its report SHA256 is
 `e7abf6c3736069566dc78330cf87cb0a045d308d3e5754ea5f70bf5595287c27`.
-Final plan/link/staging inspection, local commit and actual tested/committed/
-current per-file equality are the remaining delivery steps. The
-[tracker](../CHANGE_TRACKER.md) must record the real full delivery SHA only after
-those steps. The documentation follow-up's own SHA comes from Git history;
-no recursive tracker hash or placeholder delivery identity is used.
+Plan rendering,289 local link targets and staging inspection passed before the
+actual local delivery `410ae7fc413227058ea34a01992fde1183da9fa9`. The [postcommit proof](e08-postcommit-20261028.json)
+records all319 actual blob/current/tested identities. HEAD and newly tracked
+bookkeeping change the aggregate identity; direct bytes/sizes/modes remain equal.
+The documentation follow-up's own SHA comes from Git history, with no recursive
+tracker hash. No push, upload, Git tag, workflow, publication or E09 execution.

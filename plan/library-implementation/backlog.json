@@ -1162,7 +1162,7 @@
       "scope": "Only expand the matrix through a revised support decision and matching tests; no broad OS-independent claim by assumption.",
       "exit_gate": "Every advertised matrix cell passes or is removed from the contract; unavailable environments are a release blocker, not a silent skip.",
       "review_status": "approved",
-      "implementation_status": "complete; final independently accepted2026-10-28; local delivery/equality pending",
+      "implementation_status": "complete; independently accepted and locally delivered2026-10-28",
       "features": [
         {
           "id": "E08.F1",

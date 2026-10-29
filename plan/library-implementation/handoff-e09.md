@@ -4,7 +4,9 @@ Prepared2026-10-28. **E09 is not started or authorized by this E08 delivery.**
 Begin only when the user requests it after actual E08 final independent acceptance,
 local delivery and tested/committed/current equality are recorded in
 [the tracker](CHANGE_TRACKER.md), [final validation](evidence/e08-final-validation.md)
-and its actual postcommit proof. Obtain the real full delivery SHA there/Git log;
+and [postcommit proof](evidence/e08-postcommit-20261028.json). E08 local delivery
+is `410ae7fc413227058ea34a01992fde1183da9fa9`; all319 tested/committed/current inputs and the
+development environment agree. Obtain the documentation follow-up SHA from Git log;
 never substitute a placeholder or invent a registry digest. No push, upload,
 Git tag, publication, workflow or E10–E12 execution is authorized.
 

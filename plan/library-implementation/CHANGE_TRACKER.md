@@ -5,7 +5,7 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E08 independently accepted, local delivery pending,2026-10-28:**
+**Current gate — E08 independently accepted and delivered locally,2026-10-28:**
 [Fresh final adversarial review](reviews/e08-final-adversarial-review-20261028.md)
 accepts the exact implementation and all actual validation gates with no open
 finding. Both ordered stories are complete; [full S2 review](reviews/e08-s2-full-review-20261028.md)
@@ -20,8 +20,10 @@ no-skip B3 and fresh installed13-node/12-edge service proof with cleanup.
 All319 tested inputs and development environment remain unchanged. Reviewed
 PyYAML/paired-driver floors, warning/source/transport fixes, every rejected or
 superseded result and isolated final-harness recovery controls are retained.
-No placeholder delivery identity is claimed: staging inspection, actual local
-commit and tested/Git/current per-file equality are the remaining delivery steps.
+Local delivery is `410ae7fc413227058ea34a01992fde1183da9fa9`. [Postcommit equality](evidence/e08-postcommit-20261028.json)
+verifies all319 tested/committed/current input bytes, sizes and exact Git modes,
+plus unchanged development environment. This documentation-only follow-up
+records that actual SHA; its own identity comes from Git history.
 [E09 handoff](handoff-e09.md) is conditioned on completed E08 delivery and a new
 user request. E09–E12, push, upload, Git tag, workflow and publication remain
 unexecuted. Prior E08 progress is retained in story/review/raw evidence.
