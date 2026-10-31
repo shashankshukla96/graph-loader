@@ -34,7 +34,11 @@ EXTRA_LANES = {
 }
 SERVICE_LANES = {
     'service-harness': ('tests/installed_service/test_observer_controls.py', 'tests/installed_service/test_query_window_controls.py', 'tests/installed_service/test_service_harness.py',
-                        'tests/installed_service/test_service_log_continuity_live.py', 'tests/installed_service/test_service_bulk.py'),
+                        'tests/installed_service/test_service_lease_stream.py',
+                        'tests/installed_service/test_service_load_bulk.py',
+                        # Collection order is alphabetical. The destructive log-continuity control moves the query log away,
+                        # so it must sort (and run) last: keep "load" before "log".
+                        'tests/installed_service/test_service_log_continuity_live.py'),
 }
 SERVICE_EXTRA_FILES = {'service-harness': ('config/neo4j/server-logs.xml',)}
 SERVICE_REASON = {

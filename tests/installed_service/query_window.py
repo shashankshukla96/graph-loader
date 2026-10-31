@@ -16,8 +16,7 @@ import time
 
 from .structured_query_log import completed_for, events
 
-# The scratch server's log accumulates over the whole service-harness session (its tests share one server).
-MAX_LOG = 32 * 1024 * 1024
+MAX_LOG = 8 * 1024 * 1024
 
 
 @dataclass(frozen=True)

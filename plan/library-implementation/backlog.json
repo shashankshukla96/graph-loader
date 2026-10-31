@@ -1244,7 +1244,7 @@
       "scope": "Use throwaway services/scratch databases and the locally identified candidate images. The loaded remote IMDb graph is never a test fixture to reset.",
       "exit_gate": "Every supported mode and ordering case has an executed result with graph/offset/cleanup evidence; unsupported cases are explicitly documented and excluded from guarantees.",
       "review_status": "approved",
-      "implementation_status": "in progress; E09.F1.S7 live harness complete; S1 (planned bulk) in progress; S2\u2013S5 and F2.S1 planned (plan reset 2026-10-31, D08)",
+      "implementation_status": "in progress; E09.F1.S7 and S1 complete; S2\u2013S5 and F2.S1 planned (plan reset 2026-10-31, D08)",
       "features": [
         {
           "id": "E09.F1",
@@ -1288,7 +1288,7 @@
                 "E09.F1.S7"
               ],
               "changes": [
-                "Installed planned-load integration harness; candidate image manifest; small deterministic fixture"
+                "tests/installed_service/bulk_fixture.py and test_service_load_bulk.py in the service-harness lane; live_cli.py kill support; query_window.py/structured_query_log.py handle failed and client-abandoned queries; scripts/freeze_installed_inventory.py lane file list"
               ],
               "acceptance": [
                 "Assert source-derived graph counts/properties, plan digest, every chunk exactly once in the ledger and expected offsets.",
@@ -1301,7 +1301,7 @@
                 "Use a positive-control lock-wait probe so a zero result is meaningful; record version/topology."
               ],
               "evidence": "evidence/E09.F1.S1.md",
-              "status": "in progress; exploration runs done, harness defect open (see e09-s1-design-note.md)"
+              "status": "complete 2026-10-31 (implementer self-check, orchestrator-verified lane run final-6; covered by the E09 independent review before the exit gate)"
             },
             {
               "id": "E09.F1.S2",

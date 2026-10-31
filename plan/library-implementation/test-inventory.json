@@ -5372,8 +5372,9 @@
         "tests/installed_service/test_observer_controls.py",
         "tests/installed_service/test_query_window_controls.py",
         "tests/installed_service/test_service_harness.py",
-        "tests/installed_service/test_service_log_continuity_live.py",
-        "tests/installed_service/test_service_bulk.py"
+        "tests/installed_service/test_service_lease_stream.py",
+        "tests/installed_service/test_service_load_bulk.py",
+        "tests/installed_service/test_service_log_continuity_live.py"
       ],
       "test_ids": [
         "tests/installed_service/test_observer_controls.py::test_foreign_container_events_are_never_adopted",
@@ -5460,11 +5461,6 @@
         "tests/installed_service/test_query_window_controls.py::test_a_window_counts_an_open_query_as_one_record_and_never_hides_missing_ones",
         "tests/installed_service/test_query_window_controls.py::test_an_end_without_a_start_is_still_rejected_when_open_queries_are_allowed",
         "tests/installed_service/test_query_window_controls.py::test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice",
-        "tests/installed_service/test_service_bulk.py::test_b1_planned_bulk_clean_small_fixture",
-        "tests/installed_service/test_service_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]",
         "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings",
         "tests/installed_service/test_service_harness.py::test_h2_candidate_image_identity",
         "tests/installed_service/test_service_harness.py::test_h3_installed_package_provenance",
@@ -5472,6 +5468,15 @@
         "tests/installed_service/test_service_harness.py::test_h5_neo4j_outage_and_termination_controls",
         "tests/installed_service/test_service_harness.py::test_h6_lock_wait_detector_positive_and_negative_controls",
         "tests/installed_service/test_service_harness.py::test_h7_no_helper_process_outlives_its_test",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed",
+        "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture",
+        "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]",
         "tests/installed_service/test_service_log_continuity_live.py::test_live_truncation_and_rotation_fail_closed"
       ],
       "collected_test_ids": [
@@ -5559,11 +5564,6 @@
         "tests/installed_service/test_query_window_controls.py::test_a_window_counts_an_open_query_as_one_record_and_never_hides_missing_ones",
         "tests/installed_service/test_query_window_controls.py::test_an_end_without_a_start_is_still_rejected_when_open_queries_are_allowed",
         "tests/installed_service/test_query_window_controls.py::test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice",
-        "tests/installed_service/test_service_bulk.py::test_b1_planned_bulk_clean_small_fixture",
-        "tests/installed_service/test_service_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]",
         "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings",
         "tests/installed_service/test_service_harness.py::test_h2_candidate_image_identity",
         "tests/installed_service/test_service_harness.py::test_h3_installed_package_provenance",
@@ -5571,6 +5571,15 @@
         "tests/installed_service/test_service_harness.py::test_h5_neo4j_outage_and_termination_controls",
         "tests/installed_service/test_service_harness.py::test_h6_lock_wait_detector_positive_and_negative_controls",
         "tests/installed_service/test_service_harness.py::test_h7_no_helper_process_outlives_its_test",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed",
+        "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture",
+        "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]",
         "tests/installed_service/test_service_log_continuity_live.py::test_live_truncation_and_rotation_fail_closed"
       ],
       "excluded_test_ids": {},
@@ -5594,19 +5603,21 @@
         "tests/installed_service/__init__.py": "8fa8dc0797744d0f758fb5d9f8ceac2d5dbde8d3993889ff9ed17d2c743c8c76",
         "tests/installed_service/bulk_fixture.py": "e69145ff955197cc9c77c924949cb542cef0ca66bf805f3f4bec20fbc41a6dbc",
         "tests/installed_service/conftest.py": "727673541e002c8f66724e1704aa0e3fe5b48f6d933cdcc8d6bc4c1fe5536b05",
-        "tests/installed_service/live_cli.py": "032f9d8cb912870ea2d380d94c3d0969d5b9e0722441c2759694bd8f1c6bac65",
+        "tests/installed_service/live_cli.py": "39ab53a63dba9c2f20b813afa5a9e45bba2af56a941caedb120e647c97227cbe",
         "tests/installed_service/live_stack.py": "3366a10434dfad81de5d6eaa43930cfec8b9117544df9c61e693f817fc524937",
         "tests/installed_service/lockwait.py": "6d63b93df160e85a937359f122250c542f4bb014e665107a61be013e6eb894e7",
         "tests/installed_service/observers.py": "3d65b68ef551c37e231f0fab165b20ab3081c1824b0dd12b10b2fc3067efb616",
         "tests/installed_service/ownership.py": "abb34f211bed284d50afe19e6cbbc917272e1b50f4c37ce96214ea4962824aa7",
         "tests/installed_service/query_log.py": "3245eec74fb2c56b697d87bd4f29314050560d83a5d825a532def25b6a162648",
         "tests/installed_service/query_log_config.py": "7e2b7bf090bd908561a33553b19068798ab8b11a847f279d0245b79d81060622",
-        "tests/installed_service/query_window.py": "d2fa2d3fadafcd9c5d184545e9d1710cf67b8550650f5dd9758c9c761a5d6a32",
+        "tests/installed_service/query_window.py": "afe25a37fea752c83d3ba1a785b09cd1b73b1a7757367b07daeed53c3383ef37",
+        "tests/installed_service/stream_fixture.py": "97485cbf084c4e7747327225b297e7a7b59bc9730c0f6d2cce7bcb97d7498069",
         "tests/installed_service/structured_query_log.py": "c09a89f3cc1ad513410ebdc7bcf0f0b12ecfad728bbfe52106c084cf42c22905",
         "tests/installed_service/test_observer_controls.py": "5fda0ae995bee1b069fcd2a80263d95653ce2fb13a68b09b07286b1616a2401f",
         "tests/installed_service/test_query_window_controls.py": "c5ad87ad32413ade7473c2e6b7d09357efe92ea7fca51df55a8ee1694bd88795",
-        "tests/installed_service/test_service_bulk.py": "ab006801f8fceed9075fd1b5bb322a86177b343367ef3d4c505e42e61e21ca8a",
         "tests/installed_service/test_service_harness.py": "98bcb8e1f4c8dd6d85293eb91be9f5f621dcc8d1a8b450cf681debd7d3784f00",
+        "tests/installed_service/test_service_lease_stream.py": "3c90983a8eb2618c36dd6b78296777ac5d2ddbcd241b665e4232b195cfc4f725",
+        "tests/installed_service/test_service_load_bulk.py": "ab006801f8fceed9075fd1b5bb322a86177b343367ef3d4c505e42e61e21ca8a",
         "tests/installed_service/test_service_log_continuity_live.py": "a8e579651b9c6e31867f32411b17acb41bfbb8ad7d07abe123a47994190cb9dc",
         "tests/integration/__init__.py": "b5b9f92bf90f3548c46cc7f61fefb27f97fb9a1efba9fc135db372a1c8e07247",
         "tests/it_scratch_db.py": "3a91cfb867d1b85cd90b3c8e753ea0b50b9d3d751f3c3c25e374112685af38ed"
@@ -5675,6 +5686,11 @@
           "tests/installed_service/conftest.py",
           "tests/installed_service/structured_query_log.py"
         ],
+        "tests/installed_service/stream_fixture.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py"
+        ],
         "tests/installed_service/structured_query_log.py": [
           "tests/conftest.py",
           "tests/installed_service/__init__.py",
@@ -5694,16 +5710,6 @@
           "tests/installed_service/conftest.py",
           "tests/installed_service/query_window.py"
         ],
-        "tests/installed_service/test_service_bulk.py": [
-          "tests/conftest.py",
-          "tests/installed_service/__init__.py",
-          "tests/installed_service/bulk_fixture.py",
-          "tests/installed_service/conftest.py",
-          "tests/installed_service/live_cli.py",
-          "tests/installed_service/lockwait.py",
-          "tests/installed_service/observers.py",
-          "tests/installed_service/query_window.py"
-        ],
         "tests/installed_service/test_service_harness.py": [
           "tests/conftest.py",
           "tests/installed_service/__init__.py",
@@ -5714,6 +5720,26 @@
           "tests/installed_service/observers.py",
           "tests/installed_service/ownership.py",
           "tests/installed_service/query_log.py",
+          "tests/installed_service/query_window.py"
+        ],
+        "tests/installed_service/test_service_lease_stream.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/live_cli.py",
+          "tests/installed_service/lockwait.py",
+          "tests/installed_service/observers.py",
+          "tests/installed_service/query_window.py",
+          "tests/installed_service/stream_fixture.py"
+        ],
+        "tests/installed_service/test_service_load_bulk.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/bulk_fixture.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/live_cli.py",
+          "tests/installed_service/lockwait.py",
+          "tests/installed_service/observers.py",
           "tests/installed_service/query_window.py"
         ],
         "tests/installed_service/test_service_log_continuity_live.py": [
@@ -5732,7 +5758,7 @@
       "fixture_counts": {
         ".yaml": 8,
         ".xml": 1,
-        ".py": 20,
+        ".py": 22,
         ".json": 4
       },
       "service_dispositions": {
@@ -6072,26 +6098,6 @@
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
         },
-        "tests/installed_service/test_service_bulk.py::test_b1_planned_bulk_clean_small_fixture": {
-          "owner": "E09.F1.S7",
-          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
-        },
-        "tests/installed_service/test_service_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers": {
-          "owner": "E09.F1.S7",
-          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
-        },
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]": {
-          "owner": "E09.F1.S7",
-          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
-        },
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]": {
-          "owner": "E09.F1.S7",
-          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
-        },
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]": {
-          "owner": "E09.F1.S7",
-          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
-        },
         "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings": {
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
@@ -6117,6 +6123,42 @@
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
         },
         "tests/installed_service/test_service_harness.py::test_h7_no_helper_process_outlives_its_test": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]": {
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
         },
@@ -10111,31 +10153,6 @@
       "owner": "E09",
       "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
     },
-    "tests/installed_service/test_service_bulk.py::test_b1_planned_bulk_clean_small_fixture": {
-      "kind": "service",
-      "owner": "E09",
-      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
-    },
-    "tests/installed_service/test_service_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers": {
-      "kind": "service",
-      "owner": "E09",
-      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
-    },
-    "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]": {
-      "kind": "service",
-      "owner": "E09",
-      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
-    },
-    "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]": {
-      "kind": "service",
-      "owner": "E09",
-      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
-    },
-    "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]": {
-      "kind": "service",
-      "owner": "E09",
-      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
-    },
     "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings": {
       "kind": "service",
       "owner": "E09",
@@ -10167,6 +10184,51 @@
       "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
     },
     "tests/installed_service/test_service_harness.py::test_h7_no_helper_process_outlives_its_test": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]": {
       "kind": "service",
       "owner": "E09",
       "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
@@ -30234,18 +30296,6 @@
         "service": 40
       }
     },
-    "tests/installed_service/test_service_bulk.py": {
-      "ids": [
-        "tests/installed_service/test_service_bulk.py::test_b1_planned_bulk_clean_small_fixture",
-        "tests/installed_service/test_service_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]",
-        "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]"
-      ],
-      "categories": {
-        "service": 5
-      }
-    },
     "tests/installed_service/test_service_harness.py": {
       "ids": [
         "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings",
@@ -30258,6 +30308,29 @@
       ],
       "categories": {
         "service": 7
+      }
+    },
+    "tests/installed_service/test_service_lease_stream.py": {
+      "ids": [
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]",
+        "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed"
+      ],
+      "categories": {
+        "service": 4
+      }
+    },
+    "tests/installed_service/test_service_load_bulk.py": {
+      "ids": [
+        "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture",
+        "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]",
+        "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]"
+      ],
+      "categories": {
+        "service": 5
       }
     },
     "tests/installed_service/test_service_log_continuity_live.py": {
@@ -42251,9 +42324,9 @@
       "assertion_sha256": "e1ffcbad71d56aa95dafb55825a85c0bc21c1bc4b95c129dead8ede8597e4855",
       "test_functions": 6
     },
-    "tests/installed_service/test_service_bulk.py": {
-      "sha256": "9784ac18d0a54af8566a3f16f5284327f008fb4c47aa159760c238edc24ebcda",
-      "size": 17778,
+    "tests/installed_service/test_service_load_bulk.py": {
+      "sha256": "ab006801f8fceed9075fd1b5bb322a86177b343367ef3d4c505e42e61e21ca8a",
+      "size": 17937,
       "assertions": [
         "Assert(test=UnaryOp(op=Not(), operand=Call(func=Attribute(value=Name(id='thread', ctx=Load()), attr='is_alive', ctx=Load()), args=[], keywords=[])), msg=Constant(value='the CLI thread outlived its deadline'))",
         "Assert(test=Compare(left=Constant(value='error'), ops=[NotIn()], comparators=[Name(id='box', ctx=Load())]), msg=Call(func=Attribute(value=Name(id='box', ctx=Load()), attr='get', ctx=Load()), args=[Constant(value='error')], keywords=[]))",
@@ -42303,6 +42376,52 @@
       "assertion_count": 44,
       "assertion_sha256": "73b8010d4547be1bbb49b7394e7201817a6de70952aa067d5c7284162097cc7e",
       "test_functions": 3
+    },
+    "tests/installed_service/test_service_lease_stream.py": {
+      "sha256": "3c90983a8eb2618c36dd6b78296777ac5d2ddbcd241b665e4232b195cfc4f725",
+      "size": 14873,
+      "assertions": [
+        "Assert(test=Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='exit_code'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), msg=Tuple(elts=[Constant(value='SIGTERM must end a supervising stream run with exit 0'), Subscript(value=Call(func=Attribute(value=Name(id='cli', ctx=Load()), attr='text', ctx=Load()), args=[], keywords=[]), slice=Slice(lower=UnaryOp(op=USub(), operand=Constant(value=1500))), ctx=Load())], ctx=Load()))",
+        "Assert(test=Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='stop_seconds'), ctx=Load()), ops=[Lt()], comparators=[Constant(value=30)]))",
+        "Assert(test=Compare(left=Attribute(value=Name(id='cli', ctx=Load()), attr='redactions', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), msg=Constant(value='the scratch password reached CLI output'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='errors'), ctx=Load()), ops=[Eq()], comparators=[List(elts=[], ctx=Load())]), UnaryOp(op=Not(), operand=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='closed_early'), ctx=Load())), Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='stopped'), ctx=Load()), ops=[Is()], comparators=[Constant(value=True)])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='refused'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[], values=[])]), Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='leftovers'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[Constant(value='removed'), Constant(value='failed')], values=[List(elts=[], ctx=Load()), List(elts=[], ctx=Load())])])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='created_from_candidates'), ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='ids', ctx=Load())]), Name(id='ids', ctx=Load())]))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='c', ctx=Load()), generators=[comprehension(target=Name(id='c', ctx=Store()), iter=Call(func=Attribute(value=Attribute(value=Name(id='docker_client', ctx=Load()), attr='containers', ctx=Load()), attr='list', ctx=Load()), args=[], keywords=[keyword(arg='all', value=Constant(value=True))]), ifs=[Compare(left=Attribute(value=Name(id='c', ctx=Load()), attr='id', ctx=Load()), ops=[In()], comparators=[Name(id='ids', ctx=Load())])], is_async=0)])), msg=Constant(value='a container outlived the stop'))",
+        "Assert(test=Compare(left=Name(id='components', ctx=Load()), ops=[Eq()], comparators=[Name(id='COMPONENTS', ctx=Load())]))",
+        "Assert(test=Compare(left=Constant(value='stage=isolation'), ops=[NotIn()], comparators=[Name(id='text', ctx=Load())]), msg=Constant(value='a shared or self-referencing type ran in an isolated phase'))",
+        "Assert(test=BoolOp(op=And(), values=[Subscript(value=Name(id='counts', ctx=Load()), slice=Constant(value='edge'), ctx=Load()), Subscript(value=Name(id='counts', ctx=Load()), slice=Constant(value='node'), ctx=Load())]), msg=Constant(value='no node or relationship write was identified in the query window'))",
+        "Assert(test=Call(func=Name(id='all', ctx=Load()), args=[GeneratorExp(elt=Compare(left=Subscript(value=Name(id='r', ctx=Load()), slice=Constant(value='waiting_ms'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), generators=[comprehension(target=Name(id='r', ctx=Store()), iter=Name(id='writes', ctx=Load()), ifs=[], is_async=0)])], keywords=[]), msg=Constant(value='a leased write waited for a database lock'))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='r', ctx=Load()), generators=[comprehension(target=Name(id='r', ctx=Store()), iter=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='records'), ctx=Load()), ifs=[Compare(left=Subscript(value=Name(id='r', ctx=Load()), slice=Constant(value='phase'), ctx=Load()), ops=[Eq()], comparators=[Constant(value='failed')])], is_async=0)])))",
+        "Assert(test=Name(id='found', ctx=Load()), msg=Constant(value='no lease-server stats line'))",
+        "Assert(test=Compare(left=Subscript(value=Name(id='positive', ctx=Load()), slice=Constant(value=0), ctx=Load()), ops=[GtE()], comparators=[Constant(value=500)]), msg=Name(id='positive', ctx=Load()))",
+        "Assert(test=Compare(left=Name(id='old', ctx=Load()), ops=[In()], comparators=[Name(id='rels', ctx=Load())]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='stats1', ctx=Load()), slice=Constant(value='grants'), ctx=Load()), ops=[Gt()], comparators=[Constant(value=0)]), Compare(left=Subscript(value=Name(id='stats1', ctx=Load()), slice=Constant(value='releases'), ctx=Load()), ops=[Eq()], comparators=[Subscript(value=Name(id='stats1', ctx=Load()), slice=Constant(value='grants'), ctx=Load())]), Compare(left=Subscript(value=Name(id='stats1', ctx=Load()), slice=Constant(value='denials'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), Compare(left=Subscript(value=Name(id='stats1', ctx=Load()), slice=Constant(value='active'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)])]))",
+        "Assert(test=Compare(left=Call(func=Name(id='committed', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='group', ctx=Load()), Name(id='topics', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='end_a', ctx=Load())]), msg=Constant(value='the stable groups must keep their offsets across the stop'))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Tuple(elts=[Name(id='nodes_a', ctx=Load()), Call(func=Name(id='tampered', ctx=Load()), args=[Name(id='rels_a', ctx=Load())], keywords=[])], ctx=Load())]), msg=Constant(value='the graph changed across the stop'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='stats2', ctx=Load()), slice=Constant(value='grants'), ctx=Load()), ops=[Gt()], comparators=[Constant(value=0)]), Compare(left=Subscript(value=Name(id='stats2', ctx=Load()), slice=Constant(value='releases'), ctx=Load()), ops=[Eq()], comparators=[Subscript(value=Name(id='stats2', ctx=Load()), slice=Constant(value='grants'), ctx=Load())]), Compare(left=Subscript(value=Name(id='stats2', ctx=Load()), slice=Constant(value='denials'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), Compare(left=Subscript(value=Name(id='stats2', ctx=Load()), slice=Constant(value='active'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)])]))",
+        "Assert(test=Compare(left=Call(func=Name(id='committed', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='group', ctx=Load()), Name(id='topics', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='end_b', ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Tuple(elts=[Name(id='nodes_ab', ctx=Load()), Name(id='final_rels', ctx=Load())], ctx=Load())]), msg=Constant(value='a relationship tampered before the restart was re-read and overwritten, or the graph differs'))",
+        "Assert(test=BoolOp(op=And(), values=[Name(id='exited', ctx=Load()), Compare(left=Name(id='code', ctx=Load()), ops=[Eq()], comparators=[Constant(value=1)])]), msg=Tuple(elts=[Constant(value='the fleet must stop itself with exit 1'), Name(id='code', ctx=Load()), Name(id='elapsed', ctx=Load())], ctx=Load()))",
+        "Assert(test=Compare(left=Constant(value='did not resolve exactly one source and target endpoint'), ops=[In()], comparators=[Name(id='text', ctx=Load())]))",
+        "Assert(test=Compare(left=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='redactions', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Tuple(elts=[List(elts=[], ctx=Load()), List(elts=[], ctx=Load())], ctx=Load())]), msg=Constant(value='a relationship was written without its endpoints'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='errors'), ctx=Load()), ops=[Eq()], comparators=[List(elts=[], ctx=Load())]), Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='refused'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[], values=[])]), Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='leftovers'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[Constant(value='removed'), Constant(value='failed')], values=[List(elts=[], ctx=Load()), List(elts=[], ctx=Load())])])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='created_from_candidates'), ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='ids', ctx=Load())]), Name(id='ids', ctx=Load())]))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='c', ctx=Load()), generators=[comprehension(target=Name(id='c', ctx=Store()), iter=Call(func=Attribute(value=Attribute(value=Name(id='docker_client', ctx=Load()), attr='containers', ctx=Load()), attr='list', ctx=Load()), args=[], keywords=[keyword(arg='all', value=Constant(value=True))]), ifs=[Compare(left=Attribute(value=Name(id='c', ctx=Load()), attr='id', ctx=Load()), ops=[In()], comparators=[Name(id='ids', ctx=Load())])], is_async=0)])))",
+        "Assert(test=Name(id='info', ctx=Load()), msg=Constant(value='an application container disappeared before it could be inspected'))",
+        "Assert(test=BoolOp(op=And(), values=[UnaryOp(op=Not(), operand=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='privileged'), ctx=Load())), Compare(left=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='pid_mode'), ctx=Load()), ops=[Eq()], comparators=[Constant(value='')]), Compare(left=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='network_mode'), ctx=Load()), ops=[Eq()], comparators=[Attribute(value=Attribute(value=Name(id='stack', ctx=Load()), attr='network', ctx=Load()), attr='name', ctx=Load())])]))",
+        "Assert(test=Call(func=Name(id='all', ctx=Load()), args=[GeneratorExp(elt=Compare(left=Constant(value='docker.sock'), ops=[NotIn()], comparators=[Name(id='source', ctx=Load())]), generators=[comprehension(target=Tuple(elts=[Name(id='_', ctx=Store()), Name(id='source', ctx=Store()), Name(id='_', ctx=Store()), Name(id='_', ctx=Store())], ctx=Store()), iter=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='mounts'), ctx=Load()), ifs=[], is_async=0)])], keywords=[]))",
+        "Assert(test=Compare(left=Name(id='end_a', ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[Constant(value='citizen'), Constant(value='firm'), Constant(value='WORKS_FOR'), Constant(value='BUYS_FROM'), Constant(value='KNOWS_OF')], values=[Constant(value=24), Constant(value=6), Constant(value=24), Constant(value=24), Constant(value=24)])]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='first', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]), msg=Constant(value='the supervising CLI must keep running after the load'))",
+        "Assert(test=Compare(left=Name(id='end_b', ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[Constant(value='citizen'), Constant(value='firm'), Constant(value='WORKS_FOR'), Constant(value='BUYS_FROM'), Constant(value='KNOWS_OF')], values=[Constant(value=36), Constant(value=6), Constant(value=36), Constant(value=36), Constant(value=36)])]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='second', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]), msg=JoinedStr(values=[Constant(value='the streaming CLI exited while waiting for '), FormattedValue(value=Name(id='what', ctx=Load()), conversion=-1), Constant(value=': '), FormattedValue(value=Subscript(value=Call(func=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='cli', ctx=Load()), attr='text', ctx=Load()), args=[], keywords=[]), slice=Slice(lower=UnaryOp(op=USub(), operand=Constant(value=1500))), ctx=Load()), conversion=-1)]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='time', ctx=Load()), attr='monotonic', ctx=Load()), args=[], keywords=[]), ops=[Lt()], comparators=[Name(id='end', ctx=Load())]), msg=JoinedStr(values=[Constant(value='timed out waiting for '), FormattedValue(value=Name(id='what', ctx=Load()), conversion=-1)]))"
+      ],
+      "assertion_count": 37,
+      "assertion_sha256": "1aad215d83f4ba7666238c18e30d024eeca6175f9ac90fdc9a5096479fcc6d9d",
+      "test_functions": 2
     }
   },
   "source_collection": {
@@ -42391,11 +42510,6 @@
       "tests/installed_service/test_query_window_controls.py::test_a_window_counts_an_open_query_as_one_record_and_never_hides_missing_ones",
       "tests/installed_service/test_query_window_controls.py::test_an_end_without_a_start_is_still_rejected_when_open_queries_are_allowed",
       "tests/installed_service/test_query_window_controls.py::test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice",
-      "tests/installed_service/test_service_bulk.py::test_b1_planned_bulk_clean_small_fixture",
-      "tests/installed_service/test_service_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
-      "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
-      "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]",
-      "tests/installed_service/test_service_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]",
       "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings",
       "tests/installed_service/test_service_harness.py::test_h2_candidate_image_identity",
       "tests/installed_service/test_service_harness.py::test_h3_installed_package_provenance",
@@ -42403,6 +42517,15 @@
       "tests/installed_service/test_service_harness.py::test_h5_neo4j_outage_and_termination_controls",
       "tests/installed_service/test_service_harness.py::test_h6_lock_wait_detector_positive_and_negative_controls",
       "tests/installed_service/test_service_harness.py::test_h7_no_helper_process_outlives_its_test",
+      "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]",
+      "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]",
+      "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]",
+      "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed",
+      "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture",
+      "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
+      "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
+      "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[1]",
+      "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[2]",
       "tests/installed_service/test_service_log_continuity_live.py::test_live_truncation_and_rotation_fail_closed",
       "tests/integration/test_edge_before_node_dlq.py::test_edge_before_node_is_dlqd_row_level_and_retried_once_the_node_arrives",
       "tests/integration/test_multi_pair_relationship.py::test_order_by_stream_lease_fleet",
@@ -46436,10 +46559,10 @@
       "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]",
       "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
     ],
-    "sha256": "0fb212452c2f87a59cddf7a3e6d529a14adec37c6fca907d8fc57249e393981e",
-    "files": 136,
+    "sha256": "db05aff8efa76f017da1110f58adf5b0073d2719f666d784989dccc214106c54",
+    "files": 137,
     "counts": {
-      "service": 145,
+      "service": 149,
       "installed": 3673,
       "checkout-development": 310
     },
@@ -46449,7 +46572,7 @@
       "-c",
       "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
       "/Users/shashank/Desktop/Code/Graph/graph-loader",
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/s1/collection-freeze-final2.json"
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/s2/collection-freeze-final.json"
     ]
   },
   "artifact_contract": {

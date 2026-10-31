@@ -42,7 +42,7 @@ evidence for a library release, not a security sandbox.
 | Story | Scope | Status |
 | --- | --- | --- |
 | E09.F1.S7 | Live harness: owned stack, installed CLI, provenance, observers, lock-wait detector, `service-harness` lane | complete ([evidence](evidence/E09.F1.S7.md)) |
-| E09.F1.S1 | Planned bulk end to end; worker loss fails closed; replay converges; lock-wait evidence | in progress ([design note](e09-s1-design-note.md)) |
+| E09.F1.S1 | Planned bulk end to end; worker loss fails closed; replay converges; lock-wait evidence | complete ([evidence](evidence/E09.F1.S1.md)) |
 | E09.F1.S2 | Streaming leases: graph, stable group offsets, node-before-edge, graceful restart/resume | planned |
 | E09.F1.S3 | Classic mode (included by D02/D04): final graph/offsets/cleanup, lock behaviour | planned |
 | E09.F1.S4 | Installed DLQ: routing, identity, retry limits, parking/replay, safe offsets | planned |
