@@ -332,3 +332,67 @@ class AppObserver:
             except Exception as error:
                 failed.append((container_id, type(error).__name__))
         return {'removed': removed, 'failed': failed}
+
+
+class RunningCli:
+    """A long-running installed ``graph-loader`` (streaming) with a hard deadline, SIGTERM stop and bounded, redacted output."""
+
+    def __init__(self, executable, args, *, env, cwd, log_dir, name, deadline, redact=()):
+        self.out_path, self.err_path = Path(log_dir) / f'{name}.out', Path(log_dir) / f'{name}.err'
+        self.redact, self.deadline_at = [v.encode() for v in redact if v], time.monotonic() + deadline
+        self.started = time.monotonic()
+        self._out, self._err = open(self.out_path, 'xb'), open(self.err_path, 'xb')
+        self.process = subprocess.Popen([str(executable), *args], cwd=cwd, env=env, stdout=self._out, stderr=self._err,
+                                        start_new_session=True)
+        self.stop_seconds = None
+
+    def running(self):
+        if time.monotonic() > self.deadline_at and self.process.poll() is None:
+            self.kill()
+            raise TimeoutError('the streaming CLI exceeded its overall deadline and was killed')
+        return self.process.poll() is None
+
+    def text(self):
+        for stream in (self._out, self._err):
+            if not stream.closed:
+                stream.flush()
+        return self.out_path.read_bytes().decode(errors='replace') + self.err_path.read_bytes().decode(errors='replace')
+
+    def terminate(self, timeout=60):
+        """SIGTERM the CLI (as an operator would) and wait; returns its exit code (None if it had to be killed)."""
+        began = time.monotonic()
+        if self.process.poll() is None:
+            self.process.send_signal(signal.SIGTERM)
+        try:
+            code = self.process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            self.kill()
+            code = None
+        self.stop_seconds = time.monotonic() - began
+        self._finish()
+        return code
+
+    def kill(self):
+        try:
+            os.killpg(self.process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        try:
+            self.process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            pass
+        self._finish()
+
+    def _finish(self):
+        for stream in (self._out, self._err):
+            try:
+                stream.close()
+            except OSError:
+                pass
+        self.redactions = 0
+        for path in (self.out_path, self.err_path):
+            data = path.read_bytes()
+            for secret in self.redact:
+                self.redactions += data.count(secret)
+                data = data.replace(secret, b'[redacted]')
+            path.write_bytes(data)
