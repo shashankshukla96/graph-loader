@@ -32,7 +32,21 @@ EXTRA_LANES = {
     'service-helper-unit': (10, .5, '''it_scratch_db lock_wait_helpers edge_before_node_dlq_probes
         planned_harness self_reference_isolation_e2e'''),
 }
+SERVICE_LANES = {
+    'service-harness': ('tests/installed_service/test_observer_controls.py', 'tests/installed_service/test_query_window_controls.py', 'tests/installed_service/test_service_harness.py',
+                        'tests/installed_service/test_service_log_continuity_live.py', 'tests/installed_service/test_service_bulk.py'),
+}
+SERVICE_EXTRA_FILES = {'service-harness': ('config/neo4j/server-logs.xml',)}
+SERVICE_REASON = {
+    'service-harness': 'Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode.',
+}
 CHECKOUT = {
+    'service_lane': 'Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof.',
+    'service_observers': 'Checkout observer controls; observed installed application and scratch service evidence remain mandatory.',
+    'installed_service': 'Checkout service-owner and runner tooling controls; real installed service scenarios remain mandatory.',
+    'installed_service_log': 'Checkout query-log window and detector controls; real service detector proof remains mandatory.',
+    'installed_service_log_config': 'Checkout scratch query-log configuration controls; runtime logging proof remains mandatory.',
+    'installed_service_structured_log': 'Checkout structured-query-log parser controls; runtime log continuity remains mandatory.',
     'support_matrix': 'Checkout dependency-matrix tooling controls; retained checkout plus actual bare and installed platform/dependency cells.',
     'distribution_foundation': 'Packaging/dependency-generation developer checks; retained checkout suite plus mandatory strict artifact and two bare-install proof.',
     'candidate_images': 'Checkout image-builder input/ownership tests; retained checkout plus mandatory four rebuilt immutable image and read-only probes.',
@@ -246,6 +260,21 @@ def freeze(data, collection, wheel):
         lane.setdefault('estimate_days', {'core': 1, 'safety': 1.5, 'cli-runtime': 1.5}.get(name, 1))
         lane['allowed_skips'] = ({'tests/test_schema_multi_pair.py::test_every_shipped_schema_stays_single_pair[examples/multi_topic/graph_schema_multi_pair.yaml]':
                                 'the multi-pair example is multi-pair on purpose'} if name == 'core' else {})
+    for name, files in SERVICE_LANES.items():
+        selected = [i for i in ids if i.split('::')[0] in files]
+        if not selected or {i.split('::')[0] for i in selected} != set(files):
+            raise ValueError('service lane test files are missing from the full source collection: ' + name)
+        staged, imports = closure(list(files))
+        staged = sorted({*staged, *SERVICE_EXTRA_FILES[name]})
+        lane = result['lanes'][name]
+        lane.update(kind='installed service regression', current_test_files=list(files), test_ids=selected,
+                    collected_test_ids=selected, excluded_test_ids={}, allowed_skips={}, extra_test_requirements=[],
+                    stage_files={p: sha((ROOT / p).read_bytes()) for p in staged}, recursive_imports=imports,
+                    reference_files={p: 'Maintained example/reference helper or documentation fixture; never application source.'
+                                     for p in staged if not p.startswith(('tests/', 'config/'))},
+                    fixture_counts=dict(Counter(Path(p).suffix for p in staged)),
+                    service_dispositions={i: {'owner': lane['owner'], 'reason': SERVICE_REASON[name]} for i in selected},
+                    target_status='frozen selection; acceptance recorded separately in story reviews')
     return result
 
 
@@ -257,7 +286,7 @@ def check(data, collection):
     if found != set(data['file_dispositions']):
         raise ValueError('source test files differ from frozen inventory')
     for lane in data['lanes'].values():
-        if lane['kind'] == 'installed unit regression':
+        if lane['kind'] in ('installed unit regression', 'installed service regression'):
             for path, digest in lane['stage_files'].items():
                 if not (ROOT / path).is_file() or sha((ROOT / path).read_bytes()) != digest:
                     raise ValueError('staged file missing/changed: ' + path)

@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-28",
+  "head": "c81dce31e2992223a5250eaf08889f79768d405a",
+  "e08_main_delivery": "410ae7fc413227058ea34a01992fde1183da9fa9",
+  "source_sha256": "339dcfcb8884f8f441fe3e7d19f72f0ea5e0fe5f80f007e14c03f929f9abbbf9",
+  "environment_sha256": "e9dfe17a2f850e61d94fd24d2ed303da597f217b11fc32e220f673602e8cfea1",
+  "source_input_count": 319,
+  "e08_tested_input_bytes_sizes_modes_preserved": true,
+  "new_dev_environment": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/entry-smj5281d/dev",
+  "pip_check": "passed",
+  "entry_manifest": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/entry-smj5281d/entry-manifest.json",
+  "reviewed_plan_sha256": "ebe10ba5761061080a0a2dd3ad765eae5166a3c7a5558ae01e620f0dccefc6d7",
+  "reviewed_plan_snapshot": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/entry-smj5281d/plan-independently-reviewed.md",
+  "limitations": [
+    "E09 implementation and all service/ordering gates are still open.",
+    "Environment setup was not itself an audited pytest or service proof.",
+    "No publication or later epic is authorized."
+  ]
+}

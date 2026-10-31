@@ -101,7 +101,7 @@ are retained separately from the eliminated19 project-owned fork warnings.
 
 ## Execute E09 only after new user authorization
 
-Start with E09.F1.S6's shared installed-service harness, then follow the canonical
+Since the 2026-10-31 plan reset (D08) the live harness is E09.F1.S7 (complete); see [execution-e09.md](execution-e09.md). Follow the canonical
 story dependencies: planned bulk, supported streaming leases, included/excluded
 classic, installed DLQ, outages/shutdown, then ordering O1–O8. Proposed service
 lanes/options in E09 are not claimed implemented by E08. Invoke actual installed
@@ -118,17 +118,7 @@ counterexamples are not passing safety guarantees. Stronger durable ordering/
 coordination promises require separately reviewed implementation/proof epics.
 No supported guarantee becomes N/A merely because infrastructure is inconvenient.
 
-Follow plan-before-code, a fresh CPython3.12 editable dev environment, safe
-tracked/relevant-untracked manifests, zero-history internal review after each
-ordered story, preserve/reproduce/fix/retest/re-review every actionable issue and
-fresh final adversarial review. No user-visible review chats. Full suite/lint/
-parity/pip/whitespace, strict artifacts/no-Git rebuild/member equality/two bare
-installs/all installed lanes for both final wheels/fresh immutable images/no
-source rescue/all12 R1/exact B3 and required installed-service proofs remain.
-Explain actual skips/warnings and leave required infrastructure cells open.
-Complete statuses only after actual acceptance; render plan/check links/inspect
-staging/commit locally, then record the real full SHA and per-file tested/Git/
-current bytes/sizes/exact regular modes plus unchanged environment in a doc-only
-follow-up. HEAD/new tracked bookkeeping may change aggregate identity; direct
-input equality controls delivery. Tracker follow-up identity comes from Git log,
-not recursive self-hashing.
+Process follows decision D08 and [execution-e09.md](execution-e09.md): self-check each
+story, one independent review of E09 before its exit gate, one passing lane run at the
+final bytes (three repeats for timing-sensitive cases), retained red runs, short story
+evidence, no commits or pushes without instruction.

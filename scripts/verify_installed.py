@@ -10,6 +10,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import signal
 import subprocess
 import sys
@@ -20,8 +21,12 @@ import zipfile
 import psutil
 
 if __package__:
+    from . import service_lane
     from .installed_dependencies import read_constraints, read_wheelhouse, verify_versions
 else:
+    _lane_spec = importlib.util.spec_from_file_location('service_lane', Path(__file__).with_name('service_lane.py'))
+    service_lane = importlib.util.module_from_spec(_lane_spec)
+    _lane_spec.loader.exec_module(service_lane)
     # Also support existing supervisors loading this file through a module spec.
     _spec = importlib.util.spec_from_file_location('installed_dependencies', Path(__file__).with_name('installed_dependencies.py'))
     _dependencies = importlib.util.module_from_spec(_spec)
@@ -49,7 +54,8 @@ def safe_relative(value, *, payload=False, references=()):
             raise ValueError('unexpected reference fixture: ' + value)
         if path.parts[0] not in {'tests', 'config', 'examples'} and value != 'plan/library-implementation/tools/run_e04_fault.py':
             raise ValueError('unapproved reference location: ' + value)
-    elif path.parts[0] not in {'tests', 'config', 'examples'} or path.suffix not in {'.py', '.yaml', '.yml', '.json', '.csv'}:
+    elif path.parts[0] not in {'tests', 'config', 'examples'} or (
+            path.suffix not in {'.py', '.yaml', '.yml', '.json', '.csv'} and value != 'config/neo4j/server-logs.xml'):
         raise ValueError('not an approved fixture/test path: ' + value)
     elif path.suffix == '.py' and path.parts[0] != 'tests':
         raise ValueError('only maintained test helpers may stage Python: ' + value)
@@ -94,6 +100,107 @@ def validate_inventory(data, lane):
         if not isinstance(digest, str) or len(digest) != 64:
             raise ValueError('invalid application hash: ' + path)
     return selected
+
+
+SERVICE_OWNERS = {
+    'service-harness': 'E09.F1.S7', 'service-bulk': 'E09.F1.S1',
+    'service-stream': 'E09.F1.S2', 'service-classic': 'E09.F1.S3',
+    'service-dlq': 'E09.F1.S4', 'service-failure': 'E09.F1.S5',
+    'ordering-memory': 'E09.F2.S1', 'ordering-boundaries': 'E09.F2.S1',
+}
+
+
+def validate_service_inventory(data, lane):
+    """Validate an explicitly frozen service lane; this does not execute it.
+
+    A proposed lane is deliberately not runnable.  Integration must supply
+    the owned service controller and installed-client provenance separately.
+    """
+    if (not isinstance(data, dict) or lane not in SERVICE_OWNERS
+            or data.get('schema_version') != 1 or not isinstance(data.get('lanes'), dict)):
+        raise ValueError('unknown service lane or inventory')
+    selected = data['lanes'].get(lane)
+    if (not isinstance(selected, dict) or selected.get('kind') != 'installed service regression'
+            or selected.get('owner') != SERVICE_OWNERS[lane]):
+        raise ValueError('service lane is not explicitly frozen for its story')
+    ids = selected.get('test_ids')
+    source_collection = data.get('source_collection')
+    collection = source_collection.get('test_ids') if isinstance(source_collection, dict) else None
+    dispositions = data.get('test_dispositions')
+    if (not isinstance(ids, list) or not ids or any(not isinstance(i, str) for i in ids)
+            or len(set(ids)) != len(ids) or not isinstance(collection, list)
+            or any(not isinstance(i, str) for i in collection)
+            or len(set(collection)) != len(collection) or not isinstance(dispositions, dict)):
+        raise ValueError('service lane requires unique frozen source IDs')
+    collection_hash = sha(json.dumps(collection, sort_keys=True, separators=(',', ':')).encode())
+    if source_collection.get('sha256') != collection_hash:
+        raise ValueError('service source collection hash differs')
+    selected_set = set(ids)
+    if [i for i in collection if i in selected_set] != ids:
+        raise ValueError('service IDs are absent or reordered in source collection')
+    if any(not isinstance(dispositions.get(i), dict) or dispositions[i].get('kind') != 'service'
+           or not isinstance(dispositions[i].get('reason'), str) or not dispositions[i]['reason'].strip()
+           for i in ids):
+        raise ValueError('service IDs require explicit service dispositions')
+    assignments = selected.get('service_dispositions')
+    if (not isinstance(assignments, dict) or set(assignments) != selected_set
+            or any(not isinstance(assignments[i], dict)
+                   or assignments[i].get('owner') != SERVICE_OWNERS[lane]
+                   or not isinstance(assignments[i].get('reason'), str)
+                   or not assignments[i]['reason'].strip() for i in ids)):
+        raise ValueError('service IDs require explicit story assignments')
+    if (selected.get('allowed_skips', {}) != {} or selected.get('excluded_test_ids', {}) != {}
+            or selected.get('collected_test_ids', ids) != ids):
+        raise ValueError('service lanes cannot silently skip or exclude tests')
+    files, references, test_files = (selected.get('stage_files'), selected.get('reference_files', {}),
+                                     selected.get('current_test_files'))
+    payload = data.get('package_payload')
+    if (not isinstance(files, dict) or not isinstance(references, dict)
+            or not isinstance(test_files, list) or not isinstance(payload, dict)
+            or any(not isinstance(k, str) or not isinstance(v, str) for k, v in files.items())
+            or any(not isinstance(k, str) or not isinstance(v, str) for k, v in references.items())
+            or any(not isinstance(value, str) for value in test_files)
+            or any(not isinstance(k, str) or not isinstance(v, str) for k, v in payload.items())
+            or any(not PurePosixPath(k).parts for k in (*files, *references, *payload))):
+        raise ValueError('service staged inputs and payload need typed mappings and file lists')
+    # Reuse all existing staging, selection and payload safety checks without
+    # changing the unit-lane contract or treating this lane as a unit run.
+    unit_view = dict(data)
+    unit_view['lanes'] = {lane: {**selected, 'kind': 'installed unit regression'}}
+    validate_inventory(unit_view, lane)
+    for digest in (*selected['stage_files'].values(), *data['package_payload'].values()):
+        if re.fullmatch(r'[0-9a-f]{64}', digest) is None:
+            raise ValueError('service staged inputs require SHA-256 hashes')
+    return selected
+
+
+def preflight_service_images(path, *, version, payload, client):
+    """Verify source closure, candidate images and a stable daemon identity."""
+    if __package__:
+        from .build_candidate_images import build_inputs, package_version
+        from .installed_service import validate_images
+    else:
+        def load(name):
+            spec = importlib.util.spec_from_file_location(name, TOOLS/(name+'.py'))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        builder, service = load('build_candidate_images'), load('installed_service')
+        build_inputs, package_version, validate_images = builder.build_inputs, builder.package_version, service.validate_images
+    daemon = client.info().get('ID')
+    if not isinstance(daemon, str) or not daemon:
+        raise ValueError('Docker daemon identity is unavailable')
+    if package_version() != version:
+        raise ValueError('source and wheel package versions differ')
+    inputs = build_inputs()
+    source_payload = {name[4:]: digest for name, digest in inputs.items()
+                      if name.startswith('src/neo4j_graph_loader/')}
+    if not isinstance(payload, dict) or not payload or source_payload != payload:
+        raise ValueError('candidate image build inputs differ from wheel payload')
+    images = validate_images(path, version=version, inputs=inputs, client=client)
+    if client.info().get('ID') != daemon or build_inputs() != inputs:
+        raise ValueError('Docker daemon or candidate build inputs changed during inspection')
+    return {'daemon_id': daemon, 'images': images, 'input_sha256': inputs}
 
 
 def runtime_environment(python):
@@ -456,6 +563,41 @@ def run_process_envelope(python, stage, work, env, site, config, stage_files):
     return result
 
 
+def service_postflight(service, work):
+    """Runs outside the pytest process: reap recorded leftovers, then compare every foreign resource."""
+    client = service['client']
+    result = {'clean': False}
+    try:
+        owner, rows = service_lane.read_registry(work/'service-run'/'registry.jsonl')
+        result['owner'] = owner
+        result['created'] = {kind: sorted(ids) for kind, ids in service_lane.ever_created(rows).items()}
+        result['registry_truncated'] = any(row['kind'] == 'truncated' for row in rows)
+        result['registry_corrupt_lines'] = sum(row['kind'] == 'corrupt' for row in rows)
+        result['registry_sha256'] = sha((work/'service-run'/'registry.jsonl').read_bytes())
+        result['reaped'] = service_lane.reap(
+            client, owner, rows, protected=frozenset(c['id'] for c in service['before']['containers']),
+            images=frozenset(row['id'] for row in service.get('preflight', {}).get('images', {}).values()) or None)
+    except (ValueError, OSError) as error:
+        result['registry_error'] = type(error).__name__ + ': ' + str(error)
+    except Exception as error:
+        result['reap_error'] = type(error).__name__
+    try:
+        after = service_lane.snapshot(client)
+    except Exception as error:
+        result['snapshot_error'] = type(error).__name__
+        after = None
+    if after is not None:
+        (work/'foreign-after.json').write_text(json.dumps(after, indent=1, sort_keys=True)+'\n')
+        result['difference'] = service_lane.difference(service['before'], after)
+    result['foreign_unchanged'] = after == service['before']
+    reaped = result.get('reaped', {})
+    result['clean'] = ('registry_error' not in result and 'reap_error' not in result and 'snapshot_error' not in result
+                       and not result.get('registry_truncated') and not result.get('registry_corrupt_lines')
+                       and result['foreign_unchanged']
+                       and not reaped.get('removed') and not reaped.get('refused') and not reaped.get('errors'))
+    return result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--lane', required=True)
@@ -468,6 +610,8 @@ def main(argv=None):
     parser.add_argument('--wheelhouse', type=Path, help='offline directory containing only manifested dependency wheels')
     parser.add_argument('--wheelhouse-manifest', type=Path, help='version1 files/hash JSON; required with --wheelhouse')
     parser.add_argument('--process-envelope', action='store_true', help='explicit full E08 process matrix after public-contracts regression')
+    parser.add_argument('--images', type=Path, help='explicit local candidate image manifest for a frozen service lane')
+    parser.add_argument('--docker-host', help='explicit local Unix Docker socket for a service lane')
     args = parser.parse_args(argv)
     if not 0 < args.timeout <= 3600:
         parser.error('--timeout must be positive and at most3600 seconds')
@@ -476,15 +620,41 @@ def main(argv=None):
     receipts = []
     work = None
     owned = False
+    service = None
     try:
         if bool(args.wheelhouse) != bool(args.wheelhouse_manifest) or (args.wheelhouse and not args.constraints):
             raise ValueError('offline wheelhouse requires constraints and its explicit hash manifest')
         constraints = read_constraints(args.constraints) if args.constraints else None
         wheelhouse = read_wheelhouse(args.wheelhouse, args.wheelhouse_manifest, constraints['pins']) if args.wheelhouse else None
         data = json.loads(args.inventory.read_text())
-        lane = validate_inventory(data, args.lane)
-        wheel = args.wheel.resolve(strict=True)
-        actual, version, distribution = validate_wheel(wheel, data)
+        if args.lane in SERVICE_OWNERS:
+            lane = validate_service_inventory(data, args.lane)
+            if args.images is None or args.docker_host is None:
+                raise ValueError('service lanes require an image manifest and explicit local Docker socket')
+            if __package__:
+                from .installed_service import local_docker_host
+            else:
+                spec = importlib.util.spec_from_file_location('installed_service', TOOLS/'installed_service.py')
+                service_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(service_module)
+                local_docker_host = service_module.local_docker_host
+            host = local_docker_host(args.docker_host)
+            wheel = args.wheel.resolve(strict=True)
+            actual, version, distribution = validate_wheel(wheel, data)
+            import docker
+            client = docker.DockerClient(base_url=host, timeout=30)
+            try:
+                preflight = preflight_service_images(args.images, version=version, payload=actual, client=client)
+                service = {'client': client, 'host': host, 'preflight': preflight, 'before': service_lane.snapshot(client)}
+            except BaseException:
+                client.close()
+                raise
+        else:
+            if args.images is not None or args.docker_host is not None:
+                raise ValueError('image manifest and Docker socket apply only to service lanes')
+            lane = validate_inventory(data, args.lane)
+            wheel = args.wheel.resolve(strict=True)
+            actual, version, distribution = validate_wheel(wheel, data)
         if args.output:
             requested = args.output.absolute()
             work = requested.parent.resolve() / requested.name
@@ -558,6 +728,12 @@ Path(sys.argv[1]).write_text(json.dumps({d.metadata['Name']:d.version for d in i
                   'provenance_log': str(work/'provenance.jsonl')}
         (site/'_e07_guard_config.json').write_text(json.dumps(config))
         (site/'sitecustomize.py').write_bytes((TOOLS/'installed_guard.py').read_bytes())
+        (site/'e07_guard_load.py').write_bytes((TOOLS/'installed_guard_load.py').read_bytes())
+        (site/'e07_guard.pth').write_text('import e07_guard_load\n')
+        guard_probe = ('import sys,sysconfig;from pathlib import Path;m=sys.modules.get("sitecustomize");'
+                       'assert m is not None and Path(m.__file__).resolve()==(Path(sysconfig.get_paths()["purelib"])/"sitecustomize.py").resolve(),'
+                       '"installed guard is not the active sitecustomize"')
+        run([str(python), '-I', '-c', guard_probe], cwd=stage, env=env, log=work/'guard-probe.log', timeout=30, receipts=receipts)
         (site/'e07_pytest.py').write_bytes((TOOLS/'installed_pytest.py').read_bytes())
         launch = """import json,sys
 from pathlib import Path
@@ -575,9 +751,21 @@ raise SystemExit(pytest.main(args,plugins=[plugin]))
         run_config = work/'run.json'
         run_config.write_text(json.dumps({'lane': lane, 'collect_only': args.collect_only,
                                           'receipt': str(work/'pytest.json')}))
+        pytest_env = env
+        if service is not None:
+            (work/'service-run').mkdir(mode=0o700)
+            (work/'foreign-before.json').write_text(json.dumps(service['before'], indent=1, sort_keys=True)+'\n')
+            (work/'service.json').write_text(json.dumps({
+                'docker_host': service['host'], 'run_dir': str(work/'service-run'), 'images': service['preflight']['images'],
+                'payload': actual, 'venv_bin': str(python.parent), 'deadline_seconds': int(args.timeout)}))
+            pytest_env = {**env, 'E09_SERVICE_CONFIG': str(work/'service.json')}
         run([str(python), '-I', '-c', launch, str(stage), str(run_config)],
-            cwd=stage, env=env, log=work/'pytest.log', timeout=args.timeout, receipts=receipts,
+            cwd=stage, env=pytest_env, log=work/'pytest.log', timeout=args.timeout, receipts=receipts,
             provenance=work/'provenance.jsonl')
+        if service is not None:
+            service_result = service_postflight(service, work)
+            if not service_result['clean']:
+                raise RuntimeError('service postflight failed: ' + json.dumps(service_result, sort_keys=True))
         pytest_receipt=json.loads((work/'pytest.json').read_text())
         if pytest_receipt['errors'] or pytest_receipt['collected']!=lane['test_ids'] or pytest_receipt['pytest_exit_code']:
             raise RuntimeError('missing or failed final pytest receipt')
@@ -590,7 +778,7 @@ raise SystemExit(pytest.main(args,plugins=[plugin]))
                   'stage_files': lane['stage_files'], 'test_ids': lane['test_ids'],
                   'python': str(python), 'work': str(work), 'commands': receipts,
                   'provenance_processes': sorted(processes), 'expected_python_children': sorted(expected),
-                  'runner_tools': {p.name: sha(p.read_bytes()) for p in (Path(__file__), TOOLS/'installed_guard.py', TOOLS/'installed_pytest.py', TOOLS/'installed_dependencies.py')},
+                  'runner_tools': {p.name: sha(p.read_bytes()) for p in (Path(__file__), TOOLS/'installed_guard.py', TOOLS/'installed_guard_load.py', TOOLS/'installed_pytest.py', TOOLS/'installed_dependencies.py', TOOLS/'service_lane.py')},
                   'payload_members': len(actual), 'collect_only': args.collect_only}
         if dependency_inputs is not None:
             result['dependency_inputs'] = dependency_inputs
@@ -598,6 +786,10 @@ raise SystemExit(pytest.main(args,plugins=[plugin]))
             path = work/'process-envelope/result.json'
             result['process_envelope'] = {'path': str(path), 'sha256': sha(path.read_bytes()),
                                           'cases': len(envelope['cases']), 'complete': envelope['complete']}
+        if service is not None:
+            result['service'] = {'docker_host': service['host'], 'substrate': 'native shared Docker Engine',
+                                 'daemon_id': service['preflight']['daemon_id'], 'images': service['preflight']['images'],
+                                 'postflight': service_result}
         result['generated_stage_files'] = {name: sha((stage/name).read_bytes())
                                            for name in ('pytest.ini', 'e07-stage-files.json')}
         result['distribution_files']=distribution
@@ -606,6 +798,11 @@ raise SystemExit(pytest.main(args,plugins=[plugin]))
         return 0
     except BaseException as exc:
         result = {'status': 'failed', 'error': str(exc), 'commands': receipts}
+        if service is not None and work and work.is_dir():
+            try:
+                result['service_postflight'] = service_postflight(service, work)
+            except BaseException as postflight_error:
+                result['service_postflight_error'] = type(postflight_error).__name__
         if not isinstance(exc, Exception):
             result['interruption'] = type(exc).__name__
         if owned and work and work.is_dir():

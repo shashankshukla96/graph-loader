@@ -189,17 +189,13 @@ E06/E09 development image IDs are not release identities. After the clean E11
 source/version freeze (and local SCM tag where applicable), E11.F1.S3 builds all
 final components from that source/version or the exact frozen wheel, checks
 package/CLI/metrics/image versions, and records build-input and image identities.
-E11.F1.S4 reruns final installed/matrix/service gates with those exact images.
-For bundled-context delivery, validate the final packaged context and images
-built from it; no registry publication is required merely by choosing that path.
-A
-registry digest is recorded only after the separately authorized E11 image push;
+E11.F1.S3 reruns final installed/matrix/service gates with those exact images.
+A registry digest is recorded only after the separately authorized E11 image push;
 re-pull and verify content compatibility before accepting the rehearsal. The
 TestPyPI upload and image push need their own explicit instruction naming the
 candidate; production PyPI and any Git pushes need the E12 production instruction.
-E10.F2.S2 prepares and dry-runs the recovery runbook before E12 can request
-production approval. E12's post-release maintenance story only fills actual
-release references into that already exercised procedure.
+E10.F2.S2 writes the release and recovery runbook before E12 can request
+production approval; E12.F2.S1 fills the actual release references into it.
 The current **do-not-push** instruction remains in force until explicitly changed.
 All existing no-workflows policy changes are user decisions.
 

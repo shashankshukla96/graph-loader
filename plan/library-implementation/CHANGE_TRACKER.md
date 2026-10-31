@@ -5,7 +5,20 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E08 independently accepted and delivered locally,2026-10-28:**
+**Current work — E09 in progress; plan reset 2026-10-31 (D08):** At the user's
+request the plan was re-evaluated against the release checklist and cut to what a
+production-ready library needs ([decision D08](decisions.md), [E09 plan](execution-e09.md)).
+Removed: the E09.F1.S6 sandbox bootstrap fixture and the shared-gate protocol work (fenced
+daemon, broker/durable settlement, syscall fence, Docker wire decoder, application
+channel/journal, process supervisor, synthetic broker) with their docs, reviews and
+evidence; E09.F2.S2 was merged into E09.F2.S1, E11.F1.S4 into E11.F1.S3, E12.F2.S2 into
+E12.F2.S1, E11.F1.S1 reduced to T1, and the E10 recovery dry-run became a runbook. A backup of everything removed is in
+`var/plan-reset-backup-20261031/`. Kept: the E09.F1.S7 live harness (complete,
+independently accepted 2026-10-31, [evidence](evidence/E09.F1.S7.md)) on the user's
+native Docker Engine host ([migration record](evidence/e09-docker-migration-20261030.md));
+S1 planned bulk is in progress. No E09 exit gate, upload or push is authorized.
+
+**Prior gate — E08 independently accepted and delivered locally,2026-10-28:**
 [Fresh final adversarial review](reviews/e08-final-adversarial-review-20261028.md)
 accepts the exact implementation and all actual validation gates with no open
 finding. Both ordered stories are complete; [full S2 review](reviews/e08-s2-full-review-20261028.md)

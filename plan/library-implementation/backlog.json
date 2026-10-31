@@ -3,7 +3,7 @@
   "title": "Library implementation epics",
   "date": "2026-10-25",
   "source_checklist": "../../docs/PYPI_LIBRARY_CHECKLIST.md",
-  "status": "E00-E07 accepted; E08-E12 not started",
+  "status": "E00-E08 accepted; E09 in progress; E10-E12 not started (plan reset 2026-10-31, D08)",
   "epics": [
     {
       "id": "E00",
@@ -1244,16 +1244,16 @@
       "scope": "Use throwaway services/scratch databases and the locally identified candidate images. The loaded remote IMDb graph is never a test fixture to reset.",
       "exit_gate": "Every supported mode and ordering case has an executed result with graph/offset/cleanup evidence; unsupported cases are explicitly documented and excluded from guarantees.",
       "review_status": "approved",
-      "implementation_status": "not started",
+      "implementation_status": "in progress; E09.F1.S7 live harness complete; S1 (planned bulk) in progress; S2\u2013S5 and F2.S1 planned (plan reset 2026-10-31, D08)",
       "features": [
         {
           "id": "E09.F1",
           "title": "Mode and failure correctness",
           "stories": [
             {
-              "id": "E09.F1.S6",
-              "title": "Provision the shared installed-service proof harness",
-              "estimate_days": 1,
+              "id": "E09.F1.S7",
+              "title": "Provision the live installed-service proof harness",
+              "estimate_days": 2,
               "checklist": [
                 "V6",
                 "D5"
@@ -1262,7 +1262,7 @@
                 "E08.F2.S1"
               ],
               "changes": [
-                "Proposed tests/installed_service/conftest.py; installed runner service adapter; named throwaway Kafka/Neo4j/image fixture manifest"
+                "tests/installed_service/ live harness (owned Neo4j/Kafka stack, installed CLI runner, observers, query-log lock-wait detector); scripts/service_lane.py and the service-harness lane in scripts/verify_installed.py"
               ],
               "acceptance": [
                 "Provision owned throwaway Kafka and Neo4j at approved versions with required logging/APOC/Enterprise settings; scrub ambient connections, name resources and clean only those resources. No existing IMDb database reset.",
@@ -1271,10 +1271,10 @@
               ],
               "validation": [
                 "Use tests/conftest.py, tests/it_scratch_db.py, tests/stress/lock_wait.py and tests/test_lock_wait_integration.py as maintained helper references, not unchecked execution against ambient services.",
-                "python scripts/verify_installed.py --lane service-harness --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>; record real service/container identities and cleanup."
+                "python scripts/verify_installed.py --lane service-harness --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest> --docker-host unix:///var/run/docker.sock; record real service/container identities and cleanup."
               ],
-              "evidence": "evidence/E09.F1.S6.md",
-              "status": "planned"
+              "evidence": "evidence/E09.F1.S7.md",
+              "status": "complete; independently accepted 2026-10-31 on the shared native Docker Engine substrate (see evidence/E09.F1.S7.md)"
             },
             {
               "id": "E09.F1.S1",
@@ -1285,7 +1285,7 @@
                 "U3"
               ],
               "depends_on": [
-                "E09.F1.S6"
+                "E09.F1.S7"
               ],
               "changes": [
                 "Installed planned-load integration harness; candidate image manifest; small deterministic fixture"
@@ -1296,12 +1296,12 @@
                 "Capture Neo4j lock-wait evidence with a proven detector; distinguish coordinator wait counters from database lock waits."
               ],
               "validation": [
-                "python scripts/verify_installed.py --lane service-bulk --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>",
+                "python scripts/verify_installed.py --lane service-bulk --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest> --docker-host unix:///var/run/docker.sock",
                 "Run the small fixture and failure scenario from outside checkout using the built wheel and candidate images.",
                 "Use a positive-control lock-wait probe so a zero result is meaningful; record version/topology."
               ],
               "evidence": "evidence/E09.F1.S1.md",
-              "status": "planned"
+              "status": "in progress; exploration runs done, harness defect open (see e09-s1-design-note.md)"
             },
             {
               "id": "E09.F1.S2",
@@ -1323,7 +1323,7 @@
                 "Record a real execution for supported streaming; mark N/A only for an explicit D02 release exclusion."
               ],
               "validation": [
-                "python scripts/verify_installed.py --lane service-stream --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>",
+                "python scripts/verify_installed.py --lane service-stream --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest> --docker-host unix:///var/run/docker.sock",
                 "Start from tests/test_streaming_lease_e2e.py, tests/test_node_leases.py and relevant stream consumer-group cases as inventoried; assert actual graph and committed offsets."
               ],
               "evidence": "evidence/E09.F1.S2.md",
@@ -1348,7 +1348,7 @@
                 "If excluded from release, record the D02 rationale and prove the shipped CLI/docs do not advertise it as supported; no silent test skip."
               ],
               "validation": [
-                "python scripts/verify_installed.py --lane service-classic --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>",
+                "python scripts/verify_installed.py --lane service-classic --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest> --docker-host unix:///var/run/docker.sock",
                 "Use tests/integration/test_multi_topic_relationship.py supported classic parameter cases and tests/test_relationship_bulk_e2e.py only after converting any opt-in developer topology to owned services."
               ],
               "evidence": "evidence/E09.F1.S3.md",
@@ -1375,7 +1375,7 @@
                 "Prove cleanup of only owned test topics/databases/processes, and record actual outcomes rather than treating Docker skips as evidence."
               ],
               "validation": [
-                "python scripts/verify_installed.py --lane service-dlq --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>",
+                "python scripts/verify_installed.py --lane service-dlq --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest> --docker-host unix:///var/run/docker.sock",
                 "Targets include the named arrival test in tests/integration/test_multi_topic_relationship.py, tests/integration/test_edge_before_node_dlq.py and selected tests/integration/test_multi_pair_relationship.py cases."
               ],
               "evidence": "evidence/E09.F1.S4.md",
@@ -1401,7 +1401,7 @@
                 "Drive supported-mode cases as an explicit small scenario table; if they need distinct harness redesigns, split before execution rather than hiding them in this estimate."
               ],
               "validation": [
-                "python scripts/verify_installed.py --lane service-failure --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>",
+                "python scripts/verify_installed.py --lane service-failure --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest> --docker-host unix:///var/run/docker.sock",
                 "Reference tests/test_stream_outage_resilience.py and tests/test_cli_shutdown.py for invariants, tests/test_streaming_lease_e2e.py for supervised live topology and tests/test_planned_harness.py for fail-closed writer control; record which assertions are unit versus live-service evidence."
               ],
               "evidence": "evidence/E09.F1.S5.md",
@@ -1415,8 +1415,8 @@
           "stories": [
             {
               "id": "E09.F2.S1",
-              "title": "Prove process-memory ordering limits",
-              "estimate_days": 1,
+              "title": "Prove the restricted ordering contract (O1\u2013O8)",
+              "estimate_days": 2,
               "checklist": [
                 "V7",
                 "U3",
@@ -1426,45 +1426,19 @@
                 "E09.F1.S5"
               ],
               "changes": [
-                "ordering-matrix.md cases O1\u2013O3; deterministic restart/revocation/eviction tests and isolated retry probes"
+                "ordering-matrix.md O1\u2013O8 dispositions; existing deterministic counterexample tests; small installed probes only for advertised order_by semantics"
               ],
               "acceptance": [
-                "Resolve O1\u2013O3 dispositions against D02: restart, partition revocation/rebalance and forced LRU eviction each have an exact asserted outcome or approved exclusion.",
-                "For restricted-alpha scope retain deterministic counterexamples from tests/test_retry_replay_resurrection.py and document the unsupported guarantee; add the small installed/service probe only for semantics actually advertised.",
-                "A stronger durability promise blocks the gate until separately reviewed implementation epics and their proofs pass. A known stale-write counterexample is not a passing safety guarantee."
+                "Give every ordering-matrix.md row O1\u2013O8 (restart, revocation/rebalance, LRU eviction, cross-topic and cross-partition offsets, replicas, manual replay, topic recreation) an asserted supported outcome or an approved D02 exclusion with its counterexample or precondition; no unqualified exactly-once or restart-safe claim.",
+                "Supported order_by scenarios assert final graph values and offsets on owned scratch topics through the installed runner; excluded scenarios keep their deterministic counterexamples. Never recreate real IMDb topics.",
+                "A stronger durability promise than D02 blocks the gate rather than passing; document timestamp/tie/missing-value and replay boundaries for U3."
               ],
               "validation": [
-                "python scripts/verify_installed.py --lane ordering-memory --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>",
-                "Use explicit existing cache-eviction/revocation tests, reconstruct a consumer for restart, and assert final values/offsets under the chosen supported versus excluded disposition."
+                "python scripts/verify_installed.py --lane ordering-memory --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest> --docker-host unix:///var/run/docker.sock",
+                "python scripts/verify_installed.py --lane ordering-boundaries --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest> --docker-host unix:///var/run/docker.sock",
+                "Start from tests/test_retry_replay_resurrection.py, tests/test_retry_pair_order_fuzz.py, tests/test_dead_letter_replay.py, tests/integration/test_multi_topic_relationship.py and tests/integration/test_planned_order_by_chunks.py."
               ],
               "evidence": "evidence/E09.F2.S1.md",
-              "status": "planned"
-            },
-            {
-              "id": "E09.F2.S2",
-              "title": "Prove cross-stream, replay and identity boundaries",
-              "estimate_days": 1.5,
-              "checklist": [
-                "V7",
-                "U3",
-                "S3"
-              ],
-              "depends_on": [
-                "E09.F2.S1"
-              ],
-              "changes": [
-                "ordering-matrix.md cases O4\u2013O8; explicitly selected multi-topic/replica/replay cases and new bounded identity-recreation probe"
-              ],
-              "acceptance": [
-                "Resolve cross-topic offsets, cross-partition offsets, multiple replicas, manual replay and topic recreation separately; assign every matrix row a supported assertion or approved exclusion and test/evidence owner.",
-                "Use owned scratch topics to demonstrate identifier/offset reuse safely when needed, or enforce/document the stop/recreate precondition without claiming active-fleet safety. Never recreate real IMDb topics to test this.",
-                "Document order_by timestamp/tie/missing-value and replay boundaries; supported scenarios assert final graph values and offsets, excluded scenarios show the precondition/rejection/counterexample rather than greenwashing them."
-              ],
-              "validation": [
-                "python scripts/verify_installed.py --lane ordering-boundaries --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>",
-                "Start from tests/test_retry_replay_resurrection.py, tests/test_retry_pair_order_fuzz.py, tests/test_dead_letter_replay.py, tests/integration/test_multi_topic_relationship.py and tests/integration/test_planned_order_by_chunks.py; add only the explicitly enumerated missing probe cases."
-              ],
-              "evidence": "evidence/E09.F2.S2.md",
               "status": "planned"
             }
           ]
@@ -1497,7 +1471,7 @@
                 "D6"
               ],
               "depends_on": [
-                "E09.F2.S2"
+                "E09.F2.S1"
               ],
               "changes": [
                 "Public README/API docs; small maintained example files; installation guide"
@@ -1572,7 +1546,7 @@
             },
             {
               "id": "E10.F2.S2",
-              "title": "Prepare and dry-run recovery before release approval",
+              "title": "Document recovery and the release procedure",
               "estimate_days": 0.5,
               "checklist": [
                 "R5",
@@ -1582,15 +1556,14 @@
                 "E10.F2.S1"
               ],
               "changes": [
-                "Pre-production release/recovery runbook with explicit project/version targets; hypothetical failure exercise"
+                "Release and recovery runbook with explicit project/version targets"
               ],
               "acceptance": [
-                "Draft the actionable procedure before E11/E12: halt publication on hash mismatch, keep immutable artifacts, yank a broken version if authorized, and publish a new version rather than overwrite files.",
-                "Dry-run a hypothetical broken release using explicit package/version/image references and preserved user graph/Kafka state. No actual upload, yank, deletion, account change or data mutation is part of the dry run.",
-                "Document dependency update/regression gates, owner contacts and safe recovery/rollback compatibility; production authorization must link to this completed exercise."
+                "Write the actionable procedure before E11/E12: halt publication on hash mismatch, keep immutable artifacts, yank a broken version if authorized, and publish a new version rather than overwrite files.",
+                "Document the dependency-update and regression gate, owner contacts, and data-safe recovery (no destructive automatic migrations)."
               ],
               "validation": [
-                "Walk through an intentionally broken candidate manifest and a hypothetical already-uploaded broken version using documented dry-run commands/checklists; demonstrate safe targeting and no external mutation."
+                "Review the runbook against R5/U5 and the E11/E12 stories; every command names explicit package, version and image targets."
               ],
               "evidence": "evidence/E10.F2.S2.md",
               "status": "planned"
@@ -1617,23 +1590,20 @@
           "stories": [
             {
               "id": "E11.F1.S1",
-              "title": "Confirm accounts and configure the selected publisher",
+              "title": "Confirm release accounts and the manual Twine environment",
               "estimate_days": 0.5,
               "checklist": [
-                "T1",
-                "T2",
-                "T3"
+                "T1"
               ],
               "depends_on": [
                 "E10.F2.S1"
               ],
               "changes": [
-                "Release ownership/publisher records; non-secret configuration; conditional automation branch"
+                "Release ownership record; documented manual Twine environment and external token handling"
               ],
               "acceptance": [
                 "Verify separate PyPI/TestPyPI access, email/security requirements, maintainers and project ownership/name.",
-                "For manual Twine, document the controlled environment and external token handling; add no workflow.",
-                "Only if the user explicitly changes policy: configure both pending/registered Trusted Publishers with exact owner/repo/workflow/protected environment, separate publish job and id-token: write; otherwise T3 is N/A."
+                "Document the controlled manual Twine environment and external token handling (D07); add no workflow."
               ],
               "validation": [
                 "Check account/publisher settings without exposing credentials; record authorized human responsibilities and any required user actions."
@@ -1664,48 +1634,22 @@
               "acceptance": [
                 "Freeze all scoped source, requirements, resources and package release notes at a clean reviewed candidate snapshot. Include formerly untracked prerequisite files in that source identity.",
                 "For SCM mode create the local candidate tag before all final builds; file-version mode records the tested candidate version/commit. No Git push is authorized.",
-                "Build wheel/sdist in an empty candidate directory, inspect/twine-check and record exact filenames/hashes, metadata and version. Do not reuse development build bytes by assumption. Final image construction and full attestation follow in S3/S4."
+                "Build wheel/sdist in an empty candidate directory, inspect/twine-check and record exact filenames/hashes, metadata and version. Do not reuse development build bytes by assumption. Final image construction and the final gates follow in S3."
               ],
               "validation": [
                 "python -m build; python -m twine check --strict on explicit candidate files; inspect inventories, metadata/license/version/entrypoints and private-file exclusions.",
-                "Rebuild/install the sdist wheel without .git and validate version/resources. Record the source/dependency/build-input manifest for S3/S4."
+                "Rebuild/install the sdist wheel without .git and validate version/resources. Record the source/dependency/build-input manifest for S3."
               ],
               "evidence": "evidence/E11.F1.S2.md",
               "status": "planned"
             },
             {
               "id": "E11.F1.S3",
-              "title": "Build final component images/context from the frozen candidate",
-              "estimate_days": 1,
+              "title": "Build final images and rerun the gates on the final candidate",
+              "estimate_days": 2,
               "checklist": [
                 "D4",
                 "P3",
-                "V6",
-                "T4"
-              ],
-              "depends_on": [
-                "E11.F1.S2"
-              ],
-              "changes": [
-                "Final component image/context builds; immutable source/dependency/version manifest"
-              ],
-              "acceptance": [
-                "Build every shipped component from the exact frozen E11 source/version and reviewed dependency inputs, preferably installing the frozen wheel; source-copy builds must prove equivalent source/version injection. Never carry forward E06/E09 development image IDs as final proof.",
-                "Assert package metadata, Python version API, executable --version, metrics version labels and image compatibility metadata agree according to the approved override policy. Record source commit/tag, wheel hash where installed, dependency/build-context hashes, local image IDs/OCI archive hashes.",
-                "For bundled context, verify the exact context packaged in the final wheel/sdist, build all supported components from it and record identities; a registry push is not required for that branch. Any source/version/context/dependency change invalidates the relevant artifacts/images and S4 evidence."
-              ],
-              "validation": [
-                "Build and start every final component with version/import/help checks; inspect labels and capture actual in-image runtime/dependency identities.",
-                "Compare to final package version/manifest; mark old development-image evidence superseded and prohibit substitution in upload/approval commands."
-              ],
-              "evidence": "evidence/E11.F1.S3.md",
-              "status": "planned"
-            },
-            {
-              "id": "E11.F1.S4",
-              "title": "Attest final packages and matching images together",
-              "estimate_days": 1,
-              "checklist": [
                 "V1",
                 "V2",
                 "V3",
@@ -1715,21 +1659,22 @@
                 "T4"
               ],
               "depends_on": [
-                "E11.F1.S3"
+                "E11.F1.S2"
               ],
               "changes": [
-                "Final candidate evidence bundle; matrix/service runs bound to exact wheel/sdist/image/context hashes"
+                "Final component images from the frozen candidate; one candidate manifest binding source, packages, images and gate results"
               ],
               "acceptance": [
-                "Run E07 wheel and sdist-built-wheel isolation/provenance checks and E08 support lanes against the final package bytes.",
-                "Run E09 supported-mode/order/failure gates using the final E11.F1.S3 image identities or final bundled-context builds. Earlier development-image service passes are not the final gate.",
-                "Produce one immutable manifest linking source/tag/version, package filenames/hashes, tested component IDs/context hashes and all gate evidence. Later changes require a new candidate and repeated affected plus final gates before publication."
+                "Build every shipped component for linux/amd64 and linux/arm64 (D04) from the exact frozen E11 source/version, preferably installing the frozen wheel. Never carry forward E06/E09 development image IDs as final proof.",
+                "Assert package metadata, Python version API, executable --version, metrics version labels and image compatibility metadata agree according to the approved override policy. Record source commit/tag, wheel hash where installed, dependency/build-context hashes, local image IDs/OCI archive hashes.",
+                "Rerun the E07 installed lanes, the E08 support lanes and the E09 service lanes against the final wheel/sdist and final amd64 image identities, and an installed-CLI real-load smoke on arm64; earlier development-image passes are not the final gate. Preserve every pass, skip and exclusion reason.",
+                "Produce one manifest linking source commit/version, wheel/sdist filenames and hashes, image IDs and all gate results; any later change requires a new candidate and rerun of the affected gates."
               ],
               "validation": [
-                "Execute the installed runner lanes and matrix/service gates using explicit manifest paths and final component identities; inspect actual package/CLI/metrics/image versions.",
-                "Verify no artifact comes from a stale dist directory or an older image tag; preserve all pass/skip/exclusion reasons."
+                "Build and start every final component with version/import/help checks; inspect labels and capture actual in-image runtime/dependency identities.",
+                "Run the installed runner lanes with explicit manifest paths and final image identities; verify nothing comes from a stale dist directory or older image tag."
               ],
-              "evidence": "evidence/E11.F1.S4.md",
+              "evidence": "evidence/E11.F1.S3.md",
               "status": "planned"
             }
           ]
@@ -1747,16 +1692,16 @@
                 "T4"
               ],
               "depends_on": [
-                "E11.F1.S4"
+                "E11.F1.S3"
               ],
               "changes": [
                 "Explicit user publication instruction; exact artifact/image manifests; release command record"
               ],
               "acceptance": [
                 "Present the concrete version, commit, files/hashes, image targets and test results; obtain a new explicit user instruction for the specific image and TestPyPI uploads.",
-                "If prebuilt registry delivery was selected, push only the validated images after authorization and record registry digests; verify content identity against local candidates.",
+                "Push only the validated images after authorization and record registry digests; verify content identity against the local candidates.",
                 "Upload exactly the manifested wheel/sdist bytes to TestPyPI; preserve no-push until specifically superseded and never infer PyPI production permission.",
-                "Only the frozen S4 manifest is uploadable. For bundled-context delivery, skip registry publication with the D06 rationale; TestPyPI still requires its explicit instruction."
+                "Only the frozen S3 manifest is uploadable."
               ],
               "validation": [
                 "Use explicit image targets and explicit twine upload --repository testpypi <candidate-wheel> <candidate-sdist> after authorization.",
@@ -1785,7 +1730,7 @@
                 "Retrieve the exact candidate version with --no-deps from TestPyPI, then install the reviewed dependency set from normal PyPI separately; never combine indexes via --extra-index-url.",
                 "Compare retrieved hashes; run pip check, public API/CLI/resource checks and a small real load using the published candidate images.",
                 "Inspect README/license/links/Python support/maintainers/files; defects require a new version/candidate and repeated affected gates.",
-                "Production release and E12 consume the frozen S4 manifest plus verified registry digests (prebuilt strategy), or the validated bundled context; never substitute development images."
+                "Production release and E12 consume the frozen S3 manifest plus verified registry digests; never substitute development images."
               ],
               "validation": [
                 "Download/install into a fresh virtualenv and unrelated cwd; record hashes, provenance and real-service result.",
@@ -1832,7 +1777,7 @@
                 "All B/S/P/A/D/V/U and applicable T gates have evidence; no unresolved broad-scope branch is hidden behind an N/A.",
                 "Present exact files/hashes, clean commit/tag, image digests, support/ordering limits and rollback plan.",
                 "Require explicit user approval for PyPI publication and any Git/image pushes; independent plan approval alone is never execution approval.",
-                "Link the completed E10.F2.S2 runbook and dry-run evidence; do not request approval using a future post-release recovery task as the rollback plan."
+                "Link the completed E10.F2.S2 release and recovery runbook; do not request approval using a future post-release task as the rollback plan."
               ],
               "validation": [
                 "Human reviews the concrete release manifest and completed gates; record the instruction without copying secrets."
@@ -1873,51 +1818,31 @@
             {
               "id": "E12.F2.S1",
               "title": "Verify the public release and publish release records",
-              "estimate_days": 0.5,
+              "estimate_days": 1,
               "checklist": [
                 "R3",
-                "R4"
+                "R4",
+                "R5",
+                "U5"
               ],
               "depends_on": [
                 "E12.F1.S2"
               ],
               "changes": [
-                "Fresh PyPI install evidence; release notes/compatibility references; actual-version installation guidance"
+                "Fresh PyPI install evidence; release notes/compatibility references; actual-version installation guidance",
+                "Actual released version/URL/image references filled into the E10.F2.S2 runbook; next dependency-review owner and cadence"
               ],
               "acceptance": [
                 "Download exact version from normal PyPI, compare hashes and run pip check/API/CLI smoke plus a small real load.",
                 "Check project-page metadata and record compatible image digests, maintainer contact and test results.",
-                "Update external docs/release records to actual version without silently changing the already uploaded package bytes."
+                "Update external docs/release records to actual version without silently changing the already uploaded package bytes.",
+                "Fill the actual release URLs, version and image digests into the E10.F2.S2 runbook without altering uploaded bytes; record the next dependency-review owner and cadence.",
+                "Actual yanking, deletion or user-data migration still needs a separate specific instruction; maintenance grants no standing destructive authority."
               ],
               "validation": [
                 "Fresh unrelated environment, provenance checks and isolated load; record all outcomes and only claim release completion on success."
               ],
               "evidence": "evidence/E12.F2.S1.md",
-              "status": "planned"
-            },
-            {
-              "id": "E12.F2.S2",
-              "title": "Finalize maintenance references after public verification",
-              "estimate_days": 0.5,
-              "checklist": [
-                "R5",
-                "U5"
-              ],
-              "depends_on": [
-                "E12.F2.S1"
-              ],
-              "changes": [
-                "Actual released-version/image references in the pre-exercised recovery runbook; next-release maintenance checklist"
-              ],
-              "acceptance": [
-                "Finalize actual release URLs/version/image identities in the E10.F2.S2 runbook without altering uploaded package bytes.",
-                "Verify the already exercised recovery/dependency procedure still targets the released version precisely; this story supplies no missing pre-production rollback material.",
-                "Actual yanking, deletion or user-data migration still needs a separate specific instruction; maintenance does not grant standing destructive authority."
-              ],
-              "validation": [
-                "Cross-check the pre-production dry run against actual public references; record the next dependency-review owner/cadence and reusable artifact/matrix/service commands."
-              ],
-              "evidence": "evidence/E12.F2.S2.md",
               "status": "planned"
             }
           ]

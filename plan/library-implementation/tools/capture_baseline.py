@@ -26,11 +26,13 @@ FILES = {"requirements.txt", "requirements-dev.txt", "pyproject.toml", "Makefile
 FILES.add("plan/library-implementation/test-inventory.json")
 FILES.add("plan/library-implementation/tools/render_plan.py")
 UNTRACKED_INPUTS = [
+    "scripts/installed_service.py", "tests/test_service_observers.py", "tests/test_installed_service.py", "tests/test_installed_service_log.py", "tests/test_installed_service_log_config.py", "tests/test_installed_service_structured_log.py", "tests/installed_service",
     "scripts/installed_dependencies.py", "scripts/support_matrix.py", "tests/test_support_matrix.py",
     "tests/fixtures/e08_base_probe.py", "config/support-matrix",
     "scripts/matrix_docker.py",
     "docs/SUPPORT_MATRIX_VALIDATION.md",
-    "scripts/verify_installed.py", "scripts/installed_guard.py", "scripts/installed_pytest.py",
+    "scripts/verify_installed.py", "scripts/installed_guard.py", "scripts/installed_guard_load.py", "scripts/installed_pytest.py",
+    "scripts/service_lane.py", "tests/test_service_lane.py",
     "scripts/freeze_installed_inventory.py", "tests/test_installed_runner.py", "tests/test_installed_inventory.py", "tests/installed_support.py",
     "tests/test_library_preflight.py", "tests/test_dlq_proof_harness.py", "tests/fixtures",
     "src/neo4j_graph_loader", "PACKAGE_README.md", "MANIFEST.in", "requirements-build.txt",
