@@ -297,10 +297,14 @@ def test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges(repeat, docke
     assert held and held.group(1) == kill['writer_id'], 'the killed writer did not hold a chunk when it was lost'
     stats = dispatcher_stats(first['stderr'])
     assert stats['state'] == 'failed' and stats['active'] >= 1 and stats['completed'] < stats['chunks']
-    assert stats['grants'] == stats['completed'] + stats['active'], 'a chunk was granted after the loss'
-    open_ids = first['capture'].open_ids
+    # Counter consistency only: this does not show that no chunk was granted after the loss (a grant raises grants and active together).
+    # That ordering is proven by the dispatcher unit test test_disconnect_while_holding_fails_closed_and_keeps_resources_held.
+    assert stats['grants'] == stats['completed'] + stats['active'], 'dispatcher counters are inconsistent after the loss'
+    # Queries earlier repeats left open are already declared; only the ones this kill left are new.
+    open_ids = tuple(i for i in first['capture'].open_ids if (first['capture'].epochs, i) not in qw.ORPHANS)
     started_edge = {r['query_id'] for r in edge_statements(first['records']) if r['phase'] == 'started'}
     assert len(open_ids) <= 1 and set(open_ids) <= started_edge, ('a killed writer leaves at most its own query open', open_ids)
+    qw.declare_orphans(first['capture'])  # Neo4j never logs the end of such a query: later strict captures must accept exactly it
     settled_s = settled_edge_transactions(stack)
     (run / 'logs' / 'settled.json').write_text(json.dumps({'edge_transactions_gone_after_s': settled_s, 'open_query_ids': list(open_ids)}) + '\n')
     raw, plan = plan_of(first['attempt'])

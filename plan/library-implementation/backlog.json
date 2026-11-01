@@ -3,7 +3,7 @@
   "title": "Library implementation epics",
   "date": "2026-10-25",
   "source_checklist": "../../docs/PYPI_LIBRARY_CHECKLIST.md",
-  "status": "E00-E08 accepted; E09 in progress; E10-E12 not started (plan reset 2026-10-31, D08)",
+  "status": "E00-E09 complete; E10-E12 not started (plan reset 2026-10-31, D08)",
   "epics": [
     {
       "id": "E00",
@@ -1244,7 +1244,7 @@
       "scope": "Use throwaway services/scratch databases and the locally identified candidate images. The loaded remote IMDb graph is never a test fixture to reset.",
       "exit_gate": "Every supported mode and ordering case has an executed result with graph/offset/cleanup evidence; unsupported cases are explicitly documented and excluded from guarantees.",
       "review_status": "approved",
-      "implementation_status": "in progress; E09.F1.S7 and S1 complete; S2\u2013S5 and F2.S1 planned (plan reset 2026-10-31, D08)",
+      "implementation_status": "complete 2026-11-01; independent exit review accepted after 3 rounds; final service-harness run r1/final-4 (150 tests) on the shared native Docker Engine substrate",
       "features": [
         {
           "id": "E09.F1",
@@ -1315,7 +1315,7 @@
                 "E09.F1.S1"
               ],
               "changes": [
-                "test-inventory.json service-stream lane; installed streaming/lease test harness"
+                "tests/installed_service/stream_fixture.py and test_service_lease_stream.py in the service-harness lane; RunningCli in live_cli.py; scripts/freeze_installed_inventory.py lane file list"
               ],
               "acceptance": [
                 "For D02-supported streaming leases, assert graph properties/counts, stable consumer-group offsets, node-before-edge coordination and graceful restart/resume.",
@@ -1327,7 +1327,7 @@
                 "Start from tests/test_streaming_lease_e2e.py, tests/test_node_leases.py and relevant stream consumer-group cases as inventoried; assert actual graph and committed offsets."
               ],
               "evidence": "evidence/E09.F1.S2.md",
-              "status": "planned"
+              "status": "complete 2026-10-31 (implementer self-check, orchestrator-verified lane run s2/final-1; covered by the E09 independent review before the exit gate)"
             },
             {
               "id": "E09.F1.S3",
@@ -1341,7 +1341,7 @@
                 "E09.F1.S2"
               ],
               "changes": [
-                "test-inventory.json service-classic lane; isolated classic fixture/harness"
+                "tests/installed_service/test_service_legacy_classic.py in the service-harness lane; stream_fixture.py reuse; scripts/freeze_installed_inventory.py lane file list"
               ],
               "acceptance": [
                 "If D02 includes classic, execute the selected classic cases and assert final graph/offsets/cleanup; distinguish its concurrency/lock behavior from planned/lease modes.",
@@ -1352,7 +1352,7 @@
                 "Use tests/integration/test_multi_topic_relationship.py supported classic parameter cases and tests/test_relationship_bulk_e2e.py only after converting any opt-in developer topology to owned services."
               ],
               "evidence": "evidence/E09.F1.S3.md",
-              "status": "planned"
+              "status": "complete 2026-10-31 (implementer self-check, orchestrator-verified lane run s3/final-1; native_disjoint and classic order_by left to the E09 review and E09.F2.S1)"
             },
             {
               "id": "E09.F1.S4",
@@ -1367,7 +1367,7 @@
                 "E09.F1.S3"
               ],
               "changes": [
-                "test-inventory.json service-dlq lane; maintained arrival/multi-pair fixtures and installed retry subprocesses"
+                "tests/installed_service/dlq_fixture.py and test_service_ingest_dlq.py in the service-harness lane; detector records failed and pre-run-rejected statements and declared orphans; scripts/freeze_installed_inventory.py lane file list"
               ],
               "acceptance": [
                 "Run the exact migrated arrival DLQ test from E00 through the installed-code runner with the maintained fixture and no source checkout imports.",
@@ -1379,7 +1379,7 @@
                 "Targets include the named arrival test in tests/integration/test_multi_topic_relationship.py, tests/integration/test_edge_before_node_dlq.py and selected tests/integration/test_multi_pair_relationship.py cases."
               ],
               "evidence": "evidence/E09.F1.S4.md",
-              "status": "planned"
+              "status": "complete 2026-11-01 after the E09 exit review (3 rounds); final service-harness run r1/final-4"
             },
             {
               "id": "E09.F1.S5",
@@ -1393,7 +1393,7 @@
                 "E09.F1.S4"
               ],
               "changes": [
-                "test-inventory.json service-failure lane; throwaway outage/restart/termination harness"
+                "tests/installed_service outage/recovery tests in the service-harness lane (Neo4j outage, lease-server and edge-loader kill, SIGTERM with work outstanding, planned fail-closed and replay); runner timeout 3000 s for the lane"
               ],
               "acceptance": [
                 "Use the enumerated existing deterministic outage/shutdown scenarios to add bounded real-service probes: short Neo4j outage, lost coordinator/writer, and graceful stop while work is outstanding.",
@@ -1405,7 +1405,7 @@
                 "Reference tests/test_stream_outage_resilience.py and tests/test_cli_shutdown.py for invariants, tests/test_streaming_lease_e2e.py for supervised live topology and tests/test_planned_harness.py for fail-closed writer control; record which assertions are unit versus live-service evidence."
               ],
               "evidence": "evidence/E09.F1.S5.md",
-              "status": "planned"
+              "status": "complete 2026-11-01 after the E09 exit review (3 rounds); final service-harness run r1/final-4"
             }
           ]
         },
@@ -1439,7 +1439,7 @@
                 "Start from tests/test_retry_replay_resurrection.py, tests/test_retry_pair_order_fuzz.py, tests/test_dead_letter_replay.py, tests/integration/test_multi_topic_relationship.py and tests/integration/test_planned_order_by_chunks.py."
               ],
               "evidence": "evidence/E09.F2.S1.md",
-              "status": "planned"
+              "status": "complete 2026-11-01 after the E09 exit review (3 rounds); final service-harness run r1/final-4"
             }
           ]
         }
@@ -1505,7 +1505,8 @@
               "acceptance": [
                 "Use published absolute docs/image links and complete standalone installation instructions.",
                 "Publish public support/security contact, license/attribution and a minimal reproduction template without machine-private identities.",
-                "State concurrency/isolation/external-writer, missing-endpoint, DLQ/ordering and resource/performance limits; avoid extrapolating the IMDb run to all environments."
+                "State concurrency/isolation/external-writer, missing-endpoint, DLQ/ordering and resource/performance limits; avoid extrapolating the IMDb run to all environments.",
+                "State that execution.mode native_disjoint needs a Neo4j server with the Cypher 25 dialect and is not supported on the D04 Neo4j 5.26 target (it fails closed at the edge loader, E09.F1.S3 evidence); fix docs/BULK_LOAD.md, USAGE.md and the CLI help that present --edge-classic as the way to run it on 5.23+, and keep it out of the U3 guarantee set."
               ],
               "validation": [
                 "Check link destinations/rendering and verify all examples against current artifacts; user confirms public contacts."

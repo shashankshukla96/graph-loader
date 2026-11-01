@@ -5,7 +5,14 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current work — E09 in progress; plan reset 2026-10-31 (D08):** At the user's
+**Current gate — E09 complete, 2026-11-01:** All seven E09 stories have executed evidence through the
+installed CLI and candidate images on owned Neo4j 5.26 Enterprise and Kafka 7.7.0 (shared native Docker Engine
+host): live harness, planned bulk, streaming leases, classic, DLQ, outages/recovery in every supported mode, and
+the restricted ordering contract O1–O8. The independent exit review accepted after three rounds
+([E09 plan](execution-e09.md)); final service-harness run `r1/final-4`, 150/150; inventory 4,200 IDs. Open for
+E10: correct the `native_disjoint` docs (needs Cypher 25) and document the ordering limits. Next: E10.
+
+**Plan reset 2026-10-31 (D08):** At the user's
 request the plan was re-evaluated against the release checklist and cut to what a
 production-ready library needs ([decision D08](decisions.md), [E09 plan](execution-e09.md)).
 Removed: the E09.F1.S6 sandbox bootstrap fixture and the shared-gate protocol work (fenced

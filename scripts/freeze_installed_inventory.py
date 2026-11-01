@@ -33,8 +33,13 @@ EXTRA_LANES = {
         planned_harness self_reference_isolation_e2e'''),
 }
 SERVICE_LANES = {
-    'service-harness': ('tests/installed_service/test_observer_controls.py', 'tests/installed_service/test_query_window_controls.py', 'tests/installed_service/test_service_harness.py',
+    'service-harness': ('tests/installed_service/test_inspection_controls.py', 'tests/installed_service/test_observer_controls.py', 'tests/installed_service/test_query_window_controls.py', 'tests/installed_service/test_service_harness.py',
+                        'tests/installed_service/test_service_ingest_dlq.py',
+                        'tests/installed_service/test_service_kill_and_outage.py',
+                        'tests/installed_service/test_service_kill_bulk_modes.py',
+                        'tests/installed_service/test_service_last_value_order.py',
                         'tests/installed_service/test_service_lease_stream.py',
+                        'tests/installed_service/test_service_legacy_classic.py',
                         'tests/installed_service/test_service_load_bulk.py',
                         # Collection order is alphabetical. The destructive log-continuity control moves the query log away,
                         # so it must sort (and run) last: keep "load" before "log".

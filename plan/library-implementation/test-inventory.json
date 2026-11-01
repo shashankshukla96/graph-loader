@@ -5369,14 +5369,28 @@
       "required_assertions": "See epic acceptance criteria and ordering-matrix.md; D02 exclusions need evidence/rationale, not silent skips.",
       "command": "python scripts/verify_installed.py --lane service-harness --wheel <candidate-wheel> --inventory plan/library-implementation/test-inventory.json --images <candidate-image-manifest>",
       "current_test_files": [
+        "tests/installed_service/test_inspection_controls.py",
         "tests/installed_service/test_observer_controls.py",
         "tests/installed_service/test_query_window_controls.py",
         "tests/installed_service/test_service_harness.py",
+        "tests/installed_service/test_service_ingest_dlq.py",
+        "tests/installed_service/test_service_kill_and_outage.py",
+        "tests/installed_service/test_service_kill_bulk_modes.py",
+        "tests/installed_service/test_service_last_value_order.py",
         "tests/installed_service/test_service_lease_stream.py",
+        "tests/installed_service/test_service_legacy_classic.py",
         "tests/installed_service/test_service_load_bulk.py",
         "tests/installed_service/test_service_log_continuity_live.py"
       ],
       "test_ids": [
+        "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_ordering_inspector",
+        "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_dlq_inspector",
+        "tests/installed_service/test_inspection_controls.py::test_a_topic_the_broker_confirms_missing_is_zero_only_when_the_caller_allows_it",
+        "tests/installed_service/test_inspection_controls.py::test_an_inspection_failure_is_never_zero",
+        "tests/installed_service/test_inspection_controls.py::test_group_offsets_distinguish_uncommitted_from_a_failed_read",
+        "tests/installed_service/test_inspection_controls.py::test_a_topic_read_that_stops_short_of_its_watermark_fails_instead_of_returning_a_partial_list",
+        "tests/installed_service/test_inspection_controls.py::test_a_group_listing_that_reports_errors_is_never_an_empty_list",
+        "tests/installed_service/test_inspection_controls.py::test_bulk_groups_come_from_the_edge_container_names_one_per_type",
         "tests/installed_service/test_observer_controls.py::test_foreign_container_events_are_never_adopted",
         "tests/installed_service/test_observer_controls.py::test_owned_network_attachment_adopts_and_inspects_with_an_allowlisted_projection",
         "tests/installed_service/test_observer_controls.py::test_container_that_vanishes_before_inspection_is_recorded_as_uninspectable",
@@ -5461,6 +5475,13 @@
         "tests/installed_service/test_query_window_controls.py::test_a_window_counts_an_open_query_as_one_record_and_never_hides_missing_ones",
         "tests/installed_service/test_query_window_controls.py::test_an_end_without_a_start_is_still_rejected_when_open_queries_are_allowed",
         "tests/installed_service/test_query_window_controls.py::test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice",
+        "tests/installed_service/test_query_window_controls.py::test_a_statement_rejected_before_it_ran_is_one_standalone_record",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[transaction without database]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[database without transaction]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[info level]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[duplicate id]",
+        "tests/installed_service/test_query_window_controls.py::test_a_declared_orphan_is_accepted_by_strict_captures_and_nothing_else_is",
+        "tests/installed_service/test_query_window_controls.py::test_an_orphan_declared_in_one_epoch_does_not_cover_a_restarted_server",
         "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings",
         "tests/installed_service/test_service_harness.py::test_h2_candidate_image_identity",
         "tests/installed_service/test_service_harness.py::test_h3_installed_package_provenance",
@@ -5468,10 +5489,44 @@
         "tests/installed_service/test_service_harness.py::test_h5_neo4j_outage_and_termination_controls",
         "tests/installed_service/test_service_harness.py::test_h6_lock_wait_detector_positive_and_negative_controls",
         "tests/installed_service/test_service_harness.py::test_h7_no_helper_process_outlives_its_test",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[0]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[1]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[2]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_retry_limits_parking_and_replay",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_rides_out_a_short_neo4j_outage",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[2]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[1]",
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[classic-edge-loader]",
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-edge-loader]",
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-server]",
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[0]",
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[1]",
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[2]",
+        "tests/installed_service/test_service_last_value_order.py::test_without_order_by_the_record_applied_last_wins_even_if_older",
+        "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[order_by-protects]",
+        "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[arrival-is-overwritten]",
+        "tests/installed_service/test_service_last_value_order.py::test_o1_o2_order_by_with_the_dlq_survives_a_fleet_restart",
+        "tests/installed_service/test_service_last_value_order.py::test_o8_recreating_a_source_topic_with_the_fleet_stopped_restarts_from_the_new_topics_start",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[planned]",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[lease]",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[classic]",
         "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]",
         "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]",
         "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]",
         "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_default_overlap_loads_the_exact_graph",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[0]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[1]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[2]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_native_disjoint_is_refused_by_a_plain_start_and_fails_closed_on_neo4j_5_26",
         "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture",
         "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
         "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
@@ -5480,6 +5535,14 @@
         "tests/installed_service/test_service_log_continuity_live.py::test_live_truncation_and_rotation_fail_closed"
       ],
       "collected_test_ids": [
+        "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_ordering_inspector",
+        "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_dlq_inspector",
+        "tests/installed_service/test_inspection_controls.py::test_a_topic_the_broker_confirms_missing_is_zero_only_when_the_caller_allows_it",
+        "tests/installed_service/test_inspection_controls.py::test_an_inspection_failure_is_never_zero",
+        "tests/installed_service/test_inspection_controls.py::test_group_offsets_distinguish_uncommitted_from_a_failed_read",
+        "tests/installed_service/test_inspection_controls.py::test_a_topic_read_that_stops_short_of_its_watermark_fails_instead_of_returning_a_partial_list",
+        "tests/installed_service/test_inspection_controls.py::test_a_group_listing_that_reports_errors_is_never_an_empty_list",
+        "tests/installed_service/test_inspection_controls.py::test_bulk_groups_come_from_the_edge_container_names_one_per_type",
         "tests/installed_service/test_observer_controls.py::test_foreign_container_events_are_never_adopted",
         "tests/installed_service/test_observer_controls.py::test_owned_network_attachment_adopts_and_inspects_with_an_allowlisted_projection",
         "tests/installed_service/test_observer_controls.py::test_container_that_vanishes_before_inspection_is_recorded_as_uninspectable",
@@ -5564,6 +5627,13 @@
         "tests/installed_service/test_query_window_controls.py::test_a_window_counts_an_open_query_as_one_record_and_never_hides_missing_ones",
         "tests/installed_service/test_query_window_controls.py::test_an_end_without_a_start_is_still_rejected_when_open_queries_are_allowed",
         "tests/installed_service/test_query_window_controls.py::test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice",
+        "tests/installed_service/test_query_window_controls.py::test_a_statement_rejected_before_it_ran_is_one_standalone_record",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[transaction without database]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[database without transaction]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[info level]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[duplicate id]",
+        "tests/installed_service/test_query_window_controls.py::test_a_declared_orphan_is_accepted_by_strict_captures_and_nothing_else_is",
+        "tests/installed_service/test_query_window_controls.py::test_an_orphan_declared_in_one_epoch_does_not_cover_a_restarted_server",
         "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings",
         "tests/installed_service/test_service_harness.py::test_h2_candidate_image_identity",
         "tests/installed_service/test_service_harness.py::test_h3_installed_package_provenance",
@@ -5571,10 +5641,44 @@
         "tests/installed_service/test_service_harness.py::test_h5_neo4j_outage_and_termination_controls",
         "tests/installed_service/test_service_harness.py::test_h6_lock_wait_detector_positive_and_negative_controls",
         "tests/installed_service/test_service_harness.py::test_h7_no_helper_process_outlives_its_test",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[0]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[1]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[2]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_retry_limits_parking_and_replay",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_rides_out_a_short_neo4j_outage",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[2]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[1]",
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[classic-edge-loader]",
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-edge-loader]",
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-server]",
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[0]",
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[1]",
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[2]",
+        "tests/installed_service/test_service_last_value_order.py::test_without_order_by_the_record_applied_last_wins_even_if_older",
+        "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[order_by-protects]",
+        "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[arrival-is-overwritten]",
+        "tests/installed_service/test_service_last_value_order.py::test_o1_o2_order_by_with_the_dlq_survives_a_fleet_restart",
+        "tests/installed_service/test_service_last_value_order.py::test_o8_recreating_a_source_topic_with_the_fleet_stopped_restarts_from_the_new_topics_start",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[planned]",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[lease]",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[classic]",
         "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]",
         "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]",
         "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]",
         "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_default_overlap_loads_the_exact_graph",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[0]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[1]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[2]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_native_disjoint_is_refused_by_a_plain_start_and_fails_closed_on_neo4j_5_26",
         "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture",
         "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
         "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
@@ -5594,6 +5698,8 @@
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
         "examples/social/graph_schema.yaml": "fd558b4bb65671b9cda6514280d23e37a93adebd04e240d938c36173d3f98c74",
         "tests/conftest.py": "e8c1246c63ba755c665f8b93e37d52ccddccde730b6e6361dcbdd36f580381dd",
+        "tests/fixtures/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tests/fixtures/multi_topic_arrival.py": "4d4c6e470c7806290e1a702543bf14d578cc1badda97184e8e3b8c8cb42bd20e",
         "tests/golden/fixtures/single_pair_multi_topic.yaml": "d6172d0714418f8bbdacb4b624899ed2feb49a833e3ba23cfe74a2f2191366fc",
         "tests/golden/fixtures/single_topic_dlq.yaml": "b6c24fccec9c95b41846f8d63b613fab092020791af5d9125b09a6122abd3eea",
         "tests/golden/multi_pair_plan.json": "9004cde860a76f4ab59e8e491adf254fa2e196d8a9620f68359dce81df4b91f4",
@@ -5603,21 +5709,31 @@
         "tests/installed_service/__init__.py": "8fa8dc0797744d0f758fb5d9f8ceac2d5dbde8d3993889ff9ed17d2c743c8c76",
         "tests/installed_service/bulk_fixture.py": "e69145ff955197cc9c77c924949cb542cef0ca66bf805f3f4bec20fbc41a6dbc",
         "tests/installed_service/conftest.py": "727673541e002c8f66724e1704aa0e3fe5b48f6d933cdcc8d6bc4c1fe5536b05",
+        "tests/installed_service/dlq_fixture.py": "2995619febaba6b27e850d244a5f94363ec7a34c44e89831ff2d5797f74c8a54",
+        "tests/installed_service/inspect_strict.py": "57d8c88a9905b92d9e86c64c2d9f08f9b3140581926cbbf1cfbd5e5c91e2f764",
         "tests/installed_service/live_cli.py": "39ab53a63dba9c2f20b813afa5a9e45bba2af56a941caedb120e647c97227cbe",
         "tests/installed_service/live_stack.py": "3366a10434dfad81de5d6eaa43930cfec8b9117544df9c61e693f817fc524937",
         "tests/installed_service/lockwait.py": "6d63b93df160e85a937359f122250c542f4bb014e665107a61be013e6eb894e7",
         "tests/installed_service/observers.py": "3d65b68ef551c37e231f0fab165b20ab3081c1824b0dd12b10b2fc3067efb616",
+        "tests/installed_service/order_fixture.py": "7dd1d35807d3919cdad8d5c5168da695939a8e4e269bdf3b7ab3bdc34e868574",
         "tests/installed_service/ownership.py": "abb34f211bed284d50afe19e6cbbc917272e1b50f4c37ce96214ea4962824aa7",
         "tests/installed_service/query_log.py": "3245eec74fb2c56b697d87bd4f29314050560d83a5d825a532def25b6a162648",
         "tests/installed_service/query_log_config.py": "7e2b7bf090bd908561a33553b19068798ab8b11a847f279d0245b79d81060622",
-        "tests/installed_service/query_window.py": "afe25a37fea752c83d3ba1a785b09cd1b73b1a7757367b07daeed53c3383ef37",
-        "tests/installed_service/stream_fixture.py": "97485cbf084c4e7747327225b297e7a7b59bc9730c0f6d2cce7bcb97d7498069",
-        "tests/installed_service/structured_query_log.py": "c09a89f3cc1ad513410ebdc7bcf0f0b12ecfad728bbfe52106c084cf42c22905",
+        "tests/installed_service/query_window.py": "16f99352405e99f138fca477e811caddb30bad611b5ba5b41048f123676c08fc",
+        "tests/installed_service/stream_fixture.py": "da223d7ef2abcdb424699def814801a0a92518fdc4f9f1d3de72e3fe6da77c61",
+        "tests/installed_service/stream_run.py": "fdc9b4ca692e04caf89788a1715255738f154c66184af67dd694c2e22e7d740b",
+        "tests/installed_service/structured_query_log.py": "2dc0b904cf3183ef3351650763114f505f68d09b11bc75232f8be04e9950c75f",
+        "tests/installed_service/test_inspection_controls.py": "20b9233205f12976f486bbbdbf3e86668a84d1560c57037c8ee7b8737415a617",
         "tests/installed_service/test_observer_controls.py": "5fda0ae995bee1b069fcd2a80263d95653ce2fb13a68b09b07286b1616a2401f",
-        "tests/installed_service/test_query_window_controls.py": "c5ad87ad32413ade7473c2e6b7d09357efe92ea7fca51df55a8ee1694bd88795",
+        "tests/installed_service/test_query_window_controls.py": "ac0a3237223b0f929dcc412dc0b1c3437a7ea2935b03caad32f1da11d800aa09",
         "tests/installed_service/test_service_harness.py": "98bcb8e1f4c8dd6d85293eb91be9f5f621dcc8d1a8b450cf681debd7d3784f00",
+        "tests/installed_service/test_service_ingest_dlq.py": "9433d22e071f979c69076373162ebe69921f38094a6bdb1770cdde9ec7cc6ff3",
+        "tests/installed_service/test_service_kill_and_outage.py": "c18bf12ab831b769b449ebc580af651cd54377ea1461c4d0666da946d6198a08",
+        "tests/installed_service/test_service_kill_bulk_modes.py": "9e091e246cfeb1b3b215e74375ae50013204a33309fad6ac5525c3b46291125a",
+        "tests/installed_service/test_service_last_value_order.py": "f1a460bf978dec5a546de91d5265559cbc4b630a8f8377aaaf5599da0b0b9a73",
         "tests/installed_service/test_service_lease_stream.py": "3c90983a8eb2618c36dd6b78296777ac5d2ddbcd241b665e4232b195cfc4f725",
-        "tests/installed_service/test_service_load_bulk.py": "ab006801f8fceed9075fd1b5bb322a86177b343367ef3d4c505e42e61e21ca8a",
+        "tests/installed_service/test_service_legacy_classic.py": "af854cfb6079cd4719a0d11b533b964d33e59cf5a27d9b80c59942eb245dc287",
+        "tests/installed_service/test_service_load_bulk.py": "2ac8a9efee98669597a066b82e23ed9894fd01bf81fd42f0bc6f4a047d97f6a4",
         "tests/installed_service/test_service_log_continuity_live.py": "a8e579651b9c6e31867f32411b17acb41bfbb8ad7d07abe123a47994190cb9dc",
         "tests/integration/__init__.py": "b5b9f92bf90f3548c46cc7f61fefb27f97fb9a1efba9fc135db372a1c8e07247",
         "tests/it_scratch_db.py": "3a91cfb867d1b85cd90b3c8e753ea0b50b9d3d751f3c3c25e374112685af38ed"
@@ -5626,6 +5742,13 @@
         "tests/conftest.py": [
           "tests/integration/__init__.py",
           "tests/it_scratch_db.py"
+        ],
+        "tests/fixtures/__init__.py": [
+          "tests/conftest.py"
+        ],
+        "tests/fixtures/multi_topic_arrival.py": [
+          "tests/conftest.py",
+          "tests/fixtures/__init__.py"
         ],
         "tests/installed_service/__init__.py": [
           "tests/conftest.py",
@@ -5640,6 +5763,19 @@
           "tests/conftest.py",
           "tests/installed_service/__init__.py",
           "tests/installed_service/live_stack.py"
+        ],
+        "tests/installed_service/dlq_fixture.py": [
+          "tests/conftest.py",
+          "tests/fixtures/multi_topic_arrival.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/inspect_strict.py"
+        ],
+        "tests/installed_service/inspect_strict.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/observers.py"
         ],
         "tests/installed_service/live_cli.py": [
           "tests/conftest.py",
@@ -5664,6 +5800,12 @@
           "tests/conftest.py",
           "tests/installed_service/__init__.py",
           "tests/installed_service/conftest.py"
+        ],
+        "tests/installed_service/order_fixture.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/inspect_strict.py"
         ],
         "tests/installed_service/ownership.py": [
           "tests/conftest.py",
@@ -5691,10 +5833,26 @@
           "tests/installed_service/__init__.py",
           "tests/installed_service/conftest.py"
         ],
+        "tests/installed_service/stream_run.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/live_cli.py",
+          "tests/installed_service/query_window.py"
+        ],
         "tests/installed_service/structured_query_log.py": [
           "tests/conftest.py",
           "tests/installed_service/__init__.py",
           "tests/installed_service/conftest.py"
+        ],
+        "tests/installed_service/test_inspection_controls.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/dlq_fixture.py",
+          "tests/installed_service/inspect_strict.py",
+          "tests/installed_service/order_fixture.py",
+          "tests/installed_service/test_service_ingest_dlq.py"
         ],
         "tests/installed_service/test_observer_controls.py": [
           "tests/conftest.py",
@@ -5722,12 +5880,62 @@
           "tests/installed_service/query_log.py",
           "tests/installed_service/query_window.py"
         ],
+        "tests/installed_service/test_service_ingest_dlq.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/dlq_fixture.py",
+          "tests/installed_service/inspect_strict.py",
+          "tests/installed_service/live_cli.py",
+          "tests/installed_service/stream_run.py"
+        ],
+        "tests/installed_service/test_service_kill_and_outage.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/bulk_fixture.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/live_cli.py",
+          "tests/installed_service/observers.py",
+          "tests/installed_service/query_window.py",
+          "tests/installed_service/stream_fixture.py",
+          "tests/installed_service/stream_run.py",
+          "tests/installed_service/test_service_load_bulk.py"
+        ],
+        "tests/installed_service/test_service_kill_bulk_modes.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/inspect_strict.py",
+          "tests/installed_service/stream_fixture.py",
+          "tests/installed_service/test_service_kill_and_outage.py"
+        ],
+        "tests/installed_service/test_service_last_value_order.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/inspect_strict.py",
+          "tests/installed_service/live_cli.py",
+          "tests/installed_service/observers.py",
+          "tests/installed_service/order_fixture.py",
+          "tests/installed_service/stream_run.py",
+          "tests/installed_service/test_service_kill_and_outage.py"
+        ],
         "tests/installed_service/test_service_lease_stream.py": [
           "tests/conftest.py",
           "tests/installed_service/__init__.py",
           "tests/installed_service/conftest.py",
           "tests/installed_service/live_cli.py",
           "tests/installed_service/lockwait.py",
+          "tests/installed_service/observers.py",
+          "tests/installed_service/query_window.py",
+          "tests/installed_service/stream_fixture.py"
+        ],
+        "tests/installed_service/test_service_legacy_classic.py": [
+          "tests/conftest.py",
+          "tests/installed_service/__init__.py",
+          "tests/installed_service/conftest.py",
+          "tests/installed_service/inspect_strict.py",
+          "tests/installed_service/live_cli.py",
           "tests/installed_service/observers.py",
           "tests/installed_service/query_window.py",
           "tests/installed_service/stream_fixture.py"
@@ -5758,10 +5966,42 @@
       "fixture_counts": {
         ".yaml": 8,
         ".xml": 1,
-        ".py": 22,
+        ".py": 34,
         ".json": 4
       },
       "service_dispositions": {
+        "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_ordering_inspector": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_dlq_inspector": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_inspection_controls.py::test_a_topic_the_broker_confirms_missing_is_zero_only_when_the_caller_allows_it": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_inspection_controls.py::test_an_inspection_failure_is_never_zero": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_inspection_controls.py::test_group_offsets_distinguish_uncommitted_from_a_failed_read": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_inspection_controls.py::test_a_topic_read_that_stops_short_of_its_watermark_fails_instead_of_returning_a_partial_list": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_inspection_controls.py::test_a_group_listing_that_reports_errors_is_never_an_empty_list": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_inspection_controls.py::test_bulk_groups_come_from_the_edge_container_names_one_per_type": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
         "tests/installed_service/test_observer_controls.py::test_foreign_container_events_are_never_adopted": {
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
@@ -6098,6 +6338,34 @@
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
         },
+        "tests/installed_service/test_query_window_controls.py::test_a_statement_rejected_before_it_ran_is_one_standalone_record": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[transaction without database]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[database without transaction]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[info level]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[duplicate id]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_query_window_controls.py::test_a_declared_orphan_is_accepted_by_strict_captures_and_nothing_else_is": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_query_window_controls.py::test_an_orphan_declared_in_one_epoch_does_not_cover_a_restarted_server": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
         "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings": {
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
@@ -6126,6 +6394,122 @@
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
         },
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[2]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_retry_limits_parking_and_replay": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_rides_out_a_short_neo4j_outage": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[2]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[classic-edge-loader]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-edge-loader]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-server]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[2]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_without_order_by_the_record_applied_last_wins_even_if_older": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[order_by-protects]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[arrival-is-overwritten]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_o1_o2_order_by_with_the_dlq_survives_a_fleet_restart": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_o8_recreating_a_source_topic_with_the_fleet_stopped_restarts_from_the_new_topics_start": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[planned]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[lease]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[classic]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
         "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]": {
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
@@ -6139,6 +6523,26 @@
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
         },
         "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_default_overlap_loads_the_exact_graph": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[0]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[1]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[2]": {
+          "owner": "E09.F1.S7",
+          "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
+        },
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_native_disjoint_is_refused_by_a_plain_start_and_fails_closed_on_neo4j_5_26": {
           "owner": "E09.F1.S7",
           "reason": "Live harness check on owned Neo4j/Kafka (native shared Docker Engine substrate) or a synthetic fail-closed control of its query-log detector; proves the harness only, not any load mode."
         },
@@ -9733,6 +10137,46 @@
     "neo4j_graph_loader-0.1.0a1.dev0.dist-info/RECORD": "253331424d0a35c6cf64c9c16b9c1ed948744b1a032c86bfce3f78870fef578e"
   },
   "test_dispositions": {
+    "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_ordering_inspector": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_dlq_inspector": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_inspection_controls.py::test_a_topic_the_broker_confirms_missing_is_zero_only_when_the_caller_allows_it": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_inspection_controls.py::test_an_inspection_failure_is_never_zero": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_inspection_controls.py::test_group_offsets_distinguish_uncommitted_from_a_failed_read": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_inspection_controls.py::test_a_topic_read_that_stops_short_of_its_watermark_fails_instead_of_returning_a_partial_list": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_inspection_controls.py::test_a_group_listing_that_reports_errors_is_never_an_empty_list": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_inspection_controls.py::test_bulk_groups_come_from_the_edge_container_names_one_per_type": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
     "tests/installed_service/test_observer_controls.py::test_foreign_container_events_are_never_adopted": {
       "kind": "service",
       "owner": "E09",
@@ -10153,6 +10597,41 @@
       "owner": "E09",
       "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
     },
+    "tests/installed_service/test_query_window_controls.py::test_a_statement_rejected_before_it_ran_is_one_standalone_record": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[transaction without database]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[database without transaction]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[info level]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[duplicate id]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_query_window_controls.py::test_a_declared_orphan_is_accepted_by_strict_captures_and_nothing_else_is": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_query_window_controls.py::test_an_orphan_declared_in_one_epoch_does_not_cover_a_restarted_server": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
     "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings": {
       "kind": "service",
       "owner": "E09",
@@ -10188,6 +10667,151 @@
       "owner": "E09",
       "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
     },
+    "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[2]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_ingest_dlq.py::test_s4_retry_limits_parking_and_replay": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_rides_out_a_short_neo4j_outage": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[2]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[classic-edge-loader]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-edge-loader]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-server]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[2]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_without_order_by_the_record_applied_last_wins_even_if_older": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[order_by-protects]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[arrival-is-overwritten]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_o1_o2_order_by_with_the_dlq_survives_a_fleet_restart": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_o8_recreating_a_source_topic_with_the_fleet_stopped_restarts_from_the_new_topics_start": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[planned]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[lease]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[classic]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
     "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]": {
       "kind": "service",
       "owner": "E09",
@@ -10204,6 +10828,31 @@
       "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
     },
     "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_default_overlap_loads_the_exact_graph": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[0]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[1]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[2]": {
+      "kind": "service",
+      "owner": "E09",
+      "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
+    },
+    "tests/installed_service/test_service_legacy_classic.py::test_s3_native_disjoint_is_refused_by_a_plain_start_and_fails_closed_on_neo4j_5_26": {
       "kind": "service",
       "owner": "E09",
       "reason": "Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success."
@@ -28270,6 +28919,82 @@
       "kind": "checkout-development",
       "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
     },
+    "tests/test_service_lane.py::test_an_image_added_by_another_workload_is_tolerated_and_recorded": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[removed image]": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[removed and added]": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag moved to a new image]": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag removed]": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag added to an old image]": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[container]": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[network]": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[volume]": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_an_added_image_with_the_owner_label_or_a_candidate_tag_is_not_tolerated": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_snapshot_without_image_tags_never_tolerates": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_the_postflight_records_foreign_images_added_during_the_run_and_stays_clean": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_the_postflight_still_fails_on_a_removed_image_and_reports_nothing_added": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_the_postflight_without_any_difference_is_clean_without_a_tolerance_record": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_digest_only_image_in_a_candidate_repository_is_not_tolerated": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_an_existing_image_that_gains_or_loses_a_digest_is_not_tolerated": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_snapshot_whose_image_tables_disagree_is_rejected_and_every_added_id_is_accounted_for": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_a_snapshot_reads_the_image_list_once_so_a_changing_list_cannot_split_ids_from_tags": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
+    "tests/test_service_lane.py::test_duplicate_image_ids_or_duplicate_tag_or_digest_rows_are_rejected_before_they_can_collapse": {
+      "kind": "checkout-development",
+      "reason": "Checkout outer-controller snapshot/reaper controls for service lanes; the live lane itself is the executed proof."
+    },
     "tests/test_service_observers.py::test_graph_observations_reads_bounded_properties_and_sorts": {
       "kind": "checkout-development",
       "reason": "Checkout observer controls; observed installed application and scratch service evidence remain mandatory."
@@ -30198,6 +30923,21 @@
         "installed": 48
       }
     },
+    "tests/installed_service/test_inspection_controls.py": {
+      "ids": [
+        "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_ordering_inspector",
+        "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_dlq_inspector",
+        "tests/installed_service/test_inspection_controls.py::test_a_topic_the_broker_confirms_missing_is_zero_only_when_the_caller_allows_it",
+        "tests/installed_service/test_inspection_controls.py::test_an_inspection_failure_is_never_zero",
+        "tests/installed_service/test_inspection_controls.py::test_group_offsets_distinguish_uncommitted_from_a_failed_read",
+        "tests/installed_service/test_inspection_controls.py::test_a_topic_read_that_stops_short_of_its_watermark_fails_instead_of_returning_a_partial_list",
+        "tests/installed_service/test_inspection_controls.py::test_a_group_listing_that_reports_errors_is_never_an_empty_list",
+        "tests/installed_service/test_inspection_controls.py::test_bulk_groups_come_from_the_edge_container_names_one_per_type"
+      ],
+      "categories": {
+        "service": 8
+      }
+    },
     "tests/installed_service/test_observer_controls.py": {
       "ids": [
         "tests/installed_service/test_observer_controls.py::test_foreign_container_events_are_never_adopted",
@@ -30290,10 +31030,17 @@
         "tests/installed_service/test_query_window_controls.py::test_a_query_left_open_is_rejected_by_default_and_reported_when_allowed",
         "tests/installed_service/test_query_window_controls.py::test_a_window_counts_an_open_query_as_one_record_and_never_hides_missing_ones",
         "tests/installed_service/test_query_window_controls.py::test_an_end_without_a_start_is_still_rejected_when_open_queries_are_allowed",
-        "tests/installed_service/test_query_window_controls.py::test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice"
+        "tests/installed_service/test_query_window_controls.py::test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice",
+        "tests/installed_service/test_query_window_controls.py::test_a_statement_rejected_before_it_ran_is_one_standalone_record",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[transaction without database]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[database without transaction]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[info level]",
+        "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[duplicate id]",
+        "tests/installed_service/test_query_window_controls.py::test_a_declared_orphan_is_accepted_by_strict_captures_and_nothing_else_is",
+        "tests/installed_service/test_query_window_controls.py::test_an_orphan_declared_in_one_epoch_does_not_cover_a_restarted_server"
       ],
       "categories": {
-        "service": 40
+        "service": 47
       }
     },
     "tests/installed_service/test_service_harness.py": {
@@ -30310,6 +31057,63 @@
         "service": 7
       }
     },
+    "tests/installed_service/test_service_ingest_dlq.py": {
+      "ids": [
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[0]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[1]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[2]",
+        "tests/installed_service/test_service_ingest_dlq.py::test_s4_retry_limits_parking_and_replay"
+      ],
+      "categories": {
+        "service": 4
+      }
+    },
+    "tests/installed_service/test_service_kill_and_outage.py": {
+      "ids": [
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_rides_out_a_short_neo4j_outage",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[2]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[1]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[0]",
+        "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[1]"
+      ],
+      "categories": {
+        "service": 11
+      }
+    },
+    "tests/installed_service/test_service_kill_bulk_modes.py": {
+      "ids": [
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[classic-edge-loader]",
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-edge-loader]",
+        "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-server]"
+      ],
+      "categories": {
+        "service": 3
+      }
+    },
+    "tests/installed_service/test_service_last_value_order.py": {
+      "ids": [
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[0]",
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[1]",
+        "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[2]",
+        "tests/installed_service/test_service_last_value_order.py::test_without_order_by_the_record_applied_last_wins_even_if_older",
+        "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[order_by-protects]",
+        "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[arrival-is-overwritten]",
+        "tests/installed_service/test_service_last_value_order.py::test_o1_o2_order_by_with_the_dlq_survives_a_fleet_restart",
+        "tests/installed_service/test_service_last_value_order.py::test_o8_recreating_a_source_topic_with_the_fleet_stopped_restarts_from_the_new_topics_start",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[planned]",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[lease]",
+        "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[classic]"
+      ],
+      "categories": {
+        "service": 11
+      }
+    },
     "tests/installed_service/test_service_lease_stream.py": {
       "ids": [
         "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]",
@@ -30319,6 +31123,18 @@
       ],
       "categories": {
         "service": 4
+      }
+    },
+    "tests/installed_service/test_service_legacy_classic.py": {
+      "ids": [
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_default_overlap_loads_the_exact_graph",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[0]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[1]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[2]",
+        "tests/installed_service/test_service_legacy_classic.py::test_s3_native_disjoint_is_refused_by_a_plain_start_and_fails_closed_on_neo4j_5_26"
+      ],
+      "categories": {
+        "service": 5
       }
     },
     "tests/installed_service/test_service_load_bulk.py": {
@@ -34764,10 +35580,29 @@
         "tests/test_service_lane.py::test_registry_reads_a_single_owner",
         "tests/test_service_lane.py::test_a_short_registry_write_is_cut_back_so_later_rows_stay_readable",
         "tests/test_service_lane.py::test_a_registry_that_cannot_be_cut_back_refuses_every_later_write",
-        "tests/test_service_lane.py::test_recovery_keeps_valid_rows_around_a_damaged_interior_line_and_marks_the_run_unclean"
+        "tests/test_service_lane.py::test_recovery_keeps_valid_rows_around_a_damaged_interior_line_and_marks_the_run_unclean",
+        "tests/test_service_lane.py::test_an_image_added_by_another_workload_is_tolerated_and_recorded",
+        "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[removed image]",
+        "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[removed and added]",
+        "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag moved to a new image]",
+        "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag removed]",
+        "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag added to an old image]",
+        "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[container]",
+        "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[network]",
+        "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[volume]",
+        "tests/test_service_lane.py::test_an_added_image_with_the_owner_label_or_a_candidate_tag_is_not_tolerated",
+        "tests/test_service_lane.py::test_a_snapshot_without_image_tags_never_tolerates",
+        "tests/test_service_lane.py::test_the_postflight_records_foreign_images_added_during_the_run_and_stays_clean",
+        "tests/test_service_lane.py::test_the_postflight_still_fails_on_a_removed_image_and_reports_nothing_added",
+        "tests/test_service_lane.py::test_the_postflight_without_any_difference_is_clean_without_a_tolerance_record",
+        "tests/test_service_lane.py::test_a_digest_only_image_in_a_candidate_repository_is_not_tolerated",
+        "tests/test_service_lane.py::test_an_existing_image_that_gains_or_loses_a_digest_is_not_tolerated",
+        "tests/test_service_lane.py::test_a_snapshot_whose_image_tables_disagree_is_rejected_and_every_added_id_is_accounted_for",
+        "tests/test_service_lane.py::test_a_snapshot_reads_the_image_list_once_so_a_changing_list_cannot_split_ids_from_tags",
+        "tests/test_service_lane.py::test_duplicate_image_ids_or_duplicate_tag_or_digest_rows_are_rejected_before_they_can_collapse"
       ],
       "categories": {
-        "checkout-development": 49
+        "checkout-development": 68
       }
     },
     "tests/test_service_observers.py": {
@@ -42422,10 +43257,212 @@
       "assertion_count": 37,
       "assertion_sha256": "1aad215d83f4ba7666238c18e30d024eeca6175f9ac90fdc9a5096479fcc6d9d",
       "test_functions": 2
+    },
+    "tests/installed_service/test_service_legacy_classic.py": {
+      "sha256": "47db5ed44586c26c9c4d838d51bdcac31152e77b0e0ddd4c40e740b8a52ebd1a",
+      "size": 9717,
+      "assertions": [
+        "Assert(test=UnaryOp(op=Not(), operand=Call(func=Attribute(value=Name(id='thread', ctx=Load()), attr='is_alive', ctx=Load()), args=[], keywords=[])), msg=Constant(value='the CLI thread outlived its deadline'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='error'), ctx=Load()), ops=[Is()], comparators=[Constant(value=None)]), Compare(left=Attribute(value=Name(id='result', ctx=Load()), attr='timed_out', ctx=Load()), ops=[Is()], comparators=[Constant(value=False)]), Compare(left=Attribute(value=Name(id='result', ctx=Load()), attr='exit_code', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)])]), msg=Tuple(elts=[Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='error'), ctx=Load()), Attribute(value=Name(id='result', ctx=Load()), attr='tail', ctx=Load())], ctx=Load()))",
+        "Assert(test=Compare(left=Attribute(value=Name(id='result', ctx=Load()), attr='redactions', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), msg=Constant(value='the scratch password reached CLI output'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='errors'), ctx=Load()), ops=[Eq()], comparators=[List(elts=[], ctx=Load())]), UnaryOp(op=Not(), operand=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='closed_early'), ctx=Load())), Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='stopped'), ctx=Load()), ops=[Is()], comparators=[Constant(value=True)])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='refused'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[], values=[])]), Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='leftovers'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[Constant(value='removed'), Constant(value='failed')], values=[List(elts=[], ctx=Load()), List(elts=[], ctx=Load())])])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='created_from_candidates'), ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='ids', ctx=Load())]), Name(id='ids', ctx=Load())]))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='c', ctx=Load()), generators=[comprehension(target=Name(id='c', ctx=Store()), iter=Call(func=Attribute(value=Attribute(value=Name(id='docker_client', ctx=Load()), attr='containers', ctx=Load()), attr='list', ctx=Load()), args=[], keywords=[keyword(arg='all', value=Constant(value=True))]), ifs=[Compare(left=Attribute(value=Name(id='c', ctx=Load()), attr='id', ctx=Load()), ops=[In()], comparators=[Name(id='ids', ctx=Load())])], is_async=0)])))",
+        "Assert(test=Compare(left=Name(id='components', ctx=Load()), ops=[Eq()], comparators=[Name(id='COMPONENTS', ctx=Load())]))",
+        "Assert(test=Compare(left=Constant(value='stage=launch edge_mode=classic reason=flag'), ops=[In()], comparators=[Name(id='text', ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Call(func=Attribute(value=Name(id='sf', ctx=Load()), attr='expected', ctx=Load()), args=[List(elts=[Name(id='batch', ctx=Load())], ctx=Load())], keywords=[])]), msg=Constant(value='the classic graph differs from the fixture'))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='r', ctx=Load()), generators=[comprehension(target=Name(id='r', ctx=Store()), iter=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='records'), ctx=Load()), ifs=[Compare(left=Subscript(value=Name(id='r', ctx=Load()), slice=Constant(value='phase'), ctx=Load()), ops=[Eq()], comparators=[Constant(value='failed')])], is_async=0)])))",
+        "Assert(test=Call(func=Name(id='edge_writes', ctx=Load()), args=[Name(id='out', ctx=Load())], keywords=[]), msg=Constant(value='no classic relationship write was identified in the query window'))",
+        "Assert(test=Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='writes', ctx=Load())], keywords=[]), ops=[GtE()], comparators=[Constant(value=30)]))",
+        "Assert(test=Name(id='waited', ctx=Load()), msg=Constant(value='classic shared overlap with concurrent sessions showed no database lock wait'))",
+        "Assert(test=BoolOp(op=And(), values=[Name(id='info', ctx=Load()), UnaryOp(op=Not(), operand=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='privileged'), ctx=Load())), Compare(left=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='pid_mode'), ctx=Load()), ops=[Eq()], comparators=[Constant(value='')]), Compare(left=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='network_mode'), ctx=Load()), ops=[Eq()], comparators=[Attribute(value=Attribute(value=Name(id='stack', ctx=Load()), attr='network', ctx=Load()), attr='name', ctx=Load())])]))",
+        "Assert(test=Call(func=Name(id='all', ctx=Load()), args=[GeneratorExp(elt=Compare(left=Constant(value='docker.sock'), ops=[NotIn()], comparators=[Name(id='source', ctx=Load())]), generators=[comprehension(target=Tuple(elts=[Name(id='_', ctx=Store()), Name(id='source', ctx=Store()), Name(id='_', ctx=Store()), Name(id='_', ctx=Store())], ctx=Store()), iter=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='mounts'), ctx=Load()), ifs=[], is_async=0)])], keywords=[]))",
+        "Assert(test=Call(func=Attribute(value=Name(id='re', ctx=Load()), attr='search', ctx=Load()), args=[JoinedStr(values=[Constant(value='stage=bulk-edge-complete edge='), FormattedValue(value=Name(id='kind', ctx=Load()), conversion=-1), Constant(value=' elapsed_s=[\\\\d.]+ outcome=succeeded')]), Name(id='text', ctx=Load())], keywords=[]), msg=Name(id='kind', ctx=Load()))",
+        "Assert(test=Compare(left=Subscript(value=Subscript(value=Name(id='rows', ctx=Load()), slice=Constant(value=0), ctx=Load()), slice=Constant(value='offset'), ctx=Load()), ops=[Eq()], comparators=[Subscript(value=Call(func=Attribute(value=Name(id='stack', ctx=Load()), attr='end_offsets', ctx=Load()), args=[Subscript(value=Name(id='topics', ctx=Load()), slice=Name(id='key', ctx=Load()), ctx=Load())], keywords=[]), slice=Constant(value=0), ctx=Load())]), msg=Name(id='label', ctx=Load()))",
+        "Assert(test=Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='matching', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Constant(value=1)]), msg=Tuple(elts=[Name(id='kind', ctx=Load()), Name(id='matching', ctx=Load())], ctx=Load()))",
+        "Assert(test=Compare(left=DictComp(key=Subscript(value=Name(id='row', ctx=Load()), slice=Constant(value='partition'), ctx=Load()), value=Subscript(value=Name(id='row', ctx=Load()), slice=Constant(value='offset'), ctx=Load()), generators=[comprehension(target=Name(id='row', ctx=Store()), iter=Name(id='rows', ctx=Load()), ifs=[], is_async=0)]), ops=[Eq()], comparators=[Name(id='ends', ctx=Load())]), msg=Tuple(elts=[Name(id='kind', ctx=Load()), Name(id='rows', ctx=Load()), Name(id='ends', ctx=Load())], ctx=Load()))"
+      ],
+      "assertion_count": 20,
+      "assertion_sha256": "359fe9775c9eae8c4cb8f98eeb83be00802a8f5661e8ed81ab4409952519f268",
+      "test_functions": 2
+    },
+    "tests/installed_service/test_service_ingest_dlq.py": {
+      "sha256": "aa08657d955bd2c944526ea406c319a756351a495dda314923b6bc926430d569",
+      "size": 12407,
+      "assertions": [
+        "Assert(test=Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='exit_code'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), msg=Tuple(elts=[Constant(value='SIGTERM must end a supervising stream run with exit 0'), Subscript(value=Call(func=Attribute(value=Name(id='cli', ctx=Load()), attr='text', ctx=Load()), args=[], keywords=[]), slice=Slice(lower=UnaryOp(op=USub(), operand=Constant(value=1500))), ctx=Load())], ctx=Load()))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='stop_seconds'), ctx=Load()), ops=[Lt()], comparators=[Constant(value=30)]), Compare(left=Attribute(value=Name(id='cli', ctx=Load()), attr='redactions', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='errors'), ctx=Load()), ops=[Eq()], comparators=[List(elts=[], ctx=Load())]), UnaryOp(op=Not(), operand=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='closed_early'), ctx=Load())), Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='stopped'), ctx=Load()), ops=[Is()], comparators=[Constant(value=True)])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='refused'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[], values=[])]), Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='leftovers'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[Constant(value='removed'), Constant(value='failed')], values=[List(elts=[], ctx=Load()), List(elts=[], ctx=Load())])])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='created_from_candidates'), ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='ids', ctx=Load())]), Name(id='ids', ctx=Load())]))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='c', ctx=Load()), generators=[comprehension(target=Name(id='c', ctx=Store()), iter=Call(func=Attribute(value=Attribute(value=Name(id='docker_client', ctx=Load()), attr='containers', ctx=Load()), attr='list', ctx=Load()), args=[], keywords=[keyword(arg='all', value=Constant(value=True))]), ifs=[Compare(left=Attribute(value=Name(id='c', ctx=Load()), attr='id', ctx=Load()), ops=[In()], comparators=[Name(id='ids', ctx=Load())])], is_async=0)])), msg=Constant(value='a container outlived the stop'))",
+        "Assert(test=Compare(left=Name(id='seen', ctx=Load()), ops=[Eq()], comparators=[Name(id='components', ctx=Load())]))",
+        "Assert(test=BoolOp(op=And(), values=[Name(id='rows', ctx=Load()), Call(func=Name(id='all', ctx=Load()), args=[GeneratorExp(elt=Compare(left=Subscript(value=Name(id='r', ctx=Load()), slice=Constant(value='waiting_ms'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), generators=[comprehension(target=Name(id='r', ctx=Store()), iter=Name(id='rows', ctx=Load()), ifs=[], is_async=0)])], keywords=[])]), msg=Constant(value='a leased write waited for a database lock'))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='r', ctx=Load()), generators=[comprehension(target=Name(id='r', ctx=Store()), iter=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='records'), ctx=Load()), ifs=[Compare(left=Subscript(value=Name(id='r', ctx=Load()), slice=Constant(value='phase'), ctx=Load()), ops=[Eq()], comparators=[Constant(value='failed')])], is_async=0)])))",
+        "Assert(test=Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='both', ctx=Load())], keywords=[]), ops=[Gt()], comparators=[Constant(value=100)]), msg=Constant(value='the dataset must put many pairs in both topics'))",
+        "Assert(test=Compare(left=Call(func=Name(id='likes', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='target', ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Name(id='likes', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='expected_all', ctx=Load())]))",
+        "Assert(test=BoolOp(op=And(), values=[Name(id='info', ctx=Load()), UnaryOp(op=Not(), operand=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='privileged'), ctx=Load())), Compare(left=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='pid_mode'), ctx=Load()), ops=[Eq()], comparators=[Constant(value='')]), Compare(left=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='network_mode'), ctx=Load()), ops=[Eq()], comparators=[Attribute(value=Attribute(value=Name(id='stack', ctx=Load()), attr='network', ctx=Load()), attr='name', ctx=Load())])]))",
+        "Assert(test=Call(func=Name(id='all', ctx=Load()), args=[GeneratorExp(elt=Compare(left=Constant(value='docker.sock'), ops=[NotIn()], comparators=[Name(id='source', ctx=Load())]), generators=[comprehension(target=Tuple(elts=[Name(id='_', ctx=Store()), Name(id='source', ctx=Store()), Name(id='_', ctx=Store()), Name(id='_', ctx=Store())], ctx=Store()), iter=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='mounts'), ctx=Load()), ifs=[], is_async=0)])], keywords=[]))",
+        "Assert(test=Compare(left=Call(func=Name(id='likes', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[], values=[])]), msg=Constant(value='a relationship was written before its endpoints existed'))",
+        "Assert(test=BoolOp(op=And(), values=[Name(id='sample', ctx=Load()), Compare(left=SetComp(elt=Tuple(elts=[Attribute(value=Name(id='e', ctx=Load()), attr='entity_kind', ctx=Load()), Attribute(value=Name(id='e', ctx=Load()), attr='entity_name', ctx=Load()), Attribute(value=Name(id='e', ctx=Load()), attr='failure_class', ctx=Load())], ctx=Load()), generators=[comprehension(target=Name(id='e', ctx=Store()), iter=Name(id='sample', ctx=Load()), ifs=[], is_async=0)]), ops=[Eq()], comparators=[Set(elts=[Tuple(elts=[Constant(value='edge'), Constant(value='LIKES'), Constant(value='missing_endpoint')], ctx=Load())])])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=SetComp(elt=Attribute(value=Name(id='e', ctx=Load()), attr='original_topic', ctx=Load()), generators=[comprehension(target=Name(id='e', ctx=Store()), iter=Name(id='sample', ctx=Load()), ifs=[], is_async=0)]), ops=[Eq()], comparators=[Set(elts=[Name(id='topic_a', ctx=Load()), Name(id='topic_b', ctx=Load())])]), Compare(left=SetComp(elt=Attribute(value=Name(id='e', ctx=Load()), attr='reason_code', ctx=Load()), generators=[comprehension(target=Name(id='e', ctx=Store()), iter=Name(id='sample', ctx=Load()), ifs=[], is_async=0)]), ops=[Eq()], comparators=[Set(elts=[Constant(value='missing_both')])])]))",
+        "Assert(test=Compare(left=Call(func=Name(id='total', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='dlq', ctx=Load()), Constant(value=4)], keywords=[]), ops=[GtE()], comparators=[BinOp(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='a_rows', ctx=Load())], keywords=[]), op=Add(), right=Call(func=Name(id='len', ctx=Load()), args=[Name(id='b_rows', ctx=Load())], keywords=[]))]), msg=Constant(value='every row of both topics should have gone to the type DLQ'))",
+        "Assert(test=Compare(left=Call(func=Name(id='total', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='parked', ctx=Load()), Constant(value=4)], keywords=[]), ops=[Eq()], comparators=[Constant(value=0)]), msg=Constant(value='nothing should be parked'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=BinOp(left=Name(id='topic_a', ctx=Load()), op=Add(), right=Constant(value='.dlq')), ops=[NotIn()], comparators=[Name(id='topics', ctx=Load())]), Compare(left=BinOp(left=Name(id='topic_b', ctx=Load()), op=Add(), right=Constant(value='.dlq')), ops=[NotIn()], comparators=[Name(id='topics', ctx=Load())])]), msg=Constant(value='no per-topic DLQ'))",
+        "Assert(test=BoolOp(op=And(), values=[Call(func=Name(id='consumed', ctx=Load()), args=[Name(id='stack', ctx=Load()), JoinedStr(values=[FormattedValue(value=Name(id='group', ctx=Load()), conversion=-1), Constant(value='-LIKES')]), Name(id='topic_a', ctx=Load()), Constant(value=3)], keywords=[]), Call(func=Name(id='consumed', ctx=Load()), args=[Name(id='stack', ctx=Load()), JoinedStr(values=[FormattedValue(value=Name(id='group', ctx=Load()), conversion=-1), Constant(value='-LIKES')]), Name(id='topic_b', ctx=Load()), Constant(value=4)], keywords=[])]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]))",
+        "Assert(test=Compare(left=Call(func=Name(id='likes', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='expected_good', ctx=Load())]), msg=Constant(value='a parked or malformed row reached the graph'))",
+        "Assert(test=Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='parked_env', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Constant(value=4)]))",
+        "Assert(test=Compare(left=SetComp(elt=Tuple(elts=[Attribute(value=Name(id='e', ctx=Load()), attr='entity_kind', ctx=Load()), Attribute(value=Name(id='e', ctx=Load()), attr='entity_name', ctx=Load()), Attribute(value=Name(id='e', ctx=Load()), attr='original_topic', ctx=Load()), Attribute(value=Name(id='e', ctx=Load()), attr='failure_class', ctx=Load()), Attribute(value=Name(id='e', ctx=Load()), attr='reason_code', ctx=Load()), Attribute(value=Name(id='e', ctx=Load()), attr='attempt_count', ctx=Load())], ctx=Load()), generators=[comprehension(target=Name(id='e', ctx=Store()), iter=Name(id='parked_env', ctx=Load()), ifs=[], is_async=0)]), ops=[Eq()], comparators=[Set(elts=[Tuple(elts=[Constant(value='edge'), Constant(value='LIKES'), Name(id='topic', ctx=Load()), Constant(value='missing_endpoint'), Constant(value='missing_target'), Constant(value=3)], ctx=Load())])]), msg=Constant(value='parked after exactly max_retry_attempts'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='malformed', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Constant(value=1)]), Compare(left=Attribute(value=Subscript(value=Name(id='malformed', ctx=Load()), slice=Constant(value=0), ctx=Load()), attr='reason_code', ctx=Load()), ops=[Eq()], comparators=[Constant(value='undeclared_property')]), Compare(left=Attribute(value=Subscript(value=Name(id='malformed', ctx=Load()), slice=Constant(value=0), ctx=Load()), attr='attempt_count', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)])]))",
+        "Assert(test=Compare(left=SetComp(elt=Attribute(value=Name(id='e', ctx=Load()), attr='attempt_count', ctx=Load()), generators=[comprehension(target=Name(id='e', ctx=Store()), iter=Name(id='dlq_env', ctx=Load()), ifs=[Compare(left=Attribute(value=Name(id='e', ctx=Load()), attr='failure_class', ctx=Load()), ops=[Eq()], comparators=[Constant(value='missing_endpoint')])], is_async=0)]), ops=[LtE()], comparators=[Set(elts=[Constant(value=0), Constant(value=1), Constant(value=2)])]))",
+        "Assert(test=Compare(left=SetComp(elt=Attribute(value=Name(id='e', ctx=Load()), attr='original_topic', ctx=Load()), generators=[comprehension(target=Name(id='e', ctx=Store()), iter=Name(id='dlq_env', ctx=Load()), ifs=[], is_async=0)]), ops=[Eq()], comparators=[Set(elts=[Name(id='topic', ctx=Load())])]))",
+        "Assert(test=Compare(left=Call(func=Name(id='offsets', ctx=Load()), args=[Name(id='stack', ctx=Load()), JoinedStr(values=[FormattedValue(value=Name(id='group', ctx=Load()), conversion=-1), Constant(value='-LIKES')]), Name(id='topic', ctx=Load()), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Constant(value=0)], values=[Name(id='rows', ctx=Load())])]), msg=Constant(value='the edge group must be past every record, malformed one included'))",
+        "Assert(test=Compare(left=Call(func=Name(id='total', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='parked', ctx=Load()), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[Constant(value=4)]), msg=Constant(value='the malformed record is terminal and never parked'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Attribute(value=Name(id='dry', ctx=Load()), attr='exit_code', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), Compare(left=Constant(value='matched=4 replayed=0'), ops=[In()], comparators=[BinOp(left=Call(func=Attribute(value=Attribute(value=Name(id='dry', ctx=Load()), attr='stdout', ctx=Load()), attr='read_text', ctx=Load()), args=[], keywords=[]), op=Add(), right=Call(func=Attribute(value=Attribute(value=Name(id='dry', ctx=Load()), attr='stderr', ctx=Load()), attr='read_text', ctx=Load()), args=[], keywords=[]))])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='likes', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='expected_good', ctx=Load())]), Compare(left=Call(func=Name(id='total', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='topic', ctx=Load()), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[Name(id='rows', ctx=Load())])]), msg=Constant(value='a dry run must change nothing'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Attribute(value=Name(id='live', ctx=Load()), attr='exit_code', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), Compare(left=Constant(value='matched=4 replayed=4'), ops=[In()], comparators=[BinOp(left=Call(func=Attribute(value=Attribute(value=Name(id='live', ctx=Load()), attr='stdout', ctx=Load()), attr='read_text', ctx=Load()), args=[], keywords=[]), op=Add(), right=Call(func=Attribute(value=Attribute(value=Name(id='live', ctx=Load()), attr='stderr', ctx=Load()), attr='read_text', ctx=Load()), args=[], keywords=[]))])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Attribute(value=Name(id='dry', ctx=Load()), attr='redactions', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), Compare(left=Attribute(value=Name(id='live', ctx=Load()), attr='redactions', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)])]))",
+        "Assert(test=Compare(left=Call(func=Name(id='total', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='topic', ctx=Load()), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[BinOp(left=Name(id='rows', ctx=Load()), op=Add(), right=Constant(value=4))]), msg=Constant(value='the replay republishes the parked rows onto their source topic'))",
+        "Assert(test=Compare(left=Call(func=Name(id='total', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='parked', ctx=Load()), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[Constant(value=4)]), msg=Constant(value='replay does not remove the parked copies'))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]))"
+      ],
+      "assertion_count": 37,
+      "assertion_sha256": "731d5a69eee976435d721b77efe5f64386ee209c43f76203cfb233ce4679faa9",
+      "test_functions": 2
+    },
+    "tests/installed_service/test_service_kill_and_outage.py": {
+      "sha256": "152ea5dc3f1d8839d599e2494e6123a194811aea1be72fd7d0f5bc56dcb46206",
+      "size": 20267,
+      "assertions": [
+        "Assert(test=Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='exit_code'), ctx=Load()), ops=[Eq()], comparators=[Name(id='exit_code', ctx=Load())]), msg=Tuple(elts=[Name(id='exit_code', ctx=Load()), Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='exit_code'), ctx=Load()), Subscript(value=Call(func=Attribute(value=Name(id='cli', ctx=Load()), attr='text', ctx=Load()), args=[], keywords=[]), slice=Slice(lower=UnaryOp(op=USub(), operand=Constant(value=1500))), ctx=Load())], ctx=Load()))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='stop_seconds'), ctx=Load()), ops=[Lt()], comparators=[Constant(value=60)]), Compare(left=Attribute(value=Name(id='cli', ctx=Load()), attr='redactions', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='errors'), ctx=Load()), ops=[Eq()], comparators=[List(elts=[], ctx=Load())]), UnaryOp(op=Not(), operand=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='closed_early'), ctx=Load())), Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='stopped'), ctx=Load()), ops=[Is()], comparators=[Constant(value=True)])]))",
+        "Assert(test=Compare(left=Subscript(value=Name(id='out', ctx=Load()), slice=Constant(value='leftovers'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[Constant(value='removed'), Constant(value='failed')], values=[List(elts=[], ctx=Load()), List(elts=[], ctx=Load())])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='created_from_candidates'), ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='ids', ctx=Load())]), Name(id='ids', ctx=Load())]))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='c', ctx=Load()), generators=[comprehension(target=Name(id='c', ctx=Store()), iter=Call(func=Attribute(value=Attribute(value=Name(id='docker_client', ctx=Load()), attr='containers', ctx=Load()), attr='list', ctx=Load()), args=[], keywords=[keyword(arg='all', value=Constant(value=True))]), ifs=[Compare(left=Attribute(value=Name(id='c', ctx=Load()), attr='id', ctx=Load()), ops=[In()], comparators=[Name(id='ids', ctx=Load())])], is_async=0)])), msg=Constant(value='a container outlived the run'))",
+        "Assert(test=Compare(left=Name(id='seen', ctx=Load()), ops=[Eq()], comparators=[Name(id='components', ctx=Load())]), msg=Name(id='seen', ctx=Load()))",
+        "Assert(test=Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='refused'), ctx=Load()), ops=[Eq()], comparators=[DictComp(key=Name(id='k', ctx=Load()), value=Name(id='v', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='k', ctx=Store()), Name(id='v', ctx=Store())], ctx=Store()), iter=Call(func=Attribute(value=Name(id='allowed', ctx=Load()), attr='items', ctx=Load()), args=[], keywords=[]), ifs=[Compare(left=Name(id='k', ctx=Load()), ops=[In()], comparators=[Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='refused'), ctx=Load())])], is_async=0)])]), msg=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='refused'), ctx=Load()))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Tuple(elts=[Name(id='nodes', ctx=Load()), Name(id='rels_all', ctx=Load())], ctx=Load())]))",
+        "Assert(test=Compare(left=Constant(value=0), ops=[Lt(), Lt()], comparators=[Name(id='in_flight', ctx=Load()), Name(id='TOTAL_BIG', ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Call(func=Attribute(value=Name(id='sf', ctx=Load()), attr='expected', ctx=Load()), args=[List(elts=[Constant(value='big'), Constant(value='c')], ctx=Load())], keywords=[])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Name(id='code', ctx=Load()), ops=[Eq()], comparators=[Constant(value=1)]), Compare(left=Constant(value='exited before drain acknowledgement'), ops=[In()], comparators=[Name(id='text', ctx=Load())])]), msg=Tuple(elts=[Name(id='code', ctx=Load()), Subscript(value=Name(id='text', ctx=Load()), slice=Slice(lower=UnaryOp(op=USub(), operand=Constant(value=1500))), ctx=Load())], ctx=Load()))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Name(id='nodes', ctx=Load()), ops=[Eq()], comparators=[Name(id='nodes_big', ctx=Load())]), Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[]), ops=[LtE()], comparators=[Call(func=Name(id='set', ctx=Load()), args=[Name(id='rels_big', ctx=Load())], keywords=[])]), Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Call(func=Name(id='len', ctx=Load()), args=[Call(func=Name(id='set', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[])], keywords=[])])]))",
+        "Assert(test=Compare(left=Constant(value=0), ops=[Lt(), Lt()], comparators=[Name(id='in_flight', ctx=Load()), Name(id='TOTAL_BIG', ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Tuple(elts=[Name(id='nodes_big', ctx=Load()), Name(id='rels_big', ctx=Load())], ctx=Load())]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Name(id='nodes', ctx=Load()), ops=[Eq()], comparators=[Name(id='nodes_big', ctx=Load())]), Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[]), ops=[LtE()], comparators=[Call(func=Name(id='set', ctx=Load()), args=[Name(id='rels_big', ctx=Load())], keywords=[])]), Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Call(func=Name(id='len', ctx=Load()), args=[Call(func=Name(id='set', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[])], keywords=[])])]))",
+        "Assert(test=Compare(left=Constant(value=0), ops=[Lt(), Lt()], comparators=[Name(id='in_flight', ctx=Load()), Name(id='TOTAL_BIG', ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[]), ops=[Lt()], comparators=[Name(id='TOTAL_BIG', ctx=Load())]), msg=Constant(value='the stop must have left work outstanding for the restart'))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Tuple(elts=[Name(id='nodes_big', ctx=Load()), Name(id='rels_big', ctx=Load())], ctx=Load())]))",
+        "Assert(test=UnaryOp(op=Not(), operand=Call(func=Attribute(value=Name(id='thread', ctx=Load()), attr='is_alive', ctx=Load()), args=[], keywords=[])), msg=Constant(value='the CLI thread outlived its deadline'))",
+        "Assert(test=Compare(left=Constant(value='error'), ops=[NotIn()], comparators=[Name(id='box', ctx=Load())]), msg=Call(func=Attribute(value=Name(id='box', ctx=Load()), attr='get', ctx=Load()), args=[Constant(value='error')], keywords=[]))",
+        "Assert(test=Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='new', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Constant(value=1)]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='first', ctx=Load()), slice=Constant(value='note'), ctx=Load()), attr='get', ctx=Load()), args=[Constant(value='stop')], keywords=[]), ops=[Eq()], comparators=[Constant(value='exited')]), msg=Subscript(value=Name(id='first', ctx=Load()), slice=Constant(value='note'), ctx=Load()))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Attribute(value=Name(id='result', ctx=Load()), attr='timed_out', ctx=Load()), ops=[Is()], comparators=[Constant(value=False)]), Compare(left=Attribute(value=Name(id='result', ctx=Load()), attr='exit_code', ctx=Load()), ops=[NotIn()], comparators=[Tuple(elts=[Constant(value=0), Constant(value=None)], ctx=Load())])]), msg=Constant(value='the planned run must fail closed when Neo4j stops'))",
+        "Assert(test=Compare(left=Attribute(value=Name(id='result', ctx=Load()), attr='redactions', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='errors'), ctx=Load()), ops=[Eq()], comparators=[List(elts=[], ctx=Load())]), Compare(left=Subscript(value=Name(id='first', ctx=Load()), slice=Constant(value='leftovers'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[Constant(value='removed'), Constant(value='failed')], values=[List(elts=[], ctx=Load()), List(elts=[], ctx=Load())])])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='created_from_candidates'), ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Name(id='ids', ctx=Load())]), Name(id='ids', ctx=Load())]))",
+        "Assert(test=UnaryOp(op=Not(), operand=ListComp(elt=Name(id='c', ctx=Load()), generators=[comprehension(target=Name(id='c', ctx=Store()), iter=Call(func=Attribute(value=Attribute(value=Name(id='docker_client', ctx=Load()), attr='containers', ctx=Load()), attr='list', ctx=Load()), args=[], keywords=[keyword(arg='all', value=Constant(value=True))]), ifs=[Compare(left=Attribute(value=Name(id='c', ctx=Load()), attr='id', ctx=Load()), ops=[In()], comparators=[Name(id='ids', ctx=Load())])], is_async=0)])))",
+        "Assert(test=UnaryOp(op=Not(), operand=Call(func=Attribute(value=BinOp(left=BinOp(left=Subscript(value=Name(id='first', ctx=Load()), slice=Constant(value='attempt'), ctx=Load()), op=Div(), right=Constant(value='plans')), op=Div(), right=Constant(value='edge-plan.json.ledger.json')), attr='exists', ctx=Load()), args=[], keywords=[])), msg=Constant(value='a failed attempt persisted a ledger'))",
+        "Assert(test=Compare(left=Name(id='nodes', ctx=Load()), ops=[Eq()], comparators=[Call(func=Attribute(value=Name(id='fx', ctx=Load()), attr='expected_nodes', ctx=Load()), args=[Starred(value=Name(id='scale', ctx=Load()), ctx=Load())], keywords=[])]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Name(id='edges', ctx=Load())], keywords=[]), ops=[LtE()], comparators=[Call(func=Name(id='set', ctx=Load()), args=[Call(func=Attribute(value=Name(id='fx', ctx=Load()), attr='expected_relationships', ctx=Load()), args=[Starred(value=Name(id='scale', ctx=Load()), ctx=Load())], keywords=[])], keywords=[])]), Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='edges', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Call(func=Name(id='len', ctx=Load()), args=[Call(func=Name(id='set', ctx=Load()), args=[Name(id='edges', ctx=Load())], keywords=[])], keywords=[])]), Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='edges', ctx=Load())], keywords=[]), ops=[Lt()], comparators=[Name(id='total', ctx=Load())])]))",
+        "Assert(test=Compare(left=Subscript(value=Name(id='stats', ctx=Load()), slice=Constant(value='state'), ctx=Load()), ops=[Eq()], comparators=[Constant(value='complete')]))",
+        "Assert(test=Compare(left=Subscript(value=Name(id='snapshot', ctx=Load()), slice=Constant(value='refused'), ctx=Load()), ops=[Eq()], comparators=[Dict(keys=[], values=[])]))",
+        "Assert(test=BoolOp(op=And(), values=[Name(id='info', ctx=Load()), UnaryOp(op=Not(), operand=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='privileged'), ctx=Load())), Compare(left=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='pid_mode'), ctx=Load()), ops=[Eq()], comparators=[Constant(value='')]), Compare(left=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='network_mode'), ctx=Load()), ops=[Eq()], comparators=[Attribute(value=Attribute(value=Name(id='stack', ctx=Load()), attr='network', ctx=Load()), attr='name', ctx=Load())])]))",
+        "Assert(test=Call(func=Name(id='all', ctx=Load()), args=[GeneratorExp(elt=Compare(left=Constant(value='docker.sock'), ops=[NotIn()], comparators=[Name(id='source', ctx=Load())]), generators=[comprehension(target=Tuple(elts=[Name(id='_', ctx=Store()), Name(id='source', ctx=Store()), Name(id='_', ctx=Store()), Name(id='_', ctx=Store())], ctx=Store()), iter=Subscript(value=Name(id='info', ctx=Load()), slice=Constant(value='mounts'), ctx=Load()), ifs=[], is_async=0)])], keywords=[]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]), msg=BinOp(left=Constant(value='the streaming CLI exited while waiting for relationships in flight: '), op=Add(), right=Subscript(value=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='text', ctx=Load()), args=[], keywords=[]), slice=Slice(lower=UnaryOp(op=USub(), operand=Constant(value=1500))), ctx=Load())))",
+        "Assert(test=BoolOp(op=Or(), values=[Compare(left=Name(id='count', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), Compare(left=Call(func=Attribute(value=Name(id='time', ctx=Load()), attr='monotonic', ctx=Load()), args=[], keywords=[]), ops=[Lt()], comparators=[Name(id='end', ctx=Load())])]), msg=JoinedStr(values=[Constant(value='the whole batch ('), FormattedValue(value=Name(id='count', ctx=Load()), conversion=-1), Constant(value=') loaded between two polls: no work was in flight')]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='time', ctx=Load()), attr='monotonic', ctx=Load()), args=[], keywords=[]), ops=[Lt()], comparators=[Name(id='end', ctx=Load())]), msg=Constant(value='timed out waiting for relationships in flight'))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='stack', ctx=Load()), attr='stop_neo4j', ctx=Load()), args=[], keywords=[keyword(arg='timeout', value=Constant(value=30))]), ops=[Eq()], comparators=[Constant(value='exited')]))",
+        "Assert(test=Compare(left=Name(id='after', ctx=Load()), ops=[Eq()], comparators=[Name(id='before', ctx=Load())]), msg=Constant(value='a loader or the lease server was replaced during the outage'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Constant(value='stage=write-outage'), ops=[In()], comparators=[Name(id='edge_logs', ctx=Load())]), Compare(left=Constant(value='stage=write-outage-recovered'), ops=[In()], comparators=[Name(id='edge_logs', ctx=Load())])]), msg=Constant(value='no outage and recovery log in the edge loaders'))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]))",
+        "Assert(test=Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='servers', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Constant(value=1)]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Subscript(value=Name(id='killed', ctx=Load()), slice=Constant(value='exit_code'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=137)]), Compare(left=Subscript(value=Name(id='killed', ctx=Load()), slice=Constant(value='oom_killed'), ctx=Load()), ops=[IsNot()], comparators=[Constant(value=True)])]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]))",
+        "Assert(test=Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='loaders', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Constant(value=3)]))",
+        "Assert(test=Compare(left=Subscript(value=Name(id='killed', ctx=Load()), slice=Constant(value='exit_code'), ctx=Load()), ops=[Eq()], comparators=[Constant(value=137)]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='second', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]), msg=BinOp(left=Constant(value='the fleet must ride out a short Neo4j outage: '), op=Add(), right=Subscript(value=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='text', ctx=Load()), args=[], keywords=[]), slice=Slice(lower=UnaryOp(op=USub(), operand=Constant(value=1500))), ctx=Load())))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='time', ctx=Load()), attr='monotonic', ctx=Load()), args=[], keywords=[]), ops=[Lt()], comparators=[Name(id='end', ctx=Load())]), msg=Constant(value='the fleet must stop itself when an edge loader is lost'))"
+      ],
+      "assertion_count": 50,
+      "assertion_sha256": "9f6423bde3cb7b1d4430ee48ef77be9f17402f42e27d370de16ba4bc31b4252f",
+      "test_functions": 5
+    },
+    "tests/installed_service/test_service_last_value_order.py": {
+      "sha256": "98d1bde602b0442e6c2116ba807d9e70c91cebcb6d0be55ce34feee33433daf5",
+      "size": 15470,
+      "assertions": [
+        "Assert(test=Compare(left=Call(func=Name(id='offsets_of', ctx=Load()), args=[Name(id='stack', ctx=Load()), JoinedStr(values=[FormattedValue(value=Name(id='group', ctx=Load()), conversion=-1), Constant(value='-RATED')]), Subscript(value=Name(id='topics', ctx=Load()), slice=Constant(value=0), ctx=Load()), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Constant(value=0)], values=[Constant(value=6)])]))",
+        "Assert(test=Compare(left=Name(id='retained', ctx=Load()), ops=[In()], comparators=[Tuple(elts=[Constant(value=None), Dict(keys=[Constant(value=0)], values=[Constant(value=None)])], ctx=Load())]), msg=Tuple(elts=[Constant(value=\"Kafka kept the deleted topic's committed offsets\"), Name(id='retained', ctx=Load())], ctx=Load()))",
+        "Assert(test=Compare(left=DictComp(key=Name(id='k', ctx=Load()), value=Name(id='v', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='k', ctx=Store()), Name(id='v', ctx=Store())], ctx=Store()), iter=Call(func=Attribute(value=Call(func=Attribute(value=Name(id='of', ctx=Load()), attr='relationships', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), attr='items', ctx=Load()), args=[], keywords=[]), ifs=[Compare(left=Name(id='k', ctx=Load()), ops=[NotEq()], comparators=[Name(id='ties', ctx=Load())])], is_async=0)]), ops=[Eq()], comparators=[Name(id='want', ctx=Load())]))",
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='stream', ctx=Load()), attr='cli', ctx=Load()), attr='running', ctx=Load()), args=[], keywords=[]))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Attribute(value=Name(id='replay', ctx=Load()), attr='exit_code', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), Compare(left=Constant(value='matched=1 replayed=1'), ops=[In()], comparators=[BinOp(left=Call(func=Attribute(value=Attribute(value=Name(id='replay', ctx=Load()), attr='stdout', ctx=Load()), attr='read_text', ctx=Load()), args=[], keywords=[]), op=Add(), right=Call(func=Attribute(value=Attribute(value=Name(id='replay', ctx=Load()), attr='stderr', ctx=Load()), attr='read_text', ctx=Load()), args=[], keywords=[]))])]))",
+        "Assert(test=Compare(left=Call(func=Name(id='total', ctx=Load()), args=[Name(id='stack', ctx=Load()), Subscript(value=Name(id='topics', ctx=Load()), slice=Constant(value=0), ctx=Load())], keywords=[]), ops=[Eq()], comparators=[BinOp(left=Name(id='before', ctx=Load()), op=Add(), right=Constant(value=1))]), msg=Constant(value='the replay republishes the parked record onto its source topic'))",
+        "Assert(test=Compare(left=Call(func=Name(id='total', ctx=Load()), args=[Name(id='stack', ctx=Load()), Name(id='parked', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Constant(value=1)]), msg=Constant(value='replay does not remove the parked copy'))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='of', ctx=Load()), attr='relationships', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[], values=[])]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='of', ctx=Load()), attr='relationships', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Name(id='pair', ctx=Load())], values=[Tuple(elts=[Constant(value=9), Constant(value='newest')], ctx=Load())])]))",
+        "Assert(test=Compare(left=Call(func=Name(id='offsets_of', ctx=Load()), args=[Name(id='stack', ctx=Load()), JoinedStr(values=[FormattedValue(value=Name(id='group', ctx=Load()), conversion=-1), Constant(value='-RATED')]), Subscript(value=Name(id='topics', ctx=Load()), slice=Constant(value=0), ctx=Load()), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Constant(value=0)], values=[Constant(value=9)])]))",
+        "Assert(test=Compare(left=DictComp(key=Name(id='pair', ctx=Load()), value=Name(id='note', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='pair', ctx=Store()), Tuple(elts=[Name(id='_v', ctx=Store()), Name(id='note', ctx=Store())], ctx=Store())], ctx=Store()), iter=Call(func=Attribute(value=Call(func=Attribute(value=Name(id='of', ctx=Load()), attr='relationships', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), attr='items', ctx=Load()), args=[], keywords=[]), ifs=[Compare(left=Name(id='pair', ctx=Load()), ops=[In()], comparators=[Call(func=Name(id='set', ctx=Load()), args=[Subscript(value=Name(id='pairs', ctx=Load()), slice=Slice(lower=Constant(value=6), upper=Constant(value=15)), ctx=Load())], keywords=[])])], is_async=0)]), ops=[Eq()], comparators=[DictComp(key=Name(id='pair', ctx=Load()), value=JoinedStr(values=[Constant(value='gen2-'), FormattedValue(value=Name(id='k', ctx=Load()), conversion=-1)]), generators=[comprehension(target=Tuple(elts=[Name(id='k', ctx=Store()), Name(id='pair', ctx=Store())], ctx=Store()), iter=Call(func=Name(id='enumerate', ctx=Load()), args=[Subscript(value=Name(id='pairs', ctx=Load()), slice=Slice(lower=Constant(value=6), upper=Constant(value=15)), ctx=Load())], keywords=[]), ifs=[], is_async=0)])]))",
+        "Assert(test=Compare(left=Subscript(value=Call(func=Attribute(value=Name(id='of', ctx=Load()), attr='relationships', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), slice=Name(id='ties', ctx=Load()), ctx=Load()), ops=[Eq()], comparators=[Name(id='expect', ctx=Load())]), msg=Tuple(elts=[Name(id='step', ctx=Load()), Subscript(value=Call(func=Attribute(value=Name(id='of', ctx=Load()), attr='relationships', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), slice=Name(id='ties', ctx=Load()), ctx=Load())], ctx=Load()))",
+        "Assert(test=Compare(left=Subscript(value=Call(func=Attribute(value=Name(id='of', ctx=Load()), attr='relationships', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), slice=Name(id='late', ctx=Load()), ctx=Load()), ops=[Eq()], comparators=[Tuple(elts=[Constant(value=9), Constant(value='new')], ctx=Load())]), msg=Constant(value='order_by must protect the newer value from the replay'))"
+      ],
+      "assertion_count": 13,
+      "assertion_sha256": "e702fe92ba1b32b67a75db04bfa57ca4baa8dbc9401868a01fa684cb2b1928e4",
+      "test_functions": 5
+    },
+    "tests/installed_service/test_inspection_controls.py": {
+      "sha256": "20b9233205f12976f486bbbdbf3e86668a84d1560c57037c8ee7b8737415a617",
+      "size": 7974,
+      "assertions": [
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='of', ctx=Load()), attr='relationships', ctx=Load()), args=[Call(func=Name(id='graph_stack', ctx=Load()), args=[Subscript(value=Name(id='rows', ctx=Load()), slice=Slice(upper=Constant(value=1)), ctx=Load())], keywords=[])], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Tuple(elts=[Constant(value='p0'), Constant(value='i0')], ctx=Load())], values=[Tuple(elts=[Constant(value=9), Constant(value='right')], ctx=Load())])]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='dlq_test', ctx=Load()), attr='likes', ctx=Load()), args=[Call(func=Name(id='graph_stack', ctx=Load()), args=[Subscript(value=Name(id='rows', ctx=Load()), slice=Slice(upper=Constant(value=1)), ctx=Load())], keywords=[])], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Tuple(elts=[Constant(value=1), Constant(value='c1')], ctx=Load())], values=[Tuple(elts=[Constant(value='2020-01-01'), Constant(value='right')], ctx=Load())])]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='strict', ctx=Load()), attr='topic_total', ctx=Load()), args=[Name(id='missing', ctx=Load()), Constant(value='t')], keywords=[keyword(arg='missing_ok', value=Constant(value=True))]), ops=[Eq()], comparators=[Constant(value=0)]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='strict', ctx=Load()), attr='topic_total', ctx=Load()), args=[Call(func=Name(id='topic_stack', ctx=Load()), args=[Call(func=Name(id='Admin', ctx=Load()), args=[Dict(keys=[Constant(value='t')], values=[Call(func=Name(id='meta', ctx=Load()), args=[], keywords=[keyword(arg='error', value=Name(id='unknown', ctx=Load()))])])], keywords=[])], keywords=[]), Constant(value='t')], keywords=[keyword(arg='missing_ok', value=Constant(value=True))]), ops=[Eq()], comparators=[Constant(value=0)]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='strict', ctx=Load()), attr='topic_total', ctx=Load()), args=[Call(func=Name(id='topic_stack', ctx=Load()), args=[Call(func=Name(id='Admin', ctx=Load()), args=[Dict(keys=[Constant(value='t')], values=[Call(func=Name(id='meta', ctx=Load()), args=[], keywords=[])])], keywords=[])], keywords=[keyword(arg='ends', value=Dict(keys=[Constant(value=0)], values=[Constant(value=3)]))]), Constant(value='t')], keywords=[]), ops=[Eq()], comparators=[Constant(value=3)]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='strict', ctx=Load()), attr='group_offsets', ctx=Load()), args=[Name(id='stack', ctx=Load()), Constant(value='g'), Constant(value='t'), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Constant(value=0)], values=[Constant(value=None)])]))",
+        "Assert(test=Compare(left=ListComp(elt=Subscript(value=Name(id='row', ctx=Load()), slice=Constant(value=1), ctx=Load()), generators=[comprehension(target=Name(id='row', ctx=Store()), iter=Call(func=Attribute(value=Name(id='dq', ctx=Load()), attr='read_topic', ctx=Load()), args=[Name(id='stack', ctx=Load()), Constant(value='t'), Constant(value=1)], keywords=[]), ifs=[], is_async=0)]), ops=[Eq()], comparators=[List(elts=[Constant(value=0), Constant(value=1)], ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='strict', ctx=Load()), attr='list_groups', ctx=Load()), args=[Name(id='good', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[List(elts=[Constant(value='a'), Constant(value='b')], ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='strict', ctx=Load()), attr='list_groups', ctx=Load()), args=[Name(id='empty', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[List(elts=[], ctx=Load())]))",
+        "Assert(test=Compare(left=Call(func=Attribute(value=Name(id='strict', ctx=Load()), attr='bulk_groups', ctx=Load()), args=[Name(id='snapshot', ctx=Load()), Constant(value='g')], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Constant(value='A'), Constant(value='B_C')], values=[Constant(value='g-A-r1.bulk.0.h1'), Constant(value='g-B_C-r1.isolated.0.h2')])]))",
+        "Assert(test=Compare(left=Name(id='topic', ctx=Load()), ops=[Is()], comparators=[Constant(value=None)]), msg=Constant(value='a metadata request that names a topic auto-creates it'))"
+      ],
+      "assertion_count": 11,
+      "assertion_sha256": "d38f6ab62a85ad73e983782b9ed08296a78ca8cc6a425a0bd4242d95d556e008",
+      "test_functions": 8
+    },
+    "tests/installed_service/test_service_kill_bulk_modes.py": {
+      "sha256": "9e091e246cfeb1b3b215e74375ae50013204a33309fad6ac5525c3b46291125a",
+      "size": 3884,
+      "assertions": [
+        "Assert(test=Call(func=Attribute(value=Attribute(value=Name(id='watcher', ctx=Load()), attr='state', ctx=Load()), attr='get', ctx=Load()), args=[Constant(value='killed')], keywords=[]), msg=Constant(value='the loss did not hit work in flight'))",
+        "Assert(test=Compare(left=Attribute(value=Subscript(value=Name(id='first', ctx=Load()), slice=Constant(value='result'), ctx=Load()), attr='exit_code', ctx=Load()), ops=[NotIn()], comparators=[Tuple(elts=[Constant(value=0), Constant(value=None)], ctx=Load())]), msg=Constant(value='losing a loader or the lease server mid-load must end a bulk run with a failure'))",
+        "Assert(test=BoolOp(op=And(), values=[Compare(left=Name(id='nodes', ctx=Load()), ops=[Eq()], comparators=[Name(id='nodes_big', ctx=Load())]), Compare(left=Call(func=Name(id='set', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[]), ops=[LtE()], comparators=[Call(func=Name(id='set', ctx=Load()), args=[Name(id='rels_big', ctx=Load())], keywords=[])]), Compare(left=Call(func=Name(id='len', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Call(func=Name(id='len', ctx=Load()), args=[Call(func=Name(id='set', ctx=Load()), args=[Name(id='partial', ctx=Load())], keywords=[])], keywords=[])])]))",
+        "Assert(test=Compare(left=Attribute(value=Subscript(value=Name(id='second', ctx=Load()), slice=Constant(value='result'), ctx=Load()), attr='exit_code', ctx=Load()), ops=[Eq()], comparators=[Constant(value=0)]), msg=Attribute(value=Subscript(value=Name(id='second', ctx=Load()), slice=Constant(value='result'), ctx=Load()), attr='tail', ctx=Load()))",
+        "Assert(test=Compare(left=Call(func=Name(id='own_graph', ctx=Load()), args=[Name(id='stack', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Tuple(elts=[Name(id='nodes_big', ctx=Load()), Name(id='rels_big', ctx=Load())], ctx=Load())]), msg=Constant(value='the full replay must converge to the exact graph'))",
+        "Assert(test=Compare(left=Call(func=Name(id='sorted', ctx=Load()), args=[Name(id='groups', ctx=Load())], keywords=[]), ops=[Eq()], comparators=[Call(func=Name(id='sorted', ctx=Load()), args=[Attribute(value=Name(id='sf', ctx=Load()), attr='TYPES', ctx=Load())], keywords=[])]), msg=Name(id='groups', ctx=Load()))",
+        "Assert(test=UnaryOp(op=Not(), operand=BinOp(left=Call(func=Name(id='set', ctx=Load()), args=[Call(func=Attribute(value=Name(id='groups', ctx=Load()), attr='values', ctx=Load()), args=[], keywords=[])], keywords=[]), op=BitAnd(), right=Call(func=Name(id='set', ctx=Load()), args=[Call(func=Attribute(value=Call(func=Name(id='bulk_groups', ctx=Load()), args=[Subscript(value=Name(id='first', ctx=Load()), slice=Constant(value='snapshot'), ctx=Load()), Name(id='group', ctx=Load())], keywords=[]), attr='values', ctx=Load()), args=[], keywords=[])], keywords=[]))), msg=Constant(value='the replay must use its own run-scoped groups'))",
+        "Assert(test=Compare(left=Subscript(value=Name(id='groups', ctx=Load()), slice=Name(id='kind', ctx=Load()), ctx=Load()), ops=[In()], comparators=[Name(id='listed', ctx=Load())]), msg=Tuple(elts=[Name(id='kind', ctx=Load()), Subscript(value=Name(id='groups', ctx=Load()), slice=Name(id='kind', ctx=Load()), ctx=Load())], ctx=Load()))",
+        "Assert(test=Compare(left=Call(func=Name(id='group_offsets', ctx=Load()), args=[Name(id='stack', ctx=Load()), Subscript(value=Name(id='groups', ctx=Load()), slice=Name(id='kind', ctx=Load()), ctx=Load()), Subscript(value=Name(id='topics', ctx=Load()), slice=Name(id='kind', ctx=Load()), ctx=Load()), Constant(value=1)], keywords=[]), ops=[Eq()], comparators=[Dict(keys=[Constant(value=0)], values=[Subscript(value=Name(id='ends_edge', ctx=Load()), slice=Name(id='kind', ctx=Load()), ctx=Load())])]), msg=Name(id='kind', ctx=Load()))"
+      ],
+      "assertion_count": 9,
+      "assertion_sha256": "943fe6fb3ee430c31e6858c138fea42cce8d7e63832994f718ed6752e33afe88",
+      "test_functions": 1
     }
   },
   "source_collection": {
     "test_ids": [
+      "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_ordering_inspector",
+      "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_dlq_inspector",
+      "tests/installed_service/test_inspection_controls.py::test_a_topic_the_broker_confirms_missing_is_zero_only_when_the_caller_allows_it",
+      "tests/installed_service/test_inspection_controls.py::test_an_inspection_failure_is_never_zero",
+      "tests/installed_service/test_inspection_controls.py::test_group_offsets_distinguish_uncommitted_from_a_failed_read",
+      "tests/installed_service/test_inspection_controls.py::test_a_topic_read_that_stops_short_of_its_watermark_fails_instead_of_returning_a_partial_list",
+      "tests/installed_service/test_inspection_controls.py::test_a_group_listing_that_reports_errors_is_never_an_empty_list",
+      "tests/installed_service/test_inspection_controls.py::test_bulk_groups_come_from_the_edge_container_names_one_per_type",
       "tests/installed_service/test_observer_controls.py::test_foreign_container_events_are_never_adopted",
       "tests/installed_service/test_observer_controls.py::test_owned_network_attachment_adopts_and_inspects_with_an_allowlisted_projection",
       "tests/installed_service/test_observer_controls.py::test_container_that_vanishes_before_inspection_is_recorded_as_uninspectable",
@@ -42510,6 +43547,13 @@
       "tests/installed_service/test_query_window_controls.py::test_a_window_counts_an_open_query_as_one_record_and_never_hides_missing_ones",
       "tests/installed_service/test_query_window_controls.py::test_an_end_without_a_start_is_still_rejected_when_open_queries_are_allowed",
       "tests/installed_service/test_query_window_controls.py::test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice",
+      "tests/installed_service/test_query_window_controls.py::test_a_statement_rejected_before_it_ran_is_one_standalone_record",
+      "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[transaction without database]",
+      "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[database without transaction]",
+      "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[info level]",
+      "tests/installed_service/test_query_window_controls.py::test_a_rejected_record_must_have_exactly_the_observed_shape[duplicate id]",
+      "tests/installed_service/test_query_window_controls.py::test_a_declared_orphan_is_accepted_by_strict_captures_and_nothing_else_is",
+      "tests/installed_service/test_query_window_controls.py::test_an_orphan_declared_in_one_epoch_does_not_cover_a_restarted_server",
       "tests/installed_service/test_service_harness.py::test_h1_owned_stack_and_settings",
       "tests/installed_service/test_service_harness.py::test_h2_candidate_image_identity",
       "tests/installed_service/test_service_harness.py::test_h3_installed_package_provenance",
@@ -42517,10 +43561,44 @@
       "tests/installed_service/test_service_harness.py::test_h5_neo4j_outage_and_termination_controls",
       "tests/installed_service/test_service_harness.py::test_h6_lock_wait_detector_positive_and_negative_controls",
       "tests/installed_service/test_service_harness.py::test_h7_no_helper_process_outlives_its_test",
+      "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[0]",
+      "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[1]",
+      "tests/installed_service/test_service_ingest_dlq.py::test_s4_arrival_dlq_is_drained_by_the_retry_consumer[2]",
+      "tests/installed_service/test_service_ingest_dlq.py::test_s4_retry_limits_parking_and_replay",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_rides_out_a_short_neo4j_outage",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[1]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_short_neo4j_outage_repeats[2]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[0]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_survives_a_lease_server_kill[1]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[0]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[1]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[0]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[1]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[0]",
+      "tests/installed_service/test_service_kill_and_outage.py::test_s5_planned_bulk_fails_closed_when_neo4j_stops_and_a_replay_converges[1]",
+      "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[classic-edge-loader]",
+      "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-edge-loader]",
+      "tests/installed_service/test_service_kill_bulk_modes.py::test_s5_bulk_mode_loss_ends_the_run_and_a_full_replay_converges[lease-server]",
+      "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[0]",
+      "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[1]",
+      "tests/installed_service/test_service_last_value_order.py::test_o4_o5_o6_order_by_newest_version_wins_across_topics_partitions_and_replicas[2]",
+      "tests/installed_service/test_service_last_value_order.py::test_without_order_by_the_record_applied_last_wins_even_if_older",
+      "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[order_by-protects]",
+      "tests/installed_service/test_service_last_value_order.py::test_o7_replaying_a_parked_older_value[arrival-is-overwritten]",
+      "tests/installed_service/test_service_last_value_order.py::test_o1_o2_order_by_with_the_dlq_survives_a_fleet_restart",
+      "tests/installed_service/test_service_last_value_order.py::test_o8_recreating_a_source_topic_with_the_fleet_stopped_restarts_from_the_new_topics_start",
+      "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[planned]",
+      "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[lease]",
+      "tests/installed_service/test_service_last_value_order.py::test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk[classic]",
       "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[0]",
       "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[1]",
       "tests/installed_service/test_service_lease_stream.py::test_s2_stream_leases_load_stop_and_resume[2]",
       "tests/installed_service/test_service_lease_stream.py::test_s2_relationships_before_nodes_without_dead_letter_fail_closed",
+      "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_default_overlap_loads_the_exact_graph",
+      "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[0]",
+      "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[1]",
+      "tests/installed_service/test_service_legacy_classic.py::test_s3_classic_shared_overlap_waits_on_database_locks[2]",
+      "tests/installed_service/test_service_legacy_classic.py::test_s3_native_disjoint_is_refused_by_a_plain_start_and_fails_closed_on_neo4j_5_26",
       "tests/installed_service/test_service_load_bulk.py::test_b1_planned_bulk_clean_small_fixture",
       "tests/installed_service/test_service_load_bulk.py::test_b2_no_database_lock_waits_between_planned_edge_writers",
       "tests/installed_service/test_service_load_bulk.py::test_b3_b4_lost_chunk_holder_fails_closed_and_replay_converges[0]",
@@ -46178,6 +47256,25 @@
       "tests/test_service_lane.py::test_a_short_registry_write_is_cut_back_so_later_rows_stay_readable",
       "tests/test_service_lane.py::test_a_registry_that_cannot_be_cut_back_refuses_every_later_write",
       "tests/test_service_lane.py::test_recovery_keeps_valid_rows_around_a_damaged_interior_line_and_marks_the_run_unclean",
+      "tests/test_service_lane.py::test_an_image_added_by_another_workload_is_tolerated_and_recorded",
+      "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[removed image]",
+      "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[removed and added]",
+      "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag moved to a new image]",
+      "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag removed]",
+      "tests/test_service_lane.py::test_a_removed_replaced_or_retagged_image_is_not_tolerated[tag added to an old image]",
+      "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[container]",
+      "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[network]",
+      "tests/test_service_lane.py::test_an_added_image_plus_any_container_network_or_volume_change_is_not_tolerated[volume]",
+      "tests/test_service_lane.py::test_an_added_image_with_the_owner_label_or_a_candidate_tag_is_not_tolerated",
+      "tests/test_service_lane.py::test_a_snapshot_without_image_tags_never_tolerates",
+      "tests/test_service_lane.py::test_the_postflight_records_foreign_images_added_during_the_run_and_stays_clean",
+      "tests/test_service_lane.py::test_the_postflight_still_fails_on_a_removed_image_and_reports_nothing_added",
+      "tests/test_service_lane.py::test_the_postflight_without_any_difference_is_clean_without_a_tolerance_record",
+      "tests/test_service_lane.py::test_a_digest_only_image_in_a_candidate_repository_is_not_tolerated",
+      "tests/test_service_lane.py::test_an_existing_image_that_gains_or_loses_a_digest_is_not_tolerated",
+      "tests/test_service_lane.py::test_a_snapshot_whose_image_tables_disagree_is_rejected_and_every_added_id_is_accounted_for",
+      "tests/test_service_lane.py::test_a_snapshot_reads_the_image_list_once_so_a_changing_list_cannot_split_ids_from_tags",
+      "tests/test_service_lane.py::test_duplicate_image_ids_or_duplicate_tag_or_digest_rows_are_rejected_before_they_can_collapse",
       "tests/test_service_observers.py::test_graph_observations_reads_bounded_properties_and_sorts",
       "tests/test_service_observers.py::test_graph_observations_rejects_foreign_database_overflow_and_nonfinite_values",
       "tests/test_service_observers.py::test_graph_observations_reject_duplicate_keys_and_canonicalize_labels",
@@ -46559,12 +47656,12 @@
       "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]",
       "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
     ],
-    "sha256": "db05aff8efa76f017da1110f58adf5b0073d2719f666d784989dccc214106c54",
-    "files": 137,
+    "sha256": "f66387cd17e16286c249d819fdd889ad1c8c5f55eef01d9653d480899e31e3a1",
+    "files": 143,
     "counts": {
-      "service": 149,
+      "service": 198,
       "installed": 3673,
-      "checkout-development": 310
+      "checkout-development": 329
     },
     "command": [
       "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/entry-smj5281d/dev/bin/python",
@@ -46572,7 +47669,7 @@
       "-c",
       "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
       "/Users/shashank/Desktop/Code/Graph/graph-loader",
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/s2/collection-freeze-final.json"
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/r1/collection-freeze-dup.json"
     ]
   },
   "artifact_contract": {

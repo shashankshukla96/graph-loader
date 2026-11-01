@@ -590,10 +590,21 @@ def service_postflight(service, work):
         (work/'foreign-after.json').write_text(json.dumps(after, indent=1, sort_keys=True)+'\n')
         result['difference'] = service_lane.difference(service['before'], after)
     result['foreign_unchanged'] = after == service['before']
+    result['foreign_difference_tolerated'] = False
+    if after is not None and not result['foreign_unchanged']:
+        # Another workload may pull images onto the shared engine while a lane runs: purely additive images are recorded, not fatal.
+        try:
+            tolerated, added, reason = service_lane.tolerated_foreign_images(client, service['before'], after, result['difference'])
+        except Exception as error:
+            tolerated, added, reason = False, [], 'tolerance check failed: ' + type(error).__name__
+        result['foreign_difference_tolerated'] = tolerated
+        result['foreign_difference_reason'] = reason
+        if tolerated:
+            result['foreign_images_added'] = added
     reaped = result.get('reaped', {})
     result['clean'] = ('registry_error' not in result and 'reap_error' not in result and 'snapshot_error' not in result
                        and not result.get('registry_truncated') and not result.get('registry_corrupt_lines')
-                       and result['foreign_unchanged']
+                       and (result['foreign_unchanged'] or result['foreign_difference_tolerated'])
                        and not reaped.get('removed') and not reaped.get('refused') and not reaped.get('errors'))
     return result
 
@@ -794,7 +805,10 @@ raise SystemExit(pytest.main(args,plugins=[plugin]))
                                            for name in ('pytest.ini', 'e07-stage-files.json')}
         result['distribution_files']=distribution
         (work/'result.json').write_text(json.dumps(result, indent=2)+'\n')
-        print(json.dumps({'status': 'passed', 'result': str(work/'result.json'), 'test_ids': len(lane['test_ids'])}))
+        summary = {'status': 'passed', 'result': str(work/'result.json'), 'test_ids': len(lane['test_ids'])}
+        if service is not None and service_result.get('foreign_images_added'):
+            summary['foreign_images_added'] = service_result['foreign_images_added']
+        print(json.dumps(summary))
         return 0
     except BaseException as exc:
         result = {'status': 'failed', 'error': str(exc), 'commands': receipts}

@@ -43,15 +43,25 @@ evidence for a library release, not a security sandbox.
 | --- | --- | --- |
 | E09.F1.S7 | Live harness: owned stack, installed CLI, provenance, observers, lock-wait detector, `service-harness` lane | complete ([evidence](evidence/E09.F1.S7.md)) |
 | E09.F1.S1 | Planned bulk end to end; worker loss fails closed; replay converges; lock-wait evidence | complete ([evidence](evidence/E09.F1.S1.md)) |
-| E09.F1.S2 | Streaming leases: graph, stable group offsets, node-before-edge, graceful restart/resume | planned |
-| E09.F1.S3 | Classic mode (included by D02/D04): final graph/offsets/cleanup, lock behaviour | planned |
-| E09.F1.S4 | Installed DLQ: routing, identity, retry limits, parking/replay, safe offsets | planned |
-| E09.F1.S5 | Outages: short Neo4j outage, lost coordinator/writer, graceful stop with work outstanding | planned |
-| E09.F2.S1 | Ordering O1–O8: asserted outcome or approved exclusion per row; order_by probes | planned |
+| E09.F1.S2 | Streaming leases: graph, stable group offsets, node-before-edge, graceful restart/resume | complete ([evidence](evidence/E09.F1.S2.md)) |
+| E09.F1.S3 | Classic mode (included by D02/D04): final graph/offsets/cleanup, lock behaviour | complete ([evidence](evidence/E09.F1.S3.md)) |
+| E09.F1.S4 | Installed DLQ: routing, identity, retry limits, parking/replay, safe offsets | complete ([evidence](evidence/E09.F1.S4.md)) |
+| E09.F1.S5 | Outages: short Neo4j outage, lost coordinator/writer, graceful stop with work outstanding | complete ([evidence](evidence/E09.F1.S5.md)) |
+| E09.F2.S1 | Ordering O1–O8: asserted outcome or approved exclusion per row; order_by probes | complete ([evidence](evidence/E09.F2.S1.md)) |
 
 The S7 `service-harness` lane is rerun at E09's final bytes (the reset and S1 changed some of its inputs; behaviour
 is unchanged). arm64 (D04) is covered by an installed-CLI smoke on the final arm64 images in E11.F1.S3; E09 runs on
 the amd64 host only.
+
+Finding (S3, 2026-10-31): `native_disjoint` requires Cypher 25 and fails closed on the Neo4j 5.26 target; it is
+excluded from the guarantees and E10.F1.S2 corrects the docs that advertise it for 5.23+.
+
+**E09 closed 2026-11-01.** Independent exit review (Codex session) in three rounds:
+[round 1](reviews/e09-exit-review-20261031.md) raised 4 major and 2 minor findings, all fixed;
+[round 2](reviews/e09-exit-review-round2-20261031.md) found two holes in the new additive-foreign-image rule, fixed;
+[round 3](reviews/e09-exit-review-round3-20261031.md) left one minor malformed-input check, fixed and verified by the
+orchestrator. Final full run at the closing bytes: `r1/final-4`, service-harness lane 150/150, inventory 4,200 IDs.
+Red run retained: `r1/final-1` (an outside workload pulled an image mid-run).
 
 Exit gate: every supported mode and ordering case has an executed result with graph/offset/cleanup evidence;
 unsupported cases are documented and excluded from guarantees (feeds U3 in E10).

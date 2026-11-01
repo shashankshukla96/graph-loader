@@ -11,7 +11,8 @@ import json
 LABELS = ('Citizen', 'Firm')
 TYPES = ('WORKS_FOR', 'BUYS_FROM', 'KNOWS_OF')
 FIRMS = 6
-BATCHES = {'a': range(1, 25), 'b': range(25, 37)}
+BATCHES = {'a': range(1, 25), 'b': range(25, 37), 'big': range(1, 2001), 'c': range(2001, 2013)}
+EXTRA = {'a2': 'a'}  # more relationships between the citizens/firms of an existing batch (distinct pairs)
 
 
 def firms():
@@ -19,22 +20,29 @@ def firms():
 
 
 def citizens(batch):
-    return [f'c{i}' for i in BATCHES[batch]]
+    return [f'c{i}' for i in BATCHES[EXTRA.get(batch, batch)]]
 
 
 def edges(batch):
     """(type, source, target, kind): one of each type per citizen; KNOWS_OF stays inside the batch."""
     people = citizens(batch)
     rows = []
+    shift = 3 if batch in EXTRA else 0  # an extra batch uses other firms and neighbours, so every pair is new
     for position, person in enumerate(people):
         number = int(person[1:])
-        rows.append(('WORKS_FOR', person, f'f{number % FIRMS}', 'works'))
-        rows.append(('BUYS_FROM', person, f'f{(number + 2) % FIRMS}', 'buys'))
-        rows.append(('KNOWS_OF', person, people[(position + 1) % len(people)], 'knows'))
+        rows.append(('WORKS_FOR', person, f'f{(number + shift) % FIRMS}', 'works'))
+        rows.append(('BUYS_FROM', person, f'f{(number + 2 + shift) % FIRMS}', 'buys'))
+        rows.append(('KNOWS_OF', person, people[(position + 1 + shift) % len(people)], 'knows'))
     return rows
 
 
-def schema(prefix, topics, group):
+def schema(prefix, topics, group, *, bulk=None):
+    """Stream schema, or a bulk one (``bulk`` = classic tuning: {'worker_count': n, 'batch_size': n})."""
+    tuning = '' if bulk is None else f'''    execution: {{mode: {bulk.get('mode', 'python_apoc')}, worker_count: {bulk['worker_count']}}}
+    mix_and_batch: {{batch_size: {bulk['batch_size']}}}
+'''
+    mode = '' if bulk is None else '  mode: bulk\n'
+
     def edge(kind, target):
         return f'''  - type: {kind}
     topic: {topics[kind]}
@@ -43,9 +51,9 @@ def schema(prefix, topics, group):
     target_key_property: id
     properties:
       kind: {{type: string, required: true}}
-'''
+{tuning}'''
     return f'''loading:
-  consumer_group_id: {group}
+{mode}  consumer_group_id: {group}
   flush_interval_ms: 25
   unwind_batch_size: 50
   bucket_lease:
@@ -82,8 +90,9 @@ def produce_edges(stack, topics, batch):
 
 
 def expected(batches):
+    base = list(dict.fromkeys(EXTRA.get(b, b) for b in batches))  # extra batches add relationships, not citizens
     nodes = sorted(json.dumps({'labels': [label], 'properties': {'id': i, 'name': i}}, sort_keys=True)
-                   for label, ids in (('Citizen', [c for b in batches for c in citizens(b)]), ('Firm', firms())) for i in ids)
+                   for label, ids in (('Citizen', [c for b in base for c in citizens(b)]), ('Firm', firms())) for i in ids)
     rels = []
     for batch in batches:
         for typ, source, target, kind in edges(batch):

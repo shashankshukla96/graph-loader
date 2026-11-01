@@ -262,3 +262,57 @@ def test_a_query_open_at_the_first_mark_may_end_later_but_never_start_twice():
     still = open_capture(first.content + log(3))
     assert [r['query_id'] for r in qw.window(first, still)] == [3, 3]
     assert still.open_ids == (2,)
+
+
+def rejected_event(query_id, *, transaction='-1', database='<none>', query='CYPHER 25 RETURN 1 AS supported', level='ERROR'):
+    message = (f'id:{query_id} - transaction id:{transaction} - 6 ms: (planning: 6, waiting: 0) - 0 B - 0 page hits, 0 page faults - '
+               f'bolt-session\tbolt\tpython/1\t\tclient/10.0.0.1:5\tserver/10.0.0.2:7687>\t{database} - neo4j - {query} - runtime=null - {{}} - '
+               '25 is not a valid option for cypher version. Valid options are: 5')
+    return json.dumps({'loggerName': 'QueryLogger', 'level': level, 'message': message, 'e09_marker': MARKER}) + '\n'
+
+
+def test_a_statement_rejected_before_it_ran_is_one_standalone_record():
+    capture_ = capture((event(1, 'started') + event(1, 'completed') + rejected_event(2)).encode())
+    rejected = [r for r in capture_.records if r['phase'] == 'rejected']
+    assert [(r['query_id'], r['transaction_id'], r['database'], r['query']) for r in rejected] == [(2, -1, '<none>', 'CYPHER 25 RETURN 1 AS supported')]
+    assert capture_.max_id == 2 and capture_.open_ids == ()
+    before = capture(log(1))
+    delta = qw.window(before, capture(before.content + rejected_event(2).encode() + log(3)))
+    assert sorted((r['query_id'], r['phase']) for r in delta) == [(2, 'rejected'), (3, 'completed'), (3, 'started')]
+    with pytest.raises(RuntimeError, match='count differs'):
+        qw.waits(delta, query='CYPHER 25 RETURN 1 AS supported', database='<none>', user='neo4j', expected=1)
+
+
+@pytest.mark.parametrize('mutation', ['transaction without database', 'database without transaction', 'info level', 'duplicate id'])
+def test_a_rejected_record_must_have_exactly_the_observed_shape(mutation):
+    content = {'transaction without database': rejected_event(1, database='neo4j'),
+               'database without transaction': rejected_event(1, transaction='7'),
+               'info level': rejected_event(1, level='INFO'),
+               'duplicate id': rejected_event(1) + rejected_event(1)}[mutation]
+    with pytest.raises(RuntimeError):
+        capture(content.encode())
+
+
+@pytest.fixture()
+def orphans(monkeypatch):
+    monkeypatch.setattr(qw, 'ORPHANS', set())
+    return qw
+
+
+def test_a_declared_orphan_is_accepted_by_strict_captures_and_nothing_else_is(orphans):
+    content = log(1) + event(2, 'started').encode()
+    with pytest.raises(RuntimeError, match='not quiescent'):
+        capture(content)
+    orphans.declare_orphans(open_capture(content))
+    assert capture(content).open_ids == (2,)
+    assert capture(content + log(3)).open_ids == (2,)
+    with pytest.raises(RuntimeError, match='not quiescent'):
+        capture(content + event(3, 'started').encode())
+
+
+def test_an_orphan_declared_in_one_epoch_does_not_cover_a_restarted_server(orphans):
+    content = log(1) + event(2, 'started').encode()
+    orphans.declare_orphans(open_capture(content))
+    restarted = content + log(1) + event(2, 'started').encode()
+    with pytest.raises(RuntimeError, match='not quiescent'):
+        capture(restarted)

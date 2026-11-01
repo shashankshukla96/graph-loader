@@ -29,10 +29,64 @@ def snapshot(client):
                            'restarts': attrs['RestartCount'],
                            'ports': sorted((p.get('IP', ''), p.get('PrivatePort'), p.get('PublicPort'), p.get('Type'))
                                            for p in row.get('Ports', []))})
+    images = client.api.images(all=True)  # ONE response feeds the ids, the tags and the digests, so they cannot disagree
     return {'containers': sorted(containers, key=lambda c: c['id']),
             'networks': sorted((n['Id'], n['Name']) for n in client.api.networks()),
             'volumes': sorted(v['Name'] for v in (client.api.volumes().get('Volumes') or [])),
-            'images': sorted(i['Id'] for i in client.api.images(all=True))}
+            'images': sorted(i['Id'] for i in images),
+            'image_tags': sorted([i['Id'], sorted(i.get('RepoTags') or [])] for i in images),
+            'image_digests': sorted([i['Id'], sorted(i.get('RepoDigests') or [])] for i in images)}
+
+
+# Repositories the E09 candidate images are tagged in: an added image there is never "someone else's".
+CANDIDATE_REPOSITORIES = ('ghcr.io/shashankshukla96/graph-loader-',)
+
+
+def tolerated_foreign_images(client, before, after, diff):
+    """(tolerated, added images, reason): a foreign difference is tolerated only when it is purely additive images.
+
+    Every changed category must be images (with their tag and digest rows), no image may be removed, replaced, re-tagged or gain a
+    digest, containers, networks and volumes must be identical, and an added image must neither be tagged or digest-named in a
+    candidate repository nor carry the E09 owner label. Each snapshot must be self-consistent (image ids, tag rows and digest rows
+    describe the same images) and every added id must be accounted for in all three. The shared engine can be used by another
+    workload that pulls images while a lane runs; nothing else is tolerated."""
+    changed = set(diff) - {'images', 'image_tags', 'image_digests'}
+    if not diff or changed or 'images' not in diff:
+        return False, [], 'a container, network, volume or tag/digest-only difference'
+    images = diff['images']
+    if images['removed'] or images['changed'] or not images['added']:
+        return False, [], 'an image was removed or replaced'
+    tables = {}
+    for name, snap in (('before', before), ('after', after)):
+        if 'image_tags' not in snap or 'image_digests' not in snap:
+            return False, [], 'the snapshots carry no image tags or digests'
+        # Uniqueness is checked on the rows and the id list BEFORE they become dictionaries: a duplicate must not be collapsed away.
+        row_ids = {'images': list(snap['images']), 'tags': [row[0] for row in snap['image_tags']],
+                   'digests': [row[0] for row in snap['image_digests']]}
+        if any(len(ids) != len(set(ids)) for ids in row_ids.values()) or not (set(row_ids['images']) == set(row_ids['tags']) == set(row_ids['digests'])):
+            return False, [], f'the {name} snapshot is inconsistent (image ids, tag rows and digest rows differ or repeat)'
+        tags = {i: tuple(t) for i, t in snap['image_tags']}
+        digests = {i: tuple(d) for i, d in snap['image_digests']}
+        tables[name] = (tags, digests)
+    (old_tags, old_digests), (new_tags, new_digests) = tables['before'], tables['after']
+    if set(new_tags) - set(old_tags) != set(images['added']):
+        return False, [], 'the added image ids are not all accounted for'
+    for image_id in old_tags:
+        if new_tags.get(image_id) != old_tags[image_id] or new_digests.get(image_id) != old_digests[image_id]:
+            return False, [], f'image {image_id} was re-tagged, gained or lost a digest, or was removed'
+    added = []
+    for image_id in images['added']:
+        tags, digests = list(new_tags[image_id]), list(new_digests[image_id])
+        if any(name.startswith(CANDIDATE_REPOSITORIES) for name in tags + digests):
+            return False, [], f'added image {image_id} is named in a candidate repository'
+        try:
+            labels = (client.api.inspect_image(image_id).get('Config') or {}).get('Labels') or {}
+        except FAILURES as error:
+            return False, [], f'added image {image_id} could not be inspected: {type(error).__name__}'
+        if OWNER_LABEL in labels:
+            return False, [], f'added image {image_id} carries the E09 owner label'
+        added.append({'id': image_id, 'tags': tags, 'digests': digests})
+    return True, added, 'only images were added'
 
 
 def difference(before, after):

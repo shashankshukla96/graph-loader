@@ -16,7 +16,18 @@ import time
 
 from .structured_query_log import completed_for, events
 
-MAX_LOG = 8 * 1024 * 1024
+# One scratch server serves the whole service-harness session, so its log keeps growing (the S4 arrival runs add about 2.7 MB each).
+MAX_LOG = 32 * 1024 * 1024
+
+
+# Queries a killed client left open (Neo4j never logs their end), as (epoch count, query id). A test that kills a client
+# declares what it saw; strict captures later in the session then accept exactly those and still reject any new open query.
+ORPHANS = set()
+
+
+def declare_orphans(capture):
+    for query_id in capture.open_ids:
+        ORPHANS.add((capture.epochs, query_id))
 
 
 @dataclass(frozen=True)
@@ -50,7 +61,7 @@ def read_log(container, maximum=MAX_LOG):
 EPOCH_START = re.compile(rb'"message":\s*"Query started: id:1 -')
 
 
-def parse(inode, content, marker, *, allow_open=False):
+def parse(inode, content, marker, *, allow_open=False, known_open=None):
     """Parse a capture; a server restart starts a new query-ID epoch in the same appended file.
 
     ``allow_open`` accepts queries that were started and never ended in the newest epoch (a client killed mid-query
@@ -64,17 +75,18 @@ def parse(inode, content, marker, *, allow_open=False):
     epochs = [list(events(b''.join(chunk), marker=marker, maximum=MAX_LOG)) for chunk in chunks]
     for epoch in epochs[:-1]:
         _check_epoch(epoch, quiescent=False)
-    max_id = _check_epoch(epochs[-1], quiescent=not allow_open)
+    known = ORPHANS if known_open is None else known_open
+    max_id = _check_epoch(epochs[-1], quiescent=not allow_open, known_open={i for e, i in known if e == len(epochs)})
     records = tuple(row for epoch in epochs for row in epoch)
-    ended = {r['query_id'] for r in epochs[-1] if r['phase'] in ('completed', 'failed')}
+    ended = {r['query_id'] for r in epochs[-1] if r['phase'] in ('completed', 'failed', 'rejected')}
     open_ids = tuple(sorted({r['query_id'] for r in epochs[-1] if r['phase'] == 'started'} - ended))
     return Capture(inode, len(content), content, records, max_id, len(epochs), open_ids)
 
 
-def _check_epoch(epoch, *, quiescent):
-    started = {r['query_id'] for r in epoch if r['phase'] == 'started'}
-    completed = {r['query_id'] for r in epoch if r['phase'] in ('completed', 'failed')}
-    if completed - started or (quiescent and started - completed):
+def _check_epoch(epoch, *, quiescent, known_open=frozenset()):
+    started = {r['query_id'] for r in epoch if r['phase'] in ('started', 'rejected')}
+    completed = {r['query_id'] for r in epoch if r['phase'] in ('completed', 'failed', 'rejected')}
+    if completed - started or (quiescent and started - completed - known_open):
         raise RuntimeError('query log is not quiescent: started and completed IDs differ')
     ids = sorted(started)
     if ids != list(range(1, len(ids) + 1)):
@@ -125,8 +137,9 @@ def window(before, after):
         raise RuntimeError('query-log window has missing or unrelated records')
     fresh = [r for r in delta if r['query_id'] not in carried and not r.get('duplicate')]
     still_open = set(after.open_ids) - carried
+    rejected = {r['query_id'] for r in fresh if r['phase'] == 'rejected'}
     if (sorted({r['query_id'] for r in delta if r['query_id'] not in carried}) != expected
-            or len(fresh) != 2 * len(expected) - len(still_open)):
+            or len(fresh) != 2 * len(expected) - len(still_open) - len(rejected)):
         raise RuntimeError('query-log window has missing or unrelated records')
     return list(delta)
 
