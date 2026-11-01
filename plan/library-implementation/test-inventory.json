@@ -5728,9 +5728,9 @@
         "tests/installed_service/test_query_window_controls.py": "ac0a3237223b0f929dcc412dc0b1c3437a7ea2935b03caad32f1da11d800aa09",
         "tests/installed_service/test_service_harness.py": "98bcb8e1f4c8dd6d85293eb91be9f5f621dcc8d1a8b450cf681debd7d3784f00",
         "tests/installed_service/test_service_ingest_dlq.py": "9433d22e071f979c69076373162ebe69921f38094a6bdb1770cdde9ec7cc6ff3",
-        "tests/installed_service/test_service_kill_and_outage.py": "c18bf12ab831b769b449ebc580af651cd54377ea1461c4d0666da946d6198a08",
+        "tests/installed_service/test_service_kill_and_outage.py": "eca28c00b1808641aee2d0c1c52e78e05f0a01b83a5fd7782bafc42bfc91717a",
         "tests/installed_service/test_service_kill_bulk_modes.py": "9e091e246cfeb1b3b215e74375ae50013204a33309fad6ac5525c3b46291125a",
-        "tests/installed_service/test_service_last_value_order.py": "f1a460bf978dec5a546de91d5265559cbc4b630a8f8377aaaf5599da0b0b9a73",
+        "tests/installed_service/test_service_last_value_order.py": "06ed99a06dc7c6a7cc2a45b788c839794946d7140f1e67236597d4ab7d642d52",
         "tests/installed_service/test_service_lease_stream.py": "3c90983a8eb2618c36dd6b78296777ac5d2ddbcd241b665e4232b195cfc4f725",
         "tests/installed_service/test_service_legacy_classic.py": "05e6737bac3d69f81232e1b689f9adedf085ae2b9f80dd2ef7ee0fcb9373c760",
         "tests/installed_service/test_service_load_bulk.py": "2ac8a9efee98669597a066b82e23ed9894fd01bf81fd42f0bc6f4a047d97f6a4",
@@ -47708,7 +47708,7 @@
       "-c",
       "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
       "/Users/shashank/Desktop/Code/Graph/graph-loader",
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/collection-freeze2.json"
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/collection-freeze4.json"
     ]
   },
   "artifact_contract": {

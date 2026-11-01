@@ -431,9 +431,10 @@ def kill_when_in_flight(stack, component):
     return watch
 
 
-def bulk_run(stack, client, registry, config, run, name, schema_text, args, *, watcher=None, deadline=300):
+def bulk_run(stack, client, registry, config, run, name, schema_text, args, *, watcher=None, deadline=300, poll_every=1.0):
     """Installed ``graph-loader start --mode bulk ARGS`` under an observer; ``watcher(observer, logs)`` runs every 50 ms. No query
-    window (a killed loader can leave queries open and these runs share the lane's log)."""
+    window (a killed loader can leave queries open and these runs share the lane's log). Container logs are sampled every
+    ``poll_every`` seconds and only the newest copy is kept: a run whose containers live about two seconds needs a short interval."""
     (run / 'runs').mkdir(parents=True, exist_ok=True)
     (run / 'logs').mkdir(exist_ok=True)
     (run / f'{name}.yaml').write_text(schema_text)
@@ -460,7 +461,7 @@ def bulk_run(stack, client, registry, config, run, name, schema_text, args, *, w
         while thread.is_alive():
             if watcher is not None:
                 watcher(observer, logs)
-            if time.monotonic() - last_poll > 1.0:
+            if time.monotonic() - last_poll > poll_every:
                 lb.poll_containers(client, observer, logs)
                 last_poll = time.monotonic()
             time.sleep(0.05)

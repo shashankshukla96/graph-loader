@@ -260,13 +260,13 @@ def test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk(mode, do
     want, records = of.publish_conflicts(stack, topics, phase='newest')
     of.publish_nodes(stack, prefix)
     text = of.schema(prefix, group, topics=topics, order_by=True, mode='bulk')
-    first = bulk_run(stack, docker_client, registry, service_config, run, 'start-1', text, BULK_ARGS[mode])
+    first = bulk_run(stack, docker_client, registry, service_config, run, 'start-1', text, BULK_ARGS[mode], poll_every=0.05)
     assert first['result'].exit_code == 0, first['result'].tail
     bulk_cleanup(stack, docker_client, first)
     assert of.relationships(stack) == {pair: value for pair, value in want.items() if value[0] >= 400}, 'run 1 stores the newest versions'
 
     of.publish_conflicts(stack, topics, phase='older')  # older versions (and noise) arrive after the newest is stored
-    second = bulk_run(stack, docker_client, registry, service_config, run, 'start-2', text, BULK_ARGS[mode])
+    second = bulk_run(stack, docker_client, registry, service_config, run, 'start-2', text, BULK_ARGS[mode], poll_every=0.05)
     result = second['result']
     assert result.exit_code == 0, result.tail
     seen = bulk_cleanup(stack, docker_client, second)
@@ -301,5 +301,5 @@ def test_order_by_newest_version_wins_in_planned_lease_and_classic_bulk(mode, do
         superseded = sum(int(n) for n in re.findall(r'stage=edge-order-by-superseded .*?skipped_rows=(\d+)', logs))
         (run / 'logs' / 'summary.json').write_text(json.dumps({'superseded_rows': superseded, 'records': records}) + '\n')
         if mode == 'classic':  # the lease writer does not log superseded rows; there the unchanged final graph is the evidence
-            assert superseded > 0, 'no older-after-newer conflict was seen by the loader'
+            assert superseded > 0, f'no older-after-newer conflict was seen by the loader (edge log sample: {logs[-300:]!r})'
     of.clear(stack)
