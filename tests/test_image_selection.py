@@ -54,6 +54,8 @@ def test_local_only_never_pulls():
     ('io.graph-loader.component','edge'),('io.graph-loader.component',None),
     ('io.graph-loader.image-contract','2'),('io.graph-loader.image-contract',None)])
 def test_mismatches_fail_without_pull_or_build(key,value):
+    if value==__version__:  # the id keeps the literal release string; its pre-release is still a near-miss mismatch
+        value=f'{value}.dev0'
     image=compatible();image.attrs['Config']['Labels'][key]=value
     client=MagicMock();client.images.get.return_value=image
     with pytest.raises(ImageSelectionError,match='incompatible node image'):

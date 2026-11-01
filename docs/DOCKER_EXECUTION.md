@@ -2,7 +2,7 @@
 
 `graph-loader start` resolves prebuilt images and never builds from cwd. Defaults
 are `ghcr.io/shashankshukla96/graph-loader-{node,edge,clock}:<package-version>`;
-the current development package version is `0.1.0a1.dev0`. The CLI image follows
+the current package version is `0.1.0a1`. The CLI image follows
 the same naming policy. These are the registry identities used at release; a local
 candidate build does not establish publication or anonymous-pull availability.
 

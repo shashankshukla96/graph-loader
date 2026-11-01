@@ -1,11 +1,10 @@
 # Changelog
 
-## 0.1.0a1 (first alpha; candidate, not yet published)
+## 0.1.0a1 (first alpha)
 
-Release date: **`<YYYY-MM-DD>`, a placeholder.** The date is filled in on the day the
-release candidate is built and frozen, and those same files then go to TestPyPI and to
-PyPI unchanged. The version is the approved target for the first release; it is frozen
-when the release candidate is built.
+Release date: **2026-11-01**, the day this release candidate was built and frozen.
+Those same files go to TestPyPI and to PyPI unchanged, so the date is the freeze date
+and not necessarily the day the package appears on an index.
 
 This is the first release on PyPI as `neo4j-graph-loader` (import
 `neo4j_graph_loader`, command `graph-loader`). Before it, the loader existed only as

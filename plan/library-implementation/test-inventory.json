@@ -5265,7 +5265,7 @@
         "tests/test_cli_env_polish.py": "5fefd8c4591264712060e202f11987ccc492f037c7eabac28abaa20e69933b8b",
         "tests/test_cli_shutdown.py": "a28816336321fd5faa1e00eaba1ed5b2672a56bc5a962e7f1b49990dd130215c",
         "tests/test_cli_topic_preflight.py": "32db2f44e796af2f912911da4aafc4332f0984f6950444f13c3d9e2b7bea3c87",
-        "tests/test_docker_service.py": "8e0d9919a723e3824cbe9828f015293004724c45972181197cd3b9e9ea678ed9",
+        "tests/test_docker_service.py": "c8963e32903f31950070166f5c0442e15daf1cc3a4b1d91d6dcf02919daf231e",
         "tests/test_metrics.py": "668507ca075165dc640bf0c2aa55a31a9a3f84b48f033a28367eac7ffe5b61fc",
         "tests/test_node_loader_early_stop.py": "cc77775554f729e39768a17ef774edf21a9af53859b4cf045543d264f3acba4c",
         "tests/test_planned_edges_cli.py": "b38760f0b55aa275d3e513282bf087f03f73978631e4d4889e26a4f9570e54ea",
@@ -5732,7 +5732,7 @@
         "tests/installed_service/test_service_kill_bulk_modes.py": "9e091e246cfeb1b3b215e74375ae50013204a33309fad6ac5525c3b46291125a",
         "tests/installed_service/test_service_last_value_order.py": "f1a460bf978dec5a546de91d5265559cbc4b630a8f8377aaaf5599da0b0b9a73",
         "tests/installed_service/test_service_lease_stream.py": "3c90983a8eb2618c36dd6b78296777ac5d2ddbcd241b665e4232b195cfc4f725",
-        "tests/installed_service/test_service_legacy_classic.py": "af854cfb6079cd4719a0d11b533b964d33e59cf5a27d9b80c59942eb245dc287",
+        "tests/installed_service/test_service_legacy_classic.py": "05e6737bac3d69f81232e1b689f9adedf085ae2b9f80dd2ef7ee0fcb9373c760",
         "tests/installed_service/test_service_load_bulk.py": "2ac8a9efee98669597a066b82e23ed9894fd01bf81fd42f0bc6f4a047d97f6a4",
         "tests/installed_service/test_service_log_continuity_live.py": "a8e579651b9c6e31867f32411b17acb41bfbb8ad7d07abe123a47994190cb9dc",
         "tests/integration/__init__.py": "b5b9f92bf90f3548c46cc7f61fefb27f97fb9a1efba9fc135db372a1c8e07247",
@@ -7265,7 +7265,7 @@
         "tests/test_distribution_foundation.py": "bb92855a8d91b1a42a6302d7ca0ed907c624dab8ecde3a35ae915938c153c562",
         "tests/test_docker_topology.py": "7cf5b928f033ea1fedd48f4ec2b1293f05a7571d3698a22c7c93700ce3c21ba6",
         "tests/test_edge_planner.py": "2a901ca45e996e3048698c394a948c0bc4a728eb113d799d90f7dd36a9ee4494",
-        "tests/test_image_selection.py": "12c6abd7a1d5ed51bb18b2bcb697f37615b1c875a84875c093a36d6651880be4",
+        "tests/test_image_selection.py": "9b4d2be2927052f0e1b6773dc5b001d471eb8938dbf237f4a4a96bdb09b1998a",
         "tests/test_installed_cli.py": "eadaea44f5b0a4e037ba2d521cca78474131728f69a88a7d6e7ded7e9c5af1cf",
         "tests/test_namespace_migration.py": "55b0a731e1da9e6c2717b64be0fdbcf73fad3ea77636bde6dca4392aeee75b76",
         "tests/test_neo4j_session.py": "4b063fb2bbf9f2ebeb0caf989ce01088679f7a772e4f1b2e3858f28dbf5355ad",
@@ -9263,7 +9263,7 @@
         "tests/integration/__init__.py": "b5b9f92bf90f3548c46cc7f61fefb27f97fb9a1efba9fc135db372a1c8e07247",
         "tests/it_scratch_db.py": "3a91cfb867d1b85cd90b3c8e753ea0b50b9d3d751f3c3c25e374112685af38ed",
         "tests/multi_pair_support.py": "34fd03a69a93c850c0ed6d4dc15a775d084a060e1ea5f0a63d15bafd88f18f64",
-        "tests/test_bulk_default_mode.py": "6044136cd9b08be3a1906085f581b98e7008e1f00456e8b83cc1be0403384e32",
+        "tests/test_bulk_default_mode.py": "18f40c2162a49a3af1882fda1e2c2daa70a187d77d244520a1a3d63642aabac2",
         "tests/test_bulk_e2e.py": "8d1a5c5949734a5cfe9950d7f9438a7eca6cceefb47d75f7e59296f88e4ca56f",
         "tests/test_bulk_monitor.py": "1059b7d04fe7c618d6382fdc00895a971eca170bcd31d939519a656ecdac8a55",
         "tests/test_cli_dead_letter.py": "30aee9df4fd7668f362c30b70c0db326f551ac7183c15d6062eedf2e523c5f72",
@@ -9493,6 +9493,7 @@
         "examples/imdb/tests/test_build_subset.py::test_parallel_derivation_fails_closed_when_a_source_fails",
         "examples/imdb/tests/test_build_subset.py::test_spawned_derivation_preserves_parent_chunk_config_and_converter",
         "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer",
+        "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields",
         "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order",
         "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource",
         "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local",
@@ -9611,6 +9612,7 @@
         "examples/imdb/tests/test_build_subset.py::test_parallel_derivation_fails_closed_when_a_source_fails",
         "examples/imdb/tests/test_build_subset.py::test_spawned_derivation_preserves_parent_chunk_config_and_converter",
         "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer",
+        "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields",
         "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order",
         "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource",
         "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local",
@@ -9679,12 +9681,12 @@
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
         "examples/imdb/README.md": "c3e75b692df29cb2a10bf1caaadabaf252b4baa3686895738f656f783b2af0ab",
-        "examples/imdb/build_subset.py": "0e09e397924ffb21e38eea58e70a1920ab6b4e1ed24269370acb8215003f46fe",
+        "examples/imdb/build_subset.py": "602e8fc35bd360ca836c384db7025b2f8a0b184db3f5b92e9c3cba26ed286b00",
         "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
         "examples/imdb/planned_edges.py": "b5611b812480a52913df3afcc5e785e2fac658cc510f91178e5aa17312f780a8",
         "examples/imdb/publish_and_load_nodes.py": "6cff58ea4e1900d91022257618f503dc3d4553bb5380a5f6821c1f6159afb263",
         "examples/imdb/tests/test_backfill_variant.py": "9bd1856525ec3bb55cd1ba5889d4580174fdc19132f883bb3377f784a49d5b20",
-        "examples/imdb/tests/test_build_subset.py": "c9f61ca0b63b93a4bd26b333cc711efd922412ef3a6f3f8477dcc6952ccc0934",
+        "examples/imdb/tests/test_build_subset.py": "99209e53fba09fe89b94b903f3d0a63563b5373f682d8a1de888b72ff8c8d947",
         "examples/imdb/tests/test_planned_edges.py": "dd99603c20c8a000819a14470b405f3b7f4d253c0ddfa4c9e3aca27e2059b17c",
         "examples/imdb/tests/test_precedence_report.py": "6590708e1110467049bc52e293e6bfc8fceb46bdeca4e3c6b1620f9603633d2d",
         "examples/imdb/tests/test_publish_and_load_nodes.py": "f7fe3536dacc5e53b62ec2f96282432a8292c958ba986f051a5b0d726073049d",
@@ -10061,7 +10063,7 @@
     "meaning": "AST function counts before parametrization; not execution/pass evidence. Recount at inventory freeze."
   },
   "schema_version": 1,
-  "package_version": "0.1.0a1.dev0",
+  "package_version": "0.1.0a1",
   "test_requirements": [
     "pytest==9.1.1",
     "testcontainers[neo4j,kafka]>=4.8,<5",
@@ -10074,8 +10076,8 @@
     "neo4j_graph_loader/_images.py": "a53f0d3a173c00bf24f7aca551d86a1ceb4b1258655f5b4fc70e6cb456bcf55e",
     "neo4j_graph_loader/_resources.py": "c19cf2cdebc7f4c311aa80b9799682b17a9426b675cc71f97590f2d003692551",
     "neo4j_graph_loader/_runtime.py": "2f968ec88bc4abee8645ba4228bfdb98e3ebe3139abc2dd994592a6276c15969",
-    "neo4j_graph_loader/_version.py": "8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312",
-    "neo4j_graph_loader/cli.py": "613e7114ab1f64f463fe6e6972a42f7477c3bc061478b15fc102a879c1533ff6",
+    "neo4j_graph_loader/_version.py": "12c647db1eea421016b8303761e762f6f689f47b46dd7ec85c0d8ba48d8cdccc",
+    "neo4j_graph_loader/cli.py": "d4cdc562dbc6b57c9c919426439d07dd05734db409f4a91202caf7ff115a7547",
     "neo4j_graph_loader/planning.py": "3064cfbfd28721a8250a2629ca1380474d1acb4a1517e195730670af187a0d8a",
     "neo4j_graph_loader/schema.py": "7c0a656515396eead999e4f75c228a72ebef5999696de11faa633bd7f6fef90e",
     "neo4j_graph_loader/data/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
@@ -10129,12 +10131,12 @@
     "neo4j_graph_loader/utils/schema_loader.py": "49e912c15723184cd744805cc8c7246163058d8a8cdfbb8e2de3d1f0eaf9cf8f"
   },
   "distribution_files": {
-    "neo4j_graph_loader-0.1.0a1.dev0.dist-info/licenses/LICENSE": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
-    "neo4j_graph_loader-0.1.0a1.dev0.dist-info/METADATA": "45a8098a326a453c640359c65c056cb69ac85b848c76f76bec428e5106a1031d",
-    "neo4j_graph_loader-0.1.0a1.dev0.dist-info/WHEEL": "98e75747d0b7c0c568bfb71263c3d8f970b3a374a6996087bc642be5cb09a1aa",
-    "neo4j_graph_loader-0.1.0a1.dev0.dist-info/entry_points.txt": "123e1d841afb138913dff6990f55a2d7e16ac9c055850df3edc0c638d348c806",
-    "neo4j_graph_loader-0.1.0a1.dev0.dist-info/top_level.txt": "0483b546775315a974b1439e714ba2f7b733e10fc2cd4f4fd0b72dace037ca5e",
-    "neo4j_graph_loader-0.1.0a1.dev0.dist-info/RECORD": "253331424d0a35c6cf64c9c16b9c1ed948744b1a032c86bfce3f78870fef578e"
+    "neo4j_graph_loader-0.1.0a1.dist-info/licenses/LICENSE": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+    "neo4j_graph_loader-0.1.0a1.dist-info/METADATA": "8f8a5af44e24d5b54597f744028a1ac9f9fa0cca1b87767ae1522c9f8e01fa3a",
+    "neo4j_graph_loader-0.1.0a1.dist-info/WHEEL": "98e75747d0b7c0c568bfb71263c3d8f970b3a374a6996087bc642be5cb09a1aa",
+    "neo4j_graph_loader-0.1.0a1.dist-info/entry_points.txt": "123e1d841afb138913dff6990f55a2d7e16ac9c055850df3edc0c638d348c806",
+    "neo4j_graph_loader-0.1.0a1.dist-info/top_level.txt": "0483b546775315a974b1439e714ba2f7b733e10fc2cd4f4fd0b72dace037ca5e",
+    "neo4j_graph_loader-0.1.0a1.dist-info/RECORD": "2429ea01e0e819c5c2f65953f2c342b80a3348f5be616cce65894a4dfa79a24f"
   },
   "test_dispositions": {
     "tests/installed_service/test_inspection_controls.py::test_two_conflicting_relationships_for_one_pair_fail_the_ordering_inspector": {
@@ -16034,7 +16036,7 @@
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:79]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
@@ -18266,6 +18268,22 @@
       "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
     },
     "tests/test_installed_inventory.py::test_actual_pytest_mixed_disposition_and_unapproved_filter[True]": {
+      "kind": "checkout-development",
+      "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
+    },
+    "tests/test_installed_inventory.py::test_reviewed_rename_is_accepted_in_place_and_keeps_its_disposition": {
+      "kind": "checkout-development",
+      "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
+    },
+    "tests/test_installed_inventory.py::test_unlisted_removal_is_still_refused": {
+      "kind": "checkout-development",
+      "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
+    },
+    "tests/test_installed_inventory.py::test_rename_cannot_reorder_or_change_a_disposition": {
+      "kind": "checkout-development",
+      "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
+    },
+    "tests/test_installed_inventory.py::test_rename_to_another_function_or_file_is_refused": {
       "kind": "checkout-development",
       "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
     },
@@ -30493,6 +30511,11 @@
       "lane": "example-contracts",
       "mapping": "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer"
     },
+    "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields": {
+      "kind": "installed",
+      "lane": "example-contracts",
+      "mapping": "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields"
+    },
     "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order": {
       "kind": "installed",
       "lane": "example-contracts",
@@ -30833,10 +30856,11 @@
         "examples/imdb/tests/test_build_subset.py::test_character_parsing_matches_json_semantics",
         "examples/imdb/tests/test_build_subset.py::test_parallel_derivation_fails_closed_when_a_source_fails",
         "examples/imdb/tests/test_build_subset.py::test_spawned_derivation_preserves_parent_chunk_config_and_converter",
-        "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer"
+        "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer",
+        "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields"
       ],
       "categories": {
-        "installed": 13
+        "installed": 14
       }
     },
     "examples/imdb/tests/test_planned_edges.py": {
@@ -32412,7 +32436,7 @@
     "tests/test_docs_yaml_snippets.py": {
       "ids": [
         "tests/test_docs_yaml_snippets.py::test_the_docs_contain_yaml_snippets",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:79]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]",
         "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:147]",
         "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:199]",
         "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:236]",
@@ -32954,10 +32978,14 @@
         "tests/test_installed_inventory.py::test_mixed_file_requires_exact_full_partition",
         "tests/test_installed_inventory.py::test_refreeze_cannot_erase_or_reclassify_reviewed_ids",
         "tests/test_installed_inventory.py::test_actual_pytest_mixed_disposition_and_unapproved_filter[False]",
-        "tests/test_installed_inventory.py::test_actual_pytest_mixed_disposition_and_unapproved_filter[True]"
+        "tests/test_installed_inventory.py::test_actual_pytest_mixed_disposition_and_unapproved_filter[True]",
+        "tests/test_installed_inventory.py::test_reviewed_rename_is_accepted_in_place_and_keeps_its_disposition",
+        "tests/test_installed_inventory.py::test_unlisted_removal_is_still_refused",
+        "tests/test_installed_inventory.py::test_rename_cannot_reorder_or_change_a_disposition",
+        "tests/test_installed_inventory.py::test_rename_to_another_function_or_file_is_refused"
       ],
       "categories": {
-        "checkout-development": 8
+        "checkout-development": 12
       }
     },
     "tests/test_installed_runner.py": {
@@ -44638,7 +44666,7 @@
       "tests/test_docker_topology.py::test_marker_write_failure_removes_exclusively_created_path[close]",
       "tests/test_docker_topology.py::test_probe_retains_id_without_sdk_inspection",
       "tests/test_docs_yaml_snippets.py::test_the_docs_contain_yaml_snippets",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:79]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]",
       "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:147]",
       "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:199]",
       "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:236]",
@@ -45090,6 +45118,10 @@
       "tests/test_installed_inventory.py::test_refreeze_cannot_erase_or_reclassify_reviewed_ids",
       "tests/test_installed_inventory.py::test_actual_pytest_mixed_disposition_and_unapproved_filter[False]",
       "tests/test_installed_inventory.py::test_actual_pytest_mixed_disposition_and_unapproved_filter[True]",
+      "tests/test_installed_inventory.py::test_reviewed_rename_is_accepted_in_place_and_keeps_its_disposition",
+      "tests/test_installed_inventory.py::test_unlisted_removal_is_still_refused",
+      "tests/test_installed_inventory.py::test_rename_cannot_reorder_or_change_a_disposition",
+      "tests/test_installed_inventory.py::test_rename_to_another_function_or_file_is_refused",
       "tests/test_installed_runner.py::test_malformed_receipt_fails_without_losing_owned_cleanup",
       "tests/test_installed_runner.py::test_staged_paths_reject_sources_secrets_and_escape[../tests/x.py]",
       "tests/test_installed_runner.py::test_staged_paths_reject_sources_secrets_and_escape[/tests/x.py]",
@@ -47592,6 +47624,7 @@
       "examples/imdb/tests/test_build_subset.py::test_parallel_derivation_fails_closed_when_a_source_fails",
       "examples/imdb/tests/test_build_subset.py::test_spawned_derivation_preserves_parent_chunk_config_and_converter",
       "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer",
+      "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields",
       "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order",
       "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource",
       "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local",
@@ -47656,24 +47689,24 @@
       "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]",
       "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
     ],
-    "sha256": "f66387cd17e16286c249d819fdd889ad1c8c5f55eef01d9653d480899e31e3a1",
+    "sha256": "0510b0543c00dd71859205426f54880604966f1f09f9728ce4f297b1a29e9abd",
     "files": 143,
     "counts": {
       "service": 198,
-      "installed": 3673,
-      "checkout-development": 329
+      "installed": 3674,
+      "checkout-development": 333
     },
     "command": [
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/entry-smj5281d/dev/bin/python",
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/dev/bin/python",
       "-I",
       "-c",
       "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
       "/Users/shashank/Desktop/Code/Graph/graph-loader",
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/r1/collection-freeze-dup.json"
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/collection-freeze.json"
     ]
   },
   "artifact_contract": {
-    "version": "0.1.0a1.dev0",
+    "version": "0.1.0a1",
     "runtime_modules": {
       "neo4j_graph_loader/__init__.py": "bb3fb0f520e4d6de6d5ff6e4a5dff8f9421e65ff48dae6b6d8606e93280a5189",
       "neo4j_graph_loader/__main__.py": "2b4c81c50a4eb397b47e80df991ce4436ebae6f9d200ce6b4c2b7a9dd1503c40",
@@ -47681,8 +47714,8 @@
       "neo4j_graph_loader/_images.py": "a53f0d3a173c00bf24f7aca551d86a1ceb4b1258655f5b4fc70e6cb456bcf55e",
       "neo4j_graph_loader/_resources.py": "c19cf2cdebc7f4c311aa80b9799682b17a9426b675cc71f97590f2d003692551",
       "neo4j_graph_loader/_runtime.py": "2f968ec88bc4abee8645ba4228bfdb98e3ebe3139abc2dd994592a6276c15969",
-      "neo4j_graph_loader/_version.py": "8c439c24a115a70508782d0da7f8bfd7fa19ea8cf1c894eba4827d7b05cca312",
-      "neo4j_graph_loader/cli.py": "613e7114ab1f64f463fe6e6972a42f7477c3bc061478b15fc102a879c1533ff6",
+      "neo4j_graph_loader/_version.py": "12c647db1eea421016b8303761e762f6f689f47b46dd7ec85c0d8ba48d8cdccc",
+      "neo4j_graph_loader/cli.py": "d4cdc562dbc6b57c9c919426439d07dd05734db409f4a91202caf7ff115a7547",
       "neo4j_graph_loader/loader/__init__.py": "b381e9847b5060a8eb455a2f1cefabadcbf92d255a5b7025d778e246cb85f9e5",
       "neo4j_graph_loader/loader/_planner_transport.py": "00b9f7fbe67149d61522bad11627b800cf1a7b379676e769ebb2a4f56446126b",
       "neo4j_graph_loader/loader/control.py": "3b7c54ecb055dd286df5c3dcd9c56e6889608995a0c435c82605782a285485d0",
@@ -47797,12 +47830,12 @@
       "neo4j_graph_loader/utils/metrics.py",
       "neo4j_graph_loader/utils/neo4j_session.py",
       "neo4j_graph_loader/utils/schema_loader.py",
-      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/licenses/LICENSE",
-      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/METADATA",
-      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/WHEEL",
-      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/entry_points.txt",
-      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/top_level.txt",
-      "neo4j_graph_loader-0.1.0a1.dev0.dist-info/RECORD"
+      "neo4j_graph_loader-0.1.0a1.dist-info/licenses/LICENSE",
+      "neo4j_graph_loader-0.1.0a1.dist-info/METADATA",
+      "neo4j_graph_loader-0.1.0a1.dist-info/WHEEL",
+      "neo4j_graph_loader-0.1.0a1.dist-info/entry_points.txt",
+      "neo4j_graph_loader-0.1.0a1.dist-info/top_level.txt",
+      "neo4j_graph_loader-0.1.0a1.dist-info/RECORD"
     ],
     "sdist_inventory": [
       "LICENSE",
@@ -47879,14 +47912,14 @@
     ],
     "artifacts": [
       {
-        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/entry-smj5281d/candidate-artifacts/neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl",
-        "size": 453906,
-        "sha256": "09b8b7fc836e2c93d74ef66ed132c5bff3b94fb4c66a20823933c92fe6a78226"
+        "path": "/private/tmp/claude-501/-Users-shashank--claude-spares-spare-octAy4/9e2042e6-1470-4bea-a913-1160f99104f1/scratchpad/e11/prep-dist/neo4j_graph_loader-0.1.0a1-py3-none-any.whl",
+        "size": 457166,
+        "sha256": "66435a1a91a1bc8f2c122057330f49b241920a2a989a21420801e9c622c930a2"
       },
       {
-        "path": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e09-validation-20261028/entry-smj5281d/candidate-artifacts/neo4j_graph_loader-0.1.0a1.dev0.tar.gz",
-        "size": 426688,
-        "sha256": "d5e7069f157889fdb0fa4dbf102fb0c8e6ea432ac9842e84d1a174b40cb89aeb"
+        "path": "/private/tmp/claude-501/-Users-shashank--claude-spares-spare-octAy4/9e2042e6-1470-4bea-a913-1160f99104f1/scratchpad/e11/prep-dist/neo4j_graph_loader-0.1.0a1.tar.gz",
+        "size": 432468,
+        "sha256": "8efef98ecde65657f6a56e4ed77c626d3396b0385cf50fe466e8f14d2c2c1923"
       }
     ]
   },
@@ -47904,5 +47937,12 @@
       "from": "checkout-development",
       "to": "public-contracts installed; pending S3 independent acceptance"
     }
-  ]
+  ],
+  "reviewed_id_renames": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:79]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]",
+      "reviewed": "orchestrator 2026-11-01",
+      "reason": "E10 README edit (6068bfe) moved the same snippet from line 79 to line 92; disposition unchanged"
+    }
+  }
 }

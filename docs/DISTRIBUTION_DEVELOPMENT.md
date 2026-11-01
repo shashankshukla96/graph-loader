@@ -7,8 +7,8 @@ and `neo4j_graph_loader.planning` ([public API guide](LIBRARY_API.md)). The inst
 `graph-loader` command and two bundled schema resources work without a checkout.
 Private writable run directories are documented in the [CLI guide](CLI_RUNTIME.md);
 image selection and local candidate construction are in
-[Docker execution](DOCKER_EXECUTION.md). Local builds are development builds
-(`0.1.0a1.dev0`); do not upload them. Publishing is described in the
+[Docker execution](DOCKER_EXECUTION.md). A local build from a working tree
+is not a release candidate; only the frozen candidate is uploaded. Publishing is described in the
 [release runbook](RELEASE_RUNBOOK.md).
 
 ## Fresh checkout development
@@ -80,9 +80,9 @@ explicit second build from extracted sdist checks that no Git/checkout files
 are needed. `MANIFEST.in` and restricted regular-package discovery include every migrated
 Python module, excluding plans, tests, datasets, secrets and operational logs.
 
-The version authority is the literal `_version.py` value. Local builds are
-`0.1.0a1.dev0`; the release process freezes the target `0.1.0a1` at a clean
-reviewed source snapshot before building exact retained artifacts. File-based
+The version authority is the literal `_version.py` value. The current version is
+`0.1.0a1`; the release process freezes a clean reviewed source snapshot before
+building exact retained artifacts. File-based
 versioning needs no SCM fallback or Git at runtime. The release tag is created at
 the tested commit during publication ([release runbook](RELEASE_RUNBOOK.md)).
 

@@ -82,6 +82,13 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
 
 
+def source_version():
+    """The version literal of the single file authority, read as text; application code is never imported."""
+    tree = ast.parse((Path(__file__).resolve().parents[1] / 'src/neo4j_graph_loader/_version.py').read_text())
+    return next(ast.literal_eval(n.value) for n in tree.body if isinstance(n, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == '__version__' for t in n.targets))
+
+
 def collect(output, *, extra_args=()):
     """Source discovery is explicit and separate from the installed runner."""
     launch = '''import json,sys
@@ -217,6 +224,34 @@ def closure(seeds):
     return sorted(visited), dict(sorted(edges.items()))
 
 
+def reviewed_renames(data, previous, collected):
+    """Map each previously frozen ID that is no longer collected to its reviewed replacement.
+
+    ``data['reviewed_id_renames']`` is ``{old id: {'new_id', 'reviewed', 'reason'}}``. A frozen ID may go
+    missing only through such an entry whose replacement is collected, was not frozen before, and lives in the
+    same file and the same test function (only the parametrization suffix differs). Any other removal is left
+    for the caller's ordering check to refuse. The replacement later takes the old ID's position and disposition.
+    """
+    entries = data.get('reviewed_id_renames', {})
+    renamed = {}
+    for old, entry in entries.items():
+        if old not in previous or old in collected:
+            continue
+        new = entry.get('new_id') if isinstance(entry, dict) else None
+        if not isinstance(new, str) or not entry.get('reviewed') or not entry.get('reason'):
+            raise ValueError('reviewed ID rename needs new_id, reviewed and reason: ' + old)
+        if new not in collected or new in previous:
+            raise ValueError('reviewed ID rename target must be a newly collected ID: ' + new)
+        old_file, _, old_name = old.partition('::')
+        new_file, _, new_name = new.partition('::')
+        if old_file != new_file or old_name.split('[')[0] != new_name.split('[')[0]:
+            raise ValueError('reviewed ID rename must stay in the same file and test function: ' + old)
+        renamed[old] = new
+    if len(set(renamed.values())) != len(renamed):
+        raise ValueError('reviewed ID renames must not share a target')
+    return renamed
+
+
 def freeze(data, collection, wheel):
     items = collection['items']
     ids = [r['id'] for r in items]
@@ -228,7 +263,7 @@ def freeze(data, collection, wheel):
         raise ValueError('test file missing from full source collection: ' + repr(discovered ^ collected))
     policy = file_policy(data)
     result = json.loads(json.dumps(data))
-    result.update(schema_version=1, status='executable inventory; original pre-port baseline retained; acceptance recorded in story reviews', package_version='0.1.0a1.dev0',
+    result.update(schema_version=1, status='executable inventory; original pre-port baseline retained; acceptance recorded in story reviews', package_version=source_version(),
                   test_requirements=['pytest==9.1.1', 'testcontainers[neo4j,kafka]>=4.8,<5', 'psutil>=6,<8'])
     with zipfile.ZipFile(wheel) as archive:
         result['package_payload'] = {n: sha(archive.read(n)) for n in archive.namelist() if n.startswith('neo4j_graph_loader/')}
@@ -237,9 +272,12 @@ def freeze(data, collection, wheel):
     if 'source_collection' in data:
         previous = data['source_collection']['test_ids']
         previous_set = set(previous)
-        if [i for i in ids if i in previous_set] != previous:
+        renamed = reviewed_renames(data, previous_set, set(ids))
+        carried = [renamed.get(i, i) for i in previous]
+        carried_set = set(carried)
+        if [i for i in ids if i in carried_set] != carried:
             raise ValueError('re-freeze cannot remove/reorder previously frozen IDs')
-        if any(choices[i] != old for i, old in data['test_dispositions'].items()):
+        if any(choices[renamed.get(i, i)] != old for i, old in data['test_dispositions'].items()):
             raise ValueError('re-freeze cannot silently change a reviewed test disposition')
     result['test_dispositions'] = choices
     result['file_dispositions'] = {p: {'ids': [r['id'] for r in items if r['file'] == p],

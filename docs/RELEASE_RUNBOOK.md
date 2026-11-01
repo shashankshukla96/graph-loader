@@ -62,7 +62,11 @@ python -m twine check --strict <dir>/dist/neo4j_graph_loader-0.1.0a1-py3-none-an
 shasum -a 256 <dir>/dist/neo4j_graph_loader-0.1.0a1-py3-none-any.whl <dir>/dist/neo4j_graph_loader-0.1.0a1.tar.gz
 ```
 
-Record the hashes in the manifest. Build the four images from the frozen
+Record the hashes in the manifest. The frozen inventory records the hash of the
+wheel's `WHEEL` file, which names the build backend (`Generator: setuptools (84.2.1)`
+for `0.1.0a1`), so build from a clean `git archive` of the frozen commit with that
+backend (for example `PIP_CONSTRAINT=<file containing setuptools==84.2.1>`); a different
+`setuptools` changes that hash and the lanes refuse the wheel. Build the four images from the frozen
 source, assert that each carries `org.opencontainers.image.version=0.1.0a1`,
 `io.graph-loader.component` and `io.graph-loader.image-contract=1`, and run the
 service lanes against those image IDs.

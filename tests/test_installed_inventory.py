@@ -122,3 +122,79 @@ raise SystemExit(pytest.main(['-q','--rootdir=.', '-c', 'pytest.ini','test_mixed
         assert record['collected'] == ['test_mixed.py::test_one']
         assert record['full_collected'] == ['test_mixed.py::test_one', 'test_mixed.py::test_live']
         assert record['approved_exclusions'] == {'test_mixed.py::test_live': 'E09 real service'}
+
+
+RENAME_FILE = 'tests/test_installed_inventory.py'
+
+
+def _rename_case(tmp_path, monkeypatch, *, entry=True):
+    """A frozen inventory whose snippet ID moved: [x:79] became [x:92], plus one genuinely new test."""
+    import zipfile
+
+    monkeypatch.setattr(inventory, 'ROOT', tmp_path)
+    monkeypatch.setattr(inventory, 'EXTRA_LANES', {})
+    monkeypatch.setattr(inventory, 'SERVICE_LANES', {})
+    (tmp_path/'tests').mkdir()
+    (tmp_path/RENAME_FILE).write_text('def test_one(): pass\n')
+    (tmp_path/'tests/conftest.py').write_text('')
+    wheel = tmp_path/'owned.whl'
+    with zipfile.ZipFile(wheel, 'w') as archive:
+        archive.writestr('neo4j_graph_loader/__init__.py', '')
+    old, other = f'{RENAME_FILE}::test_snippet[README.md:79]', f'{RENAME_FILE}::test_stable'
+    new, added = f'{RENAME_FILE}::test_snippet[README.md:92]', f'{RENAME_FILE}::test_added'
+    row = lambda i: {'id': i, 'file': RENAME_FILE, 'markers': []}
+    kept = inventory.disposition(row(old), {})
+    data = {'lanes': {name: {'kind': 'installed unit regression', 'current_test_files': []} for name in ('core', 'safety', 'cli-runtime')},
+            'source_collection': {'test_ids': [old, other]},
+            'test_dispositions': {old: kept, other: kept}}
+    if entry:
+        data['reviewed_id_renames'] = {old: {'new_id': new, 'reviewed': 'orchestrator 2026-11-01',
+                                             'reason': 'same snippet moved; disposition unchanged'}}
+    collection = {'items': [row(new), row(other), row(added)]}
+    return data, collection, wheel, (old, other, new, added)
+
+
+def test_reviewed_rename_is_accepted_in_place_and_keeps_its_disposition(tmp_path, monkeypatch):
+    data, collection, wheel, (old, other, new, added) = _rename_case(tmp_path, monkeypatch)
+    frozen = inventory.freeze(data, collection, wheel)
+    assert frozen['source_collection']['test_ids'] == [new, other, added]
+    assert frozen['test_dispositions'][new] == data['test_dispositions'][old]
+    assert old not in frozen['test_dispositions']
+    assert frozen['reviewed_id_renames'] == data['reviewed_id_renames']
+    frozen_again = inventory.freeze(frozen, collection, wheel)
+    assert frozen_again['source_collection']['test_ids'] == [new, other, added]
+
+
+def test_unlisted_removal_is_still_refused(tmp_path, monkeypatch):
+    data, collection, wheel, _ = _rename_case(tmp_path, monkeypatch, entry=False)
+    with pytest.raises(ValueError, match='cannot remove/reorder'):
+        inventory.freeze(data, collection, wheel)
+
+
+def test_rename_cannot_reorder_or_change_a_disposition(tmp_path, monkeypatch):
+    data, collection, wheel, (old, other, new, added) = _rename_case(tmp_path, monkeypatch)
+    swapped = {'items': [collection['items'][1], collection['items'][0], collection['items'][2]]}
+    with pytest.raises(ValueError, match='cannot remove/reorder'):
+        inventory.freeze(data, swapped, wheel)
+    data['test_dispositions'][old] = {'kind': 'installed', 'lane': 'core', 'mapping': old}
+    with pytest.raises(ValueError, match='cannot silently change'):
+        inventory.freeze(data, collection, wheel)
+
+
+def test_rename_to_another_function_or_file_is_refused(tmp_path, monkeypatch):
+    data, collection, wheel, (old, other, new, added) = _rename_case(tmp_path, monkeypatch)
+    other_function = f'{RENAME_FILE}::test_unrelated[README.md:92]'
+    data['reviewed_id_renames'][old]['new_id'] = other_function
+    collection['items'][0] = {'id': other_function, 'file': RENAME_FILE, 'markers': []}
+    with pytest.raises(ValueError, match='same file and test function'):
+        inventory.freeze(data, collection, wheel)
+    previous, collected = {old, other}, {new, other_function, 'tests/test_elsewhere.py::test_snippet[README.md:92]'}
+    for target in ('tests/test_elsewhere.py::test_snippet[README.md:92]', other_function):
+        entry = {old: {'new_id': target, 'reviewed': 'r', 'reason': 'x'}}
+        with pytest.raises(ValueError, match='same file and test function'):
+            inventory.reviewed_renames({'reviewed_id_renames': entry}, previous, collected)
+    for bad, message in (({'new_id': new}, 'needs new_id, reviewed and reason'),
+                         ({'new_id': 'tests/test_installed_inventory.py::test_snippet[nope]', 'reviewed': 'r', 'reason': 'x'}, 'newly collected'),
+                         ({'new_id': other, 'reviewed': 'r', 'reason': 'x'}, 'newly collected')):
+        with pytest.raises(ValueError, match=message):
+            inventory.reviewed_renames({'reviewed_id_renames': {old: bad}}, previous, collected | {new})
