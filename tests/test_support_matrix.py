@@ -1,4 +1,5 @@
 """Checkout matrix tooling: finite dependency inputs and version drift controls."""
+import ast
 import hashlib
 import io
 import json
@@ -196,6 +197,39 @@ def test_portable_bundle_rejects_corruption_and_source_rescue(tmp_path, fault):
     (root/'bundle.json').write_text(json.dumps({'schema_version': 1, 'wheel': wheel.name, 'files': files}))
     with pytest.raises(ValueError):
         support_matrix.verify_bundle(root)
+
+
+def sibling_tool_modules(source):
+    """Modules of scripts/ that a tool imports or loads by file name (relative or bare import, or ``with_name('x.py')``)."""
+    available = {path.stem for path in Path(support_matrix.__file__).parent.glob('*.py')}
+    found = set()
+    for node in ast.walk(ast.parse(source.read_text())):
+        if isinstance(node, ast.ImportFrom):
+            found.update([node.module] if node.module else [alias.name for alias in node.names])
+        elif isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.endswith('.py'):
+            found.add(node.value[:-3])
+    return {name.split('.')[0] for name in found} & available
+
+
+def test_bundled_tools_ship_every_sibling_module_they_load():
+    """A tool copied into a portable bundle must find every sibling it imports there (verify_installed loads service_lane)."""
+    scripts = Path(support_matrix.__file__).parent
+    bundled = {name[:-3] for name in support_matrix.TOOLS}
+    needed, queue = set(), [name[:-3] for name in support_matrix.TOOLS]
+    while queue:
+        name = queue.pop()
+        for sibling in sibling_tool_modules(scripts/f'{name}.py') - {name}:
+            if sibling not in needed:
+                needed.add(sibling)
+                queue.append(sibling)
+    assert {'service_lane', 'installed_guard_load'} <= needed, 'the derivation must see what verify_installed loads'
+    # Loaded only by the actual-service lane branch (image preflight and Docker host check); a portable bundle observes
+    # unit lanes only, so these are deliberately not bundled.
+    service_lane_only = {'installed_service', 'build_candidate_images'}
+    assert needed - service_lane_only <= bundled, f'bundle omits sibling modules: {sorted(needed - service_lane_only - bundled)}'
+    assert not service_lane_only & bundled
 
 
 def test_matrix_output_guard_preserves_existing_evidence(tmp_path):

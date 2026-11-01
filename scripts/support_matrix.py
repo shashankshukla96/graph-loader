@@ -28,7 +28,8 @@ else:
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = {'neo4j', 'neo4j-rust-ext', 'confluent-kafka', 'pydantic', 'pyyaml', 'docker', 'numpy', 'prometheus-client'}
-TOOLS = ('verify_installed.py', 'installed_dependencies.py', 'installed_guard.py', 'installed_pytest.py', 'support_matrix.py', 'matrix_docker.py')
+TOOLS = ('verify_installed.py', 'installed_dependencies.py', 'installed_guard.py', 'installed_guard_load.py', 'installed_pytest.py',
+         'service_lane.py', 'support_matrix.py', 'matrix_docker.py')
 PROBES = ('e04_imports.py', 'e04_public_example.py', 'e05_resources.py', 'e05_runtime.py', 'e08_base_probe.py')
 
 
