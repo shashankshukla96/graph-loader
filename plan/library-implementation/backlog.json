@@ -3,7 +3,7 @@
   "title": "Library implementation epics",
   "date": "2026-10-25",
   "source_checklist": "../../docs/PYPI_LIBRARY_CHECKLIST.md",
-  "status": "E00-E09 complete; E10-E12 not started (plan reset 2026-10-31, D08)",
+  "status": "E00-E10 complete; E11-E12 not started (plan reset 2026-10-31, D08)",
   "epics": [
     {
       "id": "E00",
@@ -1455,7 +1455,7 @@
       "scope": "Drafts may be written earlier; this epic closes only against verified behavior. Keep development plans/reviews outside public package artifacts.",
       "exit_gate": "Quick starts run unchanged against a wheel install and all public compatibility/support statements match the proven scope.",
       "review_status": "approved",
-      "implementation_status": "not started",
+      "implementation_status": "complete 2026-11-01; implemented in a separate session and reviewed by the orchestrator; quick starts ran unchanged from a fresh wheel install (0.1.0a1.dev0, sha256 66a8f179...8b08) against an owned Neo4j 5.26 + Kafka 7.7.0 stack; must be rerun against the frozen 0.1.0a1 artifact in E11/E12",
       "features": [
         {
           "id": "E10.F1",
@@ -1485,7 +1485,7 @@
                 "Execute both examples from fresh wheel environments outside the checkout with documented prerequisites only."
               ],
               "evidence": "evidence/E10.F1.S1.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E10.F1.S2",
@@ -1512,7 +1512,7 @@
                 "Check link destinations/rendering and verify all examples against current artifacts; user confirms public contacts."
               ],
               "evidence": "evidence/E10.F1.S2.md",
-              "status": "planned"
+              "status": "complete"
             }
           ]
         },
@@ -1543,7 +1543,7 @@
                 "Walk through upgrade/recovery instructions from an old checkout command to a new installed command; cross-check D01\u2013D07."
               ],
               "evidence": "evidence/E10.F2.S1.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E10.F2.S2",
@@ -1567,7 +1567,7 @@
                 "Review the runbook against R5/U5 and the E11/E12 stories; every command names explicit package, version and image targets."
               ],
               "evidence": "evidence/E10.F2.S2.md",
-              "status": "planned"
+              "status": "complete"
             }
           ]
         }
@@ -1635,7 +1635,8 @@
               "acceptance": [
                 "Freeze all scoped source, requirements, resources and package release notes at a clean reviewed candidate snapshot. Include formerly untracked prerequisite files in that source identity.",
                 "For SCM mode create the local candidate tag before all final builds; file-version mode records the tested candidate version/commit. No Git push is authorized.",
-                "Build wheel/sdist in an empty candidate directory, inspect/twine-check and record exact filenames/hashes, metadata and version. Do not reuse development build bytes by assumption. Final image construction and the final gates follow in S3."
+                "Build wheel/sdist in an empty candidate directory, inspect/twine-check and record exact filenames/hashes, metadata and version. Do not reuse development build bytes by assumption. Final image construction and the final gates follow in S3.",
+                "Refreeze the distribution contract in test-inventory.json for the candidate with scripts/freeze_installed_inventory.py --freeze (E10 changed the wheel METADATA, so verify_installed.py refuses the current wheel until then); existing test IDs and dispositions stay unchanged and in order. Set the CHANGELOG release date to the freeze date (user decision 2026-11-01)."
               ],
               "validation": [
                 "python -m build; python -m twine check --strict on explicit candidate files; inspect inventories, metadata/license/version/entrypoints and private-file exclusions.",

@@ -54,8 +54,8 @@ a plain type mapping cannot identify the pair. Ordering follows source order
 and schema rules; no restart-safe arrival or exactly-once guarantee is added.
 
 The installed console script and bundled default/social resources are available; existing module
-commands still work with external configuration. This is `0.1.0a1.dev0`
-development work, not release/platform/service matrix acceptance. E04 cancellation and cleanup behavior is described below.
+commands still work with external configuration. This is an alpha (`0.1.0a1`); the supported environment is in
+[Support and limits](../README.md#support-and-limits). Cancellation and cleanup behavior is described below.
 
 ## Ownership and lifecycle
 
@@ -134,8 +134,8 @@ their own timeouts/limits. Deadline checks resume after returning callbacks and
 the elapsed budget is not reset. Numeric/codec/assembly computation is checked
 at bounded traversal/operation boundaries, not preempted inside C functions.
 Use picklable process sources to interrupt blocked `records()`; never rely on
-inline mode to interrupt code that does not return. Native E04 checks do not
-establish E08's full architecture/start-method/max-worker matrix.
+inline mode to interrupt code that does not return. The tests of this behavior do not
+cover every architecture, start method or worker count; the measured worker counts are 1-8, 16, 32 and 64.
 
 ## Cleanup budget and retained ownership
 

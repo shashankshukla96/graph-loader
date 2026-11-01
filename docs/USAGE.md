@@ -37,7 +37,7 @@ This guide covers everything a library user needs:
 12. [Limitations](#12-limitations)
 13. [Development and validation](#13-development-and-validation)
 
-For a five-minute version see the top-level [README](../README.md#quick-start-about-5-minutes);
+For a five-minute version see the top-level [README](../README.md#full-load-walk-through-from-a-checkout-about-5-minutes);
 for complete runnable examples see [`examples/`](../examples/README.md).
 
 Related docs: [CLI.md](CLI.md) (command and flag reference),
@@ -639,8 +639,11 @@ above (`failure_class` is `missing_endpoint` or `ambiguous_endpoint`, never
   python_apoc edges; unsupported: <types>`; a plain `start --mode bulk` says to
   pass `--edge-classic`), and the loader raises `ExecutionModeError` as a
   backstop. So the only way an edge type
-  configured `execution.mode: native_disjoint` actually *runs* at all is
-  the classic (non-lease) branch, `--edge-classic` — and there, setting
+  configured `execution.mode: native_disjoint` can be attempted at all is
+  the classic (non-lease) branch, `--edge-classic`, and it requires a Neo4j
+  server with the Cypher 25 dialect (on the tested Neo4j 5.26 the edge loader
+  fails closed with `Execution mode native_disjoint requires Cypher 25`, so the type
+  does not run there). On a server that does support it, setting
   `route_missing_endpoints_in_bulk: true` on it has **no effect**: that
   writer already has its own `ON ERROR CONTINUE REPORT STATUS`
   per-transaction reporting (a structurally different mechanism), and
@@ -959,7 +962,9 @@ Without any of them:
 3. A plain start never reaches classic. If some relationship has a
    non-`python_apoc` execution mode (`native_disjoint` is disjoint by pair, not
    by node, so it can wait on endpoint locks and neither zero-wait mode supports
-   it), the start is refused unless `--edge-classic` is given.
+   it), the start is refused unless `--edge-classic` is given. `native_disjoint` needs the
+   Cypher 25 dialect: on the tested Neo4j 5.26 the classic edge loader fails closed (exit 1, no
+   relationship written), so it is unsupported there; keep `python_apoc`.
 
 The choice is logged: `stage=launch edge_mode=<planned|lease|classic>
 reason=<default|dead_letter|flag>`. `topic_conflict: precedence`
@@ -1780,8 +1785,7 @@ host (load1 2–26), so read the walls as ±10–20%; B was faster in every inte
 | 3.32M rows, `FRIEND_OF` 93% | 10 → 19 | 43.0 s → 33.6 s (−22%) | 24.2 s → 14.6 s (−40%) | 5.2 → 9.4 | 0 |
 | unmodified example, 323k rows, 25% | 10 → 10 (volume cap) | 18.0 s → 18.1 s | unchanged | 8.2 → 8.1 | 0 |
 
-Bipartite loads such as IMDb get exactly the same `B` as before. Details:
-`bench/p0/selfref_buckets/RESULTS.md` in the benchmark workspace.
+Bipartite loads such as IMDb get exactly the same `B` as before. The detailed results are in the maintainers' benchmark workspace, which is not part of the repository.
 
 **Streaming's lease default vs. the deprecated clock/rotation path.**
 The lease coordinator is the default stream scheduler. No at-scale stream

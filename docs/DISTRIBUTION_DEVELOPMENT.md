@@ -1,12 +1,15 @@
-# Local distribution development (E06)
+# Working from a source checkout (contributors)
 
-The development artifact now contains the migrated runtime modules under
-`neo4j_graph_loader`. The supported schema/planning modules are documented in the
-[public API guide](LIBRARY_API.md). The installed `graph-loader` command and two bundled schema resources work
-without a checkout. Private writable run directories are documented in the [CLI guide](CLI_RUNTIME.md);
-checkout-free image selection and local candidate construction are described in
-[Docker execution](DOCKER_EXECUTION.md). Registry publication remains separate.
-Do not upload these development artifacts.
+This page is for developing the library itself. To use the package, install it
+from PyPI and follow the [quick start](QUICKSTART.md). The code lives in the
+`neo4j_graph_loader` package; the supported modules are `neo4j_graph_loader.schema`
+and `neo4j_graph_loader.planning` ([public API guide](LIBRARY_API.md)). The installed
+`graph-loader` command and two bundled schema resources work without a checkout.
+Private writable run directories are documented in the [CLI guide](CLI_RUNTIME.md);
+image selection and local candidate construction are in
+[Docker execution](DOCKER_EXECUTION.md). Local builds are development builds
+(`0.1.0a1.dev0`); do not upload them. Publishing is described in the
+[release runbook](RELEASE_RUNBOOK.md).
 
 ## Fresh checkout development
 
@@ -28,7 +31,7 @@ noneditable environments away from the checkout.
 
 ## Migration from the old namespace
 
-There is no `src` compatibility shim. Replace `from src.models.schema import
+(For users, see [Migration](MIGRATION.md).) There is no `src` compatibility shim. Replace `from src.models.schema import
 GraphSchema` with `from neo4j_graph_loader.schema import GraphSchema`,
 and `python -m src.cli` with `python -m neo4j_graph_loader.cli`. The same prefix
 change applies to `loader`, `orchestrator` and `utils`, including subprocess and
@@ -36,7 +39,7 @@ patch targets. Old pickles that encode `src.*` class identities are not supporte
 new process/spawn traffic uses the canonical migrated identities. Serialized
 schema, plan/chunk and DLQ formats and Kafka groups/keys retain their behavior.
 Use `neo4j_graph_loader.schema` and `neo4j_graph_loader.planning` for the
-supported E04 surface; other module interfaces remain internal.
+supported surface; other module interfaces remain internal.
 
 ## Dependency authority
 
@@ -44,8 +47,8 @@ supported E04 surface; other module interfaces remain internal.
 All eight existing dependencies remain mandatory, including the matching
 `neo4j-rust-ext`/Neo4j driver below 7; no extras are selected. The extension's
 dependency metadata enforces its exact driver version. The declared bounds are
-unchanged; support for minimum/current pairs across platforms is future E08
-work. IMDb tools, testcontainers and build/review tools remain outside base.
+unchanged; minimum and current dependency sets are tested per release (see
+[Reproducing the support-matrix observations](SUPPORT_MATRIX_VALIDATION.md)). IMDb tools, testcontainers and build/review tools remain outside base.
 
 ```sh
 python3 scripts/sync_requirements.py          # regenerate requirements.txt
@@ -76,14 +79,12 @@ arguments. Default `build` constructs the wheel from its isolated sdist. An
 explicit second build from extracted sdist checks that no Git/checkout files
 are needed. `MANIFEST.in` and restricted regular-package discovery include every migrated
 Python module, excluding plans, tests, datasets, secrets and operational logs.
-The E02 two-module verifier is retained as historical scaffold proof; E03 uses
-`plan/library-implementation/tools/verify_e03_artifacts.py` for the larger tree.
 
-The version authority is the literal `_version.py` value. Current local builds
-are `0.1.0a1.dev0`; E11 freezes the approved candidate target `0.1.0a1` at a clean
+The version authority is the literal `_version.py` value. Local builds are
+`0.1.0a1.dev0`; the release process freezes the target `0.1.0a1` at a clean
 reviewed source snapshot before building exact retained artifacts. File-based
-versioning needs no SCM fallback or Git at runtime. Release tags are created
-at the tested commit in E12; no release tag or publication is part of E06.
+versioning needs no SCM fallback or Git at runtime. The release tag is created at
+the tested commit during publication ([release runbook](RELEASE_RUNBOOK.md)).
 
 ## Metrics and image identity
 
@@ -104,6 +105,6 @@ image-contract policy in [Docker execution](DOCKER_EXECUTION.md). Runtime select
 matching prebuilt versioned GHCR references, inspecting locally and pulling only
 missing images; --skip-image-build is local-only. It never builds from cwd.
 Candidate labels derive from the same literal file version; each service pins
-immutable local IDs. An override is not provenance authentication. E11 binds
+immutable local IDs. An override is not provenance authentication. The release process binds
 actual metadata/CLI/metrics/image versions and immutable bytes. Registry digests
 exist only after separately authorized push/re-pull/public-pull checks.

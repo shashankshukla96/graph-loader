@@ -160,7 +160,7 @@ def _native_schema(dead_letter=None):
 
 @pytest.mark.parametrize("dead_letter", [None, SimpleNamespace(enabled=True, topic=None)])
 def test_native_disjoint_is_refused_without_edge_classic(dead_letter) -> None:
-    with pytest.raises(ValueError, match=r"T use execution.mode native_disjoint.*pass --edge-classic"):
+    with pytest.raises(ValueError, match=r"T use execution.mode native_disjoint: it needs a Neo4j server with the Cypher 25 dialect.*not supported on Neo4j 5.26.*use python_apoc"):
         cli._resolve_bulk_edge_mode(_native_schema(dead_letter), _args())
 
 

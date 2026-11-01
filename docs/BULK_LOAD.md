@@ -76,7 +76,7 @@ export LOADER_KAFKA_BOOTSTRAP_SERVERS=kafka:29092 LOADER_NEO4J_URI=bolt://neo4j:
 echo "neo4j=$NEO4J_URI db=${NEO4J_DATABASE:-<server default>} kafka=$KAFKA_BOOTSTRAP_SERVERS"   # never print the password
 ```
 
-On the reference host there is a helper outside the repository, `/mnt/graph-loader/bench/local_env.sh [database]`, that exports the host-side variables (`NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` read from the Neo4j container, `NEO4J_DATABASE`, `KAFKA_BOOTSTRAP_SERVERS`) for the local stack. It does not set the `LOADER_*` variables. If you do not have it, the block above is equivalent.
+The block above sets everything the host-side commands need; it does not set the `LOADER_*` variables.
 
 Two environment defaults to know about: `NEO4J_URI` falls back to `bolt://localhost:7687` and `NEO4J_PASSWORD` falls back to `changeme` when unset (`get_neo4j_credentials` in `src/neo4j_graph_loader/cli.py`). A wrong password repeated against a shared Neo4j can trip `Neo.ClientError.Security.AuthenticationRateLimit` and lock other clients out for a while, so set the password explicitly.
 
@@ -134,7 +134,7 @@ edges:
 * **Every relationship type needs at least one property** (`Edge '<type>' must have at least one property.`). If you have nothing to store, declare a dummy optional one.
 * `nodes.source` / `nodes.target` name declared labels (they may be the same label); `source_key_property` / `target_key_property` must equal the respective label's `key_property`.
 * Exactly one of `topic` or `topics` per type. Each topic belongs to one node label or one relationship type, never two, and never the coordination topic.
-* `replicas`, `mix_and_batch`, `retry` and `execution` are classic and lease-mode tuning. Planned mode ignores them. Keep `execution.mode` at its default `python_apoc` unless you need `native_disjoint` ([section 6](#6-edge-modes-and-how-the-default-is-chosen)).
+* `replicas`, `mix_and_batch`, `retry` and `execution` are classic and lease-mode tuning. Planned mode ignores them. Keep `execution.mode` at its default `python_apoc`; `native_disjoint` is not supported on Neo4j 5.26 ([section 6](#6-edge-modes-and-how-the-default-is-chosen)).
 * `loading.mode` in the YAML is informational for validation: the CLI's `--mode` decides the run. One catch: if you write `loading.mode: stream` explicitly, a `topic_conflict: precedence` type is rejected at load even for a bulk run. Write `loading.mode: bulk` (or omit it) for schemas that use `precedence`.
 
 ### Several topics per type: the conflict rule
@@ -313,7 +313,8 @@ All modes produce the same graph. They differ in how relationship writes are sch
 2. Otherwise, if any relationship type has an enabled `dead_letter` (`enabled: true`, which also covers a custom `topic`, `route_missing_endpoints_in_bulk`, `max_retry_attempts` and `parked_topic`; a block with `enabled: false` does not count), the mode is **leases** (`reason=dead_letter`), because planned mode ignores `dead_letter`. Node `dead_letter` has no influence.
 3. Otherwise the mode is **planned**, with every planned option derived exactly as for a bare `--edge-plan` (`reason=default`).
 4. A plain start **never reaches classic.** If any relationship type has `execution.mode: native_disjoint` (disjoint by pair, not by node, so it can wait on endpoint locks and neither zero-wait mode supports it) and you gave no mode flag, the start is refused:
-   `relationship type(s) X use execution.mode native_disjoint, which neither zero-wait mode supports; pass --edge-classic (can wait on Neo4j locks) or use python_apoc`.
+   `relationship type(s) X use execution.mode native_disjoint: it needs a Neo4j server with the Cypher 25 dialect and is not supported on Neo4j 5.26 (the tested target); use python_apoc (--edge-classic exists only for servers that support Cypher 25)`.
+   `native_disjoint` is outside the release guarantees. On Neo4j 5.26, `--edge-classic` does not make it work: the node loaders run and the edge loader then fails closed (`Execution mode native_disjoint requires Cypher 25; server=Neo4j/5.26.x`, exit 1, no relationship written). Keep `execution.mode: python_apoc`.
 
 The choice is logged once: `stage=launch edge_mode=<planned|lease|classic> reason=<default|dead_letter|flag>`. A schema with no relationship types skips all of this.
 
@@ -321,15 +322,15 @@ The choice is logged once: `stage=launch edge_mode=<planned|lease|classic> reaso
 | --- | --- | --- |
 | no flags, no enabled relationship `dead_letter`, all `python_apoc` | planned | `edge_mode=planned reason=default` |
 | no flags, some relationship `dead_letter.enabled: true` | leases | `edge_mode=lease reason=dead_letter` |
-| no flags, some `native_disjoint` type | refused | (error: pass `--edge-classic` or use `python_apoc`) |
+| no flags, some `native_disjoint` type | refused | (error: `native_disjoint` needs Cypher 25 and is not supported on Neo4j 5.26; use `python_apoc`) |
 | `--edge-plan` (with or without a DLQ-enabled type) | planned. Relationship `dead_letter` is ignored and its DLQ topics are not even created; invalid records go to the planner rejection files | `edge_mode=planned reason=flag` |
 | `--edge-plan PLAN_FILE` | planned from the producer's plan | `edge_mode=planned reason=flag` |
 | `--edge-leases` | leases | `edge_mode=lease reason=flag` |
-| `--edge-classic` | classic (the only way to run `native_disjoint`) | `edge_mode=classic reason=flag` |
+| `--edge-classic` | classic (the only mode that can attempt `native_disjoint`, which needs Cypher 25 and fails closed on Neo4j 5.26) | `edge_mode=classic reason=flag` |
 | two of the three flags | refused | (mutually exclusive) |
 | `--edge-plan` or `--edge-leases` with a `native_disjoint` type | refused | `--edge-plan requires python_apoc edges; unsupported: X` / `--edge-leases requires python_apoc edges; unsupported: X` |
 
-Which one should you pick? Leave it at the default unless: you need relationship DLQ routing in bulk (leases, automatic), your Kafka does not let the CLI create the chunk topic or you cannot afford planner memory and spill disk (`--edge-leases`), you need `native_disjoint` or a comparison against the old behaviour (`--edge-classic`), or your producer already holds all edges and can plan while it publishes (`--edge-plan PLAN_FILE`, [USAGE.md section 7](USAGE.md#7-planning-in-the-producer-optional)).
+Which one should you pick? Leave it at the default unless: you need relationship DLQ routing in bulk (leases, automatic), your Kafka does not let the CLI create the chunk topic or you cannot afford planner memory and spill disk (`--edge-leases`), you want a comparison against the old behaviour (`--edge-classic`), or your producer already holds all edges and can plan while it publishes (`--edge-plan PLAN_FILE`, [USAGE.md section 7](USAGE.md#7-planning-in-the-producer-optional)).
 
 > **Migration note.** Classic used to be the default. A command that relied on that must now add `--edge-classic`. Compared with classic, planned mode writes invalid relationship records to a per-planner-worker rejection file, does not apply `dead_letter`, re-plans and re-reads everything on a rerun (it does not resume), and needs topic-creation rights and spill disk.
 
@@ -402,7 +403,7 @@ Resources and flushes:
 * Schema knobs that matter in lease mode (and in classic): `replicas` (edge-loader containers per type, 1-64; replica `i` of `N` statically owns entries `i, i+N, ...` of the sorted `(topic, partition)` list, so more replicas than partitions only idle), `execution.worker_count` (concurrent write sessions per replica, per label pair, 1-64), `mix_and_batch.batch_size`, and the fencing settings under `loading.bucket_lease` (`tx_timeout_ms` default 30000, `restart_quiet_margin_ms` default 5000: the lease server holds a disconnected owner's resources for `tx_timeout_ms + margin` so a transaction that is still open on the server can never overlap another writer). `--edge-leases` requires `tx_timeout_ms` of at least 6000. Each leased BEGIN gets a timeout of the time left on its lease minus 4 s, and a BEGIN that is too slow is rolled back and re-granted (up to 16 times per flush) rather than risking a lock wait. Planned and classic bulk use `tx_timeout_ms` as a flat timeout and have no such minimum.
 * A `topic_conflict: precedence` type runs its topics as **sequential sub-stages** in `topics:` order, each with its own consumer group, boundary and zero-lag proof; the next topic starts only after the previous one is proved drained. Other types keep their parallelism. Log lines: `stage=bulk-substage edge=<type> topic=<t> rank=<i> run_id=<sub run id> start` and `stage=bulk-substage-complete edge=<type> topic=<t> rank=<i> elapsed_s=<s> outcome=<...>`.
 
-**Classic** (`--edge-classic`) uses the same per-type stage structure without leases: types that share an endpoint label are serialized (`--bulk-edge-overlap labels`) or overlapped under globally ordered APOC locks (`shared`). It is the only mode where Neo4j can make a transaction wait; in the IMDb 20k run about 12k transactions waited for roughly 106-113 seconds in total ([section 15](#15-performance-numbers)). Use it for `native_disjoint`, debugging, or comparison with earlier runs. Setting `GRAPH_LOADER_EDGE_EXPLICIT_LOCKS=0` in the environment removes the explicit locks and is expected to deadlock; the locks are required in classic mode.
+**Classic** (`--edge-classic`) uses the same per-type stage structure without leases: types that share an endpoint label are serialized (`--bulk-edge-overlap labels`) or overlapped under globally ordered APOC locks (`shared`). It is the only mode where Neo4j can make a transaction wait; in the IMDb 20k run about 12k transactions waited for roughly 106-113 seconds in total ([section 15](#15-performance-numbers)). Use it for debugging or comparison with earlier runs. (`native_disjoint` is not supported on Neo4j 5.26; it needs the Cypher 25 dialect.) Setting `GRAPH_LOADER_EDGE_EXPLICIT_LOCKS=0` in the environment removes the explicit locks and is expected to deadlock; the locks are required in classic mode.
 
 ## 9. What happens during a run
 
@@ -596,7 +597,7 @@ All numbers here are from one host: Neo4j pinned to 8 cores (cpus 0-7), Kafka to
 
 ### A/B bulk benchmark
 
-Source: `/mnt/graph-loader/bench/p0/bulk_perf/RESULTS.md` (a host-local directory, not part of the repository), with the script `bench.sh` beside it. Two image/checkout pairs were run interleaved: p1 = checkout `3a94537`, p2 = a worktree at `9ba6f0e` (`feat/stream-outage-resilience`, docs-only over `a253b1f`). The table gives the medians of valid runs (range in brackets). It is not a measurement of `d8de173`.
+Source: a benchmark workspace of the maintainers that is not part of the repository, so these numbers cannot be reproduced from the repository alone. Two image/checkout pairs were run interleaved: p1 = checkout `3a94537`, p2 = a worktree at `9ba6f0e` (`feat/stream-outage-resilience`, docs-only over `a253b1f`). The table gives the medians of valid runs (range in brackets). It is not a measurement of `d8de173`.
 
 | Benchmark | Mode | Wall, p1 | Wall, p2 | Consume + load, p1 / p2 | Lock waiting |
 | --- | --- | --- | --- | --- | --- |
@@ -611,7 +612,7 @@ Source: `/mnt/graph-loader/bench/p0/bulk_perf/RESULTS.md` (a host-local director
 
 ### Earlier documented figures (USAGE.md section 9)
 
-On a quieter host, the same IMDb 20k load took about 60 s planned, about 92 s with leases, about 87 s with classic shared overlap (about 82% of edge-query time spent waiting on locks) and 525 s with the original label-serialized classic. The 40k load took 107.8 s with a producer plan, 122.4 s with library planning from Kafka and 166.5 s with classic shared overlap. A single final smoke run at `9ddf9ab` (`bench/p0/final_smoke/RESULTS.md`) loaded IMDb 20k planned in 71 s with every query-log entry `waiting: 0`. The absolute differences between these sets are host load and commit, not mode.
+On a quieter host, the same IMDb 20k load took about 60 s planned, about 92 s with leases, about 87 s with classic shared overlap (about 82% of edge-query time spent waiting on locks) and 525 s with the original label-serialized classic. The 40k load took 107.8 s with a producer plan, 122.4 s with library planning from Kafka and 166.5 s with classic shared overlap. A single final smoke run at `9ddf9ab` loaded IMDb 20k planned in 71 s with every query-log entry `waiting: 0`. The absolute differences between these sets are host load and commit, not mode.
 
 ### Where the time goes
 
@@ -629,7 +630,7 @@ In planned mode Neo4j runs at about 7.5 of its 8 cores for the whole relationshi
 | A load "succeeds" but the graph is empty | It went into another database: check `NEO4J_DATABASE`. |
 | `Failed to load schema: ...` | Schema validation names the field. Common bulk-time causes: a relationship type with no properties (`Edge '<type>' must have at least one property.`), a key property that is not `required`, an endpoint key property that differs from the label's `key_property`, a topic used twice, a multi-topic type without a conflict rule, or `precedence` with an explicit `loading.mode: stream`. |
 | `stage=launch reason=--edge-plan and --edge-classic are mutually exclusive; choose one relationship mode` | More than one of `--edge-plan`, `--edge-leases`, `--edge-classic`. Give one. |
-| `stage=launch reason=relationship type(s) X use execution.mode native_disjoint, which neither zero-wait mode supports; pass --edge-classic ...` | A `native_disjoint` type with no mode flag. Use `--edge-classic`, or switch the type to `python_apoc`. |
+| `stage=launch reason=relationship type(s) X use execution.mode native_disjoint: it needs a Neo4j server with the Cypher 25 dialect and is not supported on Neo4j 5.26 ...` | A `native_disjoint` type with no mode flag. Switch the type to `python_apoc`; `native_disjoint` is not supported on Neo4j 5.26. |
 | `--bulk-edge-overlap/--max-concurrent-bulk-edges tune classic only; ignored (add --edge-classic to use classic)` | Warning: those flags do nothing without `--edge-classic`. |
 | `--plan-writers must be 1-64` (and the other range messages) | A tuning flag is out of range ([section 5](#5-the-command)). |
 | `stage=launch reason=invalid run id: run id must be 1-128 letters, digits, dot, underscore, or hyphen` | Bad `--run-id`. |

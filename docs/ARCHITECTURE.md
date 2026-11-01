@@ -131,7 +131,7 @@ locking removes deadlocks **inside** a batch, but two loaders touching the same
 node still queue on its lock. `--bulk-edge-overlap labels` (default) therefore
 serializes types sharing an endpoint label; `shared` runs them concurrently and
 accepts lock waits; self-references normally run in a final isolated phase.
-Needed for `native_disjoint` edges.
+The only mode that can attempt `native_disjoint` edges, which need the Cypher 25 dialect and are not supported on the tested Neo4j 5.26.
 
 ### Stream (`--mode stream`)
 

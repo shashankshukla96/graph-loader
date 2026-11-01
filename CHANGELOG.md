@@ -1,18 +1,96 @@
 # Changelog
 
-## Unreleased
+## 0.1.0a1 (first alpha; candidate, not yet published)
 
-No versioned release has been published. These notes describe the current
-implementation and changes from the original loader.
+Release date: **`<YYYY-MM-DD>`, a placeholder.** The date is filled in on the day the
+release candidate is built and frozen, and those same files then go to TestPyPI and to
+PyPI unchanged. The version is the approved target for the first release; it is frozen
+when the release candidate is built.
 
-See [docs/CLI.md](docs/CLI.md) for every current flag,
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together and
-[docs/USAGE.md](docs/USAGE.md) for the reference.
+This is the first release on PyPI as `neo4j-graph-loader` (import
+`neo4j_graph_loader`, command `graph-loader`). Before it, the loader existed only as
+a source checkout (`python -m src.cli`). It is an alpha: the supported Python API
+(`neo4j_graph_loader.schema`, `neo4j_graph_loader.planning`) and the command line
+may change between alphas, every such change is listed here, and a deprecated name
+or flag keeps working with a warning for at least one later alpha unless an urgent
+correctness or security fix says otherwise.
+
+See [docs/QUICKSTART.md](docs/QUICKSTART.md) to install and try it,
+[docs/MIGRATION.md](docs/MIGRATION.md) to move from a checkout,
+[docs/CLI.md](docs/CLI.md) for every flag, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+for how the pieces fit together and [docs/USAGE.md](docs/USAGE.md) for the reference.
+
+### What this release guarantees, and what it only describes
+
+**Exercised for this release.** Through the installed command and the versioned
+images, against real Neo4j 5.26 Enterprise and Kafka 3.7 (`cp-kafka:7.7.0`) on Linux
+amd64, with the resulting graph compared to the expected one: planned bulk loads,
+streaming with leases, classic bulk loads (`--edge-classic`), dead-letter routing
+with retry, parking and replay, recovery from a killed writer, edge loader or lease
+server and from a Neo4j outage, and the restricted ordering cases listed under
+"Limits" in the [README](README.md#support-and-limits). The installed package,
+schema loader, planning API and command line were also tested on Linux arm64. The
+guarantees are exactly those listed there; they are not stronger than the tests.
+
+**Described but not exercised for this release.** Everything else in these notes and
+in `docs/`, including the legacy clock path, legacy consumer-group migration, the
+monitoring stack and metrics, `precedence` conflicts, multi-pair relationship types in
+streaming, and any Neo4j, Kafka, Python or platform outside the supported
+environment. These come from the original loader, are documented and unit-tested,
+and are not promised. `execution.mode: native_disjoint` is **not supported** on
+Neo4j 5.26 (it needs the Cypher 25 dialect).
+
+### Packaging, namespace and command changes
+
+* Distribution `neo4j-graph-loader`, import `neo4j_graph_loader`, command
+  `graph-loader` (also `python -m neo4j_graph_loader` and
+  `python -m neo4j_graph_loader.cli`). `graph-loader --version` reports the package version.
+* **`src.*` is gone, with no compatibility shim and no sunset date.** Replace
+  `python -m src.cli` with `graph-loader` and the `src.` prefix of every import,
+  subprocess command and patch target with `neo4j_graph_loader.`. Only
+  `neo4j_graph_loader.schema` and `neo4j_graph_loader.planning` are supported
+  public modules; every other module is internal. Table and walk-through:
+  [docs/MIGRATION.md](docs/MIGRATION.md).
+* New commands `graph-loader schema-example [--name default|social]` and
+  `graph-loader validate-schema [--config PATH | --sample NAME]` (no services needed).
+  Omitting `--config` now uses the bundled canonical schema, not `config/graph_schema.yaml`
+  in the current directory.
+* The command never reads `.env` files. Generated plans, spill, rejection and timing
+  files go to a private `graph-loader-*` directory under the OS temporary directory
+  (or `--run-dir BASE`), logged as `stage=runtime directory=...` and kept afterwards.
+* All eight runtime dependencies are mandatory, including the matching
+  `neo4j` and `neo4j-rust-ext` (`>=6.0,<7`); there are no extras.
+  Python `>=3.12`.
+
+### Images and coordinated upgrades
+
+`start` runs the loaders from four prebuilt images,
+`ghcr.io/shashankshukla96/graph-loader-{cli,node,edge,clock}:<package version>`, and
+never builds from the current directory. Upgrade the package and the images together:
+every image, overrides included, must carry the installed package's version label or
+`start` fails before launching anything. Stop a running fleet, install the new
+package, then start again; a stopped stream fleet resumes from its committed offsets.
+See [docs/DOCKER_EXECUTION.md](docs/DOCKER_EXECUTION.md).
+
+### Compatibility of stored and wire formats
+
+Preserved by this release (see [docs/MIGRATION.md](docs/MIGRATION.md#4-stored-and-wire-formats)):
+schema YAML (same fields and meaning; unknown keys in configuration blocks are now errors, see upgrade note 2),
+edge plan format `graph-loader-edge-plan/1`, Kafka chunk format 1, DLQ envelopes
+(versions 1 and 2 are decoded, version 2 is written), the parked-pair index, and
+consumer-group identities (stable stream groups, run-scoped bulk groups). Nothing
+migrates data destructively. Replan after an upgrade instead of reusing an old plan.
+
+### Deprecations
+
+`--stream-clock-rotation` (the original rotating-clock streaming path) and the hidden
+`--lease-*` flag aliases and `GRAPH_LOADER_LEASE_ADDR` log a `stage=deprecation` warning and stay
+at least through the next alpha before removal, which will be announced here first.
 
 ### Upgrade notes / breaking changes
 
-Read these before upgrading from the original loader or an earlier development
-build. Each item says what changed and what to do.
+Read these before upgrading from the original loader (the source checkout) or an
+earlier development build. Each item says what changed and what to do.
 
 **Read first: `dead_letter` blocks that the original loader ignored are now live.** The original loader’s
 own `config/graph_schema.yaml` has `dead_letter` blocks with `enabled: true`
@@ -31,8 +109,9 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
    (per-type APOC-locked loaders, the one mode that can wait on Neo4j locks) pass
    **`--edge-classic`**. A schema with a relationship type using
    `execution.mode: native_disjoint` is **refused** on a plain bulk start (neither
-   zero-wait mode supports it): pass `--edge-classic` or switch the type to
-   `python_apoc`. Planned and lease modes also require `python_apoc` edges.
+   zero-wait mode supports it), and the refusal says it needs the Cypher 25 dialect and
+   is not supported on Neo4j 5.26 (the tested target): with `--edge-classic` the edge loader
+   still exits 1 and writes no relationship there. Switch the type to `python_apoc`. Planned and lease modes also require `python_apoc` edges.
    Planned mode ignores `dead_letter` and fails closed on a missing endpoint.
 2. **`extra="forbid"` on configuration blocks.** Unknown keys are now errors
    (the message names the field) in `loading` and its nested blocks
@@ -86,10 +165,11 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
    The checks apply to the default stream lease fleet with relationship types only:
    they are skipped under `--stream-clock-rotation` and for schemas without edges.
    Planned and classic runs keep using any value the schema allows.
-6. **The `neo4j` Python driver is pinned `>=5.20,<7`.** The new
-   dependencies `numpy>=1.26` and `prometheus_client>=0.20` were added.
-   *What to do:* reinstall from `requirements.txt` and
-   rebuild the images (`make build-images`).
+6. **Dependencies.** The `neo4j` driver is now `>=6.0,<7` with the matching
+   `neo4j-rust-ext>=6.0,<7` (the original loader allowed 5.x), `PyYAML>=6.0.1`, and
+   `numpy>=1.26` and `prometheus-client>=0.20` were added. All are mandatory.
+   *What to do:* install the package into a new environment (it resolves them) and use
+   the matching versioned images instead of rebuilding your own.
 7. **`--bulk-edge-overlap` and `--max-concurrent-bulk-edges` only tune classic.**
    Outside `--edge-classic` they are ignored with a warning
    (`--bulk-edge-overlap/--max-concurrent-bulk-edges tune classic only; ignored`).
@@ -140,9 +220,10 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
     named-volume data is not migrated. *What to do:* set the `NEO4J_*`/`KAFKA_*`
     sizing and `GRAPH_LOADER_DATA_DIR` in `.env` for your machine. The current
     `.env.example` uses local `./var/data`, smaller memory values and blank CPU
-    sets to disable pinning. `make
-    build-images` (new) tags `:latest`, the CLI default (`IMAGE_TAG=x` plus the
-    `GRAPH_LOADER_*_IMAGE` variables to override).
+    sets to disable pinning. The Compose stack and `make` targets exist only in a
+    source checkout. The loader images are no longer built locally and tagged
+    `latest`: `start` uses the versioned images described above (checkout
+    maintainers build local candidates with `make build-images CANDIDATE_SUFFIX=...`).
 13. **Other visible behaviour.** All containers run with `init`, so a SIGTERM
     during startup is not lost. A node-loader, edge-loader or retry-consumer crash in a
     stream run stops the run with exit 1. A planned or bulk operator stop logs at WARNING. Stream runs

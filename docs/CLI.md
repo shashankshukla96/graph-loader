@@ -74,7 +74,7 @@ The former-DLQ and DLQ-leftover preflights are skipped when the run is planned
 | --- | --- | --- | --- | --- |
 | `--edge-plan [PLAN_FILE]` | off (but planned is the bulk default) | optional path | bulk only | Globally planned, node-disjoint chunks; zero lock waits. Without a file the loader plans from the relationship topics up to the bulk boundary while nodes load; with a file it loads a producer-written plan (waited for up to `--bulk-timeout-seconds`). Requires `python_apoc` edges. With `--mode stream` it exits 1. |
 | `--edge-leases` | off | flag | bulk only | A run-scoped bucket-lease coordinator; concurrent relationship transactions are node-disjoint across all types and containers. Implies `--bulk-edge-overlap shared`. Requires `python_apoc` edges and `loading.bucket_lease.tx_timeout_ms >= 6000`. With `--mode stream` it exits 1. |
-| `--edge-classic` | off | flag | bulk only | The per-type APOC-locked loaders. The one mode that can wait on Neo4j locks; required for `native_disjoint` edges. With `--mode stream` it is an error (exit 1). |
+| `--edge-classic` | off | flag | bulk only | The per-type APOC-locked loaders. The one mode that can wait on Neo4j locks. (`native_disjoint` edges can only be attempted here, but they need the Cypher 25 dialect and fail closed on the supported Neo4j 5.26; keep `python_apoc`.) With `--mode stream` it is an error (exit 1). |
 | `--bulk-edge-overlap {labels,shared}` | `labels` | `labels`, `shared` | bulk, **classic only** | `labels` serializes types that share an endpoint label; `shared` runs them concurrently under globally ordered APOC locks and co-schedules `python_apoc` self-references. Outside classic: warning `--bulk-edge-overlap/--max-concurrent-bulk-edges tune classic only; ignored`. |
 | `--max-concurrent-bulk-edges N` | `0` (unlimited) | integer >= 0 | bulk, **classic only** | Cap on concurrently running shared edge types. Ignored with a warning outside classic. |
 
@@ -168,7 +168,7 @@ BEGIN needs `T` minus 4 s above 1 s plus 1 s margin).
 | `--edge-plan` given | `planned` | `flag` |
 | `--edge-leases` given | `lease` | `flag` |
 | `--edge-classic` given | `classic` | `flag` |
-| none given, any relationship type uses `execution.mode: native_disjoint` | refused (exit 1): pass `--edge-classic` or use `python_apoc` | |
+| none given, any relationship type uses `execution.mode: native_disjoint` | refused (exit 1): `native_disjoint` needs the Cypher 25 dialect and is not supported on Neo4j 5.26; use `python_apoc` | |
 | none given, any relationship type has an enabled `dead_letter` | `lease` | `dead_letter` |
 | none given | `planned` | `default` |
 

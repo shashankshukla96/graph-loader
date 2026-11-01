@@ -3,8 +3,8 @@
 `graph-loader start` resolves prebuilt images and never builds from cwd. Defaults
 are `ghcr.io/shashankshukla96/graph-loader-{node,edge,clock}:<package-version>`;
 the current development package version is `0.1.0a1.dev0`. The CLI image follows
-the same naming policy. These names are planned registry identities: local E06
-candidates do not establish publication or anonymous-pull availability.
+the same naming policy. These are the registry identities used at release; a local
+candidate build does not establish publication or anonymous-pull availability.
 
 Resolution inspects the local daemon first. Only an absent reference is pulled;
 an incompatible local image fails immediately. `--skip-image-build` keeps its
@@ -108,6 +108,6 @@ Docker host/default-bridge networks and automatic network/infrastructure creatio
 are unsupported by installed orchestration and fail explicitly. Use an external
 orchestrator for another topology. No remote filesystem/port proxy is implied.
 
-E06's tiny owned installed-wheel proof exercises these paths with Neo4j5.26
-Enterprise and Kafka3.7/cp-kafka7.7.0. It does not establish E08's wider platform
-matrix or E09's full service/ordering guarantees. Publication remains separate.
+These paths are exercised with Neo4j 5.26 Enterprise and Kafka 3.7
+(`cp-kafka:7.7.0`) on Linux amd64; what is and is not covered is listed in
+[Support and limits](../README.md#support-and-limits).

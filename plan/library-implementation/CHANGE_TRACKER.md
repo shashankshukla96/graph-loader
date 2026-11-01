@@ -5,7 +5,17 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E09 complete, 2026-11-01:** All seven E09 stories have executed evidence through the
+**Current gate — E10 complete, 2026-11-01:** Installed-user documentation, implemented in a separate session
+([handoff](handoff-e10.md)) and reviewed by the orchestrator: `docs/QUICKSTART.md`, a self-contained PyPI README
+with a "Support and limits" section matching E09's evidence, `docs/SUPPORT.md`, `SECURITY.md`, a 0.1.0a1
+CHANGELOG section, `docs/MIGRATION.md` and `docs/RELEASE_RUNBOOK.md`. The `native_disjoint` refusal message now
+says it needs Cypher 25 and is unsupported on Neo4j 5.26 (message only; user decision). Contacts, tag
+`v0.1.0a1`, review cadence and single maintainer confirmed by the user; the release date is set when E11 freezes
+the candidate. Quick starts ran unchanged from a fresh wheel against an owned Neo4j 5.26 + Kafka 7.7.0 stack
+([evidence](evidence/E10.F1.S1.md)). Open for E11: refreeze `test-inventory.json` (the wheel METADATA changed),
+rerun the edited `test_service_legacy_classic.py` live, set the version and date. Next: E11.
+
+**Prior gate — E09 complete, 2026-11-01:** All seven E09 stories have executed evidence through the
 installed CLI and candidate images on owned Neo4j 5.26 Enterprise and Kafka 7.7.0 (shared native Docker Engine
 host): live harness, planned bulk, streaming leases, classic, DLQ, outages/recovery in every supported mode, and
 the restricted ordering contract O1–O8. The independent exit review accepted after three rounds

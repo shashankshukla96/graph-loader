@@ -204,7 +204,7 @@ def test_s3_native_disjoint_is_refused_by_a_plain_start_and_fails_closed_on_neo4
     result = refused['result']
     text = result.stdout.read_text() + result.stderr.read_text()
     assert result.exit_code not in (0, None) and result.timed_out is False
-    assert 'native_disjoint, which neither zero-wait mode supports; pass --edge-classic' in text
+    assert 'native_disjoint: it needs a Neo4j server with the Cypher 25 dialect and is not supported on Neo4j 5.26' in text
     assert refused['snapshot']['containers'] == {} and refused['leftovers'] == {'removed': [], 'failed': []}
     assert own_graph(stack) == ([], []), 'a refused start must write nothing'
 

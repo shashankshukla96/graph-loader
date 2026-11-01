@@ -2042,7 +2042,10 @@ def _resolve_bulk_edge_mode(schema, args: argparse.Namespace) -> None:
     auto-derived), or the lease fleet (also zero lock waits) when a relationship type enables
     ``dead_letter``. A plain start never reaches classic: ``native_disjoint`` edges (disjoint by
     pair, not by node, so they can wait on endpoint locks) are refused unless ``--edge-classic``
-    is passed. The classic-only tuning flags are warned about and ignored in every other mode.
+    is passed. ``native_disjoint`` needs a Neo4j server with the Cypher 25 dialect and is not
+    supported on Neo4j 5.26, the tested target; ``python_apoc`` is the supported mode, and
+    ``--edge-classic`` exists for servers that do support Cypher 25. The classic-only tuning
+    flags are warned about and ignored in every other mode.
     """
     explicit_overlap = getattr(args, "bulk_edge_overlap", None)
     explicit_cap = getattr(args, "max_concurrent_bulk_edges", None)
@@ -2065,8 +2068,9 @@ def _resolve_bulk_edge_mode(schema, args: argparse.Namespace) -> None:
         )
         if native:
             raise ValueError(
-                f"relationship type(s) {', '.join(native)} use execution.mode native_disjoint, which neither "
-                "zero-wait mode supports; pass --edge-classic (can wait on Neo4j locks) or use python_apoc"
+                f"relationship type(s) {', '.join(native)} use execution.mode native_disjoint: it needs a Neo4j "
+                "server with the Cypher 25 dialect and is not supported on Neo4j 5.26 (the tested target); "
+                "use python_apoc (--edge-classic exists only for servers that support Cypher 25)"
             )
         if _dead_letter_edge_types(schema):
             mode, reason = "lease", "dead_letter"

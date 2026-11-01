@@ -15,7 +15,7 @@ dependencies = [
     "numpy>=1.26,<3",
     "prometheus-client>=0.20,<1",
 ]
-description = "Development build of the Neo4j Graph Loader with migrated runtime modules"
+description = "Load Kafka topics into a Neo4j graph from a YAML schema, with planned, node-disjoint relationship writes"
 readme = "PACKAGE_README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
@@ -23,14 +23,20 @@ license-files = ["LICENSE"]
 authors = [{name = "Shashank Shukla", email = "shashankshukla96@gmail.com"}]
 maintainers = [{name = "Shashank Shukla", email = "shashankshukla96@gmail.com"}]
 keywords = ["neo4j", "kafka", "graph"]
-classifiers = ["Development Status :: 2 - Pre-Alpha", "Programming Language :: Python :: 3"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
 
 [project.scripts]
 graph-loader = "neo4j_graph_loader.cli:main"
 
 [project.urls]
 Repository = "https://github.com/shashankshukla96/graph-loader"
-Documentation = "https://github.com/shashankshukla96/graph-loader/blob/main/README.md"
+Documentation = "https://github.com/shashankshukla96/graph-loader/blob/main/docs/QUICKSTART.md"
+Changelog = "https://github.com/shashankshukla96/graph-loader/blob/main/CHANGELOG.md"
 Issues = "https://github.com/shashankshukla96/graph-loader/issues"
 
 [tool.setuptools]

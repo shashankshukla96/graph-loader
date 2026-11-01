@@ -56,7 +56,7 @@ Container launchers bind absolute host schema/plan paths read-only and rejection
 timing directories read-write at `/app/runtime_schema.yaml`, `/app/edge-plan.json`,
 `/app/rejections` and `/app/write-timings`. Host bind paths must be visible to the
 Docker daemon: use a local daemon or shared filesystem with matching host paths.
-E05 does not translate files to remote Docker hosts.
+The installed command does not translate files to remote Docker hosts.
 
 Starts resolve matching versioned prebuilt images independently of cwd. Missing
 images are pulled unless --skip-image-build requests compatible local images
