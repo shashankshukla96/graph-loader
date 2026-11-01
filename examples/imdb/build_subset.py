@@ -65,6 +65,9 @@ def tsv_chunks(
         dtype=str,
         keep_default_na=False,
         na_filter=False,
+        # IMDb's TSVs are not quoted: a stray double quote ("Rolling in the Deep Dish) is data, and default quote handling
+        # would run the field across the next tabs and corrupt the row.
+        quoting=csv.QUOTE_NONE,
         chunksize=CHUNK_ROWS if chunk_rows is None else chunk_rows,
     )
     for chunk_number, frame in enumerate(reader, start=1):
@@ -170,10 +173,10 @@ def copy_filtered(
     ):
         kept = frame.loc[include(frame)]
         copied += len(kept)
-        kept.to_csv(destination, sep="\t", index=False, mode="w" if first_chunk else "a", header=first_chunk, lineterminator="\n")
+        kept.to_csv(destination, sep="\t", index=False, mode="w" if first_chunk else "a", header=first_chunk, lineterminator="\n", quoting=csv.QUOTE_NONE)
         first_chunk = False
     if first_chunk:  # Defensive fallback for a header-only input file.
-        pd.read_csv(source, sep="\t", dtype=str, keep_default_na=False, na_filter=False, nrows=0).to_csv(destination, sep="\t", index=False, lineterminator="\n")
+        pd.read_csv(source, sep="\t", dtype=str, keep_default_na=False, na_filter=False, nrows=0, quoting=csv.QUOTE_NONE).to_csv(destination, sep="\t", index=False, lineterminator="\n", quoting=csv.QUOTE_NONE)
     logger.info("copy %s: kept %s row(s) in %.1fs", source.name, f"{copied:,}", time.monotonic() - started)
 
 

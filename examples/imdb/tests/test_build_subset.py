@@ -20,8 +20,9 @@ EXAMPLE_DIR = Path(__file__).resolve().parents[1]
 
 
 def write_tsv(path: Path, fields: list[str], records: list[list[str]]) -> None:
+    """Raw IMDb shape: tab separated, never quoted (so a field cannot hold a tab or a newline)."""
     with path.open("w", encoding="utf-8", newline="") as output:
-        writer = csv.writer(output, delimiter="\t", lineterminator="\n")
+        writer = csv.writer(output, delimiter="\t", lineterminator="\n", quoting=csv.QUOTE_NONE, quotechar=None)
         writer.writerow(fields)
         writer.writerows(records)
 
@@ -125,7 +126,7 @@ def write_tricky_dataset(source: Path) -> None:
     """Official-shaped TSVs covering every drop, dedup, quoting and parsing rule."""
     source.mkdir(parents=True, exist_ok=True)
     write_tsv(source / "title.basics.tsv", TITLE_FIELDS, [
-        ["tt0001", "movie", 'The "Seed"', "Seed\tTab", "0", "2000", r"\N", "100", "Drama,Comedy"],
+        ["tt0001", "movie", 'The "Seed"', '"Seed Tab', "0", "2000", r"\N", "100", "Drama,Comedy"],
         ["tt0002", "tvSeries", "Series", "Series", "0", "2001", "2003", r"\N", "Drama,,Horror"],
         ["tt0003", "tvEpisode", "Episode", "Episode", "0", r"\N", r"\N", "30", r"\N"],
         ["tt0004", "movie", "Adult", "Adult", "1", "2004", r"\N", "90", "Adult"],
@@ -137,7 +138,7 @@ def write_tricky_dataset(source: Path) -> None:
     write_tsv(source / "name.basics.tsv", NAME_FIELDS, [
         ["nm0001", "Ada", "1970", r"\N", "actor,writer", "tt0001,tt0004,tt9999"],
         ["nm0002", 'Grace "G"', r"\N", r"\N", "director,,actor", "tt0002"],
-        ["nm0003", "Line\nBreak", "1980", "2020", r"\N", r"\N"],
+        ["nm0003", '"Line Break', "1980", "2020", r"\N", r"\N"],
         ["nm0004", "Adult actor", "1990", r"\N", "actress", "tt0004"],
     ])
     write_tsv(source / "title.principals.tsv", PRINCIPAL_FIELDS, [
@@ -146,7 +147,7 @@ def write_tricky_dataset(source: Path) -> None:
         ["tt0001", "3", "nm0002", "self", r"\N", '["Hero"]'],
         ["tt0002", "1", "nm0001", "writer", "creator", r"\N"],
         ["tt0002", "2", "nm0003", "actress", r"\N", '["Esc\\"aped \\u00e9"]'],
-        ["tt0002", "3", "nm0003", "actress", r"\N", '["tab\there"]'],
+        ["tt0002", "3", "nm0003", "actress", r"\N", '["tab here"]'],
         ["tt0002", "4", "nm0002", "actor", r"\N", "not json"],
         ["tt0003", "1", "nm0002", "director", r"\N", '[""]'],
         ["tt0003", "2", "nm0001", "actor", r"\N", '[1, "Numbered", ""]'],
@@ -196,7 +197,7 @@ def reference_graph_subset(input_dir: Path, destination: Path, titles: set[str],
 
     def rows(path: Path):
         with path.open("r", encoding="utf-8", newline="") as source:
-            yield from csv.DictReader(source, delimiter="\t")
+            yield from csv.DictReader(source, delimiter="\t", quoting=csv.QUOTE_NONE)
 
     files = {kind: open_sink(destination / relative, fields) for kind, (relative, fields) in build_subset.GRAPH_FILES.items()}
     seen: dict[str, set[str]] = {kind: set() for kind in build_subset.DEDUPLICATED_KINDS}
@@ -324,10 +325,10 @@ def test_all_mode_drops_every_relationship_whose_endpoint_is_not_a_node(tmp_path
     assert [row["episode_id"] for row in graph_rows(graph, "relationships/episode_of.tsv")] == ["tt0003"]
     assert [row["aka_id"] for row in graph_rows(graph, "nodes/alternative_title.tsv")] == ["tt0001:1", "tt0001:2", "tt0002:1"]
     assert [row["aka_id"] for row in graph_rows(graph, "relationships/has_alternative_title.tsv")] == ["tt0001:1", "tt0001:2", "tt0001:2", "tt0002:1"]
-    assert [row["name"] for row in graph_rows(graph, "nodes/character.tsv")] == ["Hero", "Villain", 'Esc"aped é', "Numbered"]
+    assert [row["name"] for row in graph_rows(graph, "nodes/character.tsv")] == ["Hero", "Villain", 'Esc"aped é', "tab here", "Numbered"]
     assert [row["rating_id"] for row in graph_rows(graph, "nodes/rating.tsv")] == ["tt0001"]
-    assert graph_rows(graph, "nodes/title.tsv")[0]["original_title"] == "Seed\tTab"
-    assert graph_rows(graph, "nodes/person.tsv")[2]["primary_name"] == "Line\nBreak"
+    assert graph_rows(graph, "nodes/title.tsv")[0]["original_title"] == '"Seed Tab'
+    assert graph_rows(graph, "nodes/person.tsv")[2]["primary_name"] == '"Line Break'
     manifest = json.loads((export / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["mode"] == "all" and manifest["include_adult"] is False and manifest["source_copies"] is False
     assert manifest["selected"]["titles"] == 5 and manifest["selected"]["people"] == 4
@@ -449,3 +450,42 @@ def test_tsv_sink_quotes_exactly_like_csv_dict_writer(tmp_path: Path) -> None:
         writer.writerow({"a": build_subset.present(first), "b": build_subset.present(second)})
     handle.close()
     assert (tmp_path / "vectorized.tsv").read_bytes() == (tmp_path / "reference.tsv").read_bytes()
+
+
+def test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields(tmp_path: Path) -> None:
+    """IMDb rows such as tt10233364 carry a lone leading double quote; the builder must keep every field in its own column."""
+    source, output = tmp_path / "source", tmp_path / "out"
+    source.mkdir()
+
+    def raw(name: str, *rows: str) -> None:
+        (source / name).write_text("".join(row + "\n" for row in rows), encoding="utf-8")
+
+    quoted = '"Rolling in the Deep Dish'
+    raw("title.basics.tsv", "tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres",
+        f"tt0001\tmovie\t{quoted}\t{quoted}\t0\t2019\t\\N\t22\tReality-TV",
+        "tt0002\tmovie\tPlain\tPlain\t0\t2001\t\\N\t90\tDrama")
+    raw("name.basics.tsv", "nconst\tprimaryName\tbirthYear\tdeathYear\tprimaryProfession\tknownForTitles", "nm0001\tAda\t1970\t\\N\tactor\ttt0001")
+    raw("title.principals.tsv", "tconst\tordering\tnconst\tcategory\tjob\tcharacters", "tt0001\t1\tnm0001\tactor\t\\N\t\\N")
+    raw("title.crew.tsv", "tconst\tdirectors\twriters", "tt0001\tnm0001\t\\N", "tt0002\t\\N\t\\N")
+    raw("title.episode.tsv", "tconst\tparentTconst\tseasonNumber\tepisodeNumber")
+    raw("title.akas.tsv", "titleId\tordering\ttitle\tregion\tlanguage\ttypes\tattributes\tisOriginalTitle",
+        f"tt0001\t1\t{quoted}\t\\N\t\\N\toriginal\t\\N\t1", "tt0002\t1\tPlain US\tUS\ten\t\\N\t\\N\t0")
+    raw("title.ratings.tsv", "tconst\taverageRating\tnumVotes", "tt0001\t7.5\t10")
+
+    subprocess.run([sys.executable, str(EXAMPLE_DIR / "build_subset.py"), "--input-dir", str(source), "--output-dir", str(output),
+                    "--titles", "2", "--depth", "1", "--max-titles", "4", "--max-people", "3"], check=True)
+
+    subset = output / "titles-2-depth-1"
+    titles = {row["tconst"]: row for row in csv.DictReader((subset / "graph" / "nodes" / "title.tsv").open(newline=""), delimiter="\t")}
+    assert set(titles) == {"tt0001", "tt0002"}
+    assert titles["tt0001"]["primary_title"] == quoted and titles["tt0001"]["original_title"] == quoted
+    assert (titles["tt0001"]["start_year"], titles["tt0001"]["runtime_minutes"]) == ("2019", "22")
+    akas = list(csv.DictReader((subset / "graph" / "nodes" / "alternative_title.tsv").open(newline=""), delimiter="\t"))
+    assert len(akas) == 2 and quoted in {row["title"] for row in akas}
+    for path in (subset / "graph").rglob("*.tsv"):  # every graph file keeps its declared width
+        with path.open(newline="") as handle:
+            reader = csv.reader(handle, delimiter="\t")
+            width = len(next(reader))
+            assert all(len(row) == width for row in reader), path
+    copied = (subset / "source" / "title.basics.tsv").read_text(encoding="utf-8")
+    assert f"tt0001\tmovie\t{quoted}\t{quoted}\t0\t2019\t\\N\t22\tReality-TV\n" in copied
