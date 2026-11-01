@@ -1,0 +1,569 @@
+{
+  "schema": "e11-candidate-manifest/1",
+  "date": "2026-11-01",
+  "status": "Not \"all green\". Every gate is either pass or carries a recorded explanation and decision: two amd64 retained red runs (native resource_tracker; container public-many-cancel) are accepted-harness-limit by user decision 2026-11-01; the amd64 process envelope was not executed; the amd64 native public-contracts lane is red-by-explained-harness-limit. No red gate is unexplained. E11.F2 (uploads, image pushes) has not been started.",
+  "package": {
+    "name": "neo4j-graph-loader",
+    "version": "0.1.0a1",
+    "source_commit": "60ea29f8138e0025c5d23bed2ee17ef7d0fab5f3",
+    "tag": null,
+    "build": {
+      "tool": "build 1.6.1 from git archive",
+      "backend": "setuptools==84.2.1 (PIP_CONSTRAINT)",
+      "constraints_file_sha256": "7886595e0c22b774c86de1b5c5dca5aea51c686811c8c1124ffc0c62c58302a4"
+    },
+    "artifacts": {
+      "neo4j_graph_loader-0.1.0a1-py3-none-any.whl": {
+        "sha256": "b420c78447be3d5ba52cffd6cf1b5911a724693171723f53b4e0c69fd379e199",
+        "bytes": 457166
+      },
+      "neo4j_graph_loader-0.1.0a1.tar.gz": {
+        "sha256": "7ee3430724dbb9491139468b3351bcc21b8670d46d912c2b58ec75d394d55be0",
+        "bytes": 432065
+      }
+    },
+    "inventory_package_payload_members": 59,
+    "inventory_distribution_files": 6
+  },
+  "gate_tooling": {
+    "candidate_commit": "60ea29f8138e0025c5d23bed2ee17ef7d0fab5f3",
+    "commits_after_candidate": {
+      "83862a1": "support-matrix cells bundle service_lane.py and installed_guard_load.py (scripts/support_matrix.py TOOLS + tests/test_support_matrix.py; inventory 4,206 IDs)",
+      "bdb7235": "E09 classic order test, test-only fix: bulk_run polls container logs every 50 ms instead of 1 s (tests/installed_service/*; inventory refrozen)"
+    },
+    "bdb7235_file_sha256": {
+      "tests/installed_service/test_service_kill_and_outage.py": "eca28c00b1808641aee2d0c1c52e78e05f0a01b83a5fd7782bafc42bfc91717a",
+      "tests/installed_service/test_service_last_value_order.py": "06ed99a06dc7c6a7cc2a45b788c839794946d7140f1e67236597d4ab7d642d52",
+      "plan/library-implementation/test-inventory.json": "c7e5b8fcd6b246b41e7931a653458f4bb085dc3d4e33bb93518f3d5f93d94910"
+    },
+    "inventory_ids": 4206,
+    "candidate_bytes_unchanged": "The wheel, sdist and all eight images were built from 60ea29f and are unchanged. `git diff 60ea29f HEAD -- src pyproject.toml` is empty; both later commits touch only scripts/ (support-matrix tooling), tests/ and the inventory."
+  },
+  "images": {
+    "arm64": {
+      "build_inputs_count": 78,
+      "rows": {
+        "cli": {
+          "id": "sha256:488a075ee56a924c73dd97a761ae5fc10abcb73ad865ebcee3194d9f77999686",
+          "local_tag": "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1-rc1-arm64",
+          "platform": "linux/arm64",
+          "docker_save_sha256": "1ef92da1cf853f0203653d981ff19c180617dc71bc59e725298ad874812b8d76",
+          "docker_save_bytes": 83529216,
+          "payload_equal_to_frozen_wheel": true,
+          "version": "0.1.0a1",
+          "python": "3.12.16",
+          "pip_check_exit": 0
+        },
+        "node": {
+          "id": "sha256:bcbd63d1d9f71e1507214979f8588393e8867194d89965a0738b16f819609380",
+          "local_tag": "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1-rc1-arm64",
+          "platform": "linux/arm64",
+          "docker_save_sha256": "0c5e3064dc77f81038da3988d5ea5e49df63439c3e00ca78479c6a1933ac0f96",
+          "docker_save_bytes": 83527168,
+          "payload_equal_to_frozen_wheel": true,
+          "version": "0.1.0a1",
+          "python": "3.12.16",
+          "pip_check_exit": 0
+        },
+        "edge": {
+          "id": "sha256:8cd9039dd891adc69c65cef117d9ce2774a276e0ba92cbf841646b5e4b6b0d90",
+          "local_tag": "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1-rc1-arm64",
+          "platform": "linux/arm64",
+          "docker_save_sha256": "9fca45eb06c37c00c3abcee32a40df435a1c4be1b54d9181d96cdaee6832e9a2",
+          "docker_save_bytes": 83527168,
+          "payload_equal_to_frozen_wheel": true,
+          "version": "0.1.0a1",
+          "python": "3.12.16",
+          "pip_check_exit": 0
+        },
+        "clock": {
+          "id": "sha256:7231f6c1e1e8593c87b4f854a98e59426c1717d4ce49d28a67b5de3a11fea379",
+          "local_tag": "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1-rc1-arm64",
+          "platform": "linux/arm64",
+          "docker_save_sha256": "2145f34d991ccb59ce894ef349192a654de96b88abe3f10ea2e15a677310056d",
+          "docker_save_bytes": 83518976,
+          "payload_equal_to_frozen_wheel": true,
+          "version": "0.1.0a1",
+          "python": "3.12.16",
+          "pip_check_exit": 0
+        }
+      }
+    },
+    "amd64": {
+      "build_inputs_count": 78,
+      "rows": {
+        "cli": {
+          "id": "sha256:d67aea50eb69b35ca3bf5369453c8757303c289671c895d9c8f5b4544c8b6576",
+          "local_tag": "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1-rc1-amd64",
+          "platform": "linux/amd64",
+          "docker_save_sha256": "3522ca1320ea2c2e99ad9a9376cc89885a7d4007e8c5e12d8160dc7da1acd8e2",
+          "docker_save_bytes": 83846656,
+          "payload_equal_to_frozen_wheel": true,
+          "version": "0.1.0a1",
+          "python": "3.12.16",
+          "pip_check_exit": 0
+        },
+        "node": {
+          "id": "sha256:c7337f91243c9a56c00adcae512d7d94afaa1d25ff84f515ec5dea7008960ceb",
+          "local_tag": "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1-rc1-amd64",
+          "platform": "linux/amd64",
+          "docker_save_sha256": "f97f64aad76009ad9130d1c5755c404030047e10c7d38577439a1d7a4a9b5307",
+          "docker_save_bytes": 83844608,
+          "payload_equal_to_frozen_wheel": true,
+          "version": "0.1.0a1",
+          "python": "3.12.16",
+          "pip_check_exit": 0
+        },
+        "edge": {
+          "id": "sha256:3291d27b6eded676516babeb6737cd488ea95e7e9d6b71447eef7e8d63893c33",
+          "local_tag": "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1-rc1-amd64",
+          "platform": "linux/amd64",
+          "docker_save_sha256": "5da59782fcf3f969378c29d82eb2808e44fc5a6c9ab8c8ba8413f7368a1cfb07",
+          "docker_save_bytes": 83844608,
+          "payload_equal_to_frozen_wheel": true,
+          "version": "0.1.0a1",
+          "python": "3.12.16",
+          "pip_check_exit": 0
+        },
+        "clock": {
+          "id": "sha256:abd60014b29a24b75e6366b5de7c33065515d1ca8dde10ca51d401418b18c077",
+          "local_tag": "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1-rc1-amd64",
+          "platform": "linux/amd64",
+          "docker_save_sha256": "61d161fb3c2e1b4254312b35e9750de46992d234718cf71c6bac9ce31a848d9a",
+          "docker_save_bytes": 83836416,
+          "payload_equal_to_frozen_wheel": true,
+          "version": "0.1.0a1",
+          "python": "3.12.16",
+          "pip_check_exit": 0
+        }
+      }
+    }
+  },
+  "images_built_from_identical_inputs": true,
+  "images_install_method": "pip install --no-deps . from copied source; installed payload verified byte-equal to the frozen wheel payload in all 8 images",
+  "gates": {
+    "unit_lanes_arm64_native_mac_py3.12.14": {
+      "core": {
+        "status": "passed",
+        "ids": 454
+      },
+      "safety": {
+        "status": "passed",
+        "ids": 1335
+      },
+      "cli-runtime": {
+        "status": "passed",
+        "ids": 636
+      },
+      "public-contracts": {
+        "status": "passed",
+        "ids": 269
+      },
+      "writer-runtime": {
+        "status": "passed",
+        "ids": 540
+      },
+      "orchestration-runtime": {
+        "status": "passed",
+        "ids": 282
+      },
+      "example-contracts": {
+        "status": "passed",
+        "ids": 117
+      },
+      "service-helper-unit": {
+        "status": "passed",
+        "ids": 41
+      }
+    },
+    "unit_lanes_amd64_native_host_py3.12.3": {
+      "core": {
+        "status": "passed",
+        "ids": 454
+      },
+      "safety": {
+        "status": "passed",
+        "ids": 1335
+      },
+      "cli-runtime": {
+        "status": "passed",
+        "ids": 636
+      },
+      "public-contracts": {
+        "status": "accepted-harness-limit",
+        "ids": null,
+        "decision": "user, 2026-11-01 (relayed by the orchestrator: accept as a documented test-harness limit; no code or tooling change)",
+        "note": "3 IDs fail 3/3 on resource_tracker lingering; see retained_red_runs"
+      },
+      "writer-runtime": {
+        "status": "passed",
+        "ids": 540
+      },
+      "orchestration-runtime": {
+        "status": "passed",
+        "ids": 282
+      },
+      "example-contracts": {
+        "status": "passed",
+        "ids": 117
+      },
+      "service-helper-unit": {
+        "status": "passed",
+        "ids": 41
+      }
+    },
+    "e08_cells_arm64_container_python3.12.16": {
+      "minimum": {
+        "bare": {
+          "driver": "6.0.0",
+          "extension": "6.0.0.0",
+          "optional_absence": {
+            "pytest": true,
+            "testcontainers": true,
+            "pandas": true,
+            "dotenv": true,
+            "build": true,
+            "twine": true,
+            "psutil": true
+          }
+        },
+        "cli-runtime": {
+          "status": "passed",
+          "ids": 636,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "core": {
+          "status": "passed",
+          "ids": 454,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "example-contracts": {
+          "status": "passed",
+          "ids": 117,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "orchestration-runtime": {
+          "status": "passed",
+          "ids": 282,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "public-contracts": {
+          "status": "passed",
+          "ids": 269,
+          "process_cases": 134,
+          "envelope_complete": true
+        },
+        "safety": {
+          "status": "passed",
+          "ids": 1335,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "service-helper-unit": {
+          "status": "passed",
+          "ids": 41,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "writer-runtime": {
+          "status": "passed",
+          "ids": 540,
+          "process_cases": null,
+          "envelope_complete": null
+        }
+      },
+      "current": {
+        "bare": {
+          "driver": "6.4.1",
+          "extension": "6.4.1.0",
+          "optional_absence": {
+            "pytest": true,
+            "testcontainers": true,
+            "pandas": true,
+            "dotenv": true,
+            "build": true,
+            "twine": true,
+            "psutil": true
+          }
+        },
+        "cli-runtime": {
+          "status": "passed",
+          "ids": 636,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "core": {
+          "status": "passed",
+          "ids": 454,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "example-contracts": {
+          "status": "passed",
+          "ids": 117,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "orchestration-runtime": {
+          "status": "passed",
+          "ids": 282,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "public-contracts": {
+          "status": "passed",
+          "ids": 269,
+          "process_cases": 134,
+          "envelope_complete": true
+        },
+        "safety": {
+          "status": "passed",
+          "ids": 1335,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "service-helper-unit": {
+          "status": "passed",
+          "ids": 41,
+          "process_cases": null,
+          "envelope_complete": null
+        },
+        "writer-runtime": {
+          "status": "passed",
+          "ids": 540,
+          "process_cases": null,
+          "envelope_complete": null
+        }
+      }
+    },
+    "e08_cells_amd64_container_python3.12.16": {
+      "lanes": {
+        "minimum": {
+          "bare": {
+            "driver": "6.0.0",
+            "extension": "6.0.0.0",
+            "optional_absence": {
+              "pytest": true,
+              "testcontainers": true,
+              "pandas": true,
+              "dotenv": true,
+              "build": true,
+              "twine": true,
+              "psutil": true
+            }
+          },
+          "cli-runtime": {
+            "status": "passed",
+            "ids": 636,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "core": {
+            "status": "passed",
+            "ids": 454,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "example-contracts": {
+            "status": "passed",
+            "ids": 117,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "orchestration-runtime": {
+            "status": "passed",
+            "ids": 282,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "safety": {
+            "status": "passed",
+            "ids": 1335,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "service-helper-unit": {
+            "status": "passed",
+            "ids": 41,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "writer-runtime": {
+            "status": "passed",
+            "ids": 540,
+            "process_cases": null,
+            "envelope_complete": null
+          }
+        },
+        "current": {
+          "bare": {
+            "driver": "6.4.1",
+            "extension": "6.4.1.0",
+            "optional_absence": {
+              "pytest": true,
+              "testcontainers": true,
+              "pandas": true,
+              "dotenv": true,
+              "build": true,
+              "twine": true,
+              "psutil": true
+            }
+          },
+          "cli-runtime": {
+            "status": "passed",
+            "ids": 636,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "core": {
+            "status": "passed",
+            "ids": 454,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "example-contracts": {
+            "status": "passed",
+            "ids": 117,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "orchestration-runtime": {
+            "status": "passed",
+            "ids": 282,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "safety": {
+            "status": "passed",
+            "ids": 1335,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "service-helper-unit": {
+            "status": "passed",
+            "ids": 41,
+            "process_cases": null,
+            "envelope_complete": null
+          },
+          "writer-runtime": {
+            "status": "passed",
+            "ids": 540,
+            "process_cases": null,
+            "envelope_complete": null
+          }
+        }
+      },
+      "failing": {
+        "minimum": "public-contracts: 1 failed (test_public_fault_reaps_every_child_and_releases_owned_resources[public-many-cancel], lateness>0.3s), 268 passed; process envelope not reached",
+        "current": "public-contracts: 1 failed (test_public_fault_reaps_every_child_and_releases_owned_resources[public-many-cancel], lateness>0.3s), 268 passed; process envelope not reached"
+      },
+      "investigation": {
+        "conclusion": "environment, not product regression",
+        "arms": {
+          "final+guard": "5/5 red 0.51-0.56 s",
+          "final no guard": "5/5 green 0.075-0.095 s",
+          "E08-commit wheel+guard": "5/5 red 0.51-0.57 s",
+          "E08-commit wheel no guard": "5/5 green 0.070-0.079 s",
+          "final+guard python 3.12.14 (digest sha256:f77ac9e4\u202651f)": "5/5 red 0.52-0.59 s"
+        },
+        "src_diff_410ae7f_to_60ea29f": [
+          "_version.py",
+          "cli.py refusal text"
+        ],
+        "bound_s": 0.3,
+        "status": "amd64 container public-contracts gate still red; cause = per-process runner guard cost under native Docker Engine 29.9.0 / kernel 7.0.0-38 (not profiled)"
+      },
+      "status": "accepted-harness-limit",
+      "acceptance": {
+        "status": "accepted-harness-limit (not pass)",
+        "decision": "user, 2026-11-01 (relayed by the orchestrator: accept as a documented test-harness limit; no code or tooling change)",
+        "what_is_red": "public-contracts in both amd64 container cells (minimum, current): test_public_fault_reaps_every_child_and_releases_owned_resources[public-many-cancel] cancellation lateness 0.51-0.70 s against the 0.3 s bound; 268 of 269 IDs pass; the amd64 process envelope (134 cases per cell) was not executed.",
+        "arms_lateness_s": {
+          "a final wheel, guard on": "5/5 red, 0.51-0.56",
+          "a' final wheel, guard off": "5/5 green, 0.075-0.095",
+          "b wheel from git archive 410ae7f (E08 commit), guard on": "5/5 red, 0.51-0.57",
+          "b' E08-commit wheel, guard off": "5/5 green, 0.070-0.079",
+          "c final wheel, guard on, python:3.12.14-slim": "5/5 red, 0.52-0.59"
+        },
+        "product_meets_bound": "Yes: with the runner guard off the same test, wheel and container pass 10/10 at 0.070-0.095 s (< 0.3 s); the test also passes natively on the amd64 host and in the arm64 containers.",
+        "cause": "The runner-installed per-process import/provenance guard (own harness, scripts/installed_guard*.py), not product code: the E08-commit wheel is as red as the final one, and `git diff 410ae7f 60ea29f -- src` is only _version.py and the cli.py refusal text.",
+        "open_items": [
+          "Guard cost not profiled: which part of the guard is slow per spawned process under native Docker Engine 29.9.0 / kernel 7.0.0-38 (E08 ran these cells in a Docker Desktop VM, kernel 6.10.14-linuxkit) is unknown.",
+          "The E08-era python:3.12 image digest was never recorded in tracked evidence; arm c used the current python:3.12.14-slim digest sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f, so \"same digest as E08\" is untested.",
+          "The amd64 process envelope was not executed for these cells."
+        ],
+        "follow_up_not_taken": "Profiling/fixing the guard (tooling-only, needs a commit and an amd64 cell rerun) or rerunning on a Docker Desktop VM were offered and not chosen."
+      }
+    },
+    "e09_service_harness_amd64_final_images": {
+      "run1": "149 passed, 1 failed (classic order test)",
+      "run2": "149 passed, 1 failed (same)",
+      "run3_with_test_only_fix": "150 passed",
+      "inventory_sha256_run3": "c7e5b8fcd6b246b41e7931a653458f4bb085dc3d4e33bb93518f3d5f93d94910"
+    },
+    "arm64_real_load_smoke": {
+      "ok": true,
+      "checks": {
+        "exit_code_zero": true,
+        "planned_default": true,
+        "node_counts": true,
+        "relationship_counts": true,
+        "no_duplicate_relationships": true,
+        "sample": true,
+        "self_reference": true,
+        "password_not_in_output": true,
+        "node_offsets_at_end": true,
+        "ledger_present": true,
+        "only_stack_containers_remain": true
+      },
+      "nodes": {
+        "Company": 12,
+        "City": 6,
+        "Person": 300
+      },
+      "relationships": {
+        "FRIEND_OF": 600,
+        "LIVES_IN": 300,
+        "WORKS_AT": 300
+      }
+    }
+  },
+  "retained_red_runs": [
+    {
+      "id": "native-amd64-resource-tracker",
+      "status": "accepted-harness-limit",
+      "decision": "user, 2026-11-01 (relayed by the orchestrator: accept as a documented test-harness limit; no code or tooling change)",
+      "what": "amd64 native CPython 3.12.3 on the host, public-contracts: 3 IDs fail 3/3 because multiprocessing.resource_tracker outlives the client by milliseconds; 24 of 24 probe runs show exactly that one process, never a worker. Harness limit of run_e04_fault.py; no user-facing change.",
+      "open_items": [
+        "Tooling could tolerate the resource_tracker (not changed)."
+      ]
+    },
+    {
+      "id": "amd64-container-public-many-cancel",
+      "status": "accepted-harness-limit",
+      "decision": "user, 2026-11-01 (relayed by the orchestrator: accept as a documented test-harness limit; no code or tooling change)",
+      "what": "See gates.e08_cells_amd64_container_python3.12.16.acceptance (five-arm investigation)."
+    },
+    {
+      "id": "amd64-e09-classic-order-log-sampling",
+      "status": "fixed",
+      "what": "E09 runs 1-2 failed the classic order test because bulk_run polled container logs every 1 s against containers that live about 1.7 s; test-only fix committed as bdb7235; run 3: 150 passed."
+    }
+  ],
+  "foreign_snapshots": {
+    "host": "only the four candidate amd64 image tags added",
+    "mac": "neburyx resources changed on their own during the run (container agitated_aryabhata, tags neo4j:5.26/neo4j:latest, postgres:16.15 image id, bridge network id, two volumes); none touched by this work"
+  },
+  "cleanup": {
+    "e11_owned_resources_remaining": {
+      "host": 0,
+      "mac": 0
+    },
+    "host_scratch": "~/e11-run-20261101T162244Z and ~/e11-run-20261101T161205Z remain",
+    "mac_scratch": "~/e11-runs"
+  }
+}

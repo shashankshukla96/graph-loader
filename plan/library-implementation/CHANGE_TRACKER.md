@@ -5,7 +5,19 @@ below use America/New_York and describe the actual commit or validation date.
 This is a history index, not a replacement for Git diffs or acceptance evidence.
 No entry authorizes a GitHub push, image/package upload or publication.
 
-**Current gate — E10 complete, 2026-11-01:** Installed-user documentation, implemented in a separate session
+**Current gate — E11.F1 candidate frozen, 2026-11-01:** Release candidate `0.1.0a1`, implemented in a separate
+session ([handoff](handoff-e11.md)) and reviewed by the orchestrator. Snapshot `60ea29f` (no tag; file-version
+mode): wheel `b420c784…e199`, sdist `7ee34307…5be0`, built from `git archive`; eight native images (amd64 on the
+Linux host, arm64 on the Mac) whose installed files match the wheel payload. Gates on the final bytes and images:
+E07 installed lanes, E08 dependency cells (from tooling commit `83862a1`), E09 service-harness 150/150 (after the
+test-only fix `bdb7235`), and an arm64 real-load smoke. Two amd64 red runs are accepted as test-harness limits by
+user decision: the `resource_tracker` leftover on the host's own Python, and the per-process guard's cost in
+containers (`public-many-cancel`; the product cancels in under 0.1 s without the guard). One manifest:
+[E11.F1.S3-manifest.json](evidence/E11.F1.S3-manifest.json). Open: E11.F1.S1 awaits the user's account, 2FA and
+token confirmation; the runbook needs a multi-arch manifest-list step before the image push. Next: E11.F2, only
+on a new explicit upload instruction.
+
+**Prior gate — E10 complete, 2026-11-01:** Installed-user documentation, implemented in a separate session
 ([handoff](handoff-e10.md)) and reviewed by the orchestrator: `docs/QUICKSTART.md`, a self-contained PyPI README
 with a "Support and limits" section matching E09's evidence, `docs/SUPPORT.md`, `SECURITY.md`, a 0.1.0a1
 CHANGELOG section, `docs/MIGRATION.md` and `docs/RELEASE_RUNBOOK.md`. The `native_disjoint` refusal message now
@@ -15,7 +27,7 @@ the candidate. Quick starts ran unchanged from a fresh wheel against an owned Ne
 ([evidence](evidence/E10.F1.S1.md)). Open for E11: refreeze `test-inventory.json` (the wheel METADATA changed),
 rerun the edited `test_service_legacy_classic.py` live, set the version and date. Next: E11.
 
-**Prior gate — E09 complete, 2026-11-01:** All seven E09 stories have executed evidence through the
+**Earlier gate — E09 complete, 2026-11-01:** All seven E09 stories have executed evidence through the
 installed CLI and candidate images on owned Neo4j 5.26 Enterprise and Kafka 7.7.0 (shared native Docker Engine
 host): live harness, planned bulk, streaming leases, classic, DLQ, outages/recovery in every supported mode, and
 the restricted ordering contract O1–O8. The independent exit review accepted after three rounds

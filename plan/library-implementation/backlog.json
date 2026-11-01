@@ -3,7 +3,7 @@
   "title": "Library implementation epics",
   "date": "2026-10-25",
   "source_checklist": "../../docs/PYPI_LIBRARY_CHECKLIST.md",
-  "status": "E00-E10 complete; E11-E12 not started (plan reset 2026-10-31, D08)",
+  "status": "E00-E10 complete; E11.F1.S2-S3 complete (candidate 0.1.0a1 frozen); E11.F1.S1 awaits user account confirmation; E11.F2 and E12 not started (plan reset 2026-10-31, D08)",
   "epics": [
     {
       "id": "E00",
@@ -1583,7 +1583,7 @@
       "scope": "This epic includes future external actions only as gated stories. The current planning request and earlier no-push instruction authorize none of them.",
       "exit_gate": "Exact candidate wheel/sdist bytes, image identity, ownership, page inspection and retrieved-install checks are recorded; failures trigger a new candidate and revalidation.",
       "review_status": "approved",
-      "implementation_status": "not started",
+      "implementation_status": "in progress 2026-11-01; E11.F1.S2-S3 complete, implemented in a separate session and reviewed by the orchestrator: candidate 0.1.0a1 from 60ea29f (wheel b420c784...e199, sdist 7ee34307...5be0), eight native images, manifest evidence/E11.F1.S3-manifest.json; two amd64 harness-limit red runs accepted by user decision; E11.F1.S1 awaits user account/2FA/token confirmation; E11.F2 needs a new explicit upload instruction",
       "features": [
         {
           "id": "E11.F1",
@@ -1643,7 +1643,7 @@
                 "Rebuild/install the sdist wheel without .git and validate version/resources. Record the source/dependency/build-input manifest for S3."
               ],
               "evidence": "evidence/E11.F1.S2.md",
-              "status": "planned"
+              "status": "complete"
             },
             {
               "id": "E11.F1.S3",
@@ -1677,7 +1677,7 @@
                 "Run the installed runner lanes with explicit manifest paths and final image identities; verify nothing comes from a stale dist directory or older image tag."
               ],
               "evidence": "evidence/E11.F1.S3.md",
-              "status": "planned"
+              "status": "complete"
             }
           ]
         },
