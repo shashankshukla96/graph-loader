@@ -198,3 +198,42 @@ def test_rename_to_another_function_or_file_is_refused(tmp_path, monkeypatch):
                          ({'new_id': other, 'reviewed': 'r', 'reason': 'x'}, 'newly collected')):
         with pytest.raises(ValueError, match=message):
             inventory.reviewed_renames({'reviewed_id_renames': {old: bad}}, previous, collected | {new})
+
+
+GONE_FILE = 'tests/test_gone.py'
+
+
+def _removal_case(tmp_path, monkeypatch):
+    """The rename case plus a frozen file, tests/test_gone.py, that was deleted from disk with its two IDs."""
+    data, collection, wheel, (old, other, new, added) = _rename_case(tmp_path, monkeypatch)
+    gone = [f'{GONE_FILE}::test_a', f'{GONE_FILE}::test_b[1]']
+    data['source_collection']['test_ids'] = [old, *gone, other]
+    data['test_dispositions'].update({i: data['test_dispositions'][other] for i in gone})
+    data['reviewed_file_removals'] = {GONE_FILE: {'reviewed': 'orchestrator 2026-11-02', 'reason': 'harness file deleted'}}
+    return data, collection, wheel, gone, (new, other, added)
+
+
+def test_reviewed_file_removal_drops_every_id_of_the_deleted_file(tmp_path, monkeypatch):
+    data, collection, wheel, gone, expected = _removal_case(tmp_path, monkeypatch)
+    frozen = inventory.freeze(data, collection, wheel)
+    assert frozen['source_collection']['test_ids'] == list(expected)
+    assert not set(gone) & set(frozen['test_dispositions'])
+    assert frozen['reviewed_file_removals'] == data['reviewed_file_removals']
+    assert inventory.freeze(frozen, collection, wheel)['source_collection']['test_ids'] == list(expected)
+
+
+def test_file_removal_needs_a_review_and_a_deleted_file(tmp_path, monkeypatch):
+    data, collection, wheel, gone, _ = _removal_case(tmp_path, monkeypatch)
+    del data['reviewed_file_removals'][GONE_FILE]['reason']
+    with pytest.raises(ValueError, match='needs reviewed and reason'):
+        inventory.freeze(data, collection, wheel)
+    data['reviewed_file_removals'][GONE_FILE]['reason'] = 'harness file deleted'
+    (tmp_path/GONE_FILE).write_text('def test_a(): pass\n')
+    with pytest.raises(ValueError, match='still exists'):
+        inventory.reviewed_file_removals(data, set(gone), set())
+    (tmp_path/GONE_FILE).unlink()
+    with pytest.raises(ValueError, match='still exists'):
+        inventory.reviewed_file_removals(data, set(gone), {gone[0]})
+    data['reviewed_file_removals'] = {}
+    with pytest.raises(ValueError, match='cannot remove/reorder'):
+        inventory.freeze(data, collection, wheel)

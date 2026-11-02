@@ -67,7 +67,7 @@ The CLI runs on the host. It applies the schema DDL to Neo4j, runs the planner p
 
 ### The `.env` caveat
 
-`python -m neo4j_graph_loader.cli` and the loader containers **never read `.env`**; they use the process environment only. The project `.env` may point at remote systems. `docker compose` and `make monitoring-up` read it, and so do `examples/imdb/publish_and_load_nodes.py` and `scripts/cleanup_imdb_local_load.sh` (exported variables win over `.env` in all of them). `examples/social/social_graph.py` and `examples/multi_topic/multi_topic_graph.py` do not read it. So export every connection variable yourself and print what the run will use before you start. For a local stack:
+`python -m neo4j_graph_loader.cli` and the loader containers **never read `.env`**; they use the process environment only. The project `.env` may point at remote systems. `docker compose` and `make monitoring-up` read it (exported variables win over `.env` in both). The examples (`examples/imdb/load_imdb.py`, `examples/social/social_graph.py`, `examples/multi_topic/multi_topic_graph.py`) do not read it. So export every connection variable yourself and print what the run will use before you start. For a local stack:
 
 ```bash
 export NEO4J_URI=bolt://localhost:7687 NEO4J_USERNAME=neo4j NEO4J_PASSWORD=...   # NEO4J_DATABASE=<db> optional
@@ -608,7 +608,7 @@ Source: a benchmark workspace of the maintainers that is not part of the reposit
 
 "Wall" is the whole runner: topic setup, publishing the TSVs to Kafka (6-15 s), then the CLI run. "Consume + load" is the Kafka consumption, Neo4j loading and drain verification step only. Derived from the medians: leases take roughly 1.7-1.8x the planned wall time and classic roughly 4.8-5.2x.
 
-**How it was measured** (`bench.sh`): the runner `examples/imdb/publish_and_load_nodes.py --partitions 4 --consumer-workers 4 --publish-workers 4 --edge-consumers 1 --edge-writers 4 --network graph-loader-net --skip-image-build`, plus no mode flag for planned (with a `--plan-topic` under the benchmark prefix), `--edge-leases` or `--edge-classic`. For every run: a fresh database (`CREATE OR REPLACE DATABASE ... WAIT`), the benchmark's own topics and groups deleted first, images prebuilt, node and relationship counts diffed against expected files (every valid run matched), and lock waits summed from `query.log` entries for that database inside the run's time window. Interleaved order, 2 repetitions plus extra lease replicates. One lease run on p2 was excluded because Neo4j rate-limited authentication after another client failed to log in. The host was busy during the second half of the benchmark (load average up to 54), so the spreads are wide (up to 20% for leases); the p1/p2 differences are within noise.
+**How it was measured** (`bench.sh`): the former IMDb runner (`examples/imdb/publish_and_load_nodes.py`, replaced by `examples/imdb/load_imdb.py` on 2026-11-02) with `--partitions 4 --consumer-workers 4 --publish-workers 4 --edge-consumers 1 --edge-writers 4 --network graph-loader-net --skip-image-build`, plus no mode flag for planned (with a `--plan-topic` under the benchmark prefix), `--edge-leases` or `--edge-classic`. For every run: a fresh database (`CREATE OR REPLACE DATABASE ... WAIT`), the benchmark's own topics and groups deleted first, images prebuilt, node and relationship counts diffed against expected files (every valid run matched), and lock waits summed from `query.log` entries for that database inside the run's time window. Interleaved order, 2 repetitions plus extra lease replicates. One lease run on p2 was excluded because Neo4j rate-limited authentication after another client failed to log in. The host was busy during the second half of the benchmark (load average up to 54), so the spreads are wide (up to 20% for leases); the p1/p2 differences are within noise.
 
 ### Earlier documented figures (USAGE.md section 9)
 
@@ -700,15 +700,12 @@ Clean up with `python examples/social/social_graph.py reset` (deletes the exampl
 **IMDb variant.** After building a subset (`examples/imdb/README.md`) and with Kafka and Neo4j running:
 
 ```bash
-./scripts/cleanup_imdb_local_load.sh           # clears only this example's input topics and node groups
-python examples/imdb/publish_and_load_nodes.py \
-  --subset-dir examples/imdb/data/subsets/titles-40000-depth-4 \
-  --partitions 4 --consumer-workers 4 --publish-workers 4 \
-  --edge-plan --report-dir examples/imdb/reports --skip-image-build \
-  --network graph-loader-net
+export NEO4J_PASSWORD=...   # plus NEO4J_URI, NEO4J_USER and KAFKA_BOOTSTRAP_SERVERS for your stack
+python examples/imdb/load_imdb.py examples/imdb/graph_schema.yaml \
+  examples/imdb/data/subsets/titles-40000-depth-4 --neo4j-database imdb --delete-topics
 ```
 
-The runner publishes the nodes, plans every relationship (in the publisher with `--plan-source files`, the default, or from Kafka with `--plan-source kafka`) while the nodes load, starts the CLI in bulk mode, and writes a Markdown timing report. With no edge-mode flag it follows the CLI default (planned, from the edge topics). **If you export `LOADER_KAFKA_BOOTSTRAP_SERVERS` and `LOADER_NEO4J_URI`, the runner defaults to the Docker `bridge` network, where `kafka` does not resolve; pass `--network graph-loader-net`** (or leave the `LOADER_*` variables unset on the local stack). The runner reads the project `.env` too, so `LOADER_*` values set only in `.env` trigger the same default. The runner forwards SIGINT/SIGTERM to the CLI.
+The script publishes every node and relationship file to topics with a per-run prefix, runs `graph-loader start --mode bulk` (planned, the default) and prints the time of each phase; `--delete-topics` removes that run's topics afterwards. The loader containers join `graph-loader-net` by default (`--network`); when they reach Kafka or Neo4j under other addresses than the host does, pass `--loader-kafka-bootstrap` and `--loader-neo4j-uri`.
 
 ## 18. Notes / open questions
 

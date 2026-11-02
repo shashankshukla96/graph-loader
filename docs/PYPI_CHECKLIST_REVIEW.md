@@ -56,7 +56,7 @@ the final 1,247,026 nodes and 4,510,991 distinct relationships match every
 source label/type count. The load resumed from already published records and
 plan; its 422.618-second duration excludes initial preparation/troubleshooting.
 The local detailed report is `examples/imdb/reports/imdb-preflight-verification-20261015.md`
-(ignored benchmark output). This proves the exercised planned-load path, not
+(ignored benchmark output; deleted 2026-11-02). This proves the exercised planned-load path, not
 all real-service or release gates. No changes were pushed.
 
 ## E00 implementation acceptance — 2026-10-16

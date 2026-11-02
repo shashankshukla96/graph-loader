@@ -939,7 +939,7 @@
       "excluded_test_ids": {},
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -3770,7 +3770,7 @@
       "excluded_test_ids": {},
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -5242,7 +5242,7 @@
       "excluded_test_ids": {},
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -5692,7 +5692,7 @@
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
         "config/neo4j/server-logs.xml": "d2375b2e25222138064c463d33293c6a05f01051c7af1dad42d16e21594735d6",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -7238,7 +7238,7 @@
       },
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -8513,7 +8513,7 @@
       },
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -9246,7 +9246,7 @@
       },
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -9434,10 +9434,7 @@
         "tests/test_social_example.py",
         "tests/test_star_topology_data.py",
         "examples/imdb/tests/test_backfill_variant.py",
-        "examples/imdb/tests/test_build_subset.py",
-        "examples/imdb/tests/test_planned_edges.py",
-        "examples/imdb/tests/test_precedence_report.py",
-        "examples/imdb/tests/test_publish_and_load_nodes.py"
+        "examples/imdb/tests/test_build_subset.py"
       ],
       "test_ids": [
         "tests/test_multi_topic_example.py::test_schema_declares_the_two_rules_and_the_topics_the_generator_publishes",
@@ -9493,70 +9490,7 @@
         "examples/imdb/tests/test_build_subset.py::test_parallel_derivation_fails_closed_when_a_source_fails",
         "examples/imdb/tests/test_build_subset.py::test_spawned_derivation_preserves_parent_chunk_config_and_converter",
         "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer",
-        "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields",
-        "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order",
-        "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource",
-        "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local",
-        "examples/imdb/tests/test_planned_edges.py::test_invalid_rows_fail_the_plan_with_file_and_line",
-        "examples/imdb/tests/test_planned_edges.py::test_sources_shard_large_files_by_source_bucket",
-        "examples/imdb/tests/test_planned_edges.py::test_shard_filter_uses_the_library_bucket",
-        "examples/imdb/tests/test_planned_edges.py::test_chunk_messages_respect_the_byte_budget",
-        "examples/imdb/tests/test_planned_edges.py::test_process_planner_writes_a_valid_plan_or_a_failure_marker",
-        "examples/imdb/tests/test_planned_edges.py::test_planner_producer_config_isolates_chunks_and_allows_large_messages",
-        "examples/imdb/tests/test_planned_edges.py::test_ensure_plan_topic_creates_with_large_messages_and_checks_existing",
-        "examples/imdb/tests/test_planned_edges.py::test_planned_write_timings_are_keyed_per_edge_type_and_reported",
-        "examples/imdb/tests/test_planned_edges.py::test_main_plans_edges_and_passes_the_plan_to_the_bulk_cli",
-        "examples/imdb/tests/test_planned_edges.py::test_edge_plan_and_leases_are_mutually_exclusive",
-        "examples/imdb/tests/test_planned_edges.py::test_kafka_plan_source_publishes_edge_topics_and_lets_the_loader_plan",
-        "examples/imdb/tests/test_precedence_report.py::test_precedence_substage_rows_sit_under_the_type_with_the_type_total",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_rejects_retained_data_before_publication",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_retries_new_topic_leader_election",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_waits_for_new_topic_metadata",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_typed_payload_converts_imdb_numeric_tsv_values",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_sets_consumer_replicas_and_is_isolated",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_small_node_types_get_one_replica_and_runtime_schema_applies_it",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_edge_outer_batch_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_node_outer_batch_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_node_override_preserves_edge_fallback_without_explicit_edge_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_accepts_both_batch_overrides",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_supports_four_edge_consumers_with_one_writer_each",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_bulk_timing_logs_remain_after_loader_returns",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_sigterm_and_returns_child_exit_code",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_second_signal_without_escalating",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_kills_a_child_that_overruns_the_stop_timeout",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_does_not_kill_without_a_signal",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tsv_uses_the_schema_key_as_the_kafka_message_key",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_edge_payload_uses_declared_endpoint_keys_and_only_declared_properties",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_edge_tsv_uses_source_identifier_for_kafka_key",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_all_requested_timing_categories",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_sums_samples_across_replica_files",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_empty_when_no_files",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_skips_unparseable_file_and_keeps_good_totals",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_metrics_totals_section_when_snapshots_exist",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_omits_metrics_totals_section_cleanly_when_no_snapshots",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_is_byte_identical_to_reference",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_matches_reference_floats_and_name_alias",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_reports_the_same_invalid_value_error",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_is_byte_identical_to_reference",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_reports_missing_endpoints_and_properties",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_producer_queue_full_is_retried_and_polling_is_batched",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_key_hash_shards_partition_records_and_keep_per_key_order",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_rows_without_a_key_are_rejected_once_by_shard_zero",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_plan_splits_large_topics_and_schedules_largest_first",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tasks_survive_pickling_for_worker_processes",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_merge_publish_results_sums_shards_and_spans_their_wall_time",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_publish_task_configures_producer_and_rejects_delivery_failures",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_lists_the_publisher_layout",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_only_main_publishes_every_topic_once_across_shards",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_records_bucket_lease_settings_and_coordinator_stats",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_without_a_mode_flag_uses_the_cli_planned_default",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_planned_mode_drops_per_type_edge_lines_and_warns_about_classic_flags",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_plan_source_files_needs_edge_plan",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_classic_passes_the_classic_tuning_flags",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags0]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags1]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
+        "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields"
       ],
       "collected_test_ids": [
         "tests/test_multi_topic_example.py::test_schema_declares_the_two_rules_and_the_topics_the_generator_publishes",
@@ -9612,84 +9546,16 @@
         "examples/imdb/tests/test_build_subset.py::test_parallel_derivation_fails_closed_when_a_source_fails",
         "examples/imdb/tests/test_build_subset.py::test_spawned_derivation_preserves_parent_chunk_config_and_converter",
         "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer",
-        "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields",
-        "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order",
-        "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource",
-        "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local",
-        "examples/imdb/tests/test_planned_edges.py::test_invalid_rows_fail_the_plan_with_file_and_line",
-        "examples/imdb/tests/test_planned_edges.py::test_sources_shard_large_files_by_source_bucket",
-        "examples/imdb/tests/test_planned_edges.py::test_shard_filter_uses_the_library_bucket",
-        "examples/imdb/tests/test_planned_edges.py::test_chunk_messages_respect_the_byte_budget",
-        "examples/imdb/tests/test_planned_edges.py::test_process_planner_writes_a_valid_plan_or_a_failure_marker",
-        "examples/imdb/tests/test_planned_edges.py::test_planner_producer_config_isolates_chunks_and_allows_large_messages",
-        "examples/imdb/tests/test_planned_edges.py::test_ensure_plan_topic_creates_with_large_messages_and_checks_existing",
-        "examples/imdb/tests/test_planned_edges.py::test_planned_write_timings_are_keyed_per_edge_type_and_reported",
-        "examples/imdb/tests/test_planned_edges.py::test_main_plans_edges_and_passes_the_plan_to_the_bulk_cli",
-        "examples/imdb/tests/test_planned_edges.py::test_edge_plan_and_leases_are_mutually_exclusive",
-        "examples/imdb/tests/test_planned_edges.py::test_kafka_plan_source_publishes_edge_topics_and_lets_the_loader_plan",
-        "examples/imdb/tests/test_precedence_report.py::test_precedence_substage_rows_sit_under_the_type_with_the_type_total",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_rejects_retained_data_before_publication",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_retries_new_topic_leader_election",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_waits_for_new_topic_metadata",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_typed_payload_converts_imdb_numeric_tsv_values",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_sets_consumer_replicas_and_is_isolated",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_small_node_types_get_one_replica_and_runtime_schema_applies_it",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_edge_outer_batch_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_node_outer_batch_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_node_override_preserves_edge_fallback_without_explicit_edge_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_accepts_both_batch_overrides",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_supports_four_edge_consumers_with_one_writer_each",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_bulk_timing_logs_remain_after_loader_returns",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_sigterm_and_returns_child_exit_code",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_second_signal_without_escalating",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_kills_a_child_that_overruns_the_stop_timeout",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_does_not_kill_without_a_signal",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tsv_uses_the_schema_key_as_the_kafka_message_key",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_edge_payload_uses_declared_endpoint_keys_and_only_declared_properties",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_edge_tsv_uses_source_identifier_for_kafka_key",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_all_requested_timing_categories",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_sums_samples_across_replica_files",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_empty_when_no_files",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_skips_unparseable_file_and_keeps_good_totals",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_metrics_totals_section_when_snapshots_exist",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_omits_metrics_totals_section_cleanly_when_no_snapshots",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_is_byte_identical_to_reference",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_matches_reference_floats_and_name_alias",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_reports_the_same_invalid_value_error",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_is_byte_identical_to_reference",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_reports_missing_endpoints_and_properties",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_producer_queue_full_is_retried_and_polling_is_batched",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_key_hash_shards_partition_records_and_keep_per_key_order",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_rows_without_a_key_are_rejected_once_by_shard_zero",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_plan_splits_large_topics_and_schedules_largest_first",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tasks_survive_pickling_for_worker_processes",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_merge_publish_results_sums_shards_and_spans_their_wall_time",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_publish_task_configures_producer_and_rejects_delivery_failures",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_lists_the_publisher_layout",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_only_main_publishes_every_topic_once_across_shards",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_records_bucket_lease_settings_and_coordinator_stats",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_without_a_mode_flag_uses_the_cli_planned_default",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_planned_mode_drops_per_type_edge_lines_and_warns_about_classic_flags",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_plan_source_files_needs_edge_plan",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_classic_passes_the_classic_tuning_flags",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags0]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags1]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
+        "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields"
       ],
       "excluded_test_ids": {},
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
-        "examples/imdb/README.md": "c3e75b692df29cb2a10bf1caaadabaf252b4baa3686895738f656f783b2af0ab",
+        "examples/imdb/README.md": "65deda49f079ce7cf5ade1444898f6a49753bb14ae666a3d151db0b2870c2e8e",
         "examples/imdb/build_subset.py": "602e8fc35bd360ca836c384db7025b2f8a0b184db3f5b92e9c3cba26ed286b00",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
-        "examples/imdb/planned_edges.py": "b5611b812480a52913df3afcc5e785e2fac658cc510f91178e5aa17312f780a8",
-        "examples/imdb/publish_and_load_nodes.py": "6cff58ea4e1900d91022257618f503dc3d4553bb5380a5f6821c1f6159afb263",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/imdb/tests/test_backfill_variant.py": "9bd1856525ec3bb55cd1ba5889d4580174fdc19132f883bb3377f784a49d5b20",
         "examples/imdb/tests/test_build_subset.py": "99209e53fba09fe89b94b903f3d0a63563b5373f682d8a1de888b72ff8c8d947",
-        "examples/imdb/tests/test_planned_edges.py": "dd99603c20c8a000819a14470b405f3b7f4d253c0ddfa4c9e3aca27e2059b17c",
-        "examples/imdb/tests/test_precedence_report.py": "6590708e1110467049bc52e293e6bfc8fceb46bdeca4e3c6b1620f9603633d2d",
-        "examples/imdb/tests/test_publish_and_load_nodes.py": "f7fe3536dacc5e53b62ec2f96282432a8292c958ba986f051a5b0d726073049d",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -9714,25 +9580,9 @@
       },
       "recursive_imports": {
         "examples/imdb/build_subset.py": [],
-        "examples/imdb/planned_edges.py": [
-          "examples/imdb/publish_and_load_nodes.py"
-        ],
-        "examples/imdb/publish_and_load_nodes.py": [
-          "examples/imdb/planned_edges.py"
-        ],
         "examples/imdb/tests/test_backfill_variant.py": [],
         "examples/imdb/tests/test_build_subset.py": [
           "examples/imdb/build_subset.py"
-        ],
-        "examples/imdb/tests/test_planned_edges.py": [
-          "examples/imdb/planned_edges.py",
-          "examples/imdb/publish_and_load_nodes.py"
-        ],
-        "examples/imdb/tests/test_precedence_report.py": [
-          "examples/imdb/publish_and_load_nodes.py"
-        ],
-        "examples/imdb/tests/test_publish_and_load_nodes.py": [
-          "examples/imdb/publish_and_load_nodes.py"
         ],
         "examples/multi_topic/multi_topic_graph.py": [],
         "examples/social/social_graph.py": [],
@@ -9775,13 +9625,8 @@
         "examples/imdb/README.md": "Maintained example/reference helper or documentation fixture; never application source.",
         "examples/imdb/build_subset.py": "Maintained example/reference helper or documentation fixture; never application source.",
         "examples/imdb/graph_schema.yaml": "Maintained example/reference helper or documentation fixture; never application source.",
-        "examples/imdb/planned_edges.py": "Maintained example/reference helper or documentation fixture; never application source.",
-        "examples/imdb/publish_and_load_nodes.py": "Maintained example/reference helper or documentation fixture; never application source.",
         "examples/imdb/tests/test_backfill_variant.py": "Maintained example/reference helper or documentation fixture; never application source.",
         "examples/imdb/tests/test_build_subset.py": "Maintained example/reference helper or documentation fixture; never application source.",
-        "examples/imdb/tests/test_planned_edges.py": "Maintained example/reference helper or documentation fixture; never application source.",
-        "examples/imdb/tests/test_precedence_report.py": "Maintained example/reference helper or documentation fixture; never application source.",
-        "examples/imdb/tests/test_publish_and_load_nodes.py": "Maintained example/reference helper or documentation fixture; never application source.",
         "examples/multi_topic/graph_schema.yaml": "Maintained example/reference helper or documentation fixture; never application source.",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "Maintained example/reference helper or documentation fixture; never application source.",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "Maintained example/reference helper or documentation fixture; never application source.",
@@ -9792,7 +9637,7 @@
       "fixture_counts": {
         ".yaml": 8,
         ".md": 1,
-        ".py": 19,
+        ".py": 14,
         ".json": 4
       },
       "extra_test_requirements": [
@@ -9916,7 +9761,7 @@
       },
       "stage_files": {
         "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
-        "examples/imdb/graph_schema.yaml": "7ffecfb56220cd9d42587d2e6f2527d388642434e9ccd6fb44904985a0204d7b",
+        "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
         "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
         "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
         "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
@@ -16092,7 +15937,7 @@
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:253]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:175]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
@@ -18284,6 +18129,14 @@
       "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
     },
     "tests/test_installed_inventory.py::test_rename_to_another_function_or_file_is_refused": {
+      "kind": "checkout-development",
+      "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
+    },
+    "tests/test_installed_inventory.py::test_reviewed_file_removal_drops_every_id_of_the_deleted_file": {
+      "kind": "checkout-development",
+      "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
+    },
+    "tests/test_installed_inventory.py::test_file_removal_needs_a_review_and_a_deleted_file": {
       "kind": "checkout-development",
       "reason": "Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof."
     },
@@ -30519,321 +30372,6 @@
       "kind": "installed",
       "lane": "example-contracts",
       "mapping": "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_invalid_rows_fail_the_plan_with_file_and_line": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_invalid_rows_fail_the_plan_with_file_and_line"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_sources_shard_large_files_by_source_bucket": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_sources_shard_large_files_by_source_bucket"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_shard_filter_uses_the_library_bucket": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_shard_filter_uses_the_library_bucket"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_chunk_messages_respect_the_byte_budget": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_chunk_messages_respect_the_byte_budget"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_process_planner_writes_a_valid_plan_or_a_failure_marker": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_process_planner_writes_a_valid_plan_or_a_failure_marker"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_planner_producer_config_isolates_chunks_and_allows_large_messages": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_planner_producer_config_isolates_chunks_and_allows_large_messages"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_ensure_plan_topic_creates_with_large_messages_and_checks_existing": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_ensure_plan_topic_creates_with_large_messages_and_checks_existing"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_planned_write_timings_are_keyed_per_edge_type_and_reported": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_planned_write_timings_are_keyed_per_edge_type_and_reported"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_main_plans_edges_and_passes_the_plan_to_the_bulk_cli": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_main_plans_edges_and_passes_the_plan_to_the_bulk_cli"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_edge_plan_and_leases_are_mutually_exclusive": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_edge_plan_and_leases_are_mutually_exclusive"
-    },
-    "examples/imdb/tests/test_planned_edges.py::test_kafka_plan_source_publishes_edge_topics_and_lets_the_loader_plan": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_planned_edges.py::test_kafka_plan_source_publishes_edge_topics_and_lets_the_loader_plan"
-    },
-    "examples/imdb/tests/test_precedence_report.py::test_precedence_substage_rows_sit_under_the_type_with_the_type_total": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_precedence_report.py::test_precedence_substage_rows_sit_under_the_type_with_the_type_total"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_rejects_retained_data_before_publication": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_rejects_retained_data_before_publication"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_retries_new_topic_leader_election": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_retries_new_topic_leader_election"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_waits_for_new_topic_metadata": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_waits_for_new_topic_metadata"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_typed_payload_converts_imdb_numeric_tsv_values": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_typed_payload_converts_imdb_numeric_tsv_values"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_sets_consumer_replicas_and_is_isolated": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_sets_consumer_replicas_and_is_isolated"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_small_node_types_get_one_replica_and_runtime_schema_applies_it": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_small_node_types_get_one_replica_and_runtime_schema_applies_it"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_edge_outer_batch_size": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_edge_outer_batch_size"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_node_outer_batch_size": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_node_outer_batch_size"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_node_override_preserves_edge_fallback_without_explicit_edge_size": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_node_override_preserves_edge_fallback_without_explicit_edge_size"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_accepts_both_batch_overrides": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_accepts_both_batch_overrides"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_supports_four_edge_consumers_with_one_writer_each": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_supports_four_edge_consumers_with_one_writer_each"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_bulk_timing_logs_remain_after_loader_returns": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_bulk_timing_logs_remain_after_loader_returns"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_sigterm_and_returns_child_exit_code": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_sigterm_and_returns_child_exit_code"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_second_signal_without_escalating": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_second_signal_without_escalating"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_kills_a_child_that_overruns_the_stop_timeout": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_kills_a_child_that_overruns_the_stop_timeout"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_does_not_kill_without_a_signal": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_does_not_kill_without_a_signal"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tsv_uses_the_schema_key_as_the_kafka_message_key": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tsv_uses_the_schema_key_as_the_kafka_message_key"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_edge_payload_uses_declared_endpoint_keys_and_only_declared_properties": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_edge_payload_uses_declared_endpoint_keys_and_only_declared_properties"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_edge_tsv_uses_source_identifier_for_kafka_key": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_edge_tsv_uses_source_identifier_for_kafka_key"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_all_requested_timing_categories": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_all_requested_timing_categories"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_sums_samples_across_replica_files": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_sums_samples_across_replica_files"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_empty_when_no_files": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_empty_when_no_files"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_skips_unparseable_file_and_keeps_good_totals": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_skips_unparseable_file_and_keeps_good_totals"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_metrics_totals_section_when_snapshots_exist": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_metrics_totals_section_when_snapshots_exist"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_omits_metrics_totals_section_cleanly_when_no_snapshots": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_omits_metrics_totals_section_cleanly_when_no_snapshots"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_is_byte_identical_to_reference": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_is_byte_identical_to_reference"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_matches_reference_floats_and_name_alias": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_matches_reference_floats_and_name_alias"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_reports_the_same_invalid_value_error": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_reports_the_same_invalid_value_error"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_is_byte_identical_to_reference": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_is_byte_identical_to_reference"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_reports_missing_endpoints_and_properties": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_reports_missing_endpoints_and_properties"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_producer_queue_full_is_retried_and_polling_is_batched": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_producer_queue_full_is_retried_and_polling_is_batched"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_key_hash_shards_partition_records_and_keep_per_key_order": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_key_hash_shards_partition_records_and_keep_per_key_order"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_rows_without_a_key_are_rejected_once_by_shard_zero": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_rows_without_a_key_are_rejected_once_by_shard_zero"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_plan_splits_large_topics_and_schedules_largest_first": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_plan_splits_large_topics_and_schedules_largest_first"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tasks_survive_pickling_for_worker_processes": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tasks_survive_pickling_for_worker_processes"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_merge_publish_results_sums_shards_and_spans_their_wall_time": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_merge_publish_results_sums_shards_and_spans_their_wall_time"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_publish_task_configures_producer_and_rejects_delivery_failures": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_publish_task_configures_producer_and_rejects_delivery_failures"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_lists_the_publisher_layout": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_lists_the_publisher_layout"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_only_main_publishes_every_topic_once_across_shards": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_only_main_publishes_every_topic_once_across_shards"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_records_bucket_lease_settings_and_coordinator_stats": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_records_bucket_lease_settings_and_coordinator_stats"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_without_a_mode_flag_uses_the_cli_planned_default": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_without_a_mode_flag_uses_the_cli_planned_default"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_planned_mode_drops_per_type_edge_lines_and_warns_about_classic_flags": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_planned_mode_drops_per_type_edge_lines_and_warns_about_classic_flags"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_plan_source_files_needs_edge_plan": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_plan_source_files_needs_edge_plan"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_classic_passes_the_classic_tuning_flags": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_classic_passes_the_classic_tuning_flags"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags0]": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags0]"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags1]": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags1]"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]"
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli": {
-      "kind": "installed",
-      "lane": "example-contracts",
-      "mapping": "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
     }
   },
   "file_dispositions": {
@@ -30865,90 +30403,6 @@
       ],
       "categories": {
         "installed": 14
-      }
-    },
-    "examples/imdb/tests/test_planned_edges.py": {
-      "ids": [
-        "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order",
-        "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource",
-        "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local",
-        "examples/imdb/tests/test_planned_edges.py::test_invalid_rows_fail_the_plan_with_file_and_line",
-        "examples/imdb/tests/test_planned_edges.py::test_sources_shard_large_files_by_source_bucket",
-        "examples/imdb/tests/test_planned_edges.py::test_shard_filter_uses_the_library_bucket",
-        "examples/imdb/tests/test_planned_edges.py::test_chunk_messages_respect_the_byte_budget",
-        "examples/imdb/tests/test_planned_edges.py::test_process_planner_writes_a_valid_plan_or_a_failure_marker",
-        "examples/imdb/tests/test_planned_edges.py::test_planner_producer_config_isolates_chunks_and_allows_large_messages",
-        "examples/imdb/tests/test_planned_edges.py::test_ensure_plan_topic_creates_with_large_messages_and_checks_existing",
-        "examples/imdb/tests/test_planned_edges.py::test_planned_write_timings_are_keyed_per_edge_type_and_reported",
-        "examples/imdb/tests/test_planned_edges.py::test_main_plans_edges_and_passes_the_plan_to_the_bulk_cli",
-        "examples/imdb/tests/test_planned_edges.py::test_edge_plan_and_leases_are_mutually_exclusive",
-        "examples/imdb/tests/test_planned_edges.py::test_kafka_plan_source_publishes_edge_topics_and_lets_the_loader_plan"
-      ],
-      "categories": {
-        "installed": 14
-      }
-    },
-    "examples/imdb/tests/test_precedence_report.py": {
-      "ids": [
-        "examples/imdb/tests/test_precedence_report.py::test_precedence_substage_rows_sit_under_the_type_with_the_type_total"
-      ],
-      "categories": {
-        "installed": 1
-      }
-    },
-    "examples/imdb/tests/test_publish_and_load_nodes.py": {
-      "ids": [
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_rejects_retained_data_before_publication",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_retries_new_topic_leader_election",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_waits_for_new_topic_metadata",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_typed_payload_converts_imdb_numeric_tsv_values",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_sets_consumer_replicas_and_is_isolated",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_small_node_types_get_one_replica_and_runtime_schema_applies_it",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_edge_outer_batch_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_node_outer_batch_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_node_override_preserves_edge_fallback_without_explicit_edge_size",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_accepts_both_batch_overrides",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_supports_four_edge_consumers_with_one_writer_each",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_bulk_timing_logs_remain_after_loader_returns",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_sigterm_and_returns_child_exit_code",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_second_signal_without_escalating",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_kills_a_child_that_overruns_the_stop_timeout",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_does_not_kill_without_a_signal",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tsv_uses_the_schema_key_as_the_kafka_message_key",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_edge_payload_uses_declared_endpoint_keys_and_only_declared_properties",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_edge_tsv_uses_source_identifier_for_kafka_key",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_all_requested_timing_categories",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_sums_samples_across_replica_files",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_empty_when_no_files",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_skips_unparseable_file_and_keeps_good_totals",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_metrics_totals_section_when_snapshots_exist",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_omits_metrics_totals_section_cleanly_when_no_snapshots",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_is_byte_identical_to_reference",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_matches_reference_floats_and_name_alias",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_reports_the_same_invalid_value_error",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_is_byte_identical_to_reference",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_reports_missing_endpoints_and_properties",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_producer_queue_full_is_retried_and_polling_is_batched",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_key_hash_shards_partition_records_and_keep_per_key_order",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_rows_without_a_key_are_rejected_once_by_shard_zero",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_plan_splits_large_topics_and_schedules_largest_first",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tasks_survive_pickling_for_worker_processes",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_merge_publish_results_sums_shards_and_spans_their_wall_time",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_publish_task_configures_producer_and_rejects_delivery_failures",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_lists_the_publisher_layout",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_only_main_publishes_every_topic_once_across_shards",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_records_bucket_lease_settings_and_coordinator_stats",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_without_a_mode_flag_uses_the_cli_planned_default",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_planned_mode_drops_per_type_edge_lines_and_warns_about_classic_flags",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_plan_source_files_needs_edge_plan",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_classic_passes_the_classic_tuning_flags",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags0]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags1]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]",
-        "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
-      ],
-      "categories": {
-        "installed": 48
       }
     },
     "tests/installed_service/test_inspection_controls.py": {
@@ -32454,7 +31908,7 @@
         "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:61]",
         "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:180]",
         "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:394]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:253]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:175]",
         "tests/test_docs_yaml_snippets.py::test_the_docs_show_a_type_with_several_label_pairs",
         "tests/test_docs_yaml_snippets.py::test_a_snippet_with_an_unknown_topic_entry_key_fails"
       ],
@@ -32986,10 +32440,12 @@
         "tests/test_installed_inventory.py::test_reviewed_rename_is_accepted_in_place_and_keeps_its_disposition",
         "tests/test_installed_inventory.py::test_unlisted_removal_is_still_refused",
         "tests/test_installed_inventory.py::test_rename_cannot_reorder_or_change_a_disposition",
-        "tests/test_installed_inventory.py::test_rename_to_another_function_or_file_is_refused"
+        "tests/test_installed_inventory.py::test_rename_to_another_function_or_file_is_refused",
+        "tests/test_installed_inventory.py::test_reviewed_file_removal_drops_every_id_of_the_deleted_file",
+        "tests/test_installed_inventory.py::test_file_removal_needs_a_review_and_a_deleted_file"
       ],
       "categories": {
-        "checkout-development": 12
+        "checkout-development": 14
       }
     },
     "tests/test_installed_runner.py": {
@@ -44685,7 +44141,7 @@
       "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:61]",
       "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:180]",
       "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:394]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:253]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:175]",
       "tests/test_docs_yaml_snippets.py::test_the_docs_show_a_type_with_several_label_pairs",
       "tests/test_docs_yaml_snippets.py::test_a_snippet_with_an_unknown_topic_entry_key_fails",
       "tests/test_edge_before_node_dlq_probes.py::test_retry_consumer_available_true_for_the_real_module",
@@ -45127,6 +44583,8 @@
       "tests/test_installed_inventory.py::test_unlisted_removal_is_still_refused",
       "tests/test_installed_inventory.py::test_rename_cannot_reorder_or_change_a_disposition",
       "tests/test_installed_inventory.py::test_rename_to_another_function_or_file_is_refused",
+      "tests/test_installed_inventory.py::test_reviewed_file_removal_drops_every_id_of_the_deleted_file",
+      "tests/test_installed_inventory.py::test_file_removal_needs_a_review_and_a_deleted_file",
       "tests/test_installed_runner.py::test_malformed_receipt_fails_without_losing_owned_cleanup",
       "tests/test_installed_runner.py::test_staged_paths_reject_sources_secrets_and_escape[../tests/x.py]",
       "tests/test_installed_runner.py::test_staged_paths_reject_sources_secrets_and_escape[/tests/x.py]",
@@ -47630,77 +47088,14 @@
       "examples/imdb/tests/test_build_subset.py::test_parallel_derivation_fails_closed_when_a_source_fails",
       "examples/imdb/tests/test_build_subset.py::test_spawned_derivation_preserves_parent_chunk_config_and_converter",
       "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer",
-      "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields",
-      "examples/imdb/tests/test_planned_edges.py::test_every_row_is_planned_exactly_once_with_reference_records_and_pair_order",
-      "examples/imdb/tests/test_planned_edges.py::test_hubs_use_total_degree_across_types_and_get_their_own_resource",
-      "examples/imdb/tests/test_planned_edges.py::test_distributed_hub_detection_is_exact_and_sharding_keeps_units_local",
-      "examples/imdb/tests/test_planned_edges.py::test_invalid_rows_fail_the_plan_with_file_and_line",
-      "examples/imdb/tests/test_planned_edges.py::test_sources_shard_large_files_by_source_bucket",
-      "examples/imdb/tests/test_planned_edges.py::test_shard_filter_uses_the_library_bucket",
-      "examples/imdb/tests/test_planned_edges.py::test_chunk_messages_respect_the_byte_budget",
-      "examples/imdb/tests/test_planned_edges.py::test_process_planner_writes_a_valid_plan_or_a_failure_marker",
-      "examples/imdb/tests/test_planned_edges.py::test_planner_producer_config_isolates_chunks_and_allows_large_messages",
-      "examples/imdb/tests/test_planned_edges.py::test_ensure_plan_topic_creates_with_large_messages_and_checks_existing",
-      "examples/imdb/tests/test_planned_edges.py::test_planned_write_timings_are_keyed_per_edge_type_and_reported",
-      "examples/imdb/tests/test_planned_edges.py::test_main_plans_edges_and_passes_the_plan_to_the_bulk_cli",
-      "examples/imdb/tests/test_planned_edges.py::test_edge_plan_and_leases_are_mutually_exclusive",
-      "examples/imdb/tests/test_planned_edges.py::test_kafka_plan_source_publishes_edge_topics_and_lets_the_loader_plan",
-      "examples/imdb/tests/test_precedence_report.py::test_precedence_substage_rows_sit_under_the_type_with_the_type_total",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_rejects_retained_data_before_publication",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_retries_new_topic_leader_election",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_topic_preflight_waits_for_new_topic_metadata",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_typed_payload_converts_imdb_numeric_tsv_values",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_sets_consumer_replicas_and_is_isolated",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_small_node_types_get_one_replica_and_runtime_schema_applies_it",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_edge_outer_batch_size",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_overrides_only_node_outer_batch_size",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_node_override_preserves_edge_fallback_without_explicit_edge_size",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_accepts_both_batch_overrides",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_runtime_schema_supports_four_edge_consumers_with_one_writer_each",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_bulk_timing_logs_remain_after_loader_returns",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_sigterm_and_returns_child_exit_code",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_forwards_second_signal_without_escalating",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_kills_a_child_that_overruns_the_stop_timeout",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_child_forwarder_does_not_kill_without_a_signal",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tsv_uses_the_schema_key_as_the_kafka_message_key",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_edge_payload_uses_declared_endpoint_keys_and_only_declared_properties",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_edge_tsv_uses_source_identifier_for_kafka_key",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_all_requested_timing_categories",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_sums_samples_across_replica_files",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_empty_when_no_files",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_read_metrics_snapshots_skips_unparseable_file_and_keeps_good_totals",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_includes_metrics_totals_section_when_snapshots_exist",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_omits_metrics_totals_section_cleanly_when_no_snapshots",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_is_byte_identical_to_reference",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_matches_reference_floats_and_name_alias",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_node_encoding_reports_the_same_invalid_value_error",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_is_byte_identical_to_reference",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_fast_edge_encoding_reports_missing_endpoints_and_properties",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_producer_queue_full_is_retried_and_polling_is_batched",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_key_hash_shards_partition_records_and_keep_per_key_order",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_rows_without_a_key_are_rejected_once_by_shard_zero",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_plan_splits_large_topics_and_schedules_largest_first",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_tasks_survive_pickling_for_worker_processes",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_merge_publish_results_sums_shards_and_spans_their_wall_time",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_publish_task_configures_producer_and_rejects_delivery_failures",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_lists_the_publisher_layout",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_publish_only_main_publishes_every_topic_once_across_shards",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_run_report_records_bucket_lease_settings_and_coordinator_stats",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_without_a_mode_flag_uses_the_cli_planned_default",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_planned_mode_drops_per_type_edge_lines_and_warns_about_classic_flags",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_plan_source_files_needs_edge_plan",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_classic_passes_the_classic_tuning_flags",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags0]",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags1]",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_edge_mode_flags_are_mutually_exclusive[flags2]",
-      "examples/imdb/tests/test_publish_and_load_nodes.py::test_main_passes_edge_lease_flags_to_the_bulk_cli"
+      "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields"
     ],
-    "sha256": "e4685e372e7e84641a463b61a1298de5215ffbbf3961df7ea1b53ca7bcc03352",
-    "files": 143,
+    "sha256": "0241491d31362bac524bd9642e2053e64a9233ea7f1edcb7ed60fa77cbe31792",
+    "files": 140,
     "counts": {
       "service": 198,
-      "installed": 3674,
-      "checkout-development": 334
+      "installed": 3611,
+      "checkout-development": 336
     },
     "command": [
       "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/dev/bin/python",
@@ -47708,7 +47103,7 @@
       "-c",
       "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
       "/Users/shashank/Desktop/Code/Graph/graph-loader",
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/collection-freeze4.json"
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/collection-freeze5.json"
     ]
   },
   "artifact_contract": {
@@ -47949,6 +47344,25 @@
       "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]",
       "reviewed": "orchestrator 2026-11-01",
       "reason": "E10 README edit (6068bfe) moved the same snippet from line 79 to line 92; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:253]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:175]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "examples cleanup moved the same HAS_GENRE backfill snippet in examples/imdb/README.md; disposition unchanged"
+    }
+  },
+  "reviewed_file_removals": {
+    "examples/imdb/tests/test_publish_and_load_nodes.py": {
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "user decision 2026-11-02: old IMDb harness (publish_and_load_nodes.py, planned_edges.py) deleted in favour of load_imdb.py; its tests go with it"
+    },
+    "examples/imdb/tests/test_planned_edges.py": {
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "user decision 2026-11-02: old IMDb harness (publish_and_load_nodes.py, planned_edges.py) deleted in favour of load_imdb.py; its tests go with it"
+    },
+    "examples/imdb/tests/test_precedence_report.py": {
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "user decision 2026-11-02: old IMDb harness (publish_and_load_nodes.py, planned_edges.py) deleted in favour of load_imdb.py; its tests go with it"
     }
   }
 }

@@ -10,7 +10,7 @@ To run a load end to end, see [How to run a bulk (initial) load](../docs/BULK_LO
 
 | Example | What it shows | Data |
 | --- | --- | --- |
-| [`imdb/`](imdb/README.md) | A real, large graph end to end: download, subset, publish, load, timing report. The benchmark for every performance number in this repository. | Official IMDb non-commercial datasets (downloaded by the example) |
+| [`imdb/`](imdb/README.md) | A real, large graph end to end with the installed package: download, subset, then `load_imdb.py` publishes and loads it and times each phase. The data behind this repository's performance numbers. | Official IMDb non-commercial datasets (downloaded by the example) |
 | [`social/`](social/README.md) | The library contract on a synthetic model with edge cases (integer, string and date keys, self-referencing edges, several types between the same labels, hub nodes, repeated pairs), plus an exact verification against an independently computed graph | Generated deterministically from a seed |
 | [`multi_topic/`](multi_topic/README.md) | Relationship types fed by **two topics each**: `order_by` (newest value wins, every mode) and `topic_conflict: precedence` (later-listed topic wins, bulk only), with an exact verification. Also shows which modes allow which rule, and (variant `graph_schema_multi_pair.yaml`) one type over **two label pairs** (`LIKES` Customer->Post and Customer->Comment, colliding ids) | Generated deterministically from a seed |
 

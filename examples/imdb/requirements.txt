@@ -1,4 +1,2 @@
-# Install alongside the root requirements.txt for the complete IMDb example.
-# These tools are not needed by the production loader containers.
+# Needed only by build_subset.py; load_imdb.py needs just neo4j-graph-loader.
 pandas>=2.2,<3
-python-dotenv>=1.0,<2

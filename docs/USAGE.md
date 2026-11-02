@@ -1338,8 +1338,6 @@ Who reads `.env` and who wins:
 * `python -m neo4j_graph_loader.cli` and the loader containers never read `.env`; they use the environment only.
 * `docker compose` substitutes variables from `.env` but lets an exported variable win. Do not run it on a shared
   stack from a shell where you have not checked what `.env` contains.
-* `examples/imdb/publish_and_load_nodes.py` and `scripts/cleanup_imdb_local_load.sh` call `load_dotenv(...,
-  override=False)`: `.env` only fills in variables you did not export.
 * `make monitoring-up` sources `.env` as a shell script but then re-applies everything you exported, so an
   exported variable wins and `.env` only fills in variables you did not set (an exported empty value also wins).
   Export the connection variables for the stack you mean before running it.
@@ -1914,8 +1912,8 @@ modes do.
     above.
 * **Fresh database:** `CREATE OR REPLACE DATABASE <name> WAIT` against the
   `system` database. Constraints and indexes are recreated on the next run.
-* **Clearing the input topics:** delete and recreate your topics, as
-  `scripts/cleanup_imdb_local_load.sh` does for the IMDb example. The chunk
+* **Clearing the input topics:** delete and recreate your topics, or give each
+  run its own topic names as `examples/imdb/load_imdb.py` does. The chunk
   topic of a planned run is deleted automatically unless `--keep-plan-topic`
   is set.
 * **After a failure:** fix the cause and rerun. Every write is an idempotent

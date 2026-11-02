@@ -1,5 +1,5 @@
-# Schema used by publish_and_load_nodes.py. Both generated node and
-# relationship TSVs are published through the production bulk loader.
+# Schema used by load_imdb.py. Every node and relationship TSV of a subset is
+# published to these topics and loaded by the bulk loader.
 loading:
   mode: bulk
   consumer_group_id: imdb-example

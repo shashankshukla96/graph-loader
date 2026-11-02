@@ -252,6 +252,23 @@ def reviewed_renames(data, previous, collected):
     return renamed
 
 
+def reviewed_file_removals(data, previous, collected):
+    """Previously frozen IDs whose whole test file was deleted under a reviewed entry.
+
+    ``data['reviewed_file_removals']`` is ``{test file: {'reviewed', 'reason'}}``. Only a whole file may go: it must
+    be absent from disk and from the collection, and every frozen ID of that file is dropped. Single IDs still need
+    a reviewed rename; any other removal is left for the caller's ordering check to refuse.
+    """
+    removed = set()
+    for path, entry in data.get('reviewed_file_removals', {}).items():
+        if not isinstance(entry, dict) or not entry.get('reviewed') or not entry.get('reason'):
+            raise ValueError('reviewed file removal needs reviewed and reason: ' + path)
+        if (ROOT / path).exists() or any(i.split('::')[0] == path for i in collected):
+            raise ValueError('reviewed file removal names a test file that still exists: ' + path)
+        removed |= {i for i in previous if i.split('::')[0] == path}
+    return removed
+
+
 def freeze(data, collection, wheel):
     items = collection['items']
     ids = [r['id'] for r in items]
@@ -273,11 +290,12 @@ def freeze(data, collection, wheel):
         previous = data['source_collection']['test_ids']
         previous_set = set(previous)
         renamed = reviewed_renames(data, previous_set, set(ids))
-        carried = [renamed.get(i, i) for i in previous]
+        removed = reviewed_file_removals(data, previous_set, set(ids))
+        carried = [renamed.get(i, i) for i in previous if i not in removed]
         carried_set = set(carried)
         if [i for i in ids if i in carried_set] != carried:
             raise ValueError('re-freeze cannot remove/reorder previously frozen IDs')
-        if any(choices[renamed.get(i, i)] != old for i, old in data['test_dispositions'].items()):
+        if any(choices[renamed.get(i, i)] != old for i, old in data['test_dispositions'].items() if i not in removed):
             raise ValueError('re-freeze cannot silently change a reviewed test disposition')
     result['test_dispositions'] = choices
     result['file_dispositions'] = {p: {'ids': [r['id'] for r in items if r['file'] == p],
