@@ -14,15 +14,23 @@ DATABASE = 'e09'+OWNER[:16]
 PREFIX = 'e09-'+OWNER+'-'
 
 
+class Result:
+    """Iterable like a driver result; ``consume`` is recorded so an abandoned observation can be checked."""
+    def __init__(self, rows, consumed):
+        self.rows, self.consumed = iter(rows), consumed
+    def __iter__(self): return self.rows
+    def consume(self): self.consumed.append(True)
+
+
 class Session:
     def __init__(self, nodes, edges):
         self.nodes, self.edges = nodes, edges
-        self.calls = []
+        self.calls, self.consumed = [], []
     def __enter__(self): return self
     def __exit__(self, *args): pass
     def run(self, query, *, limit):
         self.calls.append((query.text, limit, query.timeout))
-        return iter(self.edges if 'MATCH (a)-[r]' in query.text else self.nodes)
+        return Result(self.edges if 'MATCH (a)-[r]' in query.text else self.nodes, self.consumed)
 
 
 class Driver:
@@ -52,8 +60,10 @@ def test_graph_observations_rejects_foreign_database_overflow_and_nonfinite_valu
                                              {'labels':['A'], 'properties':{'id':2}}], []), owner=OWNER, database=DATABASE, maximum=1)
     with pytest.raises(RuntimeError, match='JSON'):
         observers.graph_observations(Driver([{'labels':['A'], 'properties':{'id':float('nan')}}], []), owner=OWNER, database=DATABASE)
+    oversized = Driver([{'labels':['A'], 'properties':{'id':1, 'value':'x'*(2*1024*1024)}}], [])
     with pytest.raises(RuntimeError, match='byte bound'):
-        observers.graph_observations(Driver([{'labels':['A'], 'properties':{'id':1, 'value':'x'*(2*1024*1024)}}], []), owner=OWNER, database=DATABASE)
+        observers.graph_observations(oversized, owner=OWNER, database=DATABASE)
+    assert oversized.value.consumed == [True], 'an abandoned observation still completes its query'
 
 
 def test_graph_observations_reject_duplicate_keys_and_canonicalize_labels():
