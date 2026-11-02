@@ -33,6 +33,7 @@ are required.
 | [Quick start (installed package)](docs/QUICKSTART.md) | Install with pip, validate a schema, plan relationships into Kafka. |
 | [Bulk load guide](docs/BULK_LOAD.md) | Run an initial load: prerequisites, producer contract, every `start --mode bulk` flag, the edge modes, tuning, verification, recovery, a worked example. |
 | [Incremental load guide](docs/INCREMENTAL_LOAD.md) | Load repeatedly: repeated bulk batches versus continuous streaming, ordering, DLQ, restart. |
+| [Loading from a relational database](docs/RELATIONAL_SOURCES.md) | Put graph-loader behind Oracle, SQL Server or PostgreSQL: modeling tables, shaping rows into records, producers, bulk then CDC, deletes. |
 | [CLI reference](docs/CLI.md) | Look up a command, flag, default, range, exit code, `stage=` log line or environment variable. |
 | [Architecture](docs/ARCHITECTURE.md) | Understand how the components fit together and how zero lock waits is achieved in each mode. |
 | [Usage guide](docs/USAGE.md) | The detailed reference: schema fields, input contract, planned-mode internals, dead-lettering, performance, operations, troubleshooting, limitations. |
@@ -163,7 +164,7 @@ launches the node loaders, plans and writes the relationships, and
 exits `0` only when the result is proven:
 
 ```bash
-python -m neo4j_graph_loader.cli start --mode bulk --config my_graph.yaml
+graph-loader start --mode bulk --config my_graph.yaml
 ```
 
 Watch for `stage=launch edge_mode=planned reason=default`, one
@@ -228,8 +229,8 @@ topics. Nothing else changes: `examples/imdb`, `examples/social` and
 
 | You want | Run | Details |
 | --- | --- | --- |
-| An initial load of a finite data set | `python -m neo4j_graph_loader.cli start --mode bulk --config my_graph.yaml` | [BULK_LOAD](docs/BULK_LOAD.md). Planned mode is the default; a schema that enables relationship `dead_letter` gets the lease mode (also lock-free); `--edge-classic` selects the per-type APOC-locked loaders, the one mode that can wait on locks. |
-| Continuous loading as records arrive | `python -m neo4j_graph_loader.cli start --mode stream --config my_graph.yaml` | [INCREMENTAL_LOAD](docs/INCREMENTAL_LOAD.md). Runs until SIGINT/SIGTERM; restart resumes the stable consumer groups. |
+| An initial load of a finite data set | `graph-loader start --mode bulk --config my_graph.yaml` | [BULK_LOAD](docs/BULK_LOAD.md). Planned mode is the default; a schema that enables relationship `dead_letter` gets the lease mode (also lock-free); `--edge-classic` selects the per-type APOC-locked loaders, the one mode that can wait on locks. |
+| Continuous loading as records arrive | `graph-loader start --mode stream --config my_graph.yaml` | [INCREMENTAL_LOAD](docs/INCREMENTAL_LOAD.md). Runs until SIGINT/SIGTERM; restart resumes the stable consumer groups. |
 | Repeated finite batches | `start --mode bulk` per batch | [INCREMENTAL_LOAD](docs/INCREMENTAL_LOAD.md). |
 
 Everything in planned mode (writers, buckets, chunk size, planner processes and
@@ -247,7 +248,7 @@ are not registry publications; see [Docker execution](docs/DOCKER_EXECUTION.md).
 
 ```bash
 python examples/social/social_graph.py publish --persons 20000       # per the contract above
-python -m neo4j_graph_loader.cli start --mode bulk --config examples/social/graph_schema.yaml
+graph-loader start --mode bulk --config examples/social/graph_schema.yaml
 python examples/social/social_graph.py verify --persons 20000        # exact graph comparison
 ```
 

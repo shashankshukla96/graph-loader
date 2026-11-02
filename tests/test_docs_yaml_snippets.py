@@ -23,7 +23,7 @@ from neo4j_graph_loader.utils.schema_loader import load_schema
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = [
-    "README.md", "docs/USAGE.md", "docs/MONITORING.md", "docs/BULK_LOAD.md", "docs/INCREMENTAL_LOAD.md",
+    "README.md", "docs/USAGE.md", "docs/MONITORING.md", "docs/BULK_LOAD.md", "docs/INCREMENTAL_LOAD.md", "docs/RELATIONAL_SOURCES.md",
     "examples/README.md", "examples/imdb/README.md", "examples/social/README.md", "examples/multi_topic/README.md",
 ]
 FENCE = re.compile(r"```yaml\n(.*?)```", re.S)

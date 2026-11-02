@@ -32,7 +32,7 @@ transactions are **node-disjoint by construction**.
 
 ```text
                       +-----------------------------+
-   YAML schema -----> |  CLI orchestrator (host)    |  python -m neo4j_graph_loader.cli start|stop|status|replay-dlq
+   YAML schema -----> |  CLI orchestrator (host)    |  graph-loader start|stop|status|replay-dlq
                       |  src/neo4j_graph_loader/cli.py                 |  validates, applies DDL, launches Docker
                       +--+------+-------+-------+---+  containers, monitors Kafka + containers
                          |      |       |       |

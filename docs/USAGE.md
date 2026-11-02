@@ -1,14 +1,5 @@
 # graph-loader usage guide
 
-Installed CLI paths use a private persistent `<attempt>` directory, logged as
-`stage=runtime directory=...`, under OS temporary storage or `--run-dir BASE`.
-Plan, spill and timing overrides remain explicit; see the
-[installed runtime guide](CLI_RUNTIME.md). Direct component modules retain their
-legacy caller-relative paths unless explicitly configured.
-Later CLI timing-directory references mean `<attempt>/timings/` by default,
-or the explicit `GRAPH_LOADER_TIMING_DIR` override. Enabled diagnostics do not
-require setting that environment variable.
-
 graph-loader loads a property graph from Kafka into Neo4j. You describe the
 graph once in a YAML schema, publish node and relationship records to the
 topics that schema declares, and run one command. The loader works out the
@@ -40,6 +31,11 @@ This guide covers everything a library user needs:
 For a five-minute version see the top-level [README](../README.md#full-load-walk-through-from-a-checkout-about-5-minutes);
 for complete runnable examples see [`examples/`](../examples/README.md).
 
+**Where a run keeps its files.** Each `graph-loader start` writes its plan, ledger, timings and rejection
+files to a private per-run directory (`<attempt>`), logged as `stage=runtime directory=...` and created under
+the OS temporary directory or `--run-dir BASE`. "The timing directory" below means `<attempt>/timings/` unless
+`GRAPH_LOADER_TIMING_DIR` overrides it. See the [installed runtime guide](CLI_RUNTIME.md).
+
 Related docs: [CLI.md](CLI.md) (command and flag reference),
 [ARCHITECTURE.md](ARCHITECTURE.md), [CHANGELOG](../CHANGELOG.md),
 [BULK_LOAD.md](BULK_LOAD.md), [INCREMENTAL_LOAD.md](INCREMENTAL_LOAD.md),
@@ -52,7 +48,7 @@ Related docs: [CLI.md](CLI.md) (command and flag reference),
 ```
  your producer ──► Kafka (one topic per node label / relationship type)
                          │
-            python -m neo4j_graph_loader.cli start --mode bulk --config graph.yaml
+            graph-loader start --mode bulk --config graph.yaml
                          │
    ┌─────────────────────┼──────────────────────────────────────────────┐
    │ 1. apply schema DDL (constraints, indexes) to Neo4j                │
@@ -85,10 +81,10 @@ Related docs: [CLI.md](CLI.md) (command and flag reference),
 
 | Component | Requirement |
 | --- | --- |
-| Neo4j | **5.23 or later, Enterprise** (tested with 5.26, block store format). The classic and lease relationship writers (`build_apoc_locked_upsert_query` in `src/neo4j_graph_loader/loader/edge_execution.py`) use Cypher's `CALL (vars) { ... }` scoped-subquery syntax, first available in Neo4j 5.23 — an earlier server (confirmed empirically on 5.21.x) rejects the query with a Cypher syntax error. Planned mode does not use this syntax and has no such lower bound. APOC is needed only for the classic relationship modes (`apoc.lock.nodes`); planned mode does not use it. |
+| Neo4j | **5 Enterprise; tested with 5.26** (block store format). The target database must already exist. The classic and lease relationship writers use Cypher's `CALL (vars) { ... }` scoped-subquery syntax, which needs 5.23 or later (5.21 rejects it); planned mode does not use it. APOC is needed only for the classic relationship modes (`apoc.lock.nodes`). |
 | Kafka | Any broker reachable from the host **and** from the loader containers (tested with Confluent 7.7 in KRaft mode). |
-| Docker | A local Docker daemon; the CLI resolves compatible prebuilt component images. See [Docker execution](DOCKER_EXECUTION.md). |
-| Python | 3.12, with `pip install -r requirements.txt` (the Neo4j Python driver is pinned `>=5.20,<7`). |
+| Docker | A local Docker Engine on the machine that runs `graph-loader start`; the CLI pulls or reuses the versioned images `ghcr.io/shashankshukla96/graph-loader-{node,edge,clock}:<package version>`. See [Docker execution](DOCKER_EXECUTION.md). |
+| Python | CPython 3.12 and `pip install neo4j-graph-loader` (the Neo4j Python driver is `>=6.0,<7`). A source checkout uses `pip install -e .`; see [Distribution development](DISTRIBUTION_DEVELOPMENT.md). |
 
 ### Local services
 
@@ -911,7 +907,8 @@ Rules:
   Relationship topics can have any partition count.
 
 The loader doesn't care what produces the records: any language, Kafka
-Connect, a CDC pipeline or a script. [`examples/social/social_graph.py`](../examples/social/social_graph.py)
+Connect, a CDC pipeline or a script. For data in a relational database, see
+[Loading from a relational database](RELATIONAL_SOURCES.md). [`examples/social/social_graph.py`](../examples/social/social_graph.py)
 is a small, commented reference producer.
 
 ## 5. Running a load
@@ -921,7 +918,7 @@ export KAFKA_BOOTSTRAP_SERVERS=localhost:9092 NEO4J_URI=bolt://localhost:7687
 export NEO4J_USERNAME=neo4j NEO4J_PASSWORD=...          # NEO4J_DATABASE=... optional
 export LOADER_KAFKA_BOOTSTRAP_SERVERS=kafka:29092 LOADER_NEO4J_URI=bolt://neo4j:7687
 
-python -m neo4j_graph_loader.cli start --mode bulk --config my_graph.yaml     # planned mode is the bulk default
+graph-loader start --mode bulk --config my_graph.yaml     # planned mode is the bulk default
 ```
 
 The command blocks until the load has finished and been verified, then exits
@@ -1041,9 +1038,9 @@ giving an alias and its new name with different values is an error.
 Other commands:
 
 ```bash
-python -m neo4j_graph_loader.cli status --config my_graph.yaml   # list running node-loader containers
-python -m neo4j_graph_loader.cli stop [--loader NAME]            # stop loader containers
-python -m neo4j_graph_loader.cli replay-dlq --node-label Person --dry-run   # preview a DLQ replay (section 10)
+graph-loader status --config my_graph.yaml   # list running node-loader containers
+graph-loader stop [--loader NAME]            # stop loader containers
+graph-loader replay-dlq --node-label Person --dry-run   # preview a DLQ replay (section 10)
 ```
 
 ### Streaming mode
@@ -1335,7 +1332,7 @@ export LOADER_KAFKA_BOOTSTRAP_SERVERS=kafka:29092 LOADER_NEO4J_URI=bolt://graph-
 
 Who reads `.env` and who wins:
 
-* `python -m neo4j_graph_loader.cli` and the loader containers never read `.env`; they use the environment only.
+* `graph-loader` and the loader containers never read `.env`; they use the environment only.
 * `docker compose` substitutes variables from `.env` but lets an exported variable win. Do not run it on a shared
   stack from a shell where you have not checked what `.env` contains.
 * `make monitoring-up` sources `.env` as a shell script but then re-applies everything you exported, so an
@@ -1600,7 +1597,7 @@ plan_and_publish_edges(schema, rows, bootstrap_servers="localhost:9092",
 ```
 
 ```bash
-python -m neo4j_graph_loader.cli start --mode bulk --config my_graph.yaml --edge-plan plans/edge-plan.json
+graph-loader start --mode bulk --config my_graph.yaml --edge-plan plans/edge-plan.json
 ```
 
 For large inputs, pass picklable `EdgeRecordSource` objects (one per file or
@@ -1984,7 +1981,7 @@ Malformed records are terminal (they are never auto-retried): fix the
 producer or the schema, then re-inject the backlog with `replay-dlq`.
 
 ```bash
-python -m neo4j_graph_loader.cli replay-dlq --config graph.yaml \
+graph-loader replay-dlq --config graph.yaml \
   (--node-label LABEL | --edge-type TYPE) \
   [--reason-code CODE] [--since ISO8601] [--until ISO8601] \
   [--limit N] [--target-topic TOPIC] [--source-topic TOPIC ...] \
@@ -2029,8 +2026,8 @@ as Person->Post". A target outside the type (a staging topic) is accepted for on
 pair's sources.
 
 ```bash
-python -m neo4j_graph_loader.cli replay-dlq --config graph.yaml --edge-type WORKS_AT --source-topic works-at-a --dry-run
-python -m neo4j_graph_loader.cli replay-dlq --config graph.yaml --edge-type WORKS_AT --parked --source-topic works-at-b
+graph-loader replay-dlq --config graph.yaml --edge-type WORKS_AT --source-topic works-at-a --dry-run
+graph-loader replay-dlq --config graph.yaml --edge-type WORKS_AT --parked --source-topic works-at-b
 ```
 
 The reader is a dedicated, non-group consumer: it never commits an offset
@@ -2113,8 +2110,8 @@ for the named entity instead of the ordinary DLQ topic, so there is
 nothing to compute or paste by hand:
 
 ```bash
-python -m neo4j_graph_loader.cli replay-dlq --config graph.yaml --edge-type WORKS_AT --parked --dry-run
-python -m neo4j_graph_loader.cli replay-dlq --config graph.yaml --edge-type WORKS_AT --parked
+graph-loader replay-dlq --config graph.yaml --edge-type WORKS_AT --parked --dry-run
+graph-loader replay-dlq --config graph.yaml --edge-type WORKS_AT --parked
 ```
 
 A replayed parked row republishes onto the original entity topic (or
@@ -2201,7 +2198,7 @@ writes, so it always reaches a commit or a rollback first.
   (`reason=stopped_during_startup`, WARNING).
 * **Stream mode with no relationships.** The `start` command launches the
   node loaders and exits `0` at once; nothing supervises them, so nothing
-  stops them for you. Stop those with `python -m neo4j_graph_loader.cli stop` or the
+  stops them for you. Stop those with `graph-loader stop` or the
   recipe below.
 * Node loaders of a stream run *with* relationships are now stopped on
   every exit path (graceful stop, failure, an isolation-policy rejection
@@ -2450,7 +2447,7 @@ already been evicted from its group for exceeding `max_poll_interval_ms`.
 * **Streaming without relationships: node loaders are left running by
   design.** A stream `start` that defines no relationships launches the node
   loaders and exits `0` at once; nothing supervises them, so nothing stops
-  them. Stop them with `python -m neo4j_graph_loader.cli stop` or the recovery recipe in
+  them. Stop them with `graph-loader stop` or the recovery recipe in
   "Stopping a run safely". A stream run *with* relationships stops and
   removes the node loaders it started on every exit path, including a clean
   `SIGTERM`/`SIGINT`. A `SIGKILL` of the CLI itself still leaves

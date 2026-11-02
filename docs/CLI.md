@@ -4,7 +4,7 @@
 `python -m neo4j_graph_loader <command>` and the existing CLI module form are
 equivalent. Top-level `--version` reports the installed package version. This page is derived
 from `build_parser()` in `src/neo4j_graph_loader/cli.py` and the code behind it; run
-`python -m neo4j_graph_loader.cli <command> --help` for the live text (no Kafka, Neo4j or
+`graph-loader <command> --help` for the live text (no Kafka, Neo4j or
 Docker needed to print help).
 
 Related: [README](../README.md) (quick start) | [USAGE](USAGE.md) (detailed
@@ -41,7 +41,7 @@ The CLI does **not** read `.env`. Export the connection variables yourself
 ## start
 
 ```text
-python -m neo4j_graph_loader.cli start --mode {bulk,stream} [--config PATH] [options]
+graph-loader start --mode {bulk,stream} [--config PATH] [options]
 ```
 
 Validation errors are logged as `stage=launch reason=...` and exit 1 before any
@@ -180,7 +180,7 @@ Stream mode always uses the bucket-lease fleet (unless the deprecated
 ## stop
 
 ```text
-python -m neo4j_graph_loader.cli stop [--loader LABEL]
+graph-loader stop [--loader LABEL]
 ```
 
 | Flag | Default | Notes |
@@ -199,7 +199,7 @@ graph-loader node-loader container, including other users' runs. Use
 ## status
 
 ```text
-python -m neo4j_graph_loader.cli status [--config PATH]
+graph-loader status [--config PATH]
 ```
 
 Logs one line per node-loader container (`Loader <name> (<id>): <status> [Node:
@@ -210,7 +210,7 @@ metrics ([MONITORING](MONITORING.md)) or Kafka's consumer-group tooling.
 ## replay-dlq
 
 ```text
-python -m neo4j_graph_loader.cli replay-dlq (--node-label LABEL | --edge-type TYPE) [options]
+graph-loader replay-dlq (--node-label LABEL | --edge-type TYPE) [options]
 ```
 
 Reads the entity's DLQ topic (or parking lot) up to a captured boundary and

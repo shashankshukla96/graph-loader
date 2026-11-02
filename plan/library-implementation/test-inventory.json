@@ -15881,59 +15881,63 @@
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:93]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:147]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:143]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:199]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:195]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:236]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:232]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:267]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:263]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:319]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:315]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:342]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:338]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:581]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:577]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:98]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:91]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:152]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:145]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:169]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:162]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:61]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:54]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:180]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:173]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
-    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:394]": {
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:387]": {
+      "kind": "checkout-development",
+      "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/RELATIONAL_SOURCES.md:81]": {
       "kind": "checkout-development",
       "reason": "Authoring documentation snippets outside the runtime artifact; retained checkout suite."
     },
@@ -31894,26 +31898,27 @@
     "tests/test_docs_yaml_snippets.py": {
       "ids": [
         "tests/test_docs_yaml_snippets.py::test_the_docs_contain_yaml_snippets",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:147]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:199]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:236]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:267]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:319]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:342]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:581]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:98]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:152]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:169]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:61]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:180]",
-        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:394]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:93]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:143]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:195]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:232]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:263]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:315]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:338]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:577]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:91]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:145]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:162]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:54]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:173]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:387]",
+        "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/RELATIONAL_SOURCES.md:81]",
         "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:175]",
         "tests/test_docs_yaml_snippets.py::test_the_docs_show_a_type_with_several_label_pairs",
         "tests/test_docs_yaml_snippets.py::test_a_snippet_with_an_unknown_topic_entry_key_fails"
       ],
       "categories": {
-        "checkout-development": 18
+        "checkout-development": 19
       }
     },
     "tests/test_edge_before_node_dlq_probes.py": {
@@ -44127,20 +44132,21 @@
       "tests/test_docker_topology.py::test_marker_write_failure_removes_exclusively_created_path[close]",
       "tests/test_docker_topology.py::test_probe_retains_id_without_sdk_inspection",
       "tests/test_docs_yaml_snippets.py::test_the_docs_contain_yaml_snippets",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:147]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:199]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:236]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:267]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:319]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:342]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:581]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:98]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:152]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:169]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:61]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:180]",
-      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:394]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:93]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:143]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:195]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:232]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:263]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:315]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:338]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:577]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:91]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:145]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:162]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:54]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:173]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:387]",
+      "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/RELATIONAL_SOURCES.md:81]",
       "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:175]",
       "tests/test_docs_yaml_snippets.py::test_the_docs_show_a_type_with_several_label_pairs",
       "tests/test_docs_yaml_snippets.py::test_a_snippet_with_an_unknown_topic_entry_key_fails",
@@ -47090,12 +47096,12 @@
       "examples/imdb/tests/test_build_subset.py::test_tsv_sink_quotes_exactly_like_csv_dict_writer",
       "examples/imdb/tests/test_build_subset.py::test_unbalanced_quotes_in_raw_rows_stay_data_and_never_merge_fields"
     ],
-    "sha256": "0241491d31362bac524bd9642e2053e64a9233ea7f1edcb7ed60fa77cbe31792",
+    "sha256": "972dfae60921996bf5ba0e656daaaf0b364405e7c2a42cc46377b3afe7c59aee",
     "files": 140,
     "counts": {
       "service": 198,
       "installed": 3611,
-      "checkout-development": 336
+      "checkout-development": 337
     },
     "command": [
       "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/dev/bin/python",
@@ -47103,7 +47109,7 @@
       "-c",
       "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
       "/Users/shashank/Desktop/Code/Graph/graph-loader",
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/f2amd64/collection-freeze-testfix.json"
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/collection-freeze7.json"
     ]
   },
   "artifact_contract": {
@@ -47349,6 +47355,76 @@
       "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[examples/imdb/README.md:175]",
       "reviewed": "orchestrator 2026-11-02",
       "reason": "examples cleanup moved the same HAS_GENRE backfill snippet in examples/imdb/README.md; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:92]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[README.md:93]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:147]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:143]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:199]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:195]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:236]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:232]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:267]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:263]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:319]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:315]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:342]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:338]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:581]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/USAGE.md:577]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:98]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:91]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:152]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:145]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:169]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/BULK_LOAD.md:162]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:61]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:54]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:180]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:173]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
+    },
+    "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:394]": {
+      "new_id": "tests/test_docs_yaml_snippets.py::test_yaml_snippet_loads[docs/INCREMENTAL_LOAD.md:387]",
+      "reviewed": "orchestrator 2026-11-02",
+      "reason": "docs revision (installed-command wording, run-directory note, relational-sources links) moved the same YAML snippet; disposition unchanged"
     }
   },
   "reviewed_file_removals": {

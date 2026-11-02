@@ -32,7 +32,7 @@ Set the connection variables from [`../README.md`](../README.md#common-setup), t
 
 ```bash
 python examples/social/social_graph.py publish --persons 20000        # create topics, publish nodes + relationships
-python -m neo4j_graph_loader.cli start --mode bulk --config examples/social/graph_schema.yaml   # planned mode is the default; builds images on every start unless --skip-image-build
+graph-loader start --mode bulk --config examples/social/graph_schema.yaml   # planned mode is the default; builds images on every start unless --skip-image-build
 python examples/social/social_graph.py verify --persons 20000         # exact comparison with the expected graph
 ```
 
@@ -56,11 +56,11 @@ Load the same topics twice into different databases and compare the two graphs:
 # create both databases first (names allow only letters, digits, dots and dashes):
 # docker exec graph-loader-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" "CREATE DATABASE socialplanned IF NOT EXISTS WAIT"
 # (and the same for socialclassic)
-NEO4J_DATABASE=socialplanned python -m neo4j_graph_loader.cli start --mode bulk \
+NEO4J_DATABASE=socialplanned graph-loader start --mode bulk \
   --config examples/social/graph_schema.yaml      # default = planned (same as --edge-plan)
 # node loaders commit offsets under social-example-<Label>: delete those groups
 # (or change loading.consumer_group_id) before loading the same topics again
-NEO4J_DATABASE=socialclassic python -m neo4j_graph_loader.cli start --mode bulk \
+NEO4J_DATABASE=socialclassic graph-loader start --mode bulk \
   --config examples/social/graph_schema.yaml --edge-classic --bulk-edge-overlap shared
 python examples/social/social_graph.py verify --persons N --database socialplanned --against-database socialclassic
 ```
@@ -81,7 +81,7 @@ the `GRAPH_LOADER_IT_*` variables point at a scratch Kafka and Neo4j.
 The same schema runs in stream mode:
 
 ```bash
-python -m neo4j_graph_loader.cli start --mode stream --config examples/social/graph_schema.yaml   # runs until SIGINT or SIGTERM
+graph-loader start --mode stream --config examples/social/graph_schema.yaml   # runs until SIGINT or SIGTERM
 ```
 
 * Stream consumer groups are stable: `social-example-<type>` for each

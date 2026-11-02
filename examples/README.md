@@ -6,7 +6,7 @@ Each example is an ordinary user of the graph-loader library. It supplies a
 YAML schema and publishes records to the topics that schema declares; nothing
 in `src/` knows about either model. Use them as templates for your own graph.
 The full reference is the [library usage guide](../docs/USAGE.md).
-To run a load end to end, see [How to run a bulk (initial) load](../docs/BULK_LOAD.md) and [How to load incrementally](../docs/INCREMENTAL_LOAD.md).
+To run a load end to end, see [How to run a bulk (initial) load](../docs/BULK_LOAD.md) and [How to load incrementally](../docs/INCREMENTAL_LOAD.md); for data in a relational database, see [Loading from a relational database](../docs/RELATIONAL_SOURCES.md).
 
 | Example | What it shows | Data |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ To run a load end to end, see [How to run a bulk (initial) load](../docs/BULK_LO
 ## Common setup
 
 ```bash
-.venv/bin/pip install -r requirements.txt             # library
+pip install neo4j-graph-loader                        # library and the graph-loader command
 docker compose up -d neo4j kafka                      # local services (pinned CPUs, see ../docs/USAGE.md)
 export KAFKA_BOOTSTRAP_SERVERS=localhost:9092 NEO4J_URI=bolt://localhost:7687
 export NEO4J_USERNAME=neo4j NEO4J_PASSWORD=...
@@ -37,7 +37,7 @@ docker exec graph-loader-neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
    Relationship records use the envelope
    `{"source": {...key...}, "target": {...key...}, "properties": {...}}`,
    keyed by the source key.
-3. **Load:** `python -m neo4j_graph_loader.cli start --mode bulk --config graph_schema.yaml`
+3. **Load:** `graph-loader start --mode bulk --config graph_schema.yaml`
    (planned mode is the bulk default; `--edge-classic` selects the old
    APOC-locked loaders). The loader derives the schedule, parallelism and lock-free write plan by
    itself.
