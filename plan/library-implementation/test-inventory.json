@@ -5708,13 +5708,13 @@
         "tests/golden/single_topic_compat.json": "577792b6f0e72d7331f79ce75089f7a4d266331c181a00a841ea3f3ee9273ee6",
         "tests/installed_service/__init__.py": "8fa8dc0797744d0f758fb5d9f8ceac2d5dbde8d3993889ff9ed17d2c743c8c76",
         "tests/installed_service/bulk_fixture.py": "e69145ff955197cc9c77c924949cb542cef0ca66bf805f3f4bec20fbc41a6dbc",
-        "tests/installed_service/conftest.py": "727673541e002c8f66724e1704aa0e3fe5b48f6d933cdcc8d6bc4c1fe5536b05",
+        "tests/installed_service/conftest.py": "70316d0c570df5c4fd7e90b4d20c264cebe683a027ba384bbaf14dd162f132b1",
         "tests/installed_service/dlq_fixture.py": "2995619febaba6b27e850d244a5f94363ec7a34c44e89831ff2d5797f74c8a54",
         "tests/installed_service/inspect_strict.py": "57d8c88a9905b92d9e86c64c2d9f08f9b3140581926cbbf1cfbd5e5c91e2f764",
         "tests/installed_service/live_cli.py": "39ab53a63dba9c2f20b813afa5a9e45bba2af56a941caedb120e647c97227cbe",
         "tests/installed_service/live_stack.py": "3366a10434dfad81de5d6eaa43930cfec8b9117544df9c61e693f817fc524937",
         "tests/installed_service/lockwait.py": "6d63b93df160e85a937359f122250c542f4bb014e665107a61be013e6eb894e7",
-        "tests/installed_service/observers.py": "3d65b68ef551c37e231f0fab165b20ab3081c1824b0dd12b10b2fc3067efb616",
+        "tests/installed_service/observers.py": "3aa6bc89ac264064ab2283801ebc00ab8bc886c6858420383d3a7a70e412ac16",
         "tests/installed_service/order_fixture.py": "7dd1d35807d3919cdad8d5c5168da695939a8e4e269bdf3b7ab3bdc34e868574",
         "tests/installed_service/ownership.py": "abb34f211bed284d50afe19e6cbbc917272e1b50f4c37ce96214ea4962824aa7",
         "tests/installed_service/query_log.py": "3245eec74fb2c56b697d87bd4f29314050560d83a5d825a532def25b6a162648",
@@ -5728,7 +5728,7 @@
         "tests/installed_service/test_query_window_controls.py": "ac0a3237223b0f929dcc412dc0b1c3437a7ea2935b03caad32f1da11d800aa09",
         "tests/installed_service/test_service_harness.py": "98bcb8e1f4c8dd6d85293eb91be9f5f621dcc8d1a8b450cf681debd7d3784f00",
         "tests/installed_service/test_service_ingest_dlq.py": "9433d22e071f979c69076373162ebe69921f38094a6bdb1770cdde9ec7cc6ff3",
-        "tests/installed_service/test_service_kill_and_outage.py": "eca28c00b1808641aee2d0c1c52e78e05f0a01b83a5fd7782bafc42bfc91717a",
+        "tests/installed_service/test_service_kill_and_outage.py": "1ea137a45e82e4a5762e9d70d9247283f4ff299543b7e1d8eee2678f1477badd",
         "tests/installed_service/test_service_kill_bulk_modes.py": "9e091e246cfeb1b3b215e74375ae50013204a33309fad6ac5525c3b46291125a",
         "tests/installed_service/test_service_last_value_order.py": "06ed99a06dc7c6a7cc2a45b788c839794946d7140f1e67236597d4ab7d642d52",
         "tests/installed_service/test_service_lease_stream.py": "3c90983a8eb2618c36dd6b78296777ac5d2ddbcd241b665e4232b195cfc4f725",
@@ -47103,7 +47103,7 @@
       "-c",
       "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
       "/Users/shashank/Desktop/Code/Graph/graph-loader",
-      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/collection-freeze5.json"
+      "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e11-validation-20261101/f2amd64/collection-freeze-testfix.json"
     ]
   },
   "artifact_contract": {

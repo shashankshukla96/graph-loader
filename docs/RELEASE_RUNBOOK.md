@@ -42,7 +42,7 @@ a token into an issue, a log or an evidence file.
    and frozen; those same files go unchanged to TestPyPI and then PyPI), and
    [Support and limits](../README.md#support-and-limits) matches the evidence.
 2. A manifest `MANIFEST.sha256` lists the wheel and sdist SHA-256 hashes, the
-   commit, and the four image IDs and, after push, digests. Artifacts and the
+   commit, and the eight image IDs (four per architecture), their archive hashes and, after push, the per-architecture and index digests. Artifacts and the
    manifest are kept read-only in one directory that nothing else writes to.
 3. All gates have passed on **these exact bytes**: lint and unit tests, installed
    lanes, the platform lanes, the real-service lanes (see section 5), the quick-start
@@ -66,8 +66,8 @@ Record the hashes in the manifest. The frozen inventory records the hash of the
 wheel's `WHEEL` file, which names the build backend (`Generator: setuptools (84.2.1)`
 for `0.1.0a1`), so build from a clean `git archive` of the frozen commit with that
 backend (for example `PIP_CONSTRAINT=<file containing setuptools==84.2.1>`); a different
-`setuptools` changes that hash and the lanes refuse the wheel. Build the four images from the frozen
-source, assert that each carries `org.opencontainers.image.version=0.1.0a1`,
+`setuptools` changes that hash and the lanes refuse the wheel. Build the four images natively on each architecture (amd64 and arm64) from the frozen
+source, save each with `docker save` and record the archive hashes, assert that each carries `org.opencontainers.image.version=0.1.0a1`,
 `io.graph-loader.component` and `io.graph-loader.image-contract=1`, and run the
 service lanes against those image IDs.
 
@@ -101,29 +101,65 @@ PyPI as a separate step (never `--extra-index-url`), then run `pip check`, the
 the project page and check the README rendering, links, license, Python support,
 maintainers and file hashes. A defect means a new version and repeated gates.
 
-**3.4 Push the images (after instruction).**
+**3.4 Push the images (after instruction): one image per architecture, then a multi-arch tag.**
+`ghcr.io/shashankshukla96/graph-loader-<component>:0.1.0a1` must be one multi-platform
+index that lists the `linux/amd64` and `linux/arm64` images; the two images are built
+natively (3.1) and are never merged into one local image. For each component
+`<c>` in `cli`, `node`, `edge`, `clock`:
+
+1. Check that each local `rc1` image still has the ID recorded in the manifest (if an
+   image is missing, `docker load -i` its archive from the manifest directory and compare
+   the loaded ID and the archive's SHA-256 with the manifest), then retag it locally. Nothing is
+   rebuilt for the push.
 
 ```bash
-docker push ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1
-docker push ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1
-docker push ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1
-docker push ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1
-docker buildx imagetools inspect ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1
+docker tag ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-rc1-amd64 ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-amd64
+docker tag ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-rc1-arm64 ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-arm64
 ```
 
-Record each digest, then verify an anonymous pull by digest with an empty Docker
-configuration so no stored login is used:
+   Retag each architecture on the machine that holds its image (or after `docker load`).
+
+2. Push each architecture tag, and record the digest the registry reports for each:
 
 ```bash
-DOCKER_CONFIG="$(mktemp -d)" docker pull ghcr.io/shashankshukla96/graph-loader-cli@sha256:<digest of 0.1.0a1 cli>
-DOCKER_CONFIG="$(mktemp -d)" docker pull ghcr.io/shashankshukla96/graph-loader-node@sha256:<digest of 0.1.0a1 node>
-DOCKER_CONFIG="$(mktemp -d)" docker pull ghcr.io/shashankshukla96/graph-loader-edge@sha256:<digest of 0.1.0a1 edge>
-DOCKER_CONFIG="$(mktemp -d)" docker pull ghcr.io/shashankshukla96/graph-loader-clock@sha256:<digest of 0.1.0a1 clock>
+docker push ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-amd64
+docker push ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-arm64
 ```
 
-Then compare each pulled image ID and labels with the local candidate. Package
-visibility must be public. Never
-retag or overwrite `0.1.0a1` afterwards.
+3. Create the multi-arch tag from the two recorded digests. It is created once, only after
+   both digests are recorded, and never moved afterwards:
+
+```bash
+docker buildx imagetools create -t ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1 \
+  ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<amd64 digest> \
+  ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<arm64 digest>
+```
+
+   Without `buildx`, `docker manifest create ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1
+   --amend ...@sha256:<amd64 digest> --amend ...@sha256:<arm64 digest>` followed by `docker manifest push` does
+   the same.
+
+4. Verify. The index must list exactly two platforms, and each platform's digest must equal
+   the digest recorded in step 2:
+
+```bash
+docker buildx imagetools inspect ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1
+docker buildx imagetools inspect --raw ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1
+```
+
+Record the index digest and both platform digests for each component in the manifest, then verify an
+anonymous pull by digest with an empty Docker configuration so no stored login is used (index
+digest, then each platform digest):
+
+```bash
+DOCKER_CONFIG="$(mktemp -d)" docker pull ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<index digest>
+DOCKER_CONFIG="$(mktemp -d)" docker pull --platform linux/amd64 ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<amd64 digest>
+DOCKER_CONFIG="$(mktemp -d)" docker pull --platform linux/arm64 ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<arm64 digest>
+```
+
+Then compare each pulled image ID and labels with the local candidate of the same architecture
+(IDs from the manifest). Package visibility must be public. Never retag or overwrite `0.1.0a1`,
+`0.1.0a1-amd64` or `0.1.0a1-arm64` afterwards.
 
 **3.5 Publish to PyPI (after a separate instruction).** Only after the rehearsal,
 the images and the user's review pass, upload the same files, re-checking the

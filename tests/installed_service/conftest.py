@@ -47,3 +47,29 @@ def stack(docker_client, registry, service_config):
         registry.write('close', **result)
         if result['failed']:
             raise RuntimeError('owned stack cleanup failed: ' + repr(result['failed']))
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    setattr(item, 'rep_' + call.when, outcome.get_result())
+
+
+@pytest.fixture(autouse=True)
+def wipe_the_owned_graph_after_a_failed_test(request):
+    """The tests share one scratch Neo4j and each ends with its own ``clear``; a test that fails first never reaches it. What it
+    left behind then pushes a later whole-database graph observation past its byte bound, and an abandoned observation leaves a
+    started-but-never-completed query in the query log that every later strict capture waits for in vain. Whatever fails, the next
+    test therefore starts on an empty scratch graph."""
+    yield
+    report = getattr(request.node, 'rep_call', None)
+    if report is None or not report.failed or 'stack' not in request.fixturenames:
+        return
+    live = request.getfixturevalue('stack')
+    try:
+        with live.driver.session(database=live.database) as session:
+            while session.run('MATCH (n) WITH n LIMIT 2000 DETACH DELETE n RETURN count(*) AS deleted').single()['deleted']:
+                pass
+    except Exception as error:  # the original failure is the one to report
+        print('could not wipe the owned graph after a failed test:', type(error).__name__)
+

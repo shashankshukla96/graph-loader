@@ -1,7 +1,7 @@
 {
   "schema": "e11-candidate-manifest/1",
   "date": "2026-11-01",
-  "status": "Not \"all green\". Every gate is either pass or carries a recorded explanation and decision: two amd64 retained red runs (native resource_tracker; container public-many-cancel) are accepted-harness-limit by user decision 2026-11-01; the amd64 process envelope was not executed; the amd64 native public-contracts lane is red-by-explained-harness-limit. No red gate is unexplained. E11.F2 (uploads, image pushes) has not been started.",
+  "status": "Every gate is pass or accepted by user decision. Accepted-harness-limit (user decision 2026-11-01): amd64 container E08 public-many-cancel and the native amd64 resource_tracker run. The amd64 service-harness lane was red twice on the rebuilt amd64 images (retained, diagnosed as a test race and a cleanup cascade) and is 150/150 after a test-only fix that needs commit. Not \"all green\" in the sense that these retained red and accepted runs exist. E11.F2 not started.",
   "package": {
     "name": "neo4j-graph-loader",
     "version": "0.1.0a1",
@@ -37,105 +37,155 @@
       "plan/library-implementation/test-inventory.json": "c7e5b8fcd6b246b41e7931a653458f4bb085dc3d4e33bb93518f3d5f93d94910"
     },
     "inventory_ids": 4206,
-    "candidate_bytes_unchanged": "The wheel, sdist and all eight images were built from 60ea29f and are unchanged. `git diff 60ea29f HEAD -- src pyproject.toml` is empty; both later commits touch only scripts/ (support-matrix tooling), tests/ and the inventory."
+    "candidate_bytes_unchanged": "The wheel, sdist and all eight images were built from 60ea29f and are unchanged. `git diff 60ea29f HEAD -- src pyproject.toml` is empty; both later commits touch only scripts/ (support-matrix tooling), tests/ and the inventory.",
+    "963445d": "examples/docs/tooling commit (load_imdb.py replaces the old IMDb harness; inventory 4,145 IDs); src/ and pyproject.toml unchanged since 60ea29f, so no candidate bytes change",
+    "uncommitted_test_only_fix_2026-11-02": {
+      "files_sha256": {
+        "tests/installed_service/test_service_kill_and_outage.py": "1ea137a45e82e4a5762e9d70d9247283f4ff299543b7e1d8eee2678f1477badd",
+        "tests/installed_service/observers.py": "3aa6bc89ac264064ab2283801ebc00ab8bc886c6858420383d3a7a70e412ac16",
+        "tests/installed_service/conftest.py": "70316d0c570df5c4fd7e90b4d20c264cebe683a027ba384bbaf14dd162f132b1",
+        "plan/library-implementation/test-inventory.json": "561ec6644690c3de744732d98d17e1e780519bf25cc43119fb6469b0eb89dc3f"
+      },
+      "purpose": "service-harness race and cascade fixes (needs commit); the wheel, sdist and images are unaffected"
+    }
   },
   "images": {
     "arm64": {
       "build_inputs_count": 78,
       "rows": {
         "cli": {
-          "id": "sha256:488a075ee56a924c73dd97a761ae5fc10abcb73ad865ebcee3194d9f77999686",
+          "id": "sha256:2367ed05ec5066395debfd0e6a854b6a1519d16c5cec381d39e21f6e0f7fcad2",
           "local_tag": "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1-rc1-arm64",
           "platform": "linux/arm64",
-          "docker_save_sha256": "1ef92da1cf853f0203653d981ff19c180617dc71bc59e725298ad874812b8d76",
-          "docker_save_bytes": 83529216,
+          "archive": "var/e11-validation-20261101/oci/graph-loader-cli-0.1.0a1-rc1-arm64.tar",
+          "archive_sha256": "498cc13306ae7e03fa82764d14dc94a1a47c50cc7b5b24f731e92eaaba29b679",
+          "archive_bytes": 83530240,
           "payload_equal_to_frozen_wheel": true,
           "version": "0.1.0a1",
           "python": "3.12.16",
-          "pip_check_exit": 0
+          "pip_check_exit": 0,
+          "help_exit": 0,
+          "version_output": "graph-loader 0.1.0a1"
         },
         "node": {
-          "id": "sha256:bcbd63d1d9f71e1507214979f8588393e8867194d89965a0738b16f819609380",
+          "id": "sha256:13c166090e6f73e7c8992431809a14b8ddb8be18dce785c99f6d10b18d345294",
           "local_tag": "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1-rc1-arm64",
           "platform": "linux/arm64",
-          "docker_save_sha256": "0c5e3064dc77f81038da3988d5ea5e49df63439c3e00ca78479c6a1933ac0f96",
-          "docker_save_bytes": 83527168,
+          "archive": "var/e11-validation-20261101/oci/graph-loader-node-0.1.0a1-rc1-arm64.tar",
+          "archive_sha256": "625d73ba1586cda734e8cac8ffc101f6fbe6602b46f683d697543f0c2a7651c4",
+          "archive_bytes": 83528192,
           "payload_equal_to_frozen_wheel": true,
           "version": "0.1.0a1",
           "python": "3.12.16",
-          "pip_check_exit": 0
+          "pip_check_exit": 0,
+          "help_exit": 0
         },
         "edge": {
-          "id": "sha256:8cd9039dd891adc69c65cef117d9ce2774a276e0ba92cbf841646b5e4b6b0d90",
+          "id": "sha256:a1b6bae004c9882631ae5c8a54d641d2324fad29130ad22c96289fcb6827b217",
           "local_tag": "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1-rc1-arm64",
           "platform": "linux/arm64",
-          "docker_save_sha256": "9fca45eb06c37c00c3abcee32a40df435a1c4be1b54d9181d96cdaee6832e9a2",
-          "docker_save_bytes": 83527168,
+          "archive": "var/e11-validation-20261101/oci/graph-loader-edge-0.1.0a1-rc1-arm64.tar",
+          "archive_sha256": "4a182919a9a0b2828986883474b9ab8e1a12ecb06ee2cade1407b9bf4e01ca1b",
+          "archive_bytes": 83528192,
           "payload_equal_to_frozen_wheel": true,
           "version": "0.1.0a1",
           "python": "3.12.16",
-          "pip_check_exit": 0
+          "pip_check_exit": 0,
+          "help_exit": 0
         },
         "clock": {
-          "id": "sha256:7231f6c1e1e8593c87b4f854a98e59426c1717d4ce49d28a67b5de3a11fea379",
+          "id": "sha256:6f6c7d7f7842997c94bc1320a11e54e0a4b609755b6051106a328d464a04a8f9",
           "local_tag": "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1-rc1-arm64",
           "platform": "linux/arm64",
-          "docker_save_sha256": "2145f34d991ccb59ce894ef349192a654de96b88abe3f10ea2e15a677310056d",
-          "docker_save_bytes": 83518976,
+          "archive": "var/e11-validation-20261101/oci/graph-loader-clock-0.1.0a1-rc1-arm64.tar",
+          "archive_sha256": "06f0f0452a5b9ffd2b7882b9b47b955b28a310dd478130db6f3fbfb75a42bf71",
+          "archive_bytes": 83520512,
           "payload_equal_to_frozen_wheel": true,
           "version": "0.1.0a1",
           "python": "3.12.16",
-          "pip_check_exit": 0
+          "pip_check_exit": 0,
+          "help_exit": 0
         }
+      },
+      "status": "rebuilt 2026-11-02 from git archive 60ea29f (see superseded_arm64_images); re-gated",
+      "rebuild": {
+        "source": "git archive 60ea29f8138e0025c5d23bed2ee17ef7d0fab5f3 (no AppleDouble files)",
+        "command": "scripts/build_candidate_images.py --suffix rc1-arm64",
+        "built_on": "Mac, Docker Desktop (desktop-linux), native arm64",
+        "base_image": "python:3.12-slim@sha256:aa943ce411423c7582288f18707ff66eddcbaeb510502d747a72aeb34f30d159 (same digest as the superseded build)",
+        "input_sha256_equal_to_superseded_arm64_and_amd64_builds": true,
+        "build_inputs_count": 78,
+        "manifest": "var/e11-validation-20261101/images-arm64-rebuild/images.json"
       }
     },
     "amd64": {
       "build_inputs_count": 78,
       "rows": {
         "cli": {
-          "id": "sha256:d67aea50eb69b35ca3bf5369453c8757303c289671c895d9c8f5b4544c8b6576",
+          "id": "sha256:6defd9359f0ab43614088f98299a9b5f8a4926224a5c2fd84a5152cd66500658",
           "local_tag": "ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1-rc1-amd64",
           "platform": "linux/amd64",
-          "docker_save_sha256": "3522ca1320ea2c2e99ad9a9376cc89885a7d4007e8c5e12d8160dc7da1acd8e2",
-          "docker_save_bytes": 83846656,
+          "archive": "var/e11-validation-20261101/oci/graph-loader-cli-0.1.0a1-rc1-amd64.tar",
+          "archive_sha256": "b0b46a30e62f5c62b059e16f34a6421a222304341df183717590fdd184ec23f9",
+          "archive_bytes": 83847168,
           "payload_equal_to_frozen_wheel": true,
           "version": "0.1.0a1",
           "python": "3.12.16",
-          "pip_check_exit": 0
+          "pip_check_exit": 0,
+          "help_exit": 0,
+          "version_output": "graph-loader 0.1.0a1"
         },
         "node": {
-          "id": "sha256:c7337f91243c9a56c00adcae512d7d94afaa1d25ff84f515ec5dea7008960ceb",
+          "id": "sha256:6a7977f18ba4c1e8969c29b07bf6f5f37dcfef54b040bea0f6cef6718f9afb01",
           "local_tag": "ghcr.io/shashankshukla96/graph-loader-node:0.1.0a1-rc1-amd64",
           "platform": "linux/amd64",
-          "docker_save_sha256": "f97f64aad76009ad9130d1c5755c404030047e10c7d38577439a1d7a4a9b5307",
-          "docker_save_bytes": 83844608,
+          "archive": "var/e11-validation-20261101/oci/graph-loader-node-0.1.0a1-rc1-amd64.tar",
+          "archive_sha256": "7991bb40d676836547561669e8a2eea5b34317abd345bea543173901eb7c4f20",
+          "archive_bytes": 83845120,
           "payload_equal_to_frozen_wheel": true,
           "version": "0.1.0a1",
           "python": "3.12.16",
-          "pip_check_exit": 0
+          "pip_check_exit": 0,
+          "help_exit": 0
         },
         "edge": {
-          "id": "sha256:3291d27b6eded676516babeb6737cd488ea95e7e9d6b71447eef7e8d63893c33",
+          "id": "sha256:9842630267cf9306f06d314e2059a5036cf6d360af6c5364f5eda4d7d2fd6992",
           "local_tag": "ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1-rc1-amd64",
           "platform": "linux/amd64",
-          "docker_save_sha256": "5da59782fcf3f969378c29d82eb2808e44fc5a6c9ab8c8ba8413f7368a1cfb07",
-          "docker_save_bytes": 83844608,
+          "archive": "var/e11-validation-20261101/oci/graph-loader-edge-0.1.0a1-rc1-amd64.tar",
+          "archive_sha256": "98ea1e8a52f0261a65620292720f150755ae705ef34e21b26fa83274ccb01ff3",
+          "archive_bytes": 83845120,
           "payload_equal_to_frozen_wheel": true,
           "version": "0.1.0a1",
           "python": "3.12.16",
-          "pip_check_exit": 0
+          "pip_check_exit": 0,
+          "help_exit": 0
         },
         "clock": {
-          "id": "sha256:abd60014b29a24b75e6366b5de7c33065515d1ca8dde10ca51d401418b18c077",
+          "id": "sha256:e9385b2963a710f0007fcb1c018590e5775b2cfa6c11331b1862196925f9c9c0",
           "local_tag": "ghcr.io/shashankshukla96/graph-loader-clock:0.1.0a1-rc1-amd64",
           "platform": "linux/amd64",
-          "docker_save_sha256": "61d161fb3c2e1b4254312b35e9750de46992d234718cf71c6bac9ce31a848d9a",
-          "docker_save_bytes": 83836416,
+          "archive": "var/e11-validation-20261101/oci/graph-loader-clock-0.1.0a1-rc1-amd64.tar",
+          "archive_sha256": "04facf4c65e1b02f71e7f263dd73d1126823ade6e3e4245dad10f2aa10e66b71",
+          "archive_bytes": 83837440,
           "payload_equal_to_frozen_wheel": true,
           "version": "0.1.0a1",
           "python": "3.12.16",
-          "pip_check_exit": 0
+          "pip_check_exit": 0,
+          "help_exit": 0
         }
+      },
+      "status": "rebuilt 2026-11-02 on the Linux host from git archive 60ea29f (see superseded_amd64_images); probe passes; service-harness 150/150 after a test-only fix",
+      "rebuild": {
+        "source": "git archive 60ea29f8138e0025c5d23bed2ee17ef7d0fab5f3 exported by git archive | ssh tar -x (0 AppleDouble files)",
+        "command": "scripts/build_candidate_images.py --suffix rc1-amd64",
+        "built_on": "Linux host, Docker Engine 29.9.0, native amd64",
+        "scratch_dir_on_host": "~/e11-amd64-rebuild-20261102T020113Z",
+        "wheel_sha256": "b420c78447be3d5ba52cffd6cf1b5911a724693171723f53b4e0c69fd379e199",
+        "base_image": "python:3.12-slim, image id sha256:aa943ce411423c7582288f18707ff66eddcbaeb510502d747a72aeb34f30d159 (the same id the arm64 rebuild reports), CPython 3.12.16",
+        "build_inputs_count": 78,
+        "input_sha256_equal_to_recorded_amd64_and_arm64_builds": true,
+        "manifest": "var/e11-validation-20261101/images-amd64-rebuild/images.json"
       }
     }
   },
@@ -499,13 +549,40 @@
         "follow_up_not_taken": "Profiling/fixing the guard (tooling-only, needs a commit and an amd64 cell rerun) or rerunning on a Docker Desktop VM were offered and not chosen."
       }
     },
-    "e09_service_harness_amd64_final_images": {
-      "run1": "149 passed, 1 failed (classic order test)",
-      "run2": "149 passed, 1 failed (same)",
-      "run3_with_test_only_fix": "150 passed",
-      "inventory_sha256_run3": "c7e5b8fcd6b246b41e7931a653458f4bb085dc3d4e33bb93518f3d5f93d94910"
-    },
     "arm64_real_load_smoke": {
+      "ok": true,
+      "run_on": "rebuilt rc1-arm64 images (the CLI log records node 13c166090e6f and edge a1b6bae004c9)",
+      "checks": {
+        "exit_code_zero": true,
+        "planned_default": true,
+        "node_counts": true,
+        "relationship_counts": true,
+        "no_duplicate_relationships": true,
+        "sample": true,
+        "self_reference": true,
+        "password_not_in_output": true,
+        "node_offsets_at_end": true,
+        "ledger_present": true,
+        "only_stack_containers_remain": true
+      },
+      "nodes": {
+        "Company": 12,
+        "City": 6,
+        "Person": 300
+      },
+      "relationships": {
+        "FRIEND_OF": 600,
+        "LIVES_IN": 300,
+        "WORKS_AT": 300
+      },
+      "duplicate_relationships": 0,
+      "stack": "owned Neo4j 5.26 Enterprise (c07aabc5\u2026) + Kafka 7.7.0 (1fa3cdb3\u2026), removed by recorded ID afterwards",
+      "evidence": [
+        "var/e11-validation-20261101/f2prep/smoke-evidence-rebuilt.json",
+        "var/e11-validation-20261101/f2prep/smoke-cli-output.log"
+      ]
+    },
+    "arm64_real_load_smoke_on_superseded_images": {
       "ok": true,
       "checks": {
         "exit_code_zero": true,
@@ -530,7 +607,128 @@
         "LIVES_IN": 300,
         "WORKS_AT": 300
       }
-    }
+    },
+    "arm64_image_probe_rebuilt_images": {
+      "ok": true,
+      "evidence": "var/e11-validation-20261101/f2prep/image-probe-arm64-rebuilt.json",
+      "per_image": {
+        "cli": {
+          "id": "sha256:2367ed05ec5066395debfd0e6a854b6a1519d16c5cec381d39e21f6e0f7fcad2",
+          "payload_equal_to_frozen_wheel": true,
+          "payload_files": 59,
+          "label_version": "0.1.0a1",
+          "pip_check": 0
+        },
+        "node": {
+          "id": "sha256:13c166090e6f73e7c8992431809a14b8ddb8be18dce785c99f6d10b18d345294",
+          "payload_equal_to_frozen_wheel": true,
+          "payload_files": 59,
+          "label_version": "0.1.0a1",
+          "pip_check": 0
+        },
+        "edge": {
+          "id": "sha256:a1b6bae004c9882631ae5c8a54d641d2324fad29130ad22c96289fcb6827b217",
+          "payload_equal_to_frozen_wheel": true,
+          "payload_files": 59,
+          "label_version": "0.1.0a1",
+          "pip_check": 0
+        },
+        "clock": {
+          "id": "sha256:6f6c7d7f7842997c94bc1320a11e54e0a4b609755b6051106a328d464a04a8f9",
+          "payload_equal_to_frozen_wheel": true,
+          "payload_files": 59,
+          "label_version": "0.1.0a1",
+          "pip_check": 0
+        }
+      },
+      "leftover_containers": []
+    },
+    "arm64_gates_kept_not_dependent_on_our_images": "arm64 unit lanes (unit_lanes_arm64_native_mac_py3.12.14) and E08 arm64 container cells (e08_cells_arm64_container_python3.12.16) run the wheel in python:3.12-slim and do not use the loader images, so their results are kept unchanged.",
+    "e09_service_harness_amd64_superseded_images": {
+      "run1": "149 passed, 1 failed (classic order test)",
+      "run2": "149 passed, 1 failed (same)",
+      "run3_with_test_only_fix": "150 passed",
+      "inventory_sha256_run3": "c7e5b8fcd6b246b41e7931a653458f4bb085dc3d4e33bb93518f3d5f93d94910"
+    },
+    "amd64_image_probe_rebuilt_images": {
+      "ok": true,
+      "evidence": "var/e11-validation-20261101/f2amd64/image-probe-amd64-rebuilt.json",
+      "per_image": {
+        "cli": {
+          "id": "sha256:6defd9359f0ab43614088f98299a9b5f8a4926224a5c2fd84a5152cd66500658",
+          "payload_equal_to_frozen_wheel": true,
+          "payload_files": 59,
+          "label_version": "0.1.0a1",
+          "pip_check": 0
+        },
+        "node": {
+          "id": "sha256:6a7977f18ba4c1e8969c29b07bf6f5f37dcfef54b040bea0f6cef6718f9afb01",
+          "payload_equal_to_frozen_wheel": true,
+          "payload_files": 59,
+          "label_version": "0.1.0a1",
+          "pip_check": 0
+        },
+        "edge": {
+          "id": "sha256:9842630267cf9306f06d314e2059a5036cf6d360af6c5364f5eda4d7d2fd6992",
+          "payload_equal_to_frozen_wheel": true,
+          "payload_files": 59,
+          "label_version": "0.1.0a1",
+          "pip_check": 0
+        },
+        "clock": {
+          "id": "sha256:e9385b2963a710f0007fcb1c018590e5775b2cfa6c11331b1862196925f9c9c0",
+          "payload_equal_to_frozen_wheel": true,
+          "payload_files": 59,
+          "label_version": "0.1.0a1",
+          "pip_check": 0
+        }
+      }
+    },
+    "e09_service_harness_amd64_rebuilt_images": {
+      "status": "passed: 150/150 on the rebuilt amd64 images after a test-only fix (two earlier red runs retained below)",
+      "final_run": {
+        "result": "150 passed in 1541.6 s (lane 1555.8 s)",
+        "evidence": [
+          "var/e11-validation-20261101/f2amd64/service-harness-lane-out3-pytest.log",
+          "var/e11-validation-20261101/f2amd64/service-harness-lane-out3-result.json"
+        ],
+        "wheel_sha256": "b420c78447be3d5ba52cffd6cf1b5911a724693171723f53b4e0c69fd379e199",
+        "inventory_sha256": "561ec6644690c3de744732d98d17e1e780519bf25cc43119fb6469b0eb89dc3f",
+        "images": "the rebuilt amd64 IDs in images.amd64.rows",
+        "run_once_after_the_fix": true
+      },
+      "retained_red_runs": {
+        "run_1": {
+          "result": "129 passed, 21 failed (1600.7 s)",
+          "first_failure": "test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes[1]: the stop left no work outstanding (6000 < 6000 relationships; the load finished before SIGTERM)",
+          "follow_on": "20 failures after it: 15 \"query log did not become quiescent\", 3 \"an unexpected query was left open\" (the harness graph observation), 2 \"graph observation exceeds byte bound\", looking like a cascade of that first failure",
+          "evidence": "var/e11-validation-20261101/f2amd64/service-harness-lane-out-pytest.log"
+        },
+        "run_2": {
+          "result": "149 passed, 1 failed (1479.9 s)",
+          "failure": "test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes[1]: the CLI refused to start because the killed loader's consumer-group member had not yet expired (\"waiting for member(s) to expire ... nothing was started\")",
+          "evidence": "var/e11-validation-20261101/f2amd64/service-harness-lane-out2-pytest.log"
+        }
+      },
+      "diagnosis": {
+        "a_graceful_stop_race": "test workload race. In run 1 the relationship writes lasted 1.55 s (68 write queries); the first SIGTERM event landed 1.46 s after the first write and 0.09 s before the last (about 94% done), so the graceful stop drained the rest and 6000 of 6000 relationships existed (assertion \"stop must have left work outstanding\"). Cause: the test published all three relationship topics (about a second) before it began watching for work in flight, while the loaders were already writing; an idle host (NVMe-backed user stack, imdb-c7b4 containers stopped) shortens the window further.",
+        "b_edge_loader_lost": "not a product defect and not the CLI refusing wrongly: the CLI waits session.timeout.ms + 5 s (about 50 s) for the killed loader's group member to expire before starting, which is the designed safety wait. The test's resume assertions were already true (the first run had written the whole graph before the kill, so \"resumes to the exact graph\" and \"offsets at the ends\" held at once) and it SIGTERMed the second CLI while it was still in that wait, giving exit 1 \"nothing was started\". Same root cause as (a): nothing was left outstanding.",
+        "c_cascade": "yes. test_s5_stream_stops_gracefully[1] failed before its trailing clear(), leaving 2,006 nodes and 6,000 relationships in the shared scratch database. The next whole-database graph observation (test_s5_planned_bulk_fails_closed...[0],[1]) crossed the 2 MB byte bound and raised mid-iteration; the abandoned result left a started-but-never-completed query in Neo4j's query log. Neo4j never logs an end for it, so declare_open_writes rejected it (\"an unexpected query was left open: MATCH (a)-[r]->(b)...\" x3) and every later strict query_window.capture (all tests from test_service_lease_stream onward that use one) waited 30 s for a quiescence that cannot arrive (15 TimeoutErrors). 20 follow-on failures after the one root failure; independent tests after it could not run their real assertions."
+      },
+      "fix": {
+        "scope": "test-only, tests/installed_service/ (no src/, wheel or sdist change; candidate bytes unchanged)",
+        "files": [
+          "tests/installed_service/test_service_kill_and_outage.py: producing() context manager publishes the relationships from a thread while the test watches for work in flight, so the SIGTERM/kill lands with records still unpublished/unconsumed; the loader-lost test now also asserts len(partial) < TOTAL_BIG (no vacuous resume)",
+          "tests/installed_service/observers.py: graph_observations consumes its result in a finally, so an abandoned observation still completes in the query log",
+          "tests/installed_service/conftest.py: autouse fixture wipes the owned scratch graph after a failed test (pytest_runtest_makereport hook), so one failure cannot pollute the next tests"
+        ],
+        "diff": "var/e11-validation-20261101/f2amd64/testfix.diff",
+        "inventory": "refrozen with the freezer: only the three file hashes (+ the recorded collection path) changed; 4,145 IDs, order and dispositions unchanged; inventory sha256 561ec664\u202689dc3f; previous copy in f2amd64/test-inventory.before-testfix.json",
+        "helper_unit_tests": "test_observer_controls, test_query_window_controls, test_inspection_controls: 99 passed; ruff clean; collection of the changed module 11 IDs"
+      },
+      "scratch": "~/e11-amd64-rebuild-20261102T020113Z (lane-out, lane-out2, lane-out3)"
+    },
+    "amd64_gates_kept_not_dependent_on_our_images": "amd64 unit lanes (unit_lanes_amd64_native_host_py3.12.3), the native public-contracts retained red run and the amd64 container E08 cells (e08_cells_amd64_container_python3.12.16, including the public-many-cancel accepted-harness-limit) do not use our images; their results and the accepted-harness-limit decisions stand."
   },
   "retained_red_runs": [
     {
@@ -556,7 +754,19 @@
   ],
   "foreign_snapshots": {
     "host": "only the four candidate amd64 image tags added",
-    "mac": "neburyx resources changed on their own during the run (container agitated_aryabhata, tags neo4j:5.26/neo4j:latest, postgres:16.15 image id, bridge network id, two volumes); none touched by this work"
+    "mac": "neburyx resources changed on their own during the run (container agitated_aryabhata, tags neo4j:5.26/neo4j:latest, postgres:16.15 image id, bridge network id, two volumes); none touched by this work",
+    "f2_prep_2026-11-02": {
+      "host": "before = after (identical) in f2prep/host-foreign-{before,after}.txt; the host holds neo4j:5-enterprise, cp-kafka:7.7.0, kafka-ui, postgres, python:3.12.14-slim and no graph-loader image; the orchestrator's imdb-c7b4... containers are Exited(137)",
+      "mac": "f2prep/mac-foreign-{before,after}.txt: differences are my pulled neo4j:5.26-enterprise and cp-kafka:7.7.0 and foreign resources that appeared on their own (another project's neo4j:2026/ryuk containers, two volumes, cp-kafka:7.6.0, ryuk:0.8.1, graph-loader-node:test); none touched"
+    },
+    "f2_amd64_rebuild_2026-11-02": {
+      "host": "f2amd64/host-foreign-{before,after}.txt: after differs from before only by the four rebuilt rc1-amd64 images and python:3.12-slim; no e09/e11-owned container, network or volume remains; the stopped imdb-c7b4\u2026 containers and the user's stack (NVMe, /home/shashank/graph-loader-data) were not touched",
+      "mac": "f2amd64/mac-foreign-{before,after}.txt"
+    },
+    "f2_amd64_testfix_run_2026-11-02": {
+      "host": "f2amd64/host-foreign-after-testfix.txt equals host-foreign-after.txt (no e09/e11-owned resource remains)",
+      "mac": "f2amd64/mac-foreign-after-testfix.txt equals mac-foreign-after.txt"
+    }
   },
   "cleanup": {
     "e11_owned_resources_remaining": {
@@ -565,5 +775,99 @@
     },
     "host_scratch": "~/e11-run-20261101T162244Z and ~/e11-run-20261101T161205Z remain",
     "mac_scratch": "~/e11-runs"
+  },
+  "superseded_arm64_images": {
+    "ids": {
+      "cli": "sha256:488a075ee56a924c73dd97a761ae5fc10abcb73ad865ebcee3194d9f77999686",
+      "node": "sha256:bcbd63d1d9f71e1507214979f8588393e8867194d89965a0738b16f819609380",
+      "edge": "sha256:8cd9039dd891adc69c65cef117d9ce2774a276e0ba92cbf841646b5e4b6b0d90",
+      "clock": "sha256:7231f6c1e1e8593c87b4f854a98e59426c1717d4ce49d28a67b5de3a11fea379"
+    },
+    "docker_save_sha256": {
+      "cli": "1ef92da1cf853f0203653d981ff19c180617dc71bc59e725298ad874812b8d76",
+      "node": "0c5e3064dc77f81038da3988d5ea5e49df63439c3e00ca78479c6a1933ac0f96",
+      "edge": "9fca45eb06c37c00c3abcee32a40df435a1c4be1b54d9181d96cdaee6832e9a2",
+      "clock": "2145f34d991ccb59ce894ef349192a654de96b88abe3f10ea2e15a677310056d"
+    },
+    "why_gone": "The four rc1-arm64 tags and IDs were no longer present in the Mac Docker Desktop daemon by 2026-11-02; the shared daemon also holds another project's containers and images, and the E11 snapshots show no removal by this work (no e11-owned resource remained after the smoke; nothing was pruned). Removed by a foreign actor as far as the snapshots show; the exact removal is not recorded (docker events are not retained). No docker save archive existed at the time.",
+    "replaced_by": "the rebuilt images in images.arm64.rows",
+    "rebuild_provenance": "same commit (60ea29f), same builder, same 78 build inputs, same base digest; the installed payload equals the frozen wheel payload; image IDs and docker-save hashes differ from the superseded images because image layers carry build timestamps",
+    "gates_rerun_on_rebuilt_images": [
+      "e11_image_probe (payload, version, labels, --version/--help, pip check)",
+      "arm64 installed-CLI real-load smoke on an owned Neo4j 5.26 Enterprise + Kafka 7.7.0 stack"
+    ]
+  },
+  "extra_arm64_evidence_not_a_gate": {
+    "165k_imdb_load": "var/imdb-load-20261101/REPORT.md: titles-165000-depth-4 loaded with the rebuilt arm64 node/edge images, 14,483,774 nodes and 70,210,506 relationships, 0 duplicate relationships (also the 10k subset); examples/imdb/load_imdb.py is committed in 963445d"
+  },
+  "archives": {
+    "dir": "var/e11-validation-20261101/oci/",
+    "arm64": {
+      "cli": {
+        "file": "graph-loader-cli-0.1.0a1-rc1-arm64.tar",
+        "sha256": "498cc13306ae7e03fa82764d14dc94a1a47c50cc7b5b24f731e92eaaba29b679",
+        "bytes": 83530240
+      },
+      "node": {
+        "file": "graph-loader-node-0.1.0a1-rc1-arm64.tar",
+        "sha256": "625d73ba1586cda734e8cac8ffc101f6fbe6602b46f683d697543f0c2a7651c4",
+        "bytes": 83528192
+      },
+      "edge": {
+        "file": "graph-loader-edge-0.1.0a1-rc1-arm64.tar",
+        "sha256": "4a182919a9a0b2828986883474b9ab8e1a12ecb06ee2cade1407b9bf4e01ca1b",
+        "bytes": 83528192
+      },
+      "clock": {
+        "file": "graph-loader-clock-0.1.0a1-rc1-arm64.tar",
+        "sha256": "06f0f0452a5b9ffd2b7882b9b47b955b28a310dd478130db6f3fbfb75a42bf71",
+        "bytes": 83520512
+      }
+    },
+    "arm64_checks": "a second docker save of the node image gives the same sha256; docker load of the clock archive after removing its tag restored image ID sha256:6f6c7d7f7842997c94bc1320a11e54e0a4b609755b6051106a328d464a04a8f9",
+    "amd64": {
+      "cli": {
+        "file": "graph-loader-cli-0.1.0a1-rc1-amd64.tar",
+        "sha256": "b0b46a30e62f5c62b059e16f34a6421a222304341df183717590fdd184ec23f9",
+        "bytes": 83847168
+      },
+      "node": {
+        "file": "graph-loader-node-0.1.0a1-rc1-amd64.tar",
+        "sha256": "7991bb40d676836547561669e8a2eea5b34317abd345bea543173901eb7c4f20",
+        "bytes": 83845120
+      },
+      "edge": {
+        "file": "graph-loader-edge-0.1.0a1-rc1-amd64.tar",
+        "sha256": "98ea1e8a52f0261a65620292720f150755ae705ef34e21b26fa83274ccb01ff3",
+        "bytes": 83845120
+      },
+      "clock": {
+        "file": "graph-loader-clock-0.1.0a1-rc1-amd64.tar",
+        "sha256": "04facf4c65e1b02f71e7f263dd73d1126823ade6e3e4245dad10f2aa10e66b71",
+        "bytes": 83837440
+      }
+    },
+    "amd64_checks": "the node archive hash is the same from a second docker save; sha256 equal on the host and on the Mac after scp; docker load of the clock archive after removing only its tag restored sha256:e9385b2963a710f0007fcb1c018590e5775b2cfa6c11331b1862196925f9c9c0",
+    "note": "all eight archives are in var/e11-validation-20261101/oci/; the earlier oci-archives-amd64.json described the superseded images"
+  },
+  "superseded_amd64_images": {
+    "ids": {
+      "cli": "sha256:d67aea50eb69b35ca3bf5369453c8757303c289671c895d9c8f5b4544c8b6576",
+      "node": "sha256:c7337f91243c9a56c00adcae512d7d94afaa1d25ff84f515ec5dea7008960ceb",
+      "edge": "sha256:3291d27b6eded676516babeb6737cd488ea95e7e9d6b71447eef7e8d63893c33",
+      "clock": "sha256:abd60014b29a24b75e6366b5de7c33065515d1ca8dde10ca51d401418b18c077"
+    },
+    "docker_save_sha256": {
+      "cli": "3522ca1320ea2c2e99ad9a9376cc89885a7d4007e8c5e12d8160dc7da1acd8e2",
+      "node": "f97f64aad76009ad9130d1c5755c404030047e10c7d38577439a1d7a4a9b5307",
+      "edge": "5da59782fcf3f969378c29d82eb2808e44fc5a6c9ab8c8ba8413f7368a1cfb07",
+      "clock": "61d161fb3c2e1b4254312b35e9750de46992d234718cf71c6bac9ce31a848d9a"
+    },
+    "why_gone": "removed by the user during a host cleanup, 2026-11-02 (the user cleaned up Docker and the ~/e11-run-* folders on the Linux host); not removed by this work. The host snapshots taken before and after the rebuild task are identical apart from the images this task added.",
+    "rebuild_provenance": "same commit (60ea29f), same builder, same 78 build inputs, same base image id, same frozen wheel; installed payload equals the frozen wheel payload; IDs and docker-save hashes differ because layers carry build timestamps",
+    "gates_rerun_on_rebuilt_images": [
+      "e11_image_probe: pass",
+      "E09 service-harness lane: 129/150 and 149/150 (two retained red runs, diagnosed), then 150/150 after the test-only fix"
+    ]
   }
 }

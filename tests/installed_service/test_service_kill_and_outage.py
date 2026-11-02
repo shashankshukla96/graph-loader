@@ -19,6 +19,7 @@ stop are timing races against a load of a few seconds; every test asserts that t
 """
 from __future__ import annotations
 
+import contextlib
 import json
 from pathlib import Path
 import re
@@ -115,6 +116,32 @@ def start_loaded_stream(stack, docker_client, registry, config, run, tag, name, 
 def count_relationships(stack):
     with stack.driver.session(database=stack.database) as session:
         return session.run('MATCH (:Citizen)-[r:WORKS_FOR|BUYS_FROM|KNOWS_OF]->() RETURN count(r) AS n').single()['n']
+
+
+@contextlib.contextmanager
+def producing(stack, topics, batch):
+    """Publish a batch's relationships from a thread while the body runs, and join it on exit.
+
+    The loaders start writing as soon as the first relationship topic has records, and a load of this size takes about two seconds on an
+    idle host. Publishing all three topics first and only then watching for work in flight left the event (a stop or a kill) landing
+    after the load had nearly finished. With the body running while the batch is still being published, the event hits work in flight and
+    records are still unconsumed whenever it lands, however fast the host is."""
+    box = {}
+
+    def publish():
+        try:
+            sf.produce_edges(stack, topics, batch)
+        except BaseException as error:  # re-raised in the test thread once the body is done
+            box['error'] = error
+
+    thread = threading.Thread(target=publish, name='publish-edges')
+    thread.start()
+    try:
+        yield
+    finally:
+        thread.join()
+    if 'error' in box:
+        raise box['error']
 
 
 def mid_load(stack, stream, timeout=120):
@@ -229,12 +256,12 @@ def test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes(repeat, docker_
     stream, topics, group = start_loaded_stream(stack, docker_client, registry, service_config, run, f'el{repeat}', 'start-1')
     nodes_big, rels_big = sf.expected(['big'])
     try:
-        sf.produce_edges(stack, topics, 'big')
-        in_flight = mid_load(stack, stream)
-        loaders = stream.components('edge-loader')
-        assert len(loaders) == 3
-        killed = stream.observer.kill_observed(loaders[0][0], timeout=60)
-        assert killed['exit_code'] == 137
+        with producing(stack, topics, 'big'):
+            in_flight = mid_load(stack, stream)
+            loaders = stream.components('edge-loader')
+            assert len(loaders) == 3
+            killed = stream.observer.kill_observed(loaders[0][0], timeout=60)
+            assert killed['exit_code'] == 137
         end = time.monotonic() + 120
         while stream.cli.running():
             assert time.monotonic() < end, 'the fleet must stop itself when an edge loader is lost'
@@ -250,6 +277,7 @@ def test_s5_stream_stops_when_an_edge_loader_is_lost_and_resumes(repeat, docker_
     nodes, partial = own_graph(stack)
     assert nodes == nodes_big and set(partial) <= set(rels_big) and len(partial) == len(set(partial))
     assert 0 < in_flight < TOTAL_BIG
+    assert len(partial) < TOTAL_BIG, 'the lost loader must have left work outstanding for the restart'
 
     second = StreamRun(stack, docker_client, registry, service_config, run, 'start-2', sf.schema(f'e09-{stack.owner}-', topics, group))
     try:
@@ -272,11 +300,11 @@ def test_s5_stream_stops_gracefully_with_work_outstanding_and_resumes(repeat, do
     clear(stack)
     stream, topics, group = start_loaded_stream(stack, docker_client, registry, service_config, run, f'gs{repeat}', 'start-1')
     nodes_big, rels_big = sf.expected(['big'])
-    try:
-        sf.produce_edges(stack, topics, 'big')
-        in_flight = mid_load(stack, stream)
-    finally:
-        out1 = stream.finish()  # SIGTERM while relationships are outstanding
+    with producing(stack, topics, 'big'):
+        try:
+            in_flight = mid_load(stack, stream)
+        finally:
+            out1 = stream.finish()  # SIGTERM while relationships are outstanding (and still being published)
     stopped_cleanly(stack, docker_client, out1, stream.cli, STREAM_COMPONENTS, exit_code=0)
     nodes, partial = own_graph(stack)
     assert nodes == nodes_big and set(partial) <= set(rels_big) and len(partial) == len(set(partial))

@@ -48,26 +48,30 @@ def graph_observations(driver, *, owner, database, maximum=10000, key='id'):
     with driver.session(database=database, fetch_size=1) as session:
         for name, query in queries.items():
             encoded = []
-            for row in islice(session.run(Query(query, timeout=10), limit=maximum+1), maximum+1):
-                if len(encoded) >= maximum:
-                    raise RuntimeError('graph observation exceeds row bound')
-                try:
-                    item = dict(row)
-                    fields = ('labels',) if name == 'nodes' else ('source_labels', 'target_labels')
-                    for field in fields:
-                        labels = item[field]
-                        if (not isinstance(labels, list) or not labels
-                                or any(not isinstance(label, str) or not label for label in labels)
-                                or len(labels) != len(set(labels))):
-                            raise ValueError('graph labels differ')
-                        item[field] = sorted(labels)
-                    value = json.dumps(item, sort_keys=True, separators=(',', ':'), allow_nan=False)
-                except (TypeError, ValueError) as error:
-                    raise RuntimeError('graph properties are not bounded JSON values') from error
-                total_bytes += len(value.encode())
-                if total_bytes > 2*1024*1024:
-                    raise RuntimeError('graph observation exceeds byte bound')
-                encoded.append(value)
+            records = session.run(Query(query, timeout=10), limit=maximum+1)
+            try:
+                for row in islice(records, maximum+1):
+                    if len(encoded) >= maximum:
+                        raise RuntimeError('graph observation exceeds row bound')
+                    try:
+                        item = dict(row)
+                        fields = ('labels',) if name == 'nodes' else ('source_labels', 'target_labels')
+                        for field in fields:
+                            labels = item[field]
+                            if (not isinstance(labels, list) or not labels
+                                    or any(not isinstance(label, str) or not label for label in labels)
+                                    or len(labels) != len(set(labels))):
+                                raise ValueError('graph labels differ')
+                            item[field] = sorted(labels)
+                        value = json.dumps(item, sort_keys=True, separators=(',', ':'), allow_nan=False)
+                    except (TypeError, ValueError) as error:
+                        raise RuntimeError('graph properties are not bounded JSON values') from error
+                    total_bytes += len(value.encode())
+                    if total_bytes > 2*1024*1024:
+                        raise RuntimeError('graph observation exceeds byte bound')
+                    encoded.append(value)
+            finally:
+                records.consume()  # an abandoned result leaves a started-but-never-completed query in the server's query log
             result[name] = [json.loads(value) for value in sorted(encoded)]
     def identity(labels, properties):
         if (not isinstance(properties, dict) or key not in properties or type(properties[key]) not in (str, int)
