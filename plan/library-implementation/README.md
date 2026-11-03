@@ -117,7 +117,26 @@ execution discovery exceeds that bound and re-review the changed epic.
 | [E09 — Service guarantees](epics/e09.md) | Supported load modes, failure/offset/ordering evidence | E08 |
 | [E10 — User documentation](epics/e10.md) | Executable quick starts, compatibility/support and final release text | E09 |
 | [E11 — Candidate rehearsal](epics/e11.md) | Frozen artifacts and separately authorized TestPyPI/image rehearsal | E10 |
-| [E12 — Production/maintenance](epics/e12.md) | Separately authorized PyPI release and recovery runbook | E11 |
+| [E12 — Production/maintenance](epics/e12.md) | Separately authorized PyPI release and recovery runbook | E11 on the post-E15 candidate, E14, E15 |
+| [E13 — Stream soak](epics/e13.md) | Hours-long realistic stream run with faults on the frozen candidate | E11.F1.S3 |
+| [E14 — Process runtime and all-in-one container](epics/e14.md) | `--runtime process`: the whole fleet as one container or as a host process/systemd service, beside today's container per role | E11.F1.S3 |
+| [E15 — Run status and portable monitoring](epics/e15.md) | `status.json`, `events.jsonl`, JSON logs, `status --json`; dashboards/alerts for the user's own Prometheus/Grafana | E14 |
+| E16 — Checkpoint/resume for planned bulk (later, not yet written) | A failed planned bulk load resumes from committed chunks | First release |
+| [E17 — Native Windows process launcher (later)](epics/e17.md) | `--runtime process` natively on Windows; backlog placeholder | First release, E14, E15 |
+| E18 — Stream start-up rebalance (later, not yet written) | A replica that joins a stream group late no longer stops the run. Options: static membership (`group.instance.id`) or a grace period before the first write. Found in E14.F3.S10; see e13.md "Carried into the rerun". User 2026-11-03: later version. Until then it is documented as a known limit: one extra restart, no data impact | First release |
+
+**Priority (2026-11-02, user instruction "prioritize it").** E14 is P1, the next product epic and ahead of all other open
+work; E15 (status tracking and portable monitoring, user 2026-11-02) follows it. E13 is paused after S1 and resumes (S2,
+S3) on the post-E14/E15 candidate ("Run e13 after the changes"). **Release after E14 and E15** (user, 2026-11-02, D14-1 = b): the frozen
+`0.1.0a1` is never published; a new candidate (recommended `0.1.0a2`) is frozen after E15, every E11.F1 gate and at least
+the E13 compressed run rerun on it, and E11.F2/E12 apply to that candidate (they also still need user accounts and an
+explicit upload instruction).
+**Status 2026-11-03.**
+- E14 is complete and committed (`1211283` on `e14-process-runtime`, local, not pushed).
+- E15 is **not started**: it waits for the user's explicit go ("DO NOT START E15 UNTIL I SAY SO").
+- E18 (stream start-up rebalance) is added for a later version.
+
+E14's offline stories may run in parallel with E13; its live stories never overlap the E13 8-hour soak on the shared host.
 
 The chain describes exit gates, not a ban on independent drafting: E01 may run
 with E00, documentation drafts may start early, and test harness work may be
