@@ -44,7 +44,8 @@ per persistent TCP connection):
 ``READY <label> [<label> ...]`` (control)
     ``OK``; chunks of those labels become eligible.
 ``STATUS`` / ``SUMMARY``
-    ``OK <json>`` -- progress counters / the full completion ledger.
+    ``OK <json>`` -- progress counters (with ``by_type``: chunks done and planned per edge type, O(types)) / the
+    full completion ledger.
 ``PING``
     ``OK``.
 """
@@ -161,6 +162,11 @@ class DispatchState:
         self.failure: str | None = None
         self.stats = DispatchStats()
         self.rows_done = 0
+        # Per edge type: chunks done / chunks planned, kept incrementally so STATUS stays O(types), not O(chunks).
+        self._type_total: dict[str, int] = {}
+        for chunk in chunks:
+            self._type_total[chunk.edge_type] = self._type_total.get(chunk.edge_type, 0) + 1
+        self._type_done: dict[str, int] = dict.fromkeys(self._type_total, 0)
         self.started_at = clock()
         self._metrics = metrics if metrics is not None else metrics_module.process_metrics()
         # Set once, at dispatcher start, per P6-S2 Story 6's AC - never
@@ -196,6 +202,8 @@ class DispatchState:
             "total": self.total, "rows_done": self.rows_done, "rows_total": self.plan.total_rows,
             "granted": sorted(self.grants.values()), "ready_labels": sorted(self.ready_labels),
             "failure": self.failure, "stats": self.stats.as_dict(),
+            "by_type": {name: {"done": self._type_done[name], "total": total}
+                        for name, total in sorted(self._type_total.items())},
         }
 
     def summary(self) -> dict:
@@ -371,6 +379,7 @@ class DispatchState:
             kind="planned-dispatcher"
         ).set(stats.completed))
         self.rows_done += rows
+        self._type_done[chunk.edge_type] += 1
         self.ledger.append(LedgerEntry(chunk_id, writer, rows, self._granted_at.pop(chunk_id), self._clock(),
                                        float(write_ms)))
         successor = self._successor[chunk_id]

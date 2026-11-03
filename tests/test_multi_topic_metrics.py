@@ -67,7 +67,8 @@ def test_only_the_lag_gauge_has_a_topic_label_and_no_label_names_a_record_or_sub
     forbidden = {"pair", "key", "source_key", "target_key", "record", "offset", "partition", "substage", "rank",
                  "run_id", "plan_id", "replica", "group"}
     with_topic = {name for name, (_type, labels) in EXPECTED_CATALOGUE.items() if "topic" in labels}
-    assert with_topic == {"graph_loader_consumer_lag_records"}
+    # the lag gauge and its observed-at companion (E15.F1.S2), which carries exactly the same label set
+    assert with_topic == {"graph_loader_consumer_lag_records", "graph_loader_consumer_lag_observed_at_seconds"}
     for name, (_type, labels) in EXPECTED_CATALOGUE.items():
         assert not forbidden & set(labels), f"{name} has an unbounded label: {labels}"
 

@@ -95,12 +95,14 @@ class TestQueryableNames:
         assert "graph_loader_process" not in vm.QUERYABLE_METRIC_NAMES
 
     def test_catalogue_has_exactly_26_families(self, vm):
+        # (The name is frozen in the test inventory; the count is now 30 -- see the last comment line.)
         # 22 as of P6-S2, plus graph_loader_dlq_backlog (P5-S4 Story 7,
         # the P5-Q4 follow-up's true DLQ backlog gauge), plus
         # graph_loader_retry_stalled_seconds (P5-S4 round 4, decision D1), plus
         # graph_loader_parked_pair_index_wait_seconds (v7-S4 admission barrier), plus
-        # graph_loader_write_outage_seconds (stream outage ride-out).
-        assert len(vm.EXPECTED_METRIC_FAMILIES) == 26
+        # graph_loader_write_outage_seconds (stream outage ride-out), plus four run-status families (E15.F1.S2):
+        # two *_observed_at_seconds companions, graph_loader_rejected and graph_loader_retry_outcome.
+        assert len(vm.EXPECTED_METRIC_FAMILIES) == 30
 
 
 class TestCheckMetricNames:

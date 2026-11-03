@@ -247,10 +247,13 @@ class ProcessService(RoleLauncher):
         env["GRAPH_LOADER_METRICS_LISTEN"] = f"{self.metrics_host}:{self.metrics_port}"
         if module in CONTROL_SERVER_MODULES:
             args = self._bind_control_server(module, labels.get("run_id", ""), args)
-        return self.lifecycle.spawn(
+        incarnation = self._new_incarnation()
+        if incarnation is not None and self.runtime is not None:
+            env.update(self._status_environment(incarnation, str(self.runtime.timings)))
+        return self._note_role_started(self.lifecycle.spawn(
             labels.get("component", role), module, args, env, labels=labels, auto_remove=bool(kwargs.get("remove")),
-            cpuset=kwargs.get("cpuset_cpus"), name=kwargs.get("name"),
-        )
+            cpuset=kwargs.get("cpuset_cpus"), name=kwargs.get("name"), **({"incarnation": incarnation} if incarnation else {}),
+        ), labels)
 
     def _bind_control_server(self, module: str, run_id: str, args: list[str]) -> list[str]:
         port = self._reserved.setdefault((module, run_id), _reserve_loopback_port())

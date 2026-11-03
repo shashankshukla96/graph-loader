@@ -34,6 +34,9 @@ def clock_image() -> str:
 
 
 
+STATUS_TIMINGS_MOUNT = "/app/write-timings"
+
+
 def _mount_write_timing_directory(volumes: dict, directory: str | None = None) -> bool:
     """Expose the optional host timing directory to loader containers."""
     host_directory = directory if directory is not None else os.environ.get("GRAPH_LOADER_TIMING_DIR")
@@ -247,8 +250,21 @@ class DockerService(RoleLauncher):
         return _stop_quietly if auto_remove else _stop_and_remove_quietly
 
     def _run_container(self, **kwargs):
-        """``containers.run`` that records the launch time for a later stop (F1)."""
-        return _record_launch(DockerHandle(self.client.containers.run(**kwargs)))
+        """``containers.run`` that records the launch time for a later stop (F1).
+
+        With a status tracker attached, a role that has the timing directory bind-mounted also receives its identity
+        and where to write its status snapshots, as three NEW environment keys (nothing else in the call changes):
+        the directory is inside the existing ``/app/write-timings`` mount, so no volume is added.
+        """
+        incarnation = self._new_incarnation()
+        mounted = any(spec.get("bind") == STATUS_TIMINGS_MOUNT for spec in (kwargs.get("volumes") or {}).values())
+        if incarnation is not None and mounted:
+            kwargs = {**kwargs, "environment": {**(kwargs.get("environment") or {}),
+                                                **self._status_environment(incarnation, STATUS_TIMINGS_MOUNT)}}
+        elif incarnation is not None:
+            incarnation = None                  # no timing mount: no snapshots (the role is still recorded, by container id)
+        return self._note_role_started(
+            _record_launch(DockerHandle(self.client.containers.run(**kwargs))), kwargs.get("labels"), incarnation)
 
     def preflight_topology(self, network, *, plan_path=None):
         from neo4j_graph_loader._docker_preflight import check

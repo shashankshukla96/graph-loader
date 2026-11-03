@@ -21,6 +21,7 @@ from neo4j_graph_loader.loader.lease_client import (
 from neo4j_graph_loader.orchestrator.fleet_contract import parse_fleet_edge_types, select_shared_fleet_edges
 from neo4j_graph_loader.orchestrator.lease_server import DEFAULT_BUCKET_LEASE_PORT
 from neo4j_graph_loader.orchestrator.planned_dispatcher import DEFAULT_DISPATCHER_PORT
+from neo4j_graph_loader.status.model import is_id, new_id
 from neo4j_graph_loader.utils.consumer_groups import edge_group, stream_retry_group
 from neo4j_graph_loader.utils.metrics import DEFAULT_METRICS_PORT
 from neo4j_graph_loader.utils.schema_loader import SchemaLoadError, load_schema
@@ -236,6 +237,59 @@ class RoleLauncher:
     """Builds every role's launch parameters; a backend supplies the hooks below."""
 
     runtime = None          # the per-attempt RunPaths, when there is one
+    status = None           # the execution's StatusTracker, when there is one: every role start is recorded in it
+    _status_handles: dict = {}  # replaced per instance on first use
+
+    def _new_incarnation(self) -> str | None:
+        """A fresh incarnation id when a status tracker is recording this run, else ``None``."""
+        return new_id() if self.status is not None else None
+
+    def _status_environment(self, incarnation: str, timings_directory: str) -> dict:
+        """The additive environment through which a role learns its identity and where to write status snapshots."""
+        from neo4j_graph_loader.utils.metrics import STATUS_INTERVAL_ENV, STATUS_SNAPSHOT_DIR_ENV
+        execution_id = self.status.execution_id
+        environment = {
+            "GRAPH_LOADER_EXECUTION_ID": execution_id, "GRAPH_LOADER_INCARNATION": incarnation,
+            STATUS_SNAPSHOT_DIR_ENV: f"{timings_directory}/{execution_id}/{incarnation}",
+        }
+        if os.environ.get(STATUS_INTERVAL_ENV):
+            environment[STATUS_INTERVAL_ENV] = os.environ[STATUS_INTERVAL_ENV]
+        return environment
+
+    def status_handles(self) -> dict:
+        """Incarnation -> the runtime handle launched for it (what the status poller asks about exits)."""
+        return dict(self._status_handles)
+
+    def _note_role_started(self, handle, labels, incarnation: str | None = None):
+        """Record a launched role (component, entity, replica, a fresh incarnation) in the status model.
+
+        Never raises into a launch, and changes nothing the role sees: the incarnation exists only in the status
+        record (the process runtime's own id is reused as the incarnation).
+        """
+        tracker = self.status
+        if tracker is None:
+            return handle
+        try:
+            labels = labels or {}
+            replica = labels.get("replica_id")
+            if replica is None and str(labels.get("writer_id", "")).startswith("w"):
+                replica = str(labels["writer_id"])[1:]
+            pid = getattr(handle, "pid", None)
+            identity = getattr(handle, "id", None)
+            incarnation = tracker.role_started(
+                str(labels.get("component") or "unknown"),
+                str(labels.get("node_label") or labels.get("edge_type") or "-"),
+                int(replica) if replica is not None and str(replica).isdigit() else None,
+                incarnation=incarnation or (identity if isinstance(pid, int) and is_id(identity) else None),
+                container_id=identity if not isinstance(pid, int) and isinstance(identity, str) else None,
+                pid=pid if isinstance(pid, int) else None,
+            )
+            if "_status_handles" not in vars(self):
+                self._status_handles = {}
+            self._status_handles[incarnation] = handle
+        except Exception as exc:
+            logger.warning("stage=status reason=could not record a role start: %s", exc)
+        return handle
 
     # -- hooks a backend implements -------------------------------------------------------------------------------
     def _run_container(self, **kwargs):

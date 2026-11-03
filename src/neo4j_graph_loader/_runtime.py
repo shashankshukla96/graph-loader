@@ -44,6 +44,18 @@ def _writable_file(path: Path) -> None:
         os.close(descriptor)
 
 
+def create_attempt_root(args) -> Path:
+    """Create the attempt directory (``<--run-dir base>/graph-loader-<random>``, 0700) from the arguments alone.
+
+    ``graph-loader start`` calls this first, before the schema is loaded, so run status has a place to be recorded
+    even when the start-up fails; :func:`prepare_run` then reuses the directory (``args._attempt_root``).
+    """
+    base = getattr(args, 'run_dir', None)
+    if base is not None:
+        base = _writable_directory(Path(base))
+    return Path(tempfile.mkdtemp(prefix='graph-loader-', dir=base)).resolve()
+
+
 def prepare_run(args, config: str) -> RunPaths:
     """Preflight outputs before ingestion, retaining all evidence even on failure.
 
@@ -55,7 +67,8 @@ def prepare_run(args, config: str) -> RunPaths:
     base = getattr(args, 'run_dir', None)
     if base is not None:
         base = _writable_directory(Path(base))
-    root = Path(tempfile.mkdtemp(prefix='graph-loader-', dir=base)).resolve()
+    precreated = getattr(args, '_attempt_root', None)
+    root = Path(precreated) if precreated is not None else Path(tempfile.mkdtemp(prefix='graph-loader-', dir=base)).resolve()
     args.runtime_root = root
     logging.getLogger(__name__).info('stage=runtime directory=%s', root)
     # mkdtemp provides exclusive0700 ownership, even for repeated run identities.

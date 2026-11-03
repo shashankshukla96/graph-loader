@@ -23,6 +23,8 @@ import docker_parity_support as support
 
 GOLDEN_PATH = Path(__file__).resolve().parent / "golden" / "docker_parity_0.1.0a1.json"
 GOLDEN = json.loads(GOLDEN_PATH.read_text(encoding="utf-8"))
+GOLDEN_A2_PATH = Path(__file__).resolve().parent / "golden" / "docker_parity_0.1.0a2.json"
+GOLDEN_A2 = json.loads(GOLDEN_A2_PATH.read_text(encoding="utf-8"))
 
 # Every scenario E14.F1.S1 requires (acceptance 2), by name in the harness.
 REQUIRED = {
@@ -58,8 +60,14 @@ def diff(expected: dict, actual: dict) -> list[str]:
     return problems
 
 
-def replay(name: str) -> dict:
+def replay_raw(name: str) -> dict:
     return support.run_scenario(support.SCENARIOS[name])
+
+
+def replay(name: str) -> dict:
+    """The scenario against the frozen 0.1.0a1 golden: the 0.1.0a2 run-status environment keys are the only
+    deliberate difference, so they are removed before comparing (``test_a2_differs_...`` pins exactly that)."""
+    return support.strip_status_env(replay_raw(name))
 
 
 def test_golden_was_produced_by_the_frozen_source() -> None:
@@ -157,10 +165,11 @@ def test_control_changed_label_filter_fails_parity() -> None:
 # -- CLI surface ---------------------------------------------------------------------------------------
 def _without_runtime_option(text: str) -> str:
     """Help text with the options added by E14 removed, whitespace-collapsed: ``--runtime``; ``--run-dir DIR`` on stop/status;
-    ``--metrics-addr``, ``--health-addr`` and ``--child-logs`` on start."""
+    ``--metrics-addr``, ``--health-addr`` and ``--child-logs`` on start; E15 adds ``--status-store`` on start."""
     text = re.sub(r"\s+", " ", text)
     for fragment in (" [--runtime {docker,process}]", " [--run-dir DIR]", " [--recover]", " [--metrics-addr HOST[:PORT]]",
-                     " [--health-addr HOST:PORT]", " [--child-logs {relay,files}]", " [--health-stale-after SECONDS]"):
+                     " [--health-addr HOST:PORT]", " [--child-logs {relay,files}]", " [--health-stale-after SECONDS]",
+                     " [--status-store STATUS_STORE]"):
         text = text.replace(fragment, "")
     text = re.sub(r" --runtime \{docker,process\} How roles are run:.*?no Docker daemon, network or images\)", "", text)
     text = re.sub(r" --run-dir DIR process runtime: .*?\(default: the OS temporary directory\)", "", text)
@@ -169,6 +178,7 @@ def _without_runtime_option(text: str) -> str:
     text = re.sub(r" --health-addr HOST:PORT process runtime: serve /healthz and /readyz here \(off by default\)", "", text)
     text = re.sub(r" --child-logs \{relay,files\} process runtime: .*?logs only", "", text)
     text = re.sub(r" --health-stale-after SECONDS process runtime: .*?\(default 30\)", "", text)
+    text = re.sub(r" --status-store STATUS_STORE Where this run's status and event history are kept: .*?Env GRAPH_LOADER_STATUS_STORE\.", "", text)
     return text
 
 
@@ -220,3 +230,60 @@ def test_an_unknown_runtime_in_the_environment_is_refused(monkeypatch, caplog) -
     with caplog.at_level("ERROR"):
         assert cli.main(["status"]) == 1
     assert "GRAPH_LOADER_RUNTIME must be one of docker, process" in caplog.text
+
+
+# -- 0.1.0a2: the one additive Docker-mode change (E15.F1.S2): three run-status environment keys per role launch --------
+def test_the_a2_golden_has_the_same_scenarios_and_machine_independent_values() -> None:
+    assert set(GOLDEN_A2["scenarios"]) == set(GOLDEN["scenarios"])
+    text = GOLDEN_A2_PATH.read_text(encoding="utf-8")
+    assert "/Users/" not in text and "/private/" not in text and "/var/folders" not in text
+    assert "<EXECUTION_ID>" in text and "<INCARNATION>" in text
+
+
+@pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+    assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+
+
+def _launches(record: dict) -> list[dict]:
+    return [event["args"] for events in record["trace"].values() for event in events if event["op"] == "containers.run"]
+
+
+def test_a2_differs_from_a1_by_exactly_the_three_status_env_keys_per_role_launch() -> None:
+    added_total = 0
+    for name, record in GOLDEN_A2["scenarios"].items():
+        # everything except those three keys is byte-identical to the frozen source's trace and outcome
+        assert diff(GOLDEN["scenarios"][name], support.strip_status_env(record)) == [], name
+        assert json.dumps(support.strip_status_env(record), sort_keys=True) == json.dumps(GOLDEN["scenarios"][name], sort_keys=True), name
+        for old, new in zip(sorted(_launches(GOLDEN["scenarios"][name]), key=json.dumps),
+                            sorted((support.strip_status_env(launch) for launch in _launches(record)), key=json.dumps)):
+            assert old == new
+        for launch in _launches(record):
+            env = launch.get("environment") or {}
+            keys = set(env) & set(support.STATUS_ENV_KEYS)
+            mounted = any(spec.get("bind") == "/app/write-timings" for spec in (launch.get("volumes") or {}).values())
+            assert keys == (set(support.STATUS_ENV_KEYS) if mounted else set()), (name, launch.get("name"))
+            if keys:
+                added_total += 1
+                assert env["GRAPH_LOADER_EXECUTION_ID"] == "<EXECUTION_ID>" and env["GRAPH_LOADER_INCARNATION"] == "<INCARNATION>"
+                assert env["GRAPH_LOADER_STATUS_SNAPSHOT_DIR"] == "/app/write-timings/<EXECUTION_ID>/<INCARNATION>"
+    assert added_total == 75 - 7, "every CLI-driven role launch gets the keys; direct DockerService launches without a timing mount do not"
+
+
+def test_control_a_fourth_added_env_key_fails_the_a2_comparison() -> None:
+    record = json.loads(json.dumps(GOLDEN_A2["scenarios"]["stream_start_stop"]))
+    launch = next(args for events in record["trace"].values() for event in events if event["op"] == "containers.run"
+                  for args in [event["args"]] if "GRAPH_LOADER_INCARNATION" in (args.get("environment") or {}))
+    launch["environment"]["GRAPH_LOADER_SOMETHING_ELSE"] = "x"
+    assert diff(record, replay_raw("stream_start_stop")) != []
+    assert json.dumps(support.strip_status_env(record), sort_keys=True) != json.dumps(GOLDEN["scenarios"]["stream_start_stop"], sort_keys=True)
+
+
+def test_control_a_missing_status_key_or_a_new_mount_fails_the_a2_comparison() -> None:
+    record = json.loads(json.dumps(GOLDEN_A2["scenarios"]["stream_start_stop"]))
+    launches = [event["args"] for events in record["trace"].values() for event in events if event["op"] == "containers.run"]
+    launches[0]["environment"].pop("GRAPH_LOADER_INCARNATION")
+    assert diff(record, replay_raw("stream_start_stop")) != []
+    record = json.loads(json.dumps(GOLDEN_A2["scenarios"]["stream_start_stop"]))
+    [event["args"] for events in record["trace"].values() for event in events if event["op"] == "containers.run"][0]["volumes"]["/extra"] = {"bind": "/x"}
+    assert diff(record, replay_raw("stream_start_stop")) != []

@@ -269,6 +269,7 @@ class LeasedNodeWriter:
 
 # Concurrent cell transactions one node loader may run per flush.
 NODE_LEASE_WORKERS = 4
+NODE_LAG_OBSERVE_INTERVAL_SECONDS = 5.0
 
 
 def build_leased_node_writer(
@@ -381,6 +382,7 @@ class NodeLoader:
         # D2: once graceful stop begins, the loader only drains what is
         # already buffered/deferred; it never fetches new data again.
         self._draining = False
+        self._next_lag_observation: float | None = None
 
         self._consumer.subscribe(
             [self._topic],
@@ -648,6 +650,8 @@ class NodeLoader:
                     f"rejection sink {type(sink_error).__name__}: {sink_error}",
                 )
                 return False
+            metrics_module.safe_emit(lambda: self._metrics.rejected.labels(
+                kind="node", name=self._node_config.label).inc())
             self._logger.warning(
                 "Malformed node record durably rejected label=%s topic=%s partition=%s "
                 "offset=%s reason=%s phase5_action=%s",
@@ -661,6 +665,41 @@ class NodeLoader:
             )
             ledger.resolved_offsets.add(offset)
             return self._commit_contiguous_resolutions()
+
+    def _observe_lag(self) -> None:
+        """Throttled, best-effort ``graph_loader_consumer_lag_records{kind="node"}`` and its observed-at companion.
+
+        Lag is the cached high watermark minus the committed next offset (the consumer's position for a partition
+        with no commit yet), summed over the assigned partitions. Set only when every partition could be
+        measured: a failed or partial observation leaves both gauges as they were, so a reader sees an old
+        ``observed_at`` rather than a made-up value. Never raises, never performs a network round trip.
+        """
+        now = time.monotonic()           # not self._clock: tests script that clock call by call
+        if self._next_lag_observation is not None and now < self._next_lag_observation:
+            return
+        self._next_lag_observation = now + NODE_LAG_OBSERVE_INTERVAL_SECONDS
+        try:
+            keys = sorted(self._assigned_partitions)
+            if not keys:
+                return
+            lag = 0
+            for assigned_topic, partition in keys:
+                partition_id = TopicPartition(assigned_topic, partition)
+                _low, high = self._consumer.get_watermark_offsets(partition_id, timeout=0, cached=True)
+                position = self._committed_next_offsets.get((assigned_topic, partition))
+                if position is None:
+                    position = self._consumer.position([partition_id])[0].offset
+                if not all(isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in (high, position)):
+                    return
+                lag += max(0, high - position)
+            observed_at = time.time()
+            topic = self._topic
+            metrics_module.safe_emit(lambda: self._metrics.consumer_lag.labels(
+                kind="node", name=self._node_config.label, topic=topic).set(lag))
+            metrics_module.safe_emit(lambda: self._metrics.consumer_lag_observed_at.labels(
+                kind="node", name=self._node_config.label, topic=topic).set(observed_at))
+        except Exception as exc:  # noqa: BLE001 - a lag observation must never affect the load
+            self._logger.debug("stage=node-lag reason=observation_failed label=%s error=%s", self._node_config.label, exc)
 
     def _poll_for_callbacks(self) -> bool:
         """Dispatch Kafka callbacks and preserve any prefetched data message."""
@@ -1037,6 +1076,7 @@ class NodeLoader:
 
                 if self._idle_flush_due() and not self._flush_batch():
                     return 1
+                self._observe_lag()
 
                 if self._deferred_messages:
                     message = self._deferred_messages.popleft()

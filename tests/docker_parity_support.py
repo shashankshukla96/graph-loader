@@ -31,6 +31,10 @@ Written normalization (``normalize``; nothing else is rewritten):
 * N4 image ids, container ids and published host ports are derived from the container name by the fake, so
   they need no rewriting;
 * N5 ISO-8601 timestamps and ``elapsed_s=``/``wait_s=`` style durations become ``<TS>``/``<DUR>``;
+* N7 (0.1.0a2) the values of the three run-status environment keys (``STATUS_ENV_KEYS``): the execution id, the
+  incarnation and the snapshot directory are random per run, so they become ``<EXECUTION_ID>``, ``<INCARNATION>`` and
+  ``/app/write-timings/<EXECUTION_ID>/<INCARNATION>``. The keys exist only from 0.1.0a2; ``strip_status_env`` removes
+  them, which is how a 0.1.0a2 trace is compared with the frozen 0.1.0a1 golden;
 * N6 the preflight probe's random marker (``.graph-loader-preflight-<32 hex>``) and secret token (a command
   argument, replaced by ``<PROBE-TOKEN>`` as the fake records it) are masked; probe ids are a counter.
 """
@@ -54,6 +58,11 @@ from unittest.mock import MagicMock, patch
 from docker.errors import APIError, ImageNotFound, NotFound
 
 VERSION_PLACEHOLDER = "<VERSION>"
+STATUS_ENV_KEYS = {
+    "GRAPH_LOADER_EXECUTION_ID": "<EXECUTION_ID>",
+    "GRAPH_LOADER_INCARNATION": "<INCARNATION>",
+    "GRAPH_LOADER_STATUS_SNAPSHOT_DIR": "/app/write-timings/<EXECUTION_ID>/<INCARNATION>",
+}
 ROLES = ("cli", "node", "edge", "clock")
 
 
@@ -276,8 +285,20 @@ def normalize(value, *, version: str, attempt: str | None, tmp: str):
     if isinstance(value, list):
         return [normalize(v, version=version, attempt=attempt, tmp=tmp) for v in value]
     if isinstance(value, dict):
-        return {fix(k): normalize(v, version=version, attempt=attempt, tmp=tmp) for k, v in value.items()}
+        return {fix(k): (STATUS_ENV_KEYS[k] if k in STATUS_ENV_KEYS and isinstance(v, str)
+                         else normalize(v, version=version, attempt=attempt, tmp=tmp)) for k, v in value.items()}
     return value
+
+
+def strip_status_env(record: dict) -> dict:
+    """A scenario record without the three run-status environment keys (the only 0.1.0a2 addition to a trace)."""
+    def strip(node):
+        if isinstance(node, dict):
+            return {key: strip(value) for key, value in node.items() if key not in STATUS_ENV_KEYS}
+        if isinstance(node, list):
+            return [strip(item) for item in node]
+        return node
+    return strip(record)
 
 
 def lanes(events: list[dict]) -> dict:

@@ -1375,6 +1375,8 @@ class EdgeLoader:
             except Exception as sink_error:
                 self._log_failure(message, f"rejection sink {type(sink_error).__name__}: {sink_error}")
                 return False
+            metrics_module.safe_emit(lambda: self._metrics.rejected.labels(
+                kind="edge", name=self._edge_config.type).inc())
             self._logger.warning(
                 "Malformed relationship record durably rejected edge=%s topic=%s partition=%s "
                 "offset=%s reason=%s phase5_action=%s",

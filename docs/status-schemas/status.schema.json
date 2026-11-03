@@ -1,0 +1,793 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:neo4j-graph-loader:schema:status:1",
+  "title": "Graph Loader run status snapshot",
+  "description": "State of one execution (one `graph-loader start`). Numeric telemetry is `{value, observed_at, source}` or null (unknown); a member that is absent is not applicable in this mode.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "status"
+    },
+    "execution_id": {
+      "$ref": "#/$defs/id"
+    },
+    "run_id": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/run_id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "state": {
+      "enum": [
+        "starting",
+        "running",
+        "stopping",
+        "succeeded",
+        "failed",
+        "stopped"
+      ]
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "exit_code": {
+              "type": "integer"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/error_info"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "exit_code",
+            "reason",
+            "error"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mode": {
+      "anyOf": [
+        {
+          "enum": [
+            "bulk",
+            "stream"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "runtime": {
+      "enum": [
+        "docker",
+        "process"
+      ]
+    },
+    "host": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pid": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "versions": {
+      "type": "object",
+      "properties": {
+        "graph_loader": {
+          "type": "string",
+          "minLength": 1
+        },
+        "python": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "graph_loader",
+        "python"
+      ]
+    },
+    "started_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "updated_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "heartbeat_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "activities": {
+      "type": "object",
+      "properties": {
+        "planning": {
+          "$ref": "#/$defs/activity"
+        },
+        "nodes": {
+          "$ref": "#/$defs/activity"
+        },
+        "edges": {
+          "$ref": "#/$defs/activity"
+        },
+        "draining": {
+          "$ref": "#/$defs/activity"
+        },
+        "stream": {
+          "$ref": "#/$defs/activity"
+        }
+      },
+      "required": []
+    },
+    "phases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/phase"
+      }
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/role"
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "types": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/type_progress"
+      }
+    },
+    "totals": {
+      "$ref": "#/$defs/progress"
+    },
+    "telemetry": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "available",
+        "reason"
+      ]
+    },
+    "history_incomplete": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "execution_id",
+    "run_id",
+    "revision",
+    "state",
+    "outcome",
+    "mode",
+    "runtime",
+    "host",
+    "pid",
+    "versions",
+    "started_at",
+    "updated_at",
+    "heartbeat_at",
+    "finished_at",
+    "activities",
+    "phases",
+    "roles",
+    "labels",
+    "types",
+    "totals",
+    "telemetry",
+    "history_incomplete"
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "error_info": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "message"
+      ]
+    },
+    "observed_number": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lower_bound": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "value",
+        "observed_at",
+        "source"
+      ]
+    },
+    "observed_boolean": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "boolean"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "value",
+        "observed_at",
+        "source"
+      ]
+    },
+    "progress": {
+      "type": "object",
+      "properties": {
+        "records_written": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_written": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_redlq": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_parked": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lag": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plan_chunks_done": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plan_chunks_total": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rejected": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dlq_lag": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parked_size": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ready": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": []
+    },
+    "activity": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "enum": [
+            "pending",
+            "running",
+            "succeeded",
+            "failed",
+            "stopped"
+          ]
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updated_at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      },
+      "required": [
+        "state",
+        "started_at",
+        "finished_at",
+        "updated_at"
+      ]
+    },
+    "phase": {
+      "type": "object",
+      "properties": {
+        "phase_id": {
+          "$ref": "#/$defs/run_id"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "edge_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "running",
+            "succeeded",
+            "failed",
+            "stopped"
+          ]
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "phase_id",
+        "kind",
+        "index",
+        "edge_type",
+        "state",
+        "started_at",
+        "finished_at"
+      ]
+    },
+    "role": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replica": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "incarnation": {
+          "$ref": "#/$defs/id"
+        },
+        "restart_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "starting",
+            "running",
+            "stopping",
+            "exited",
+            "failed"
+          ]
+        },
+        "container_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pid": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exit_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/error_info"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "name",
+        "replica",
+        "incarnation",
+        "restart_count",
+        "state",
+        "container_id",
+        "pid",
+        "started_at",
+        "finished_at",
+        "exit_code",
+        "exit_reason",
+        "last_error"
+      ]
+    },
+    "type_progress": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "node",
+            "edge"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "records_written": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_written": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_redlq": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_parked": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lag": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plan_chunks_done": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plan_chunks_total": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rejected": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dlq_lag": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parked_size": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ready": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observed_boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ]
+    }
+  }
+}

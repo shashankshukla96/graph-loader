@@ -395,6 +395,27 @@ def persist_ledger(plan_path: Path, plan: EdgePlan, digest: str, summary: dict) 
     return path
 
 
+def _publish_plan_progress(args, status: dict) -> None:
+    """Chunk counts from the dispatcher's STATUS (per edge type and run-level) into the run's status model."""
+    from neo4j_graph_loader.status import StatusTracker, model as status_model
+    tracker = getattr(args, "execution", None)
+    if not isinstance(tracker, StatusTracker):
+        return
+    try:
+        at = status_model.timestamp(time.time())
+
+        def counts(done, total):
+            return {"plan_chunks_done": status_model.observed(done, at, "dispatcher-status"),
+                    "plan_chunks_total": status_model.observed(total, at, "dispatcher-status")}
+
+        for name, item in (status.get("by_type") or {}).items():
+            tracker.update_type("edge", name, **counts(item["done"], item["total"]))
+        if "done" in status and "total" in status:
+            tracker.update_totals(**counts(status["done"], status["total"]))
+    except Exception as exc:  # noqa: BLE001 - status never affects the load
+        logger.debug("stage=planned-edges reason=plan progress not published: %s", exc)
+
+
 def _iso(epoch: float) -> str:
     return datetime.fromtimestamp(epoch, timezone.utc).isoformat()
 
@@ -544,6 +565,7 @@ def run_planned_edge_phase(
                 sent |= new
                 progress_deadline = clock() + timeout
             status = control.status()
+            _publish_plan_progress(args, status)
             if status.get("state") == "failed":
                 raise PlannedEdgeError(f"dispatcher failed: {status.get('failure')}")
             if status.get("done") != done:

@@ -435,6 +435,7 @@ class ProcessRuntime:
         self._oom = oom_watch if oom_watch is not None else OomWatch()
         self._oom_poll = oom_poll_seconds
         self._oom_stop = threading.Event()
+        self._oom_listeners: list = []
         (self.root / "logs").mkdir(parents=True, exist_ok=True)
         (self.root / "work").mkdir(parents=True, exist_ok=True)
         self.registry = registry if registry is not None else RunRegistry(self.root / "registry.jsonl")
@@ -486,6 +487,15 @@ class ProcessRuntime:
         sys.stderr.write(f"ERROR stage=oom {OOM_REPORT} (memory.events oom_kill {rose[0]} -> {rose[1]})\n")
         sys.stderr.flush()
         self._record("oom", oom_kill_before=rose[0], oom_kill_after=rose[1])
+        for listener in list(self._oom_listeners):
+            try:
+                listener(rose[0], rose[1])
+            except Exception as exc:                  # a status listener must never disturb the runtime
+                sys.stderr.write(f"WARNING: stage=runtime oom listener failed: {exc}\n")
+
+    def add_oom_listener(self, listener) -> None:
+        """Call ``listener(oom_kill_before, oom_kill_after)`` each time a group OOM is reported (run status)."""
+        self._oom_listeners.append(listener)
 
     def register_external(self, role: str, pid: int, index: int = 0) -> None:
         """Record a process this run owns but did not spawn through :meth:`spawn` (planner workers and helpers),
@@ -525,13 +535,16 @@ class ProcessRuntime:
 
     def spawn(self, role: str, module: str, args: Sequence[str] = (), env: Mapping[str, str] | None = None, *,
               labels: Mapping[str, str] | None = None, auto_remove: bool = False, cpuset: str | None = None,
-              wait_ready: bool = True, ready_timeout: float | None = None, name: str | None = None) -> ProcessHandle:
+              wait_ready: bool = True, ready_timeout: float | None = None, name: str | None = None,
+              incarnation: str | None = None) -> ProcessHandle:
         """Start ``module`` as a child. With ``wait_ready`` the call returns once the role reported ready.
 
-        ``name`` (default ``<role>-<n>``) names the handle, its working directory and its log file."""
+        ``name`` (default ``<role>-<n>``) names the handle, its working directory and its log file. ``incarnation``
+        (32 lowercase hex digits; default a fresh one) is the id the registry and the handle carry; a caller that
+        needs it before the launch (run status puts it in the child's environment) passes it in."""
         index = self._next_index(role)
         name = name or f"{role}-{index}"
-        incarnation = uuid.uuid4().hex
+        incarnation = incarnation or uuid.uuid4().hex
         role_env = dict(env or {})
         if cpuset:
             role_env["LOADER_CPUSET"] = cpuset

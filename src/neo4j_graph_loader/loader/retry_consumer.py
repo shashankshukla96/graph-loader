@@ -3041,6 +3041,35 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def row_retried_listener(process_metrics):
+    """The ``on_row_retried`` callback: one retry-consumer row outcome into the metrics."""
+    def on_row_retried(edge_type: str, outcome: str) -> None:
+        # N10: "blocked"/"duplicate_skipped" are not real retry attempts.
+        if outcome in metrics_module.RETRY_OUTCOMES:
+            metrics_module.safe_emit(
+                lambda: process_metrics.retry_outcome.labels(kind="edge", name=edge_type, outcome=outcome).inc()
+            )
+            metrics_module.safe_emit(
+                lambda: process_metrics.retry.labels(
+                    kind="edge", name=edge_type, reason="missing-endpoint",
+                ).inc()
+            )
+    return on_row_retried
+
+
+def backlog_listener(process_metrics):
+    """The ``on_backlog_computed`` callback. It is reached only after a successful computation, so the observed-at
+    companion moves only then; a failed computation leaves both gauges as they were."""
+    def on_backlog_computed(edge_type: str, queue: str, backlog: int) -> None:
+        metrics_module.safe_emit(
+            lambda: process_metrics.dlq_backlog.labels(kind="edge", name=edge_type, queue=queue).set(backlog)
+        )
+        metrics_module.safe_emit(
+            lambda: process_metrics.dlq_backlog_observed_at.labels(kind="edge", name=edge_type, queue=queue).set(time.time())
+        )
+    return on_backlog_computed
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the retry consumer until SIGTERM, closing every Kafka/Neo4j/lease
     resource on every exit path. Never raises (review finding N13): any
@@ -3144,6 +3173,11 @@ def main(argv: list[str] | None = None) -> int:
             metrics_module.safe_emit(
                 lambda edge_type=edge.type: process_metrics.retry_stalled.labels(kind="edge", name=edge_type).set(0)
             )
+            for known_outcome in metrics_module.RETRY_OUTCOMES:
+                metrics_module.safe_emit(
+                    lambda edge_type=edge.type, outcome=known_outcome: process_metrics.retry_outcome.labels(
+                        kind="edge", name=edge_type, outcome=outcome)
+                )
             dlq_topic_by_edge_type[edge.type] = dlq_topic
             backlog_source_by_edge_type[edge.type] = backlog_source
             max_retry_attempts_by_edge_type[edge.type] = edge.dead_letter.max_retry_attempts
@@ -3227,24 +3261,14 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 single_pair_labels_by_edge_type[edge.type] = (edge.nodes.source, edge.nodes.target)
 
-        def _on_row_retried(edge_type: str, outcome: str) -> None:
-            # N10: "blocked"/"duplicate_skipped" are not real retry attempts.
-            if outcome in ("written", "re_dlq", "parked"):
-                metrics_module.safe_emit(
-                    lambda: process_metrics.retry.labels(
-                        kind="edge", name=edge_type, reason="missing-endpoint",
-                    ).inc()
-                )
+        _on_row_retried = row_retried_listener(process_metrics)
 
         def _on_stall_seconds(edge_type: str, seconds: float) -> None:
             metrics_module.safe_emit(
                 lambda: process_metrics.retry_stalled.labels(kind="edge", name=edge_type).set(seconds)
             )
 
-        def _on_backlog_computed(edge_type: str, queue: str, backlog: int) -> None:
-            metrics_module.safe_emit(
-                lambda: process_metrics.dlq_backlog.labels(kind="edge", name=edge_type, queue=queue).set(backlog)
-            )
+        _on_backlog_computed = backlog_listener(process_metrics)
 
         consumer = Consumer({
             "bootstrap.servers": bootstrap_servers,

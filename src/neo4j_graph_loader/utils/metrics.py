@@ -65,6 +65,11 @@ Env vars (read once, at process start, never on the hot path):
   `plan/v6/completion_slice-2.md`).
 - `GRAPH_LOADER_METRICS_SNAPSHOT_PATH` — per-replica path (Story 9), set by
   `docker_service.py`, not read by an operator directly.
+- `GRAPH_LOADER_STATUS_SNAPSHOT_DIR`, `GRAPH_LOADER_EXECUTION_ID`, `GRAPH_LOADER_INCARNATION`,
+  `GRAPH_LOADER_STATUS_INTERVAL_S` — set by the CLI for run status tracking (E15): the role writes
+  ``<dir>/metrics.prom`` every interval (default 5 s) and a final ``<dir>/final.json`` marker after its last
+  snapshot, whether or not the HTTP endpoint or the legacy snapshot is enabled. The directory is
+  ``<timings>/<execution_id>/<incarnation>``.
 - `GRAPH_LOADER_METRICS_SNAPSHOT_INTERVAL_S` — seconds between periodic
   snapshot rewrites; default `15`, `0` disables the periodic timer (the
   exit-time write still happens), minimum `1` (smaller positive values are
@@ -139,6 +144,9 @@ own Neo4j writes stay under kind="edge" (they describe *edge writes*,
 caller-agnostic, exactly the dashboard behavior an operator wants: total
 write cost for an edge type, live and retried, in one series)."""
 
+RETRY_OUTCOMES = ("written", "re_dlq", "parked")
+"""Closed enum for ``retry_outcome_total``'s ``outcome`` label."""
+
 RETRY_REASONS = ("neo4j-transient", "missing-endpoint")
 """Closed enum for `retry_total`'s `reason` label. `"missing-endpoint"` is
 registered now (reads 0 until Phase 5's retry consumer lands) per P6-Q1/
@@ -193,6 +201,10 @@ EXPECTED_METRIC_FAMILIES = frozenset(
         "graph_loader_parked_pair_index_wait_seconds",
         "graph_loader_write_outage_seconds",
         "graph_loader_consumer_lag_records",
+        "graph_loader_consumer_lag_observed_at_seconds",
+        "graph_loader_dlq_backlog_observed_at_seconds",
+        "graph_loader_rejected",
+        "graph_loader_retry_outcome",
         "graph_loader_lease_wait_seconds",
         "graph_loader_lease_grants",
         "graph_loader_lease_denials",
@@ -219,7 +231,9 @@ backlog gauge"), for 23 total, plus `graph_loader_retry_stalled_seconds`
 signal), for 24, plus `graph_loader_parked_pair_index_wait_seconds` (v7-S4: a live
 edge loader's post-assignment parked-pair index barrier), for 25, plus
 `graph_loader_write_outage_seconds` (a stream loader riding out a Neo4j outage,
-src/neo4j_graph_loader/loader/write_outage.py), for 26. `tests/test_metrics.py`'s completeness test asserts the
+src/neo4j_graph_loader/loader/write_outage.py), for 26, plus four for run status tracking (E15.F1.S2): two
+``*_observed_at_seconds`` companions of the gauges that can go stale, ``graph_loader_rejected_total`` and
+``graph_loader_retry_outcome_total``, for 30. `tests/test_metrics.py`'s completeness test asserts the
 registry contains exactly this set, no more, no fewer."""
 
 
@@ -358,6 +372,28 @@ class GraphLoaderMetrics:
             ["kind", "name"],
             registry=r,
         )
+        self.dlq_backlog_observed_at = Gauge(
+            "graph_loader_dlq_backlog_observed_at_seconds",
+            "Unix time of the last SUCCESSFUL computation of graph_loader_dlq_backlog for this (kind, name, queue). "
+            "The backlog gauge keeps its previous value when a computation fails; this companion is set only on "
+            "success, so a reader can tell a stale value from a fresh one (E15 run status).",
+            ["kind", "name", "queue"],
+            registry=r,
+        )
+        self.rejected = Counter(
+            "graph_loader_rejected_total",
+            "Malformed records a node or edge loader routed to its rejection sink or DLQ (observed rejection events, "
+            "not a durable distinct count). " + AT_LEAST_ONCE_NOTE,
+            ["kind", "name"],
+            registry=r,
+        )
+        self.retry_outcome = Counter(
+            "graph_loader_retry_outcome_total",
+            "Outcome of one retry-consumer row: written, re_dlq (published to the DLQ again) or parked. Entity-scoped "
+            "(kind=edge, name=<type>). graph_loader_retry_total keeps mixing the three. " + AT_LEAST_ONCE_NOTE,
+            ["kind", "name", "outcome"],
+            registry=r,
+        )
         # v7-S6 cardinality note: ``name`` is the relationship TYPE and ``topic`` is one of the schema's topics, so a
         # type with K topics owns exactly K series and the total never exceeds the number of schema topics. Never add
         # a per-record, per-pair, per-partition or per-sub-stage label here (precedence sub-stages reuse these series).
@@ -365,6 +401,13 @@ class GraphLoaderMetrics:
             "graph_loader_consumer_lag_records",
             "High-watermark minus committed offset, summed across this "
             "process's assigned partitions.",
+            ["kind", "name", "topic"],
+            registry=r,
+        )
+        self.consumer_lag_observed_at = Gauge(
+            "graph_loader_consumer_lag_observed_at_seconds",
+            "Unix time of the last SUCCESSFUL computation of graph_loader_consumer_lag_records for this (kind, name, "
+            "topic); set only on success (E15 run status).",
             ["kind", "name", "topic"],
             registry=r,
         )
@@ -565,6 +608,7 @@ def initialize_zero_series(metrics: GraphLoaderMetrics, *, kind: str, name: str)
             metrics.retry.labels(kind=kind, name=name, reason=reason)
         metrics.dlq_routed.labels(kind=kind, name=name, failure_class="malformed")
         metrics.deadlocks_recovered.labels(kind=kind, name=name)
+        metrics.rejected.labels(kind=kind, name=name)
     if kind == "lease-server":
         metrics.lease_grants.labels(kind=kind)
         metrics.lease_denials.labels(kind=kind)
@@ -837,6 +881,8 @@ def start_metrics_server(
                 start_periodic_snapshots(metrics, path)
     except Exception as exc:  # noqa: BLE001 - never raise
         logger.warning("stage=metrics-snapshot reason=periodic_start_failed error=%s", exc)
+    if kind != "cli":
+        start_status_snapshots(metrics)
     return server
 
 
@@ -909,6 +955,7 @@ def write_metrics_snapshot(metrics: GraphLoaderMetrics, path: str | os.PathLike 
     """
     stop_periodic_snapshots(metrics)
     _write_snapshot_file(metrics, path)
+    write_status_snapshot(metrics, final=True)
 
 
 def _write_snapshot_file(metrics: GraphLoaderMetrics, path: str | os.PathLike | None) -> None:
@@ -964,8 +1011,10 @@ class _PeriodicSnapshotter:
     """Daemon thread that atomically rewrites the snapshot file every
     ``interval`` seconds. Never raises; ``stop()`` joins it."""
 
-    def __init__(self, metrics: GraphLoaderMetrics, path: str, interval: float) -> None:
+    def __init__(self, metrics: GraphLoaderMetrics, path: str, interval: float,
+                 write: Callable[[GraphLoaderMetrics, str], None] | None = None) -> None:
         self._metrics, self._path, self._interval = metrics, path, interval
+        self._write = write if write is not None else _write_snapshot_file
         self._stop = threading.Event()
         self._write_lock = threading.Lock()
         self._thread = threading.Thread(target=self._run, name="metrics-snapshot", daemon=True)
@@ -981,7 +1030,7 @@ class _PeriodicSnapshotter:
                     # periodic write can land after the final write.
                     if self._stop.is_set():
                         return
-                    _write_snapshot_file(self._metrics, self._path)
+                    self._write(self._metrics, self._path)
             except Exception as exc:  # noqa: BLE001 - never propagate
                 logger.warning("stage=metrics-snapshot reason=periodic_error error=%s", exc)
 
@@ -1024,11 +1073,99 @@ def start_periodic_snapshots(
 
 
 def stop_periodic_snapshots(metrics: GraphLoaderMetrics) -> None:
-    """Stop the timer for ``metrics`` if any. Never raises."""
+    """Stop the timers (legacy and status) for ``metrics`` if any. Never raises."""
     try:
         with _snapshotters_lock:
             snapshotter = _snapshotters.pop(id(metrics), None)
-        if snapshotter is not None:
-            snapshotter.stop()
+            status_snapshotter = _status_snapshotters.pop(id(metrics), None)
+        for timer in (snapshotter, status_snapshotter):
+            if timer is not None:
+                timer.stop()
     except Exception as exc:  # noqa: BLE001
         logger.warning("stage=metrics-snapshot reason=periodic_stop_failed error=%s", exc)
+
+
+# ── E15.F1.S2: status snapshots (the transport run status tracking reads) ─────────────────────────────────
+
+STATUS_SNAPSHOT_DIR_ENV = "GRAPH_LOADER_STATUS_SNAPSHOT_DIR"
+STATUS_INTERVAL_ENV = "GRAPH_LOADER_STATUS_INTERVAL_S"
+STATUS_SNAPSHOT_NAME = "metrics.prom"
+STATUS_FINAL_NAME = "final.json"
+DEFAULT_STATUS_INTERVAL_S = 5.0
+MIN_STATUS_INTERVAL_S = 0.5
+_status_snapshotters: dict[int, "_PeriodicSnapshotter"] = {}
+
+
+def _status_snapshot_dir() -> Path | None:
+    value = os.environ.get(STATUS_SNAPSHOT_DIR_ENV)
+    return Path(value) if value else None
+
+
+def status_interval_seconds() -> float:
+    """``GRAPH_LOADER_STATUS_INTERVAL_S`` (default 5); unparsable, non-finite or non-positive values fall back to
+    the default, small values are raised to 0.5."""
+    raw = os.environ.get(STATUS_INTERVAL_ENV)
+    try:
+        value = float(raw) if raw and raw.strip() else DEFAULT_STATUS_INTERVAL_S
+    except ValueError:
+        return DEFAULT_STATUS_INTERVAL_S
+    if not math.isfinite(value) or value <= 0:
+        return DEFAULT_STATUS_INTERVAL_S
+    return max(value, MIN_STATUS_INTERVAL_S)
+
+
+def _atomic_write(target: Path, data: bytes) -> None:
+    tmp_path = target.with_name(f".{target.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    try:
+        tmp_path.write_bytes(data)
+        os.replace(tmp_path, target)
+    except BaseException:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+
+def write_status_snapshot(metrics: GraphLoaderMetrics, *, final: bool = False) -> bool:
+    """Write this role's status snapshot (and, when ``final``, the marker that says it is the last one).
+
+    A no-op without ``GRAPH_LOADER_STATUS_SNAPSHOT_DIR``. Independent of ``GRAPH_LOADER_METRICS_ENABLED`` and of
+    whether the HTTP endpoint bound: run status must not depend on an exposition setting. Never raises; returns
+    whether the write succeeded.
+    """
+    directory = _status_snapshot_dir()
+    if directory is None:
+        return False
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        _atomic_write(directory / STATUS_SNAPSHOT_NAME, generate_latest(metrics.registry))
+        if final:
+            _atomic_write(directory / STATUS_FINAL_NAME, f'{{"written_at": {time.time():.3f}}}\n'.encode())
+        return True
+    except Exception as exc:  # noqa: BLE001 - a status snapshot must never affect the load
+        logger.warning("stage=status-snapshot reason=%s", exc)
+        return False
+
+
+def start_status_snapshots(metrics: GraphLoaderMetrics) -> bool:
+    """Write the first status snapshot now and then one every status interval. Never raises; once per ``metrics``."""
+    try:
+        directory = _status_snapshot_dir()
+        if directory is None:
+            return False
+        with _snapshotters_lock:
+            if id(metrics) in _status_snapshotters:
+                return True
+        write_status_snapshot(metrics)
+        timer = _PeriodicSnapshotter(metrics, str(directory), status_interval_seconds(),
+                                     write=lambda m, _path: write_status_snapshot(m))
+        with _snapshotters_lock:
+            if id(metrics) in _status_snapshotters:
+                return True
+            _status_snapshotters[id(metrics)] = timer
+        timer.start()
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("stage=status-snapshot reason=start_failed error=%s", exc)
+        return False

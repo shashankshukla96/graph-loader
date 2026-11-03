@@ -57,7 +57,7 @@ ALERTS_GLOB = str(REPO_ROOT / "monitoring" / "prometheus" / "alerts" / "*.yml")
 
 # Hardcoded copy of feat/p6-s2-metrics:src/neo4j_graph_loader/utils/metrics.py's
 # EXPECTED_METRIC_FAMILIES (22 series as of P6-S2, 23 after P5-S4 Story 7
-# adds graph_loader_dlq_backlog per the P5-Q4 follow-up, 24 with P5-S4 round (25 with v7-S4 graph_loader_parked_pair_index_wait_seconds, 26 with the stream outage gauge graph_loader_write_outage_seconds)
+# adds graph_loader_dlq_backlog per the P5-Q4 follow-up, 24 with P5-S4 round (25 with v7-S4 graph_loader_parked_pair_index_wait_seconds, 26 with the stream outage gauge graph_loader_write_outage_seconds, 30 with the E15 run-status families)
 # 4's graph_loader_retry_stalled_seconds), paired with each
 # family's Prometheus metric type as constructed in that module (Counter/
 # Gauge/Histogram/Info). The type determines which suffixed name(s) are
@@ -75,6 +75,10 @@ FAMILY_TYPES: dict[str, str] = {
     "graph_loader_parked_pair_index_wait_seconds": "gauge",
     "graph_loader_write_outage_seconds": "gauge",
     "graph_loader_consumer_lag_records": "gauge",
+    "graph_loader_consumer_lag_observed_at_seconds": "gauge",
+    "graph_loader_dlq_backlog_observed_at_seconds": "gauge",
+    "graph_loader_rejected": "counter",
+    "graph_loader_retry_outcome": "counter",
     "graph_loader_lease_wait_seconds": "histogram",
     "graph_loader_lease_grants": "counter",
     "graph_loader_lease_denials": "counter",
@@ -93,7 +97,7 @@ FAMILY_TYPES: dict[str, str] = {
 }
 
 EXPECTED_METRIC_FAMILIES = frozenset(FAMILY_TYPES)
-assert len(EXPECTED_METRIC_FAMILIES) == 26, "catalogue drifted from its own 26-series count"
+assert len(EXPECTED_METRIC_FAMILIES) == 30, "catalogue drifted from its own 30-series count"
 
 
 def _queryable_names_for(family: str, metric_type: str) -> frozenset[str]:

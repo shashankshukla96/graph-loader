@@ -26,6 +26,28 @@ from neo4j_graph_loader.utils.consumer_groups import edge_group, stream_retry_gr
 
 logger = logging.getLogger(__name__)
 
+LagListener = Callable[[dict[str, "int | None"]], None]
+_lag_listener: LagListener | None = None
+
+
+def set_lag_listener(listener: LagListener | None) -> None:
+    """Receive every consumer-lag refresh of any monitor in this process (the CLI's run status): a mapping of edge
+    type to its lag, or ``None`` for each edge type of a refresh that failed (never the previous value). Exceptions
+    raised by the listener are swallowed."""
+    global _lag_listener
+    _lag_listener = listener
+
+
+def _notify_lag(lag_by_edge_type: dict[str, "int | None"]) -> None:
+    listener = _lag_listener
+    if listener is None:
+        return
+    try:
+        listener(lag_by_edge_type)
+    except Exception as exc:  # noqa: BLE001 - status must never affect supervision
+        logger.debug("stage=monitor reason=lag_listener_failed error=%s", exc)
+
+
 Replica = tuple[str, str]
 WorkPartition = tuple[str, str, int]
 
@@ -863,6 +885,7 @@ class RelationshipBulkMonitor:
             # failure, so a persistently slow/unreachable broker cannot
             # turn this back into a per-tick cost.
             self._next_lag_refresh = now + self._LAG_REFRESH_INTERVAL_SECONDS
+            _notify_lag({edge_type: None for edge_type in self._edges})
             return
         lag_by_key: dict[tuple[str, str], int] = {}
         for (edge_type, topic, _partition), (low, high) in watermarks.items():
@@ -879,6 +902,10 @@ class RelationshipBulkMonitor:
                 kind="cli", name=edge_type, topic=topic,
             ).set(lag))
         self._next_lag_refresh = now + self._LAG_REFRESH_INTERVAL_SECONDS
+        by_edge_type: dict[str, int | None] = {edge_type: 0 for edge_type in self._edges}
+        for (edge_type, _topic), lag in lag_by_key.items():
+            by_edge_type[edge_type] = by_edge_type.get(edge_type, 0) + lag
+        _notify_lag(by_edge_type)
 
     def _at_boundary(self) -> bool:
         """Return whether one stable offset snapshot reaches every boundary."""
