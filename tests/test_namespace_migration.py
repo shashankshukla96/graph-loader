@@ -15,13 +15,24 @@ def _isolated(code, cwd):
 
 def test_migrated_runtime_imports_without_checkout_path(tmp_path):
     _isolated("""
-import importlib, importlib.metadata, pkgutil
+import importlib, importlib.metadata, importlib.util, pkgutil
 import neo4j_graph_loader as package
 expected = {'models.schema', 'loader.edge_planner', 'utils.metrics', 'cli',
             'orchestrator.docker_service', 'orchestrator.lease_server'}
 modules = {m.name for m in pkgutil.walk_packages(package.__path__, package.__name__ + '.')}
 assert {package.__name__ + '.' + m for m in expected} <= modules, modules
+# E15 (decision D05 as amended): the one module that needs an optional extra at import time, listed explicitly. Without the extra
+# it must fail with a ModuleNotFoundError for exactly that dependency; every other module imports on a base install.
+optional = {'neo4j_graph_loader.status.sql_store': 'sqlalchemy'}
 for name in sorted(modules):
+    if name in optional and importlib.util.find_spec(optional[name]) is None:
+        try:
+            importlib.import_module(name)
+        except ModuleNotFoundError as error:
+            assert error.name == optional[name], (name, error.name)
+        else:
+            raise AssertionError(name + ' imported without its optional dependency')
+        continue
     module = importlib.import_module(name)
     assert module.__file__, name
 from neo4j_graph_loader.utils import metrics

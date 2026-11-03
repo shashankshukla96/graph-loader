@@ -1,0 +1,70 @@
+# STARTING POINT, NOT AN SLO. Thresholds below are conservative defaults
+# chosen without production traffic data (P6-Q4, plan/v5-v6-orchestration.md).
+# Tune every threshold to your own environment before treating a firing
+# alert as an incident. `for:` durations are chosen to avoid a scrape-
+# interval blip firing an alert, not to model any real SLO.
+#
+# Scrape health (E15). Each discovery mode has exactly ONE authoritative
+# scrape path, and health is read from the series that path produces:
+#   * per-target paths (Docker discovery, file_sd): Prometheus's own `up` of
+#     each role's target (GraphLoaderTargetDown);
+#   * the aggregated endpoint (`--metrics-port`, one target for the whole
+#     run): `up` covers only that one target, so each child's own scrape
+#     result is `graph_loader_exporter_up{exporter}` (GraphLoaderExporterScrapeFailed).
+# The job name below is the default of the shipped configuration
+# (`graph-loader`); `graph-loader monitoring export --job-name` rewrites it.
+groups:
+  - name: graph-loader-health
+    rules:
+      - alert: GraphLoaderTargetDown
+        # Discovery removes the target of a role that exited (a container
+        # that stopped, a process whose file_sd entry went away), so a clean
+        # exit never reads as down; a role that is listed but cannot be
+        # scraped does. `for:` rides out a scrape blip.
+        expr: up{job="graph-loader"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Scrape target {{ $labels.instance }} (job {{ $labels.job }}) is down."
+          description: >
+            Prometheus cannot scrape this graph-loader target. With the
+            aggregated endpoint this is the one target for the whole run;
+            with per-role targets it is one role. Check that the role or
+            the CLI is running and that its metrics address is reachable
+            from Prometheus (--metrics-addr, --metrics-port).
+      - alert: GraphLoaderExporterScrapeFailed
+        # Only the aggregated path exports this family: the CLI scrapes each
+        # child itself and reports the result, so Prometheus `up` stays 1
+        # while one child is unreachable. A child that exited disappears from
+        # the aggregate and has no row; one whose metrics endpoint could not
+        # bind reads 0 from the start.
+        expr: graph_loader_exporter_up == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The aggregated endpoint cannot scrape exporter {{ $labels.exporter }} (execution {{ $labels.execution_id }})."
+          description: >
+            The CLI's aggregated /metrics could not read this role's own
+            metrics endpoint, so its series are missing from the aggregate
+            while the role may still be running. Check the role's
+            metrics-ready log line (stage=metrics-ready) and that it has not
+            exited.
+      - alert: GraphLoaderDuplicateScrape
+        # One exporter must be observed through ONE path. The same exporter
+        # (unique per role incarnation) arriving from two jobs means both the
+        # per-role targets and the aggregated endpoint (or two Prometheus
+        # jobs over the same discovery) are scraped: every counter would be
+        # counted twice by a sum. `count by (exporter, job)` first, so one
+        # exporter with several series in one job is not a duplicate.
+        expr: count by (exporter) (count by (exporter, job) (graph_loader_process_up)) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Exporter {{ $labels.exporter }} is scraped by {{ $value }} jobs; sums over it are inflated."
+          description: >
+            Keep one authoritative scrape path per discovery mode: either the
+            per-role targets (Docker or file discovery) or the aggregated
+            endpoint of the process runtime, never both.

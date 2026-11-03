@@ -804,5 +804,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    raise SystemExit(main())
+    from neo4j_graph_loader.utils.logging_config import configure_logging
+    configure_logging(kind="lease-server")
+    from neo4j_graph_loader.utils.logging_config import run_entrypoint
+    raise SystemExit(run_entrypoint(main))

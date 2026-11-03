@@ -97,6 +97,7 @@ from prometheus_client import (
 from prometheus_client.exposition import start_http_server
 
 from .._version import __version__
+from .logging_config import structured
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +144,9 @@ deadlocks_recovered/retry_total/dlq_routed_total for the retry consumer's
 own Neo4j writes stay under kind="edge" (they describe *edge writes*,
 caller-agnostic, exactly the dashboard behavior an operator wants: total
 write cost for an edge type, live and retried, in one series)."""
+
+STATUS_STORE_ERROR_REASONS = ("event_conflict", "write_failed", "outbox_unwritable", "outbox_overflow")
+"""Closed enum for ``status_store_errors_total``'s ``reason`` label."""
 
 RETRY_OUTCOMES = ("written", "re_dlq", "parked")
 """Closed enum for ``retry_outcome_total``'s ``outcome`` label."""
@@ -205,6 +209,7 @@ EXPECTED_METRIC_FAMILIES = frozenset(
         "graph_loader_dlq_backlog_observed_at_seconds",
         "graph_loader_rejected",
         "graph_loader_retry_outcome",
+        "graph_loader_status_store_errors",
         "graph_loader_lease_wait_seconds",
         "graph_loader_lease_grants",
         "graph_loader_lease_denials",
@@ -220,6 +225,7 @@ EXPECTED_METRIC_FAMILIES = frozenset(
         "graph_loader_process_start_time_seconds",
         "graph_loader_process_up",
         "graph_loader_process",
+        "graph_loader_exporter_up",
     }
 )
 """The slice's full catalogue: 22 series as of P6-S2 (`stories.md` Story
@@ -233,7 +239,7 @@ edge loader's post-assignment parked-pair index barrier), for 25, plus
 `graph_loader_write_outage_seconds` (a stream loader riding out a Neo4j outage,
 src/neo4j_graph_loader/loader/write_outage.py), for 26, plus four for run status tracking (E15.F1.S2): two
 ``*_observed_at_seconds`` companions of the gauges that can go stale, ``graph_loader_rejected_total`` and
-``graph_loader_retry_outcome_total``, for 30. `tests/test_metrics.py`'s completeness test asserts the
+``graph_loader_retry_outcome_total``, for 30, plus ``graph_loader_status_store_errors_total`` (E15.F1.S4), for 31, plus ``graph_loader_exporter_up`` (E15.F2.S8), for 32. `tests/test_metrics.py`'s completeness test asserts the
 registry contains exactly this set, no more, no fewer."""
 
 
@@ -387,6 +393,16 @@ class GraphLoaderMetrics:
             ["kind", "name"],
             registry=r,
         )
+        self.status_store_errors = Counter(
+            "graph_loader_status_store_errors_total",
+            "Run status store failures seen by the CLI that writes them (kind=cli): event_conflict (an event key already "
+            "exists with a different payload; nothing was written), write_failed (the database refused a write; the "
+            "writer retries from its local outbox), outbox_unwritable (the local outbox cannot be written; events are "
+            "queued in memory and the history is flagged incomplete) or outbox_overflow (the outbox bound was exceeded "
+            "and a range of events became a gap record). The load is never affected.",
+            ["kind", "reason"],
+            registry=r,
+        )
         self.retry_outcome = Counter(
             "graph_loader_retry_outcome_total",
             "Outcome of one retry-consumer row: written, re_dlq (published to the DLQ again) or parked. Entity-scoped "
@@ -529,6 +545,54 @@ class GraphLoaderMetrics:
             ["kind", "name"],
             registry=r,
         )
+        # Scrape health of one exporter as the CLI's aggregated endpoint sees it: 1 when its last scrape worked, 0 when it
+        # failed (that exporter's other series are then absent from the aggregate). Populated only by the aggregator, in
+        # the CLI process; the family exists in every registry so the catalogue is one list.
+        self.exporter_up = Gauge(
+            "graph_loader_exporter_up",
+            "1 when the aggregated endpoint's scrape of this exporter succeeded, 0 when it failed (E15 run status).",
+            ["exporter"],
+            registry=r,
+        )
+        self._identity_source: tuple[str, str] | None = None
+        self._exposition: CollectorRegistry | None = None
+
+    def exposition_registry(self) -> CollectorRegistry:
+        """What the HTTP endpoint and the snapshots expose: this registry's families with the run identity labels added
+        to every sample (nothing is added outside a tracked run). Built once; the labels are read at each collection."""
+        if self._exposition is None:
+            exposition = CollectorRegistry(auto_describe=False)
+            exposition.register(_IdentityCollector(self))
+            self._exposition = exposition
+        return self._exposition
+
+
+class _IdentityCollector:
+    """Yields the families of a :class:`GraphLoaderMetrics` with ``run_id``, ``execution_id``, ``exporter`` and ``runtime`` on every
+    sample (existing labels of a sample win). The identity is read at collection time, so a run id assigned later shows up."""
+
+    def __init__(self, metrics: "GraphLoaderMetrics") -> None:
+        self._metrics = metrics
+
+    def collect(self):
+        from prometheus_client.core import Metric
+        from prometheus_client.samples import Sample
+
+        source = self._metrics._identity_source
+        identity: dict[str, str] = {}
+        if source is not None:
+            from neo4j_graph_loader.utils import identity as identity_module
+            from neo4j_graph_loader.utils.logging_config import log_context
+            context = log_context()
+            identity = identity_module.identity_labels(source[0], source[1], context.get("replica"), context=context)
+        for family in self._metrics.registry.collect():
+            if not identity:
+                yield family
+                continue
+            relabelled = Metric(family.name, family.documentation, family.type, family.unit)
+            relabelled.samples = [Sample(sample.name, {**identity, **sample.labels}, sample.value, sample.timestamp, sample.exemplar)
+                                  for sample in family.samples]
+            yield relabelled
 
 
 _process_metrics: GraphLoaderMetrics | None = None
@@ -795,7 +859,7 @@ def _start_metrics_server_impl(
         bound_port = None
         try:
             server, _thread = start_http_server(
-                resolved_port, addr=addr, registry=metrics.registry
+                resolved_port, addr=addr, registry=metrics.exposition_registry()
             )
             bound_port = getattr(server, "server_port", resolved_port)     # 0 -> the OS-assigned port
         except OSError as exc:
@@ -806,7 +870,7 @@ def _start_metrics_server_impl(
                 )
                 return None
             try:
-                server, _thread = start_http_server(0, addr=addr, registry=metrics.registry)
+                server, _thread = start_http_server(0, addr=addr, registry=metrics.exposition_registry())
                 bound_port = server.server_port
                 logger.warning(
                     "stage=metrics kind=%s name=%s reason=port_in_use requested_port=%s "
@@ -824,6 +888,7 @@ def _start_metrics_server_impl(
         logger.info(
             "stage=metrics-ready kind=%s name=%s addr=%s port=%s",
             kind, name, addr, bound_port,
+            extra=structured("metrics-ready", entity_kind=kind, entity=name, addr=addr, port=bound_port),
         )
         return server
     except Exception as exc:
@@ -867,6 +932,7 @@ def start_metrics_server(
     path is configured, start the periodic snapshot timer (P6-MET-07) --
     even if the bind failed, since the durable record does not depend on
     the HTTP listener."""
+    metrics._identity_source = (kind, name)           # the run identity labels (utils.identity) are read lazily from here on
     server = _start_metrics_server_impl(
         metrics, kind=kind, name=name, addr=addr, port=port,
         allow_ephemeral_fallback=allow_ephemeral_fallback,
@@ -968,7 +1034,7 @@ def _write_snapshot_file(metrics: GraphLoaderMetrics, path: str | os.PathLike | 
     # snapshot must never share (and truncate) one temp file.
     tmp_path = target.with_name(f"{target.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
-        tmp_path.write_bytes(generate_latest(metrics.registry))
+        tmp_path.write_bytes(generate_latest(metrics.exposition_registry()))
         os.replace(tmp_path, target)
     except Exception as exc:
         logger.warning("stage=metrics-snapshot reason=%s", exc)
@@ -1139,7 +1205,7 @@ def write_status_snapshot(metrics: GraphLoaderMetrics, *, final: bool = False) -
         return False
     try:
         directory.mkdir(parents=True, exist_ok=True)
-        _atomic_write(directory / STATUS_SNAPSHOT_NAME, generate_latest(metrics.registry))
+        _atomic_write(directory / STATUS_SNAPSHOT_NAME, generate_latest(metrics.exposition_registry()))
         if final:
             _atomic_write(directory / STATUS_FINAL_NAME, f'{{"written_at": {time.time():.3f}}}\n'.encode())
         return True

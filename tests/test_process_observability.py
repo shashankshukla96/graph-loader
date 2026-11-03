@@ -71,7 +71,7 @@ def test_every_role_gets_its_own_loopback_metrics_port_listed_in_file_sd(paths) 
         ports = [first.metrics["port"], second.metrics["port"]]
         assert first.metrics["state"] == "listening" and len(set(ports)) == 2 and 9464 not in ports
         groups = targets(service)
-        listed = {g["labels"]["exporter"]: g for g in groups}
+        listed = {g["labels"]["role"]: g for g in groups}                      # (S8: `exporter` is now unique per incarnation; `role` keeps the handle name)
         assert listed[first.name]["targets"] == [f"127.0.0.1:{first.metrics['port']}"]
         assert listed[first.name]["labels"]["component"] == "bucket-lease-server" and listed[first.name]["labels"]["runtime"] == "process"
         assert listed[first.name]["labels"]["run_id"] == "run-a" and listed[second.name]["labels"]["run_id"] == "run-b"
@@ -137,7 +137,7 @@ def test_disabled_metrics_leave_a_group_without_targets(paths, monkeypatch) -> N
         handle = lease(service)
         assert handle.metrics == {"state": "disabled"}
         (group,) = targets(service)
-        assert group["targets"] == [] and group["labels"]["metrics_state"] == "disabled" and group["labels"]["exporter"] == handle.name
+        assert group["targets"] == [] and group["labels"]["metrics_state"] == "disabled" and group["labels"]["role"] == handle.name and group["labels"]["exporter"].startswith("lease-server-")
         with socket.create_connection(("127.0.0.1", handle.ports["control"]), timeout=5):
             pass                                                             # the role itself is up and serving
     finally:
@@ -168,7 +168,7 @@ def test_the_cli_endpoint_is_listed_too(paths) -> None:
     try:
         service.set_cli_metrics(type("Server", (), {"server_port": 41234})())
         assert targets(service)[0] == {"targets": ["127.0.0.1:41234"], "labels": {
-            "component": "cli", "exporter": "cli", "kind": "cli", "runtime": "process"}}
+            "component": "cli", "exporter": "cli", "kind": "cli", "run_id": "", "runtime": "process"}}
     finally:
         service.close()
 

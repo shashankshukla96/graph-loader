@@ -13,8 +13,9 @@ reference) | [ARCHITECTURE](ARCHITECTURE.md) | [BULK_LOAD](BULK_LOAD.md) |
 [PROCESS_RUNTIME](PROCESS_RUNTIME.md) (`--runtime process`, host and systemd) |
 [CHANGELOG](../CHANGELOG.md)
 
-Contents: [Commands](#commands) | [start](#start) | [stop](#stop) |
-[status](#status) | [replay-dlq](#replay-dlq) | [Edge mode selection](#edge-mode-selection-bulk) |
+Contents: [Commands](#commands) | [Logging](#logging) | [start](#start) | [stop](#stop) |
+[status](#status) | [status-store](#status-store) | [monitoring export](#monitoring-export) |
+[replay-dlq](#replay-dlq) | [Edge mode selection](#edge-mode-selection-bulk) |
 [Exit codes](#exit-codes) | [stage= log lines](#key-stage-log-lines) |
 [Environment variables](#environment-variables)
 
@@ -24,7 +25,9 @@ Contents: [Commands](#commands) | [start](#start) | [stop](#stop) |
 | --- | --- |
 | `start` | Apply the schema DDL, launch the node-loader fleet (Docker containers, or child processes with `--runtime process`) and the relationship machinery, in `--mode bulk` (finite) or `--mode stream` (open-ended). |
 | `stop` | Stop node-loader containers (all, or one label). With `--runtime process`: stop the run's command, or one label's node loaders; `--recover` cleans up after an abruptly killed command. |
-| `status` | List node-loader containers (or, with `--runtime process`, node-loader processes) and their state. |
+| `status` | Without options: list node-loader containers (or, with `--runtime process`, node-loader processes) and their state. With `--run`, `--json`, `--watch`, `--list` or `--execution-id`: the **run status** of an execution (state, roles, progress), from the JSON files of a run directory or from the SQL status database. |
+| `status-store` | `migrate`, `prune` and `flush` the SQL run status database ([status stores](STATUS_SQL.md)). |
+| `monitoring export` | Write the Prometheus scrape configuration, alert rules, promtool tests, Grafana dashboards and provisioning (and Kubernetes manifests) for your own Prometheus and Grafana ([MONITORING](MONITORING.md#9-bring-your-own-prometheus-and-grafana)). Needs no services. |
 | `schema-example` | Print the bundled default or social schema with `--name default\|social`, without services. |
 | `validate-schema` | Validate `--config PATH` or `--sample default\|social` without services. |
 | `replay-dlq` | Republish dead-lettered (or parked) records of one node label or relationship type to their source topic. |
@@ -40,6 +43,17 @@ Every command that talks to roles accepts `--runtime {docker,process}`
 per role; `process` runs the roles as child processes of the `start` command on a
 Linux host, with no Docker daemon, network or images. See
 [Process runtime](PROCESS_RUNTIME.md).
+
+## Logging
+
+`--log-format {text,json}` (environment `GRAPH_LOADER_LOG_FORMAT`; default `text`) is accepted
+before or after the command. `text` is the historical `LEVEL: message` line. `json` writes **one JSON object per line on
+stderr** (the log stream; command output such as YAML or `status --json` stays on stdout and is never affected): `ts`,
+`level`, `logger`, `execution_id`, `run_id`, `kind`, `name`, `replica`, `incarnation`, `stage`, `message`, and the
+structured fields of the documented `stage=` lines. Every role of a run carries the same `execution_id` (and its own
+`incarnation`), so lines of one run can be selected across the CLI and its roles; credentials are redacted from the
+message, the fields and tracebacks. With `--runtime process` the roles' lines are relayed on the command's stdout as
+`[name] line` (`--child-logs`), unchanged; with the Docker runtime they stay in the containers' logs.
 
 The CLI does **not** read `.env`. Export the connection variables yourself
 (see [Environment variables](#environment-variables)); `docker compose` reads
@@ -68,7 +82,10 @@ container (or process) is started, except where noted.
 | `--health-addr HOST:PORT` | off | `HOST:PORT`, `:PORT` or `PORT`; port `0` allowed | both | Process runtime only: serve `GET /healthz` and `GET /readyz`; the bound port is logged as `stage=health`. Refused with `--runtime docker`. |
 | `--health-stale-after SECONDS` | `30` | float | both | Process runtime only: `/healthz` turns unhealthy when the supervision loop has not ticked for this long. Refused with `--runtime docker`. |
 | `--child-logs {relay,files}` | `relay` | `relay`, `files` | both | Process runtime only: `relay` also prints every role's output to this command's stdout as `[name] line`; `files` keeps it only in `<attempt>/logs/`. Refused with `--runtime docker`. |
-| `--run-id ID` | random UUID hex | 1-128 chars of `[A-Za-z0-9._-]`, starting with a letter or digit | both | Run identity. Scopes container names and labels, the planned chunk topic, the lease server and the **bulk** relationship consumer groups. Stream groups do **not** contain it; in stream mode it only lets the CLI migrate legacy run-scoped offsets (see the stream notes below). |
+| `--status-store {json,sql}` | `json`, or `$GRAPH_LOADER_STATUS_STORE` | `json`, `sql` | both | Where the run's status document and event history are kept: `json` (files in the attempt directory) or `sql` (a database named by `GRAPH_LOADER_STATUS_DB_URL`; needs `neo4j-graph-loader[postgres]` or `[sql]`). See [status stores](STATUS_SQL.md). |
+| `--status-store-auto-migrate` | off (`GRAPH_LOADER_STATUS_AUTO_MIGRATE=1`) | flag | both | With `--status-store sql`: create or upgrade the status schema at start instead of refusing an older one. |
+| `--metrics-port PORT` | off | 1-65535 | both | Process runtime only: serve **one aggregated** `/metrics` on `--metrics-addr`'s host at this port, merging this command's metrics and every role's. Scrape it **or** the per-role `targets.json`, never both for the same run. Refused with `--runtime docker`. |
+| `--run-id ID` | random UUID hex (bulk, and stream with relationship types); none for a node-only stream | 1-128 chars of `[A-Za-z0-9._-]`, starting with a letter or digit | both | Run identity (the `run_id` label of every sample and field of the status; reusable, so it never replaces the per-start `execution_id`). Scopes container names and labels, the planned chunk topic, the lease server and the **bulk** relationship consumer groups. Stream groups do **not** contain it; in stream mode it only lets the CLI migrate legacy run-scoped offsets (see the stream notes below). |
 | `--bulk-timeout-seconds S` | `300` | float > 0, validated before any side effect | bulk | Ignored in stream (any value is accepted there). Maximum seconds for each bulk lifecycle stage. Progress-based for node draining, waiting for the edge plan (planner heartbeat) and the planned dispatch: those fail only after `S` seconds **without progress**. |
 | `--accept-former-dlq TOPIC` | none | repeatable; a topic name | both (classic, lease, stream; not planned) | Start although `TOPIC`, a relationship type's former default DLQ name (`<topic>.dlq` or `<type>.dlq`), still holds records. Deleting the old topic is the expected step. |
 | `--accept-dlq-leftovers TYPE` | none | repeatable; a relationship type | both (classic, lease, stream; not planned) | Start although `TYPE`'s parked-pair index holds records of a topic it no longer reads or of a topic now bound to another label pair. Draining the DLQ with the previous schema first is the expected step. |
@@ -228,14 +245,81 @@ process is still alive. A stale or ambiguous registry exits 1 with
 
 ```text
 graph-loader status [--runtime {docker,process}] [--config PATH] [--run-dir DIR]
+                    [--run] [--execution-id ID] [--json] [--watch] [--interval SECONDS]
+                    [--refresh-lag] [--refresh-timeout SECONDS] [--list] [--active]
+                    [--containers] [--stale-after SECONDS] [--status-store {json,sql}]
 ```
 
-With `--runtime process` (and `--run-dir`, as for `stop`) the node loaders are
-read from the run's registry and listed in the same format with status `running`.
-Logs one line per node-loader container (`Loader <name> (<id>): <status> [Node:
-<label>]`) or `No loaders running.` `--config` (default
-the bundled canonical schema) is only logged. Exits 0; exits 1 with a clear message when Docker is unreachable. For lag, use the
-metrics ([MONITORING](MONITORING.md)) or Kafka's consumer-group tooling.
+**Without** `--run`, `--json`, `--watch`, `--list` and `--execution-id` the command is the node-loader listing it
+always was: with `--runtime process` (and `--run-dir`, as for `stop`) the node loaders are read from the run's registry
+and listed in the same format with status `running`; otherwise one line per node-loader container (`Loader <name>
+(<id>): <status> [Node: <label>]`) or `No loaders running.`; `--config` is only logged; exit 0, or 1 with a clear
+message when Docker is unreachable.
+
+**Run status.** Any of the options below shows the status of an execution instead
+([status stores](STATUS_SQL.md), [field sources](STATUS_FIELDS.md)):
+
+| Flag | Default | Notes |
+| --- | --- | --- |
+| `--run` | off | The newest run found under `--run-dir` (or the OS temporary directory), or the one named by `--execution-id`: a summary of its state, roles and per-type progress. Implied by `--json`, `--watch`, `--refresh-lag`, `--list` and `--execution-id`; `--run-dir` alone is still the container listing. |
+| `--execution-id ID` | newest | Show this execution (32 hex digits). With `--status-store sql` it is looked up in the database. |
+| `--run-dir DIR` | OS temporary directory | An attempt directory (either runtime's) or the base given to `start`. |
+| `--json` | off | Print the status document as JSON on stdout (one line per refresh), plus a `reader` member (`stale`, `dead`, `heartbeat_age_seconds`, `stale_after_seconds`, `exit_code`, `label`). With `--list`: the list as a JSON array. |
+| `--watch`, `--interval SECONDS` | off, `2` | Refresh until the run ends. |
+| `--refresh-lag`, `--refresh-timeout SECONDS` | off, `5` | Ask Kafka once, within the deadline, for the current consumer lag; never blocks otherwise. |
+| `--list`, `--active` | off | List the runs of the store (one line each: execution id, state, run id, mode, runtime, start, heartbeat age) instead of showing one; `--active`: only runs that have not finished. |
+| `--containers` | off | Also print the container listing above. |
+| `--stale-after SECONDS` | `30` (`GRAPH_LOADER_STATUS_STALE_AFTER_S`) | A running execution whose heartbeat is older than this is reported stale, and dead when its process is gone. |
+| `--status-store {json,sql}` | the run directory's locator | Which store `--list` and `--execution-id` read when no run directory is given (the SQL store needs `GRAPH_LOADER_STATUS_DB_URL` in the environment). |
+
+**Exit code of the run status view:** `0` the execution is running or succeeded, `1` it failed, `2` it is stale or dead
+(heartbeat older than `--stale-after`, process gone), or no status was found or the store cannot be read, `3` it was
+stopped. `--list` exits 0 (printing `no runs found` when there are none). Run status needs no Docker and no Kafka
+(except `--refresh-lag`). A `?` in the summary is "not known", never `0`.
+
+## status-store
+
+```text
+graph-loader status-store migrate [--schema NAME]
+graph-loader status-store prune --older-than DURATION [--schema NAME]
+graph-loader status-store flush --run-dir DIR [--wait SECONDS] [--schema NAME]
+```
+
+Maintain the SQL run status database named by `GRAPH_LOADER_STATUS_DB_URL` (never a command-line argument; the password
+is read from the environment, `.pgpass` or a service file). `migrate` creates or upgrades the schema (idempotent);
+`prune --older-than 30d` (or `12h`, `90m`) deletes **finished** executions older than that and never a running one;
+`flush` delivers the events a killed run, or a database that was down, left in the run's local outbox (it waits up to
+`--wait` seconds, default 30, for a live process that owns it). `--schema` (`GRAPH_LOADER_STATUS_SCHEMA`) is the
+PostgreSQL schema, default `graph_loader`. Needs `neo4j-graph-loader[postgres]` (or `[sql]` plus your driver). Exit 0 on
+success, 1 on any error (messages never contain credentials).
+
+## monitoring export
+
+```text
+graph-loader monitoring export --out DIR --discovery {docker,file,static,kubernetes} [options]
+```
+
+Writes the monitoring bundle for your own Prometheus and Grafana; no Docker, Kafka or Neo4j is needed. It refuses to
+overwrite existing files unless `--force`. Full guide: [MONITORING §9-§10](MONITORING.md#9-bring-your-own-prometheus-and-grafana).
+
+| Flag | Default | Notes |
+| --- | --- | --- |
+| `--out DIR` | required | Directory to write; created. |
+| `--discovery` | required | `docker` (Docker service discovery), `file` (the process runtime's `metrics/targets.json`), `static` or `kubernetes` (the aggregated `--metrics-port` endpoint). |
+| `--scrape-interval DURATION` | `15s` | `1s` to `1h`. |
+| `--job-name NAME` | `graph-loader` | The scrape job; the health alert follows it. |
+| `--extra-labels K=V[,K=V...]` | none | Added to every target and alert. `run_id`, `execution_id`, `exporter` and `runtime` are reserved and refused. |
+| `--metrics-port PORT` | none | The aggregated endpoint port; required for `static` and `kubernetes`. |
+| `--targets HOST:PORT[,...]` | `localhost:--metrics-port` | `static`: scrape these instead. |
+| `--targets-file PATH` | `/etc/prometheus/graph-loader/targets.json` | `file`: the `targets.json` Prometheus reads (a wildcard only in the last path element). |
+| `--docker-network NAME` | `graph-loader-net` | `docker`: the network the roles run on. |
+| `--namespace`, `--service-name` | `default`, `graph-loader` | `kubernetes`: namespace and Service name. |
+| `--prometheus-url URL` | `http://prometheus:9090` | The datasource URL written to the Grafana provisioning file. |
+| `--datasource-uid UID` | unset (provisioning file uses `prometheus`) | The Grafana Prometheus datasource uid, written to the provisioning file and preset in the provisioned dashboard's datasource variable; give it when Grafana has several Prometheus datasources. |
+| `--values FILE` | none | YAML: `job_name`, `labels`, per-alert `threshold`/`for`/`severity`, `disable`. |
+| `--force` | off | Overwrite existing files. |
+
+Exit 0 on success; 1 for an invalid option or values file, or a file that cannot be written.
 
 ## replay-dlq
 
@@ -343,7 +427,24 @@ some derived from the host variables. "Host" below means the `start`/
 | `LOADER_NEO4J_URI` | `bolt://neo4j:7687` | CLI, when building container environments | Bolt URI as seen from the Docker network. |
 | `LOADER_KAFKA_BOOTSTRAP_SERVERS` | `kafka:29092` | CLI, when building container environments | Kafka as seen from the Docker network. |
 | `LOADER_CPUSET` | unset | CLI | Docker `cpuset_cpus` pin for every loader container (keeps them off the cores of Kafka and Neo4j). With `--runtime process` each role pins itself to these CPUs (`12-15,18` form); the command and the planner workers are not pinned. |
-| `GRAPH_LOADER_RUNTIME` | `docker` | CLI | Default for `--runtime` (`docker` or `process`); the flag wins. Any other value exits 1. |
+| `GRAPH_LOADER_RUNTIME` | `docker` | CLI | Default for `--runtime` (`docker` or `process`); the flag wins. Any other value exits 1. The process runtime also sets `GRAPH_LOADER_RUNTIME=process` for the roles it starts, which is how they label their samples and log lines `runtime=process` (absent means `docker`); it is not an operator setting for roles. |
+| `GRAPH_LOADER_LOG_FORMAT` | `text` | CLI and every role | `text` or `json` (see [Logging](#logging)); `--log-format` wins. |
+
+### Run status
+
+| Variable | Default | Read by | Notes |
+| --- | --- | --- | --- |
+| `GRAPH_LOADER_STATUS_STORE` | `json` | CLI | Default for `--status-store`. |
+| `GRAPH_LOADER_STATUS_DB_URL` | none | CLI (never a role) | SQLAlchemy URL of the status database, for example `postgresql+psycopg://USER:PASSWORD@HOST:5432/DB`. Required for `--status-store sql`, `status --list` on SQL and `status-store`. Never on the command line. |
+| `GRAPH_LOADER_STATUS_SCHEMA` | `graph_loader` | CLI | PostgreSQL schema of the status tables. |
+| `GRAPH_LOADER_STATUS_AUTO_MIGRATE` | off | CLI | `1` is `--status-store-auto-migrate`. |
+| `GRAPH_LOADER_STATUS_STALE_AFTER_S` | `30` | `status` | Heartbeat age after which a running execution is stale. |
+| `GRAPH_LOADER_STATUS_INTERVAL_S` | `5` | CLI and every role | How often roles write their metrics snapshot for the run status (the telemetry freshness window is three intervals). |
+| `GRAPH_LOADER_STATUS_SNAPSHOT_INTERVAL_S` | `1` | CLI | Minimum seconds between rewrites of `status.json` while it changes. |
+| `GRAPH_LOADER_STATUS_EVENT_FILE_MB`, `GRAPH_LOADER_STATUS_EVENT_FILES` | `8`, `8` | CLI | Size of one `events.<first seq>.jsonl` file and how many are kept (JSON store). |
+| `GRAPH_LOADER_STATUS_OUTBOX_MB`, `GRAPH_LOADER_STATUS_OUTBOX_SEGMENT_MB` | `64`, `4` | CLI | Bound of the local outbox in front of the SQL store, and its segment size. |
+| `GRAPH_LOADER_STATUS_SHUTDOWN_DEADLINE_S` | `10` | CLI | Seconds the CLI waits at exit for the database to receive the last events (the rest stays in the outbox for `status-store flush`). |
+| `GRAPH_LOADER_EXECUTION_ID`, `GRAPH_LOADER_INCARNATION` | set by the CLI | roles | The identity a role stamps on its log lines and samples (not operator settings). |
 
 ### Container images
 

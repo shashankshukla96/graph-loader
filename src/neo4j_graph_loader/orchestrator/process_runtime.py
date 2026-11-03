@@ -45,6 +45,15 @@ STOP_READY_MAX_SECONDS = 5.0
 LOG_CAP_BYTES = 8 * 1024 * 1024
 
 
+def _stderr_event(text_line: str, level: str, stage: str, message: str, **fields) -> None:
+    """One line on the CLI's stderr: ``text_line`` exactly as ever, or a JSON log line in JSON log mode."""
+    from neo4j_graph_loader.utils.logging_config import emit_json_line, json_enabled
+    if json_enabled():
+        emit_json_line(sys.stderr, message, level=level, logger=__name__, stage=stage, **fields)
+    else:
+        sys.stderr.write(text_line)
+
+
 class LaunchFailed(RuntimeError):
     """The child exited, or did not become ready in time."""
 
@@ -150,6 +159,28 @@ class LogRelay:
     def _out(self):
         return self._stream if self._stream is not None else sys.stdout
 
+    @staticmethod
+    def _format(prefix: str, line: bytes) -> str:
+        """Text mode: ``[name] line`` as ever. JSON log mode: a child's own JSON log line passes through UNCHANGED (it already
+        carries its identity); anything else a child printed (a stray ``print``, a traceback line) is wrapped as one JSON
+        object so the relayed stream stays JSON only."""
+        text = line.decode("utf-8", "replace")
+        from neo4j_graph_loader.utils.logging_config import json_enabled
+        if not json_enabled():
+            return f"[{prefix}] {text}"
+        stripped = text.strip()
+        if stripped.startswith("{"):
+            try:
+                if isinstance(json.loads(stripped), dict):
+                    return stripped + "\n"
+            except ValueError:
+                pass
+        from neo4j_graph_loader.utils.logging_config import emit_json_line
+        import io
+        buffer = io.StringIO()
+        emit_json_line(buffer, stripped, logger="relay", stage="child-output", child=prefix)
+        return buffer.getvalue()
+
     def _run(self) -> None:
         while True:
             try:
@@ -163,7 +194,7 @@ class LogRelay:
                     pass
                 continue
             try:
-                self._out().write(f"[{prefix}] {line.decode('utf-8', 'replace')}")
+                self._out().write(self._format(prefix, line))
                 self.relayed += 1
             except Exception:
                 self.dropped += 1
@@ -172,7 +203,9 @@ class LogRelay:
         self._closed.set()
         self._thread.join(timeout=5)
         if self.dropped:
-            sys.stderr.write(f"WARNING: stage=child-logs relay dropped {self.dropped} line(s); the per-child log files are complete\n")
+            _stderr_event(f"WARNING: stage=child-logs relay dropped {self.dropped} line(s); the per-child log files are complete\n",
+                          "warning", "child-logs", f"stage=child-logs relay dropped {self.dropped} line(s); the per-child log files are complete",
+                          dropped=self.dropped)
 
 
 class _LogPump(threading.Thread):
@@ -455,7 +488,9 @@ class ProcessRuntime:
             threading.Thread(target=self._watch_oom, name="oom-watch", daemon=True).start()
         self.targets_path = self.root / "metrics" / "targets.json"
         self.cli_metrics_port: int | None = None
+        self.identity_provider = lambda: {}          # the CLI sets it to the execution's id and run id (file_sd target labels)
         self._targets_lock = threading.Lock()
+        self._targets_closed = False        # set by close(): the file was emptied for good and no late exit may repopulate it
         self._pre_signal_hooks: list = []
         self._pre_signal_lock = threading.Lock()
         self._pre_signal_done = False
@@ -484,14 +519,15 @@ class ProcessRuntime:
         rose = self._oom.rose()
         if rose is None:
             return
-        sys.stderr.write(f"ERROR stage=oom {OOM_REPORT} (memory.events oom_kill {rose[0]} -> {rose[1]})\n")
+        _stderr_event(f"ERROR stage=oom {OOM_REPORT} (memory.events oom_kill {rose[0]} -> {rose[1]})\n", "error", "oom",
+                      f"stage=oom {OOM_REPORT} (memory.events oom_kill {rose[0]} -> {rose[1]})", oom_kill_before=rose[0], oom_kill_after=rose[1])
         sys.stderr.flush()
         self._record("oom", oom_kill_before=rose[0], oom_kill_after=rose[1])
         for listener in list(self._oom_listeners):
             try:
                 listener(rose[0], rose[1])
             except Exception as exc:                  # a status listener must never disturb the runtime
-                sys.stderr.write(f"WARNING: stage=runtime oom listener failed: {exc}\n")
+                _stderr_event(f"WARNING: stage=runtime oom listener failed: {exc}\n", "warning", "runtime", f"stage=runtime oom listener failed: {exc}")
 
     def add_oom_listener(self, listener) -> None:
         """Call ``listener(oom_kill_before, oom_kill_after)`` each time a group OOM is reported (run status)."""
@@ -521,7 +557,7 @@ class ProcessRuntime:
             try:
                 hook()
             except Exception as exc:                  # a failing cleanup must not stop the signalling that follows
-                sys.stderr.write(f"WARNING: stage=runtime pre-signal hook failed: {exc}\n")
+                _stderr_event(f"WARNING: stage=runtime pre-signal hook failed: {exc}\n", "warning", "runtime", f"stage=runtime pre-signal hook failed: {exc}")
 
     def register_cli(self) -> None:
         """Record the controlling process so a second shell can find and stop it."""
@@ -619,13 +655,20 @@ class ProcessRuntime:
         self._targets_changed()
 
     # -- Prometheus file_sd -----------------------------------------------------------------------------------------
-    @staticmethod
-    def _target_labels(handle: ProcessHandle) -> dict[str, str]:
-        labels = {"exporter": handle.name, "runtime": "process"}
+    def _target_labels(self, handle: ProcessHandle) -> dict[str, str]:
+        """Portable target labels: the same ``exporter`` (unique per incarnation), ``run_id``, ``execution_id`` and ``runtime`` the
+        role puts on every sample, so ``up`` identifies the role. ``role`` keeps the handle's name (what ``exporter`` was before)."""
+        from neo4j_graph_loader.utils.identity import component_exporter
+        identity = self.identity_provider() or {}
+        labels = {"exporter": component_exporter(handle.labels, handle.id), "runtime": "process", "role": handle.name,
+                  "run_id": str(handle.labels.get("run_id") or identity.get("run_id") or ""),
+                  "execution_id": str(identity.get("execution_id") or "")}
         for key, value in handle.labels.items():
             if key.startswith("graph_loader.metrics"):
                 continue
-            labels[key.replace("graph_loader.", "").replace(".", "_")] = str(value)
+            labels.setdefault(key.replace("graph_loader.", "").replace(".", "_"), str(value))
+        if not labels["execution_id"]:
+            del labels["execution_id"]
         return labels
 
     def build_targets(self) -> list[dict]:
@@ -633,8 +676,13 @@ class ProcessRuntime:
         group with no targets and ``metrics_state`` so the gap is visible in the file; exited roles disappear."""
         groups = []
         if self.cli_metrics_port:
-            groups.append({"targets": [f"{self.metrics_host}:{self.cli_metrics_port}"],
-                           "labels": {"exporter": "cli", "runtime": "process", "component": "cli", "kind": "cli"}})
+            identity = self.identity_provider() or {}
+            from neo4j_graph_loader.utils.identity import exporter_name
+            cli_labels = {"exporter": exporter_name("cli", None, None, None, execution_id=identity.get("execution_id")) if identity.get("execution_id") else "cli",
+                          "runtime": "process", "component": "cli", "kind": "cli", "run_id": str(identity.get("run_id") or "")}
+            if identity.get("execution_id"):
+                cli_labels["execution_id"] = identity["execution_id"]
+            groups.append({"targets": [f"{self.metrics_host}:{self.cli_metrics_port}"], "labels": cli_labels})
         for handle in self.handles():
             if handle._exited.is_set() or not handle._announced:
                 continue
@@ -646,20 +694,29 @@ class ProcessRuntime:
                 groups.append({"targets": [], "labels": {**labels, "metrics_state": metrics.get("state", "unknown")}})
         return groups
 
-    def _targets_changed(self) -> None:
-        """Rewrite ``metrics/targets.json`` atomically (temp file, fsync, rename). Never raises into a role's path."""
+    def _targets_changed(self, *, final: bool = False) -> None:
+        """Rewrite ``metrics/targets.json`` atomically (temp file, fsync, rename). Never raises into a role's path.
+
+        ``final=True`` (an orderly end, see :meth:`close`) writes ``[]`` and freezes the file: a finished run must not leave its dead CLI
+        endpoint for ``file_sd`` to scrape (``up == 0``, a false ``GraphLoaderTargetDown``). A crash never gets here, so a really dead
+        CLI keeps its entry and still alerts."""
         try:
             with self._targets_lock:
+                if self._targets_closed:
+                    return
+                if final:
+                    self._targets_closed = True
                 self.targets_path.parent.mkdir(parents=True, exist_ok=True)
                 temporary = self.targets_path.with_name(f".{self.targets_path.name}.{os.getpid()}.tmp")
                 with open(temporary, "w") as out:
-                    json.dump(self.build_targets(), out, indent=1, sort_keys=True)
+                    json.dump([] if final else self.build_targets(), out, indent=1, sort_keys=True)
                     out.write("\n")
                     out.flush()
                     os.fsync(out.fileno())
                 os.replace(temporary, self.targets_path)
         except Exception as exc:
-            sys.stderr.write(f"WARNING: stage=metrics-targets could not write {self.targets_path}: {exc}\n")
+            _stderr_event(f"WARNING: stage=metrics-targets could not write {self.targets_path}: {exc}\n", "warning", "metrics-targets",
+                          f"stage=metrics-targets could not write {self.targets_path}: {exc}")
 
     def handles(self) -> list[ProcessHandle]:
         with self._handles_lock:
@@ -678,4 +735,6 @@ class ProcessRuntime:
                 self.report_cgroup_oom()            # a rise after the last poll still gets reported once, at the end of the run
             except Exception:
                 pass
+        self.cli_metrics_port = None
+        self._targets_changed(final=True)               # after the roles are gone: the discovery file is empty from here on
         self.registry.close()

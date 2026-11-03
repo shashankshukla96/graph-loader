@@ -1,0 +1,65 @@
+{
+ "start-invalid-run-id": {
+  "argv": [
+   "neo4j_graph_loader.cli",
+   "start",
+   "--mode",
+   "stream",
+   "--run-id",
+   "bad id!"
+  ],
+  "returncode": 1,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout": "",
+  "stderr": "ERROR: stage=launch reason=run id must be 1-128 letters, digits, dot, underscore, or hyphen\n"
+ },
+ "start-bad-timeout": {
+  "argv": [
+   "neo4j_graph_loader.cli",
+   "start",
+   "--mode",
+   "bulk",
+   "--bulk-timeout-seconds",
+   "0"
+  ],
+  "returncode": 1,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout": "",
+  "stderr": "ERROR: stage=launch reason=--bulk-timeout-seconds must be positive\n"
+ },
+ "validate-missing-schema": {
+  "argv": [
+   "neo4j_graph_loader.cli",
+   "validate-schema",
+   "--config",
+   "/nonexistent/schema.yaml"
+  ],
+  "returncode": 1,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout": "",
+  "stderr": "ERROR: stage=schema reason=Schema file not found: /nonexistent/schema.yaml\n"
+ },
+ "node-loader-bad-max-messages": {
+  "argv": [
+   "neo4j_graph_loader.loader.node_loader",
+   "--node-label",
+   "Person",
+   "--max-messages",
+   "0"
+  ],
+  "returncode": 1,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout": "",
+  "stderr": "--max-messages must be positive\n"
+ },
+ "schema-example": {
+  "argv": [
+   "neo4j_graph_loader.cli",
+   "schema-example"
+  ],
+  "returncode": 0,
+  "stdout_sha256": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
+  "stdout": "",
+  "stderr": ""
+ }
+}

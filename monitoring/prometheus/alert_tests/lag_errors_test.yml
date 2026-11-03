@@ -1,0 +1,46 @@
+# promtool unit tests for lag_and_errors.yml: GraphLoaderRetryRateHigh (E15; it had no unit test).
+# Run with:
+#   docker run --rm --entrypoint promtool \
+#     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+#     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/lag_errors_test.yml
+rule_files:
+  - ../alerts/lag_and_errors.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Two executions REUSE run_id "same" and each retries 0.6/s (36 per minute): merged by run_id the
+  # rate would be 1.2/s and fire; per execution each is under 1/s and must not. A third execution
+  # at 1.5/s (90 per minute, split over two reasons and two replicas that are summed) fires, with
+  # its own execution_id.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_retry_total{kind="edge",name="K",reason="deadlock",execution_id="a",exporter="edge-K-r0-a1a1a1a1",run_id="same",runtime="process"}'
+        values: "0+36x30"
+      - series: 'graph_loader_retry_total{kind="edge",name="K",reason="deadlock",execution_id="b",exporter="edge-K-r0-b1b1b1b1",run_id="same",runtime="process"}'
+        values: "0+36x30"
+      - series: 'graph_loader_retry_total{kind="edge",name="K",reason="deadlock",execution_id="c",exporter="edge-K-r0-c1c1c1c1",run_id="same",runtime="process"}'
+        values: "0+30x30"
+      - series: 'graph_loader_retry_total{kind="edge",name="K",reason="transient",execution_id="c",exporter="edge-K-r1-c2c2c2c2",run_id="same",runtime="process"}'
+        values: "0+60x30"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: GraphLoaderRetryRateHigh
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: K
+              execution_id: c
+              severity: warning
+            exp_annotations:
+              summary: "edge/K (execution c) is retrying more than 1/s over 5m (reason breakdown in graph_loader_retry_total)."
+
+  # A short-lived run: the retries stop (series stale) before the 10m `for:`: never fires. No series: never fires.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_retry_total{kind="edge",name="K",reason="deadlock",execution_id="d",exporter="edge-K-r0-d1d1d1d1",run_id="r",runtime="process"}'
+        values: "0+120x8 stale"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: GraphLoaderRetryRateHigh
+        exp_alerts: []

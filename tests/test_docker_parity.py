@@ -165,25 +165,36 @@ def test_control_changed_label_filter_fails_parity() -> None:
 # -- CLI surface ---------------------------------------------------------------------------------------
 def _without_runtime_option(text: str) -> str:
     """Help text with the options added by E14 removed, whitespace-collapsed: ``--runtime``; ``--run-dir DIR`` on stop/status;
-    ``--metrics-addr``, ``--health-addr`` and ``--child-logs`` on start; E15 adds ``--status-store`` on start."""
+    ``--metrics-addr``, ``--metrics-port`` (E15), ``--health-addr`` and ``--child-logs`` on start; E15 adds ``--status-store`` and ``--status-store-auto-migrate`` on start and the ``status-store`` command."""
     text = re.sub(r"\s+", " ", text)
     for fragment in (" [--runtime {docker,process}]", " [--run-dir DIR]", " [--recover]", " [--metrics-addr HOST[:PORT]]",
-                     " [--health-addr HOST:PORT]", " [--child-logs {relay,files}]", " [--health-stale-after SECONDS]",
-                     " [--status-store STATUS_STORE]"):
+                     " [--metrics-port PORT]", " [--health-addr HOST:PORT]", " [--child-logs {relay,files}]", " [--health-stale-after SECONDS]",
+                     " [--status-store STATUS_STORE]", " [--status-store-auto-migrate]"):
         text = text.replace(fragment, "")
     text = re.sub(r" --runtime \{docker,process\} How roles are run:.*?no Docker daemon, network or images\)", "", text)
     text = re.sub(r" --run-dir DIR process runtime: .*?\(default: the OS temporary directory\)", "", text)
     text = re.sub(r" --recover process runtime: .*?\(refused while it is alive\)", "", text)
     text = re.sub(r" --metrics-addr HOST\[:PORT\] process runtime: .*?use 0\.0\.0\.0 inside a pod", "", text)
+    text = re.sub(r" --metrics-port PORT process runtime: .*?not both\)", "", text)
     text = re.sub(r" --health-addr HOST:PORT process runtime: serve /healthz and /readyz here \(off by default\)", "", text)
     text = re.sub(r" --child-logs \{relay,files\} process runtime: .*?logs only", "", text)
     text = re.sub(r" --health-stale-after SECONDS process runtime: .*?\(default 30\)", "", text)
     text = re.sub(r" --status-store STATUS_STORE Where this run's status and event history are kept: .*?Env GRAPH_LOADER_STATUS_STORE\.", "", text)
+    text = re.sub(r" --status-store-auto-migrate With --status-store sql: .*?\(env GRAPH_LOADER_STATUS_AUTO_MIGRATE=1\)", "", text)
+    # E15.F1.S6: the options `status` gained for run status (they are the last ones of its help text)
+    text = re.sub(r" \[--(?:run|execution-id ID|json|watch|interval SECONDS|refresh-lag|refresh-timeout SECONDS|list|active|containers|stale-after SECONDS)\]", "", text)
+    text = re.sub(r" --run Show the run status of the newest run.*?json or sql", "", text, flags=re.I)
+    text = text.replace(" [--log-format {text,json}]", "")                       # E15.F1.S7: the top-level --log-format option
+    text = re.sub(r" --log-format \{text,json\} how this command and its roles log: .*?is never affected", "", text)
+    text = text.replace("{status-store,", "{")                      # E15: the `status-store` command (listed first, with its help line)
+    text = text.replace("{monitoring,", "{")  # E15.F2.S10: the `monitoring` command (listed right after `status-store`, with its help line)
+    text = re.sub(r" monitoring Monitoring assets for your own Prometheus and Grafana \(alert rules, dashboards, scrape configuration\)", "", text)
+    text = re.sub(r" status-store Maintain the SQL run status database \(URL from GRAPH_LOADER_STATUS_DB_URL, never on the command line\)", "", text)
     return text
 
 
 def test_help_is_unchanged_apart_from_the_new_runtime_option() -> None:
-    current = support.help_texts()
+    current = {name: text for name, text in support.help_texts().items() if name not in ("status-store", "monitoring")}   # E15's own commands
     assert set(current) == set(GOLDEN["_help"])
     for name, frozen in GOLDEN["_help"].items():
         collapsed_frozen = re.sub(r"\s+", " ", frozen)

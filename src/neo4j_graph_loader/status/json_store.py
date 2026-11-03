@@ -107,6 +107,7 @@ class JsonStatusStore:
 
     # -- failure ------------------------------------------------------------------------------------------------
     def _disable(self, exc: BaseException) -> None:
+        exc._status_logged = True                   # the tracker does not repeat this line
         if self.disabled is None:
             self.disabled = f"{type(exc).__name__}: {exc}"
             logger.warning("stage=status reason=the JSON status store stopped writing in %s and is disabled for this run "

@@ -86,4 +86,9 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from neo4j_graph_loader.utils.logging_config import configure_logging
+
+    from neo4j_graph_loader.utils.logging_config import run_entrypoint
+
+    configure_logging(kind="clock", text_configures=False)              # text mode: no handler, as before
+    raise SystemExit(run_entrypoint(main))

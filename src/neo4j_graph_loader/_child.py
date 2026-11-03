@@ -25,6 +25,20 @@ DEFAULT_LIFELINE_DEADLINE_S = 30.0
 HARD_EXIT_CODE = 137        # what a SIGKILL after the grace would have reported
 
 
+def _note(level: str, message: str) -> None:
+    """A message of the wrapper itself on stderr: the old text line, or one JSON line in JSON log mode."""
+    if os.environ.get("GRAPH_LOADER_LOG_FORMAT", "").strip().lower() == "json":
+        import json
+        sys.stderr.write(json.dumps({
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()) + f".{int(time.time() * 1000) % 1000:03d}Z", "level": level.lower(),
+            "logger": "neo4j_graph_loader._child", "execution_id": os.environ.get("GRAPH_LOADER_EXECUTION_ID"),
+            "run_id": os.environ.get("GRAPH_LOADER_RUN_ID"), "kind": "child", "name": None, "replica": None,
+            "incarnation": os.environ.get("GRAPH_LOADER_INCARNATION"), "stage": "runtime-child", "message": message.strip()},
+            separators=(",", ":")) + "\n")
+    else:
+        sys.stderr.write(f"{level}: {message}\n" if level == "WARNING" else message + "\n")
+
+
 def parse_cpuset(spec: str) -> set[int]:
     """``"12-15,18"`` -> {12, 13, 14, 15, 18}; raises ValueError on anything else."""
     cpus: set[int] = set()
@@ -46,7 +60,7 @@ def apply_cpuset(spec: str | None) -> set[int] | None:
         return None
     cpus = parse_cpuset(spec)
     if not hasattr(os, "sched_setaffinity"):
-        sys.stderr.write("WARNING: stage=runtime-child LOADER_CPUSET ignored: this platform has no sched_setaffinity\n")
+        _note("WARNING", "stage=runtime-child LOADER_CPUSET ignored: this platform has no sched_setaffinity")
         return None
     os.sched_setaffinity(0, cpus)
     return cpus
@@ -74,17 +88,17 @@ def _lifeline(channel: socket.socket, deadline: float) -> None:
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
-        sys.stderr.write("usage: python -m neo4j_graph_loader._child <module|script:PATH> [args...]\n")
+        _note("ERROR", "usage: python -m neo4j_graph_loader._child <module|script:PATH> [args...]")
         return 2
     target, role_args = argv[0], argv[1:]
     script = None
     if target.startswith("script:"):
         if os.environ.get(protocol.ALLOW_SCRIPT_ENV) != "1":
-            sys.stderr.write("script targets are a test seam and need GRAPH_LOADER_CHILD_ALLOW_SCRIPT=1\n")
+            _note("ERROR", "script targets are a test seam and need GRAPH_LOADER_CHILD_ALLOW_SCRIPT=1")
             return 2
         script = target[len("script:"):]
     elif not target.startswith("neo4j_graph_loader."):
-        sys.stderr.write(f"refusing to run a module outside neo4j_graph_loader: {target}\n")
+        _note("ERROR", f"refusing to run a module outside neo4j_graph_loader: {target}")
         return 2
     apply_cpuset(os.environ.get("LOADER_CPUSET"))
     descriptor = os.environ.pop(protocol.CONTROL_FD_ENV, None)

@@ -199,8 +199,9 @@ from neo4j_graph_loader.models.schema import (
 from neo4j_graph_loader.utils import metrics as metrics_module
 from neo4j_graph_loader.utils.consumer_groups import legacy_retry_group
 from neo4j_graph_loader.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.logging_config import StageLogger
 
-logger = logging.getLogger(__name__)
+logger = StageLogger(logging.getLogger(__name__), "retry-consumer")      # every line of this module is the DLQ retry stage
 
 BLOCKED_DELAY_CEILING_SECONDS = 3600.0
 """v7-S4 review S-a: a blocked copy that has to be published (over the hold budget, or
@@ -3382,5 +3383,9 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     import sys
+    from neo4j_graph_loader.utils.logging_config import configure_logging
 
-    sys.exit(main())
+    from neo4j_graph_loader.utils.logging_config import run_entrypoint
+
+    configure_logging(kind="retry-consumer", text_configures=False)     # text mode: no handler, as before
+    sys.exit(run_entrypoint(main))

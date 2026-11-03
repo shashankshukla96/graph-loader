@@ -108,6 +108,8 @@ def _metrics_env_passthrough() -> Dict[str, str]:
         env["GRAPH_LOADER_METRICS_PORT"] = os.environ["GRAPH_LOADER_METRICS_PORT"]
     if os.environ.get("GRAPH_LOADER_VERSION"):
         env["GRAPH_LOADER_VERSION"] = os.environ["GRAPH_LOADER_VERSION"]
+    if os.environ.get("GRAPH_LOADER_LOG_FORMAT"):                 # only when the operator chose one (E15 JSON logs)
+        env["GRAPH_LOADER_LOG_FORMAT"] = os.environ["GRAPH_LOADER_LOG_FORMAT"]
     return env
 
 
@@ -290,6 +292,23 @@ class RoleLauncher:
         except Exception as exc:
             logger.warning("stage=status reason=could not record a role start: %s", exc)
         return handle
+
+    def _note_role_launch_failed(self, labels, incarnation: str | None, error: BaseException) -> None:
+        """Record a role that died before it was ready (a launch failure) as started and failed, so the execution's failure has a
+        named cause. Never raises into the launch."""
+        tracker = self.status
+        if tracker is None or incarnation is None:
+            return
+        try:
+            labels = labels or {}
+            replica = labels.get("replica_id")
+            if replica is None and str(labels.get("writer_id", "")).startswith("w"):
+                replica = str(labels["writer_id"])[1:]
+            tracker.role_started(str(labels.get("component") or "unknown"), str(labels.get("node_label") or labels.get("edge_type") or "-"),
+                                 int(replica) if replica is not None and str(replica).isdigit() else None, incarnation=incarnation)
+            tracker.role_exited(incarnation, None, "launch failed", error=error)
+        except Exception as exc:
+            logger.warning("stage=status reason=could not record a failed role launch: %s", exc)
 
     # -- hooks a backend implements -------------------------------------------------------------------------------
     def _run_container(self, **kwargs):

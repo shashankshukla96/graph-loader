@@ -245,15 +245,24 @@ class ProcessService(RoleLauncher):
         # comes back in the ready message and goes into the Prometheus file_sd file. The operator's
         # GRAPH_LOADER_METRICS_ENABLED=0 still disables the endpoint (passed through by the builders).
         env["GRAPH_LOADER_METRICS_LISTEN"] = f"{self.metrics_host}:{self.metrics_port}"
+        env["GRAPH_LOADER_RUNTIME"] = "process"       # explicit: the metric label `runtime` is never inferred from other keys
         if module in CONTROL_SERVER_MODULES:
             args = self._bind_control_server(module, labels.get("run_id", ""), args)
         incarnation = self._new_incarnation()
         if incarnation is not None and self.runtime is not None:
             env.update(self._status_environment(incarnation, str(self.runtime.timings)))
-        return self._note_role_started(self.lifecycle.spawn(
-            labels.get("component", role), module, args, env, labels=labels, auto_remove=bool(kwargs.get("remove")),
-            cpuset=kwargs.get("cpuset_cpus"), name=kwargs.get("name"), **({"incarnation": incarnation} if incarnation else {}),
-        ), labels)
+            run_id = labels.get("run_id") or getattr(self.status, "run_id", None)
+            if run_id:
+                env.setdefault("GRAPH_LOADER_RUN_ID", str(run_id))      # process runtime only: every role's samples name the execution's run
+        try:
+            handle = self.lifecycle.spawn(
+                labels.get("component", role), module, args, env, labels=labels, auto_remove=bool(kwargs.get("remove")),
+                cpuset=kwargs.get("cpuset_cpus"), name=kwargs.get("name"), **({"incarnation": incarnation} if incarnation else {}),
+            )
+        except Exception as exc:
+            self._note_role_launch_failed(labels, incarnation, exc)         # E15: a role that dies before it is ready is a recorded failure
+            raise
+        return self._note_role_started(handle, labels)
 
     def _bind_control_server(self, module: str, run_id: str, args: list[str]) -> list[str]:
         port = self._reserved.setdefault((module, run_id), _reserve_loopback_port())
@@ -481,6 +490,7 @@ def recover_registered(run_dir: str, *, grace: float = 15.0) -> dict:
         time.sleep(0.05)
     remaining = [s["name"] for s in leftovers if _still_that_process(s)]
     attempt = registry.parent
+    cleared = _empty_targets_file(attempt)            # discovery only: the run's data stays as E14 requires
     writer = RunRegistry(registry)
     try:
         writer.append("recovered", signalled=[s["name"] for s in leftovers], killed=killed, remaining=remaining)
@@ -489,7 +499,25 @@ def recover_registered(run_dir: str, *, grace: float = 15.0) -> dict:
     retained = sorted({str(p.relative_to(attempt)) for sub in ("plans", "spill", "rejections") for p in (attempt / sub).rglob("*") if p.is_file()}
                       | {str(p.relative_to(attempt)) for p in attempt.rglob("*.lock") if p.is_file()})
     return {"attempt_dir": str(attempt), "signalled": [s["name"] for s in leftovers], "killed": killed, "remaining": remaining,
-            "retained": retained}
+            "retained": retained, "targets_cleared": cleared}
+
+
+def _empty_targets_file(attempt: Path) -> bool:
+    """``stop --recover``: the crashed run's ``metrics/targets.json`` is rewritten as ``[]``, so Prometheus ``file_sd`` stops scraping the dead
+    endpoints (a later run that reuses the default CLI port would otherwise be scraped under the old file's target labels). Never raises."""
+    path = Path(attempt) / "metrics" / "targets.json"
+    if not path.is_file():
+        return False
+    try:
+        temporary = path.with_name(f".{path.name}.recover.{os.getpid()}.tmp")
+        with open(temporary, "w") as out:
+            out.write("[]\n")
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temporary, path)
+        return True
+    except OSError:
+        return False
 
 
 def _still_that_process(state: dict) -> bool:

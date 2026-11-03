@@ -106,6 +106,7 @@ from neo4j_graph_loader.loader.edge_spill import (
 from neo4j_graph_loader.loader._planner_transport import FrameProtocolError, FrameStream, WaitControl
 from neo4j_graph_loader.models.schema import EdgeConfig
 from neo4j_graph_loader.utils import metrics as metrics_module
+from neo4j_graph_loader.utils.logging_config import structured
 
 
 logger = logging.getLogger(__name__)
@@ -1088,7 +1089,15 @@ def _watch_parent(sock) -> None:
     except OSError:
         pass
     try:
-        os.write(2, b"WARNING: stage=edge-plan-worker parent process exited; stopping this planner worker\n")
+        if os.environ.get("GRAPH_LOADER_LOG_FORMAT", "").strip().lower() == "json":
+            from neo4j_graph_loader.utils.logging_config import emit_json_line
+            import io
+            line = io.StringIO()
+            emit_json_line(line, "stage=edge-plan-worker parent process exited; stopping this planner worker", level="warning",
+                           logger=__name__, stage="edge-plan-worker")
+            os.write(2, line.getvalue().encode())
+        else:
+            os.write(2, b"WARNING: stage=edge-plan-worker parent process exited; stopping this planner worker\n")
     except OSError:
         pass
     os._exit(PARENT_GONE_EXIT_CODE)
@@ -1098,6 +1107,9 @@ def _planner_worker_main(sock, worker: dict, bootstrap_servers: str, producer_co
                          producer_class=None, consumer_factory=None, progress=None, parent_duplicate=None,
                          death=None, death_duplicate=None) -> None:
     """Child-only initial source unpickling, then closed-codec command/result frames."""
+    from neo4j_graph_loader.utils.logging_config import configure_logging, json_enabled
+    if json_enabled():                       # (spawned: the JSON choice arrives in the environment; text mode keeps its old silence)
+        configure_logging(kind="planner-worker")
     if parent_duplicate is not None:
         parent_duplicate.close()
     if death is not None:
@@ -1768,6 +1780,7 @@ class ParallelEdgePlanner:
             logger.warning(
                 "stage=edge-plan-rejections plan_id=%s rejected=%s dir=%s (malformed records were skipped; "
                 "see the planner rejection files)", self.plan_id, rejected, self.rejection_dir,
+                extra=structured("edge-plan-rejections", plan_id=self.plan_id, rejected=rejected, rejection_dir=str(self.rejection_dir)),
             )
         logger.info(
             "stage=edge-plan-scan plan_id=%s workers=%s tasks=%s rows=%s scan_s=%.3f records_per_s=%.0f",

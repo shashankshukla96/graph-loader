@@ -145,10 +145,17 @@ class StatusTracker:
             self._journal = journal
             return True
 
+    def mark_history_incomplete(self) -> None:
+        """Record that some of this execution's history may be missing from its store (never an exact claim)."""
+        with self._lock:
+            if not self._doc["history_incomplete"]:
+                self._doc["history_incomplete"] = True
+                self._changed()
+
     def _journal_failed(self, exc: BaseException) -> None:
         self._journal = None
         self._doc["history_incomplete"] = True
-        if not self._journal_warned:
+        if not self._journal_warned and not getattr(exc, "_status_logged", False):
             self._journal_warned = True
             logger.warning("stage=status reason=event journal failed, history is incomplete: %s", redact(str(exc)))
 

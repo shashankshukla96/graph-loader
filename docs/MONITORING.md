@@ -22,6 +22,14 @@ operator tool — a human watching a bounded run live, not twelve-month
 capacity planning. See §4 for the cardinality reasoning behind that
 distinction.
 
+**Using your own Prometheus and Grafana instead?** Install the package and run
+`graph-loader monitoring export` (§9): it writes the scrape configuration for
+your discovery mode, the alert rules with your thresholds, the dashboards and
+the Grafana provisioning files, with no checkout and no Docker needed. Which
+dashboard file to use, and the run-history dashboard for the SQL status store,
+are in §10. §11 says what a run must look like for a panel to have data, and
+how a finished run appears in Prometheus.
+
 This guide covers:
 
 1. [Overview](#1-overview)
@@ -32,6 +40,9 @@ This guide covers:
 6. [Alert rules](#6-alert-rules)
 7. [Known limitations](#7-known-limitations)
 8. [Troubleshooting](#8-troubleshooting)
+9. [Bring your own Prometheus and Grafana](#9-bring-your-own-prometheus-and-grafana)
+10. [Grafana dashboards and the run-history dashboard](#10-grafana-dashboards-and-the-run-history-dashboard)
+11. [Short runs, finished runs and what a panel needs](#11-short-runs-finished-runs-and-what-a-panel-needs)
 
 ## 1. Overview
 
@@ -51,6 +62,10 @@ This guide covers:
   Grafana; this file's containers are defined in a separate override file,
   `docker-compose.monitoring.yml`, never referenced by the base
   `docker-compose.yaml`.
+- **Every sample names its run.** Each sample every role and the CLI expose
+  carries four labels, `run_id`, `execution_id`, `exporter` and `runtime`
+  (§3, "Identity labels"), so the alerts and dashboards work with any
+  discovery mode and never depend on a Docker or file_sd target label.
 - **Prometheus down never affects a load.** Every loader/writer/dispatcher
   process's metrics HTTP server never blocks or crashes if nobody
   scrapes it. Prometheus is a pull-based, passive observer: it calls out to
@@ -60,23 +75,37 @@ This guide covers:
 ## 2. Quick start
 
 ```bash
-docker compose up -d neo4j kafka          # base stack, if not already up
-make monitoring-up                        # starts prometheus + grafana
+docker compose up -d neo4j kafka                    # base stack, if not already up
+export GRAFANA_ADMIN_PASSWORD='choose-your-own'     # required: at least 8 characters, not "admin"
+make monitoring-up                                  # starts prometheus + grafana
 ```
 
-- Prometheus UI: `http://localhost:9090` (no auth).
-- Grafana: `http://localhost:3000` — anonymous Viewer access needs no
-  login; editor login is `admin`/`admin` by default (both overridable, see
-  §5).
-- **Trusted network assumption, stated plainly:** Prometheus ships with no
-  authentication at all, and Grafana's defaults are an unauthenticated
-  Viewer plus a well-known `admin`/`admin` editor login — both bound
-  `0.0.0.0` by default. This mirrors `docker-compose.yaml`'s own existing
-  posture for `kafka-ui` (also unauthenticated, also `0.0.0.0`), not a new
-  precedent, but it means this stack assumes a trusted local/private
-  network (`stories.md` Story 3's own framing). On any host reachable by
-  others, set `GRAFANA_ADMIN_PASSWORD` to something real and bind
-  `PROMETHEUS_HOST_BIND`/`GRAFANA_HOST_BIND` to `127.0.0.1`.
+`make monitoring-up` refuses to start without `GRAFANA_ADMIN_PASSWORD` (set it
+in the environment or in `.env`; there is no default) and rejects `admin` and
+anything shorter than 8 characters. `make monitoring-down` needs no password.
+
+- Prometheus UI: `http://127.0.0.1:9090` (no auth).
+- Grafana: `http://127.0.0.1:3000` — log in as `admin` (override with
+  `GRAFANA_ADMIN_USER`) with the password you set. Grafana's password is
+  applied only when its data directory is first created
+  (`GF_SECURITY_ADMIN_PASSWORD` is ignored afterwards): to change it later,
+  use Grafana's own password change, or remove `$GRAPH_LOADER_DATA_DIR/grafana`
+  and start again. Anonymous Viewer access is **off**; set
+  `GRAFANA_ANONYMOUS_ENABLED=true` to turn it on.
+- **Defaults changed for the next release.** Earlier checkouts bound both UIs
+  on `0.0.0.0`, shipped Grafana as `admin`/`admin` and allowed anonymous
+  Viewer access. Now both UIs bind **127.0.0.1**
+  (`PROMETHEUS_HOST_BIND`/`GRAFANA_HOST_BIND` widen that on purpose), the
+  admin password is mandatory and anonymous access is opt-in. Prometheus
+  itself still has no authentication, so keep it on loopback or put your own
+  authentication in front of it before widening the bind. If you relied on the
+  old defaults, set the variables explicitly.
+- `MONITORING_DIR` (default `./monitoring`) points the stack at another
+  directory with the same layout, for example the output of
+  `make monitoring-bundle` (§9). `MONITORING_EXTRA_COMPOSE=<file>` appends one
+  more Compose override file to `monitoring-up`/`monitoring-down` (another
+  network, container names or ports, to run the quick start next to other
+  stacks).
 - `docker compose up` (no `-f docker-compose.monitoring.yml`) behavior is
   unaffected — verified: `docker compose -f docker-compose.yaml config
   --services` lists only `neo4j`, `kafka`, `kafka-ui`.
@@ -94,7 +123,7 @@ make monitoring-up                        # starts prometheus + grafana
   itself can't be removed while they're still attached ("has active
   endpoints").
 - `make monitoring-validate` runs `promtool check config`, `promtool check
-  rules` (all five alert files), the `promtool test rules` unit tests (four test files), and
+  rules` (all six alert files), the `promtool test rules` unit tests (six test files), and
   `scripts/validate_monitoring.py` as one command.
 
 ### Scratch-run check
@@ -167,6 +196,25 @@ Grafana's own containers are never even fetched. `relabel_configs` then:
    `replica_id`, plus `container_name`/`instance` from the container's own
    name.
 
+### Identity labels
+
+Every sample a role or the CLI exposes (HTTP endpoint and `.prom` snapshots
+alike) carries four labels, set by the process itself, so they are the same
+whichever way Prometheus found it:
+
+| Label | Value |
+| --- | --- |
+| `run_id` | the logical run (`--run-id`). **Reusable and optional**: empty (so absent to Prometheus) for a run started without one. Never key a rule or a panel on `run_id` alone |
+| `execution_id` | one `graph-loader start` (32 hex digits); unique, and what separates two runs that share a `run_id` |
+| `exporter` | one role *incarnation*: `<kind>-<name>-r<replica>-<first 8 of the incarnation>`, `cli-<first 8 of the execution>` for the CLI. A restarted role is a new exporter |
+| `runtime` | `docker` or `process` |
+
+These four names are reserved: `monitoring export --extra-labels` refuses them.
+A sample's own label always wins over a target label (every shipped scrape job
+sets `honor_labels: true`), so a Docker or file_sd target label can never
+overwrite them. The alert rules group by `execution_id` and `exporter` and
+never use `instance`, so they are unchanged by how targets are discovered.
+
 `honor_labels: true` is set on this scrape job: every `graph_loader_*`
 metric already carries its own `kind` label (`src/neo4j_graph_loader/utils/metrics.py`).
 Without `honor_labels`, Prometheus's default label-collision rule would
@@ -212,27 +260,24 @@ the separate `graph-loader-cli` host-gateway job that targets it.
 ## 4. Cardinality budget
 
 The loader's metric-label budget is bounded by schema size (label/type
-count), never by record volume, and deliberately excludes `run_id` from
-every *metric* label — a long-lived Prometheus server scraping many runs
-over weeks would otherwise accumulate one time series per historical
-`run_id` forever.
+count), never by record volume. Since the identity labels (§3) every series
+also carries `run_id`, `execution_id`, `exporter` and `runtime`. Inside one
+role incarnation these four are constants and add **no** series; what grows
+is the **number of exporters over the retention window**: every `graph-loader
+start` adds one execution and one exporter per role incarnation (a restarted
+role adds one more), and each of those brings its whole set of series, which
+Prometheus keeps until retention drops them.
 
-This stack adds `run_id` back as a **target** label (via Docker SD
-relabeling, §3 point 4), not a metric label: it is a disposable, local,
-short-retention stack (48h default, `MONITORING_RETENTION`), not the
-long-lived production backend the metrics design targets. The
-growth this adds is bounded by *concurrently running or recently-retained*
-runs within the retention window, not by history.
+Budget it as `series per role x roles per run x runs inside the retention`.
+The bundled stack keeps 48h (`MONITORING_RETENTION`), a disposable
+short-retention tool for a human watching a bounded run. **For a long-lived
+Prometheus that scrapes many runs over months**, set a retention you can
+afford (`--storage.tsdb.retention.time`) or rotate the Prometheus. Do not
+`labeldrop` `exporter` to save series: two replicas of one role differ only
+by it, and their samples would collide.
 
-**If you run this stack long-lived in a shared environment:** delete the
-`run_id` relabel rule (the `source_labels`/`target_label` pair for
-`run_id`, two lines) in `monitoring/prometheus/prometheus.yml` to
-reproduce the loader's metric-label discipline at the target-label level
-too. Doing so also empties the dashboard's `run_id` template variable and
-breaks the `{{ $labels.run_id }}` annotations and `by (le, run_id)`
-grouping in `alerts/lag_and_errors.yml`/`alerts/concurrency.yml`/
-`alerts/progress.yml` — expected, not a bug, since those exist
-specifically to distinguish concurrent runs.
+Docker service discovery still adds `run_id` as a *target* label (§3 point
+4), but the sample's own label wins (`honor_labels`).
 
 ### Multi-topic relationship types
 
@@ -279,9 +324,12 @@ line, write-failure lines) and in the plan file (`types.<type>.pairs`, and the `
 | `MONITORING_CPUSET` | `28-31` | CPUs for both `prometheus` and `grafana` |
 | `MONITORING_RETENTION` | `48h` | Prometheus TSDB retention (see §4) |
 | `GRAPH_LOADER_DATA_DIR` | `/mnt/graph-loader/data` | Same root `docker-compose.yaml` already uses for Neo4j/Kafka; this stack adds `prometheus/` and `grafana/` subdirectories under it — never the repo checkout |
-| `PROMETHEUS_HOST_BIND` | `0.0.0.0` | Host bind address for Prometheus's UI |
-| `GRAFANA_HOST_BIND` | `0.0.0.0` | Host bind address for Grafana |
-| `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | `admin` / `admin` | Grafana editor login (anonymous Viewer needs none) |
+| `PROMETHEUS_HOST_BIND` | `127.0.0.1` | Host bind address for Prometheus's UI (no authentication: widen it only behind your own) |
+| `GRAFANA_HOST_BIND` | `127.0.0.1` | Host bind address for Grafana |
+| `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | `admin` / **no default** | Grafana's admin login. The password is required to start (`make monitoring-up` and Compose both refuse without it; at least 8 characters, not `admin`) and is applied only when Grafana's data directory is first created |
+| `GRAFANA_ANONYMOUS_ENABLED` | `false` | `true` turns on anonymous access with the Viewer role |
+| `MONITORING_DIR` | `./monitoring` | Directory holding `prometheus/` and `grafana/` (the layout `make monitoring-bundle` writes) |
+| `MONITORING_EXTRA_COMPOSE` | unset | One more Compose file appended to `monitoring-up`/`monitoring-down` |
 | `DOCKER_GID` | computed by `make monitoring-up`/`monitoring-down` (`stat -c %g /var/run/docker.sock`) | Required by Prometheus's `group_add` to read the Docker socket; export it yourself first for any *direct* `docker compose` command against `docker-compose.monitoring.yml` (see §7) |
 
 **CPU overlap, named deliberately.** `MONITORING_CPUSET`'s default
@@ -337,17 +385,23 @@ shell instead of only setting it in `.env`.
 
 **`--web.enable-lifecycle` is deliberately not enabled.** That flag
 (`POST /-/reload`, `/-/quit`) combined with a `0.0.0.0`-bound Prometheus
-would be an unauthenticated remote kill switch; nothing in this stack's
-own tooling needs it. Add it back explicitly (and narrow
-`PROMETHEUS_HOST_BIND` to `127.0.0.1`, or add your own auth in front) if
-you want live config reload.
+would be an unauthenticated remote kill switch if the bind were widened;
+nothing in this stack's own tooling needs it. Add it back explicitly
+(keeping `PROMETHEUS_HOST_BIND` on `127.0.0.1`, or adding your own auth in
+front) if you want live config reload.
 
 ## 6. Alert rules
 
 **STARTING POINT, NOT AN SLO** (P6-Q4). Every rule file begins with this
 header verbatim. Thresholds are conservative defaults chosen without
 production traffic data — tune every one to your own environment before
-treating a firing alert as an incident.
+treating a firing alert as an incident. The eight numeric thresholds that
+`graph-loader monitoring export --values` can change, and `for:`, severity,
+extra labels and disabling, are in §9.
+
+Rules key on `execution_id` and `exporter`, never on `instance` or on
+`run_id` alone (§3), and `health.yml` is the only file that names the scrape
+job (`graph-loader`; the export rewrites it for `--job-name`).
 
 | File | Covers |
 | --- | --- |
@@ -356,6 +410,7 @@ treating a firing alert as an incident.
 | `alerts/lag_and_errors.yml` | Consumer lag high/critical/not-draining (per `topic`; a stuck topic of a multi-topic type keeps the whole type above zero lag), retry rate high |
 | `alerts/concurrency.yml` | A deadlock recovered in planned mode (must stay 0 by construction), lease waiters/timeouts, plan resource wait |
 | `alerts/write_outage.yml` | A live stream loader riding out a Neo4j outage for longer than 2 minutes |
+| `alerts/health.yml` | A scrape target is down (`GraphLoaderTargetDown`, per-target discovery), the aggregated endpoint cannot read one of its children (`GraphLoaderExporterScrapeFailed`), or one exporter reaches Prometheus through two jobs (`GraphLoaderDuplicateScrape`) |
 
 **DLQ backlog.** `graph_loader_dlq_backlog{kind,name,queue}` is the true
 backlog gauge, split by a bounded `queue` label. `queue="dlq"` is the DLQ high
@@ -456,6 +511,15 @@ proxies.
   (`max_over_time(...[1h])`) — intentional, so a ~60s bulk container's
   deadlock doesn't silently auto-resolve the moment its series goes
   stale.
+- `GraphLoaderConsumerLagNotDraining` (`deriv(lag[10m]) > 0` for 15m) can be
+  **pending, and eventually firing, on a healthy stream that keeps receiving
+  records**: the lag of a topic that is fed and drained moves between 0 and a
+  few records, and any positive ten-minute slope, however small (0.004
+  records/s was measured), satisfies the expression. Raise the slope it
+  accepts with `alerts: {GraphLoaderConsumerLagNotDraining: {threshold: 0.05}}`
+  in the export values (records per second, §9); the shipped default is
+  exactly `> 0`, unchanged. A sturdier rule (a floor on the lag, or a
+  smoothed slope) is on the next-version list.
 - `GraphLoaderLeaseWaitersStuck` can fire under sustained but healthy
   lease-mode contention, not only real starvation; real starvation is
   more reliably signaled by `GraphLoaderLeaseWaitTimeoutsDetected`.
@@ -517,11 +581,17 @@ proxies.
 - **Containers launched on a network other than `graph-loader-net` are
   silently dropped**, not shown as an error anywhere (§3's discovery
   gotcha).
-- **This stack has no built-in security posture beyond "trusted local
-  network"** — Prometheus has no auth at all; Grafana's defaults are an
-  unauthenticated Viewer plus `admin`/`admin` (§2). Change the password
-  and narrow the host binds before exposing either port beyond your own
-  workstation.
+- **Security posture of this stack:** both UIs bind `127.0.0.1` by default,
+  Grafana needs the admin password you set (§2) and has no anonymous access
+  unless you enable it, but **Prometheus has no authentication at all**.
+  Widening `PROMETHEUS_HOST_BIND`/`GRAFANA_HOST_BIND` is your decision and
+  needs your own authentication in front.
+- **The bundled Prometheus mounts the Docker socket** (read-only mount, but
+  the Docker API is not read-only; §5). For anything beyond a trusted
+  workstation, use `monitoring export` (§9) with the discovery mode that
+  fits, or a socket proxy.
+- **A finished run and a static aggregate target** (§11): a static job on
+  the aggregated port cannot tell a finished run from a down one.
 - **Fixed host ports (9090, 3000) can collide** with any Prometheus or
   Grafana instance already running locally for something else — there is
   no env override for the port *number* itself, only the bind address
@@ -542,4 +612,193 @@ proxies.
 | Prometheus container fails with `queries.active: permission denied` | The data directory under `GRAPH_LOADER_DATA_DIR` isn't owned by uid 65534 — `make monitoring-up` does this for you; if running Compose directly, `chown 65534:65534` that directory (`472:472` for Grafana's) |
 | `graph_loader_write_outage_seconds` above 0, `reason=neo4j_outage` in a loader log | A stream loader cannot write to Neo4j and is retrying its held batch. Check Neo4j's health (`SHOW DATABASES`, its logs). Nothing is lost or committed past it; ingestion resumes by itself once writes succeed. A `reason=neo4j_fatal` exit means credentials or the database name are wrong (§6, "Stream write outage") |
 | `make monitoring-validate` fails on `promtool` | Confirm Docker can pull `prom/prometheus:v2.55.1`; the target needs one-time image pull plus Docker itself |
+| `make monitoring-up` says `GRAFANA_ADMIN_PASSWORD is required` or must be 8 characters and not `admin` | Export a password of your own (or put it in `.env`); the stack never defaults one (§2) |
+| Grafana rejects the password I set in `GRAFANA_ADMIN_PASSWORD` | It is applied only when Grafana's data directory is first created. Change it in Grafana (profile, change password), or remove `$GRAPH_LOADER_DATA_DIR/grafana` (it holds Grafana's own state) and start again |
+| `GraphLoaderTargetDown` fires after a clean finish of a process-runtime run | Not with file or Kubernetes discovery (the run empties its `targets.json`, so the target disappears). With a **static** job on the aggregated port the endpoint is gone and reads as down; see §11 for the remedies |
+| `GraphLoaderDuplicateScrape` fires | The same run is reached by two jobs (per-role targets and the aggregated endpoint, or two Prometheus jobs over one discovery). Remove one (§9) |
 | Port 9090 or 3000 already in use | Something else on the host is already bound to it (§7) — stop it, or edit the port mapping in `docker-compose.monitoring.yml` |
+
+## 9. Bring your own Prometheus and Grafana
+
+`graph-loader monitoring export` needs only the installed package (no checkout,
+no Docker, no services). It writes one directory for one discovery mode:
+
+```bash
+graph-loader monitoring export --out ./gl-monitoring --discovery file \
+    --targets-file '/srv/graph-loader/targets/*.json' --scrape-interval 5s
+```
+
+It refuses to overwrite existing files unless you pass `--force`.
+
+| `--discovery` | Use it when | What Prometheus scrapes |
+| --- | --- | --- |
+| `docker` | the roles are containers (Docker runtime) | every role container on `--docker-network` (default `graph-loader-net`) that carries the `graph_loader.kind` label; Prometheus needs the Docker socket and that network (§5 on the socket) |
+| `file` | `graph-loader start --runtime process` | the per-role endpoints listed in the run's `<attempt>/metrics/targets.json` (`file_sd`); `--targets-file` is the path Prometheus reads, and a wildcard is allowed only in the last path element |
+| `static` | `--runtime process --metrics-port N` | ONE aggregated endpoint (`--metrics-port N` required; `--targets host:port,...` to name other hosts) that merges the CLI's and every role's metrics |
+| `kubernetes` | the process runtime in a pod with `--metrics-addr 0.0.0.0 --metrics-port N` | the aggregated endpoint, through the generated `Service`, `ServiceMonitor` and `PodMonitor`, or the `kubernetes_sd_configs` job (`--metrics-port`, `--namespace`, `--service-name`) |
+
+**Scrape each run through ONE path.** Per-role targets (`docker`, `file`) or the
+aggregated endpoint (`static`, `kubernetes`), never both for the same run, or
+every counter is counted twice (`GraphLoaderDuplicateScrape` fires). The
+process runtime's `targets.json` lives in one run's attempt directory: for
+Prometheus to follow successive runs, point `--targets-file` at a directory
+that holds a link to each run's file (`/srv/graph-loader/targets/*.json`) or at
+the single run you are watching.
+
+What the directory holds (`manifest.json` lists the options and the SHA-256 of
+every file):
+
+| Path | Content |
+| --- | --- |
+| `prometheus/scrape-config.yml` | the `scrape_configs:` snippet to merge into your configuration; `honor_labels: true`, your `--scrape-interval`, `--job-name`, `--extra-labels` |
+| `prometheus/prometheus.yml` | a minimal complete configuration around it (what `promtool check config` is run on) |
+| `prometheus/alerts/*.yml` | the alert rules with your `--values` applied (`rule_files: alerts/*.yml`) |
+| `prometheus/alert_tests/` | the shipped promtool tests, and `generated_test.yml`: boundary tests of every overridable threshold built from the final values |
+| `grafana/dashboards/` | the overview dashboard for **provisioning** (§10) |
+| `grafana/import/` | the same dashboard for the import dialog or the HTTP API (§10) |
+| `grafana/dashboards-sql/` | the PostgreSQL run-history dashboard (§10) |
+| `grafana/provisioning/` | the Prometheus datasource (`--prometheus-url`, `--datasource-uid`) and the dashboard provider |
+| `kubernetes/` | `--discovery kubernetes`: `service.yaml`, `servicemonitor.yaml`, `podmonitor.yaml` |
+| `BUNDLE.md`, `manifest.json` | how to use the bundle, and what it was made with |
+
+Check it before relying on it:
+
+```bash
+promtool check config gl-monitoring/prometheus/prometheus.yml
+promtool test rules gl-monitoring/prometheus/alert_tests/*_test.yml
+```
+
+The Kubernetes manifests are checked by this project's tests for structure and
+the `kubernetes_sd_configs` job by `promtool check config`; they were not
+applied to a live cluster, and not validated against the Kubernetes or
+Prometheus Operator schemas.
+
+**`--values`.** A YAML file changes the rules without editing them. Unknown
+keys, unknown alert names and thresholds that are not positive numbers are
+errors, never ignored:
+
+```text
+job_name: graph-loader          # the scrape job; health.yml follows it (also --job-name)
+labels: {team: data, env: prod} # added to every target and every alert (reserved: run_id, execution_id, exporter, runtime)
+alerts:
+  GraphLoaderWriteOutage: {threshold: 300, for: 3m, severity: critical}
+  GraphLoaderConsumerLagNotDraining: {threshold: 0.05}
+disable: [GraphLoaderDlqRoutingSpike]
+```
+
+Overridable thresholds (defaults are the shipped rules; `for:` and `severity`
+can be set on any alert):
+
+| Alert | Default | Unit |
+| --- | --- | --- |
+| `GraphLoaderWriteOutage` | 120 | seconds of failing writes |
+| `GraphLoaderDlqBacklogHigh` | 100 | DLQ records |
+| `GraphLoaderRetryStalled` | 600 | seconds without a retry write |
+| `GraphLoaderConsumerLagHigh` | 100000 | records |
+| `GraphLoaderConsumerLagCritical` | 1000000 | records |
+| `GraphLoaderConsumerLagNotDraining` | 0 | records per second of growth over 10 minutes (the rule is `deriv(lag[10m]) > threshold`; keep the default for today's behaviour, raise it, for example to 0.05, if a healthy stream with a producer shows the alert pending, §6) |
+| `GraphLoaderRetryRateHigh` | 1 | retries per second |
+| `GraphLoaderPlanResourceWaitHigh` | 5 | p95 seconds waiting for a plan resource |
+
+With no `--values` and the default job name, the exported rule files are
+byte-for-byte the shipped ones. An overridden alert gets one comment line
+saying so, and `generated_test.yml` tests the new boundary (nothing fires at or
+below it, the alert fires above it once `for:` has elapsed, and not before).
+
+**The bundled quick start from the same export.** `make monitoring-bundle`
+runs `graph-loader monitoring export --discovery docker --scrape-interval 3s
+--out .monitoring-bundle` (honouring `MONITORING_VALUES=<file>`); then
+`MONITORING_DIR=$(pwd)/.monitoring-bundle make monitoring-up` starts the
+bundled containers on it.
+
+## 10. Grafana dashboards and the run-history dashboard
+
+The overview dashboard (`graph-loader-overview`) is exported in two variants of
+the same dashboard; use the one that matches how you load it:
+
+| Variant | Use it for | Datasource |
+| --- | --- | --- |
+| `grafana/dashboards/` | **provisioning** (files read by Grafana at start, with `grafana/provisioning/`) | no `__inputs`; its datasource variable is preset to the uid from `--datasource-uid` (name `Prometheus`) |
+| `grafana/import/` | the **import** dialog or `POST /api/dashboards/import` | an input `DS_PROMETHEUS`, which the importer fills with the Prometheus datasource of its choice |
+
+*Provisioning.* Copy `grafana/provisioning/` to Grafana's provisioning
+directory and mount `grafana/dashboards/` where the provider expects it
+(`/etc/grafana/dashboards` in `provisioning/dashboards/graph-loader.yml`). Give
+**`--datasource-uid`** whenever Grafana has more than one Prometheus datasource:
+the exported variable then selects that datasource. Without it the variable is
+left unset, Grafana picks its default Prometheus datasource (which may be a
+different one), and the command prints one line saying so. The datasource file
+uses the same uid (default `prometheus`) and `isDefault: true`; edit it if you
+manage the datasource yourself.
+
+*Import.* In the dialog choose the Prometheus datasource when asked. Through
+the API, pass the input:
+
+```text
+POST /api/dashboards/import
+{"dashboard": <contents of grafana/import/graph-loader-overview.json>, "overwrite": true,
+ "inputs": [{"name": "DS_PROMETHEUS", "type": "datasource", "pluginId": "prometheus", "value": "<datasource uid>"}]}
+```
+
+Do not import the provisioning variant into a Grafana that has no datasource
+with the uid it names. The dashboard has `kind`, `name`, `run_id`,
+`execution_id` and `job` variables; the bundled stack provisions the
+provisioning variant for its own datasource (uid `prometheus`).
+
+**Run history (SQL status store).** `grafana/dashboards-sql/graph-loader-run-history.json`
+(`graph-loader-run-history`) reads the database written by
+`graph-loader start --status-store sql` ([status database reference](STATUS_SQL.md))
+through a PostgreSQL datasource (Grafana plugin `grafana-postgresql-datasource`),
+not through Prometheus: executions per hour by state, failed executions,
+executions still active, executions with incomplete history, and for one
+selected execution its roles and incarnations and its recent events. Import it
+with the input `DS_POSTGRES` set to your PostgreSQL datasource. The `schema`
+text variable is `graph_loader` unless you set `GRAPH_LOADER_STATUS_SCHEMA`;
+change it to match. Give the datasource a **read-only** database role: the
+dashboard only runs `SELECT`s.
+
+## 11. Short runs, finished runs and what a panel needs
+
+**A role must live for more than a scrape interval or two.** Prometheus sees a
+role only through its scrapes. A `rate()`, `increase()` or quantile needs at
+least two samples inside the window, and a counter that already holds its final
+value at its first scrape has an `increase()` of 0. After the role exits its
+series ends with a staleness marker, so a panel with a coarse step (a one-hour
+range shows about 15-second steps) can skip a role that lived a few seconds. So:
+
+* use a short `--scrape-interval` (2-5 s) when you want to watch short runs,
+  and zoom the dashboard's time range to the run (a 10-minute range gives about
+  2-second steps);
+* **Plan progress** ("Chunks committed / planned", "Active writers") and "p95
+  plan resource wait by execution" come from the planned dispatcher, which lives
+  only while the plan is dispatched. In a measured 3000-relationship run it lived
+  about 6 seconds: the first two panels showed data only when zoomed to the run,
+  and the p95 wait panel (a `rate()` of a histogram) needs the dispatcher to live
+  for **at least two scrape intervals plus the rate window** and had one sample
+  at a 2-second scrape. Larger loads populate them; they are not broken panels.
+* the loader's `.prom` snapshots (§1) remain the durable record of a role shorter
+  than a scrape interval.
+
+**What Prometheus shows after a run ends.**
+
+* A series stays queryable for the 5-minute lookback after its last sample, and
+  an alert that depends on it resolves about that long after a target or a whole
+  job is removed (measured: `GraphLoaderDuplicateScrape` resolved 300 s after the
+  duplicate job was removed).
+* **`file` discovery:** a finished process-runtime run rewrites its
+  `metrics/targets.json` as `[]`, so Prometheus drops the targets and
+  `GraphLoaderTargetDown` stays quiet. A CLI that was killed leaves the file as
+  it was: `graph-loader stop --recover --runtime process --run-dir ...` stops
+  what the run left behind and empties it (it reports `targets_cleared`).
+* **`kubernetes` discovery:** the target disappears with the pod/endpoint.
+* **`static` discovery cannot tell a finished run from a down one.** After the
+  run the aggregated endpoint is gone, so `up == 0`. The shipped
+  `GraphLoaderTargetDown` matches `up{job="graph-loader"}` (the job name the
+  health rule follows, §6): a static job with that name fires one minute after
+  every clean finish. Use `file` or `kubernetes` discovery for runs that end,
+  or give the static job another `--job-name` (the health rule then ignores it,
+  and you lose down-detection for it), or silence/inhibit the alert for the
+  job between runs. `GraphLoaderExporterScrapeFailed` is unaffected: it reads
+  `graph_loader_exporter_up`, which the aggregated endpoint publishes for each
+  child while it runs.
+

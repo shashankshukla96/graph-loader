@@ -262,6 +262,30 @@ def test_recover_signals_what_the_dead_cli_left_behind_and_escalates_when_sigter
         runtime.close()
 
 
+@linux_only
+def test_recover_empties_the_discovery_file_and_touches_no_run_data(tmp_path) -> None:
+    """E15.F2.S12: a crashed run's metrics/targets.json is rewritten as [] by `stop --recover` (the stage=recover line says so); only the discovery
+    file changes, so a later run reusing the default CLI port is no longer scraped under the old file's target labels."""
+    import json
+    runtime = ProcessRuntime(tmp_path / "attempt", ready_timeout=30)
+    runtime.register_cli()
+    runtime.cli_metrics_port = 9464
+    runtime._targets_changed()
+    try:
+        attempt = _orphaned_attempt(tmp_path, runtime)
+        (attempt / "metrics").mkdir(exist_ok=True)
+        stale = [{"labels": {"component": "cli", "exporter": "cli-aaaaaaaa"}, "targets": ["127.0.0.1:9464"]}]
+        (attempt / "metrics" / "targets.json").write_text(json.dumps(stale))
+        (attempt / "spill").mkdir(exist_ok=True)
+        (attempt / "spill" / "keep").write_text("x")
+        report = recover_registered(str(attempt), grace=1.0)
+        assert report["targets_cleared"] is True and json.loads((attempt / "metrics" / "targets.json").read_text()) == []
+        assert (attempt / "spill" / "keep").read_text() == "x" and (attempt / "registry.jsonl").is_file()
+        assert recover_registered(str(attempt), grace=1.0)["targets_cleared"] is True      # idempotent
+    finally:
+        runtime.close()
+
+
 # -- real roles that need no external service ---------------------------------------------------------------------------------------------------
 def _ask(address: str, line: bytes = b"HELLO\n") -> bytes:
     host, _, port = address.rpartition(":")

@@ -5,7 +5,9 @@ The explicit supported modules are `neo4j_graph_loader.schema` and
 Schema/planning class reexports preserve the canonical existing class identity
 and spawn/pickle imports. There is no generic `src` shim. Fleet, retry, index,
 metrics, worker/transport and test dependency-injection hooks remain internal.
-All declared runtime dependencies remain mandatory; there are no extras.
+All declared runtime dependencies remain mandatory. The only extras (`sql`, `postgres`)
+serve the command line's SQL run status store; neither public module imports them or
+needs them.
 
 `schema` exports `load_schema`, `GraphSchema`, `LoadingConfig`, `NodeConfig`,
 `EdgeConfig`, `PropertyConfig`, `SourceTargetConfig`, `DeadLetterConfig`,
@@ -169,4 +171,18 @@ No metrics server is started by constructing or calling a public planner.
 CLI process setup and its explicit internal metrics ownership remain at entry
 functions. Use distinct plan paths/topics for independent runs; importing a
 public module does not provision their resources. All runtime dependencies remain
-mandatory; this boundary adds no optional extras or lazy dependency promise.
+mandatory; the `sql` and `postgres` extras belong to the command line's status
+database only ([status stores](STATUS_SQL.md)) and are never imported here.
+
+## Run status, JSON logs and metric identity are not Python API
+
+`graph-loader start` records a status document and event history, can log JSON lines,
+and labels every metric sample with `run_id`, `execution_id`, `exporter` and `runtime`
+([status stores](STATUS_SQL.md), [CLI logging](CLI.md#logging),
+[Monitoring](MONITORING.md#identity-labels)). These are command-line behaviors. Their
+contract is the files and output, above all the JSON Schemas in
+[status-schemas/](status-schemas/) (`schema_version` 1; later versions add fields), the
+`status --json` output and the metric labels. The `neo4j_graph_loader.status` and
+`neo4j_graph_loader.monitoring` modules that implement them are internal and may change
+between alphas. The public planners and `load_schema` do not create a run, an
+execution or a status file.

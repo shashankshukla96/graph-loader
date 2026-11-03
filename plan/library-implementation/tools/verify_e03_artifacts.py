@@ -19,7 +19,36 @@ COMPONENTS = ["cli", "loader.node_loader", "loader.edge_loader", "loader.retry_c
               "loader.planned_writer", "orchestrator.planned_dispatcher",
               "orchestrator.lease_server", "orchestrator.clock_runner"]
 SDIST_INPUTS = {"pyproject.toml", "PACKAGE_README.md", "LICENSE", "MANIFEST.in", "PKG-INFO", "setup.cfg"}
-RESOURCE_FILES = {"data/graph_schema.yaml", "data/social_schema.yaml"}
+# The approved non-Python files of the wheel, finite and explicit: the two bundled schemas (E05) and the monitoring bundle (E15.F2.S10,
+# equal to the checkout's monitoring/ tree). A file added to either place without being listed here fails the archive check.
+RESOURCE_FILES = {"data/graph_schema.yaml", "data/social_schema.yaml"} | {
+    "monitoring/grafana/dashboards-sql/graph-loader-run-history.json",
+    "monitoring/grafana/dashboards/graph-loader-overview.json",
+    "monitoring/grafana/provisioning/dashboards/graph-loader.yml",
+    "monitoring/grafana/provisioning/datasources/prometheus.yml",
+    "monitoring/prometheus/alert_tests/concurrency_test.yml",
+    "monitoring/prometheus/alert_tests/dlq_test.yml",
+    "monitoring/prometheus/alert_tests/health_test.yml",
+    "monitoring/prometheus/alert_tests/lag_errors_test.yml",
+    "monitoring/prometheus/alert_tests/progress_test.yml",
+    "monitoring/prometheus/alert_tests/write_outage_test.yml",
+    "monitoring/prometheus/alerts/concurrency.yml",
+    "monitoring/prometheus/alerts/dlq.yml",
+    "monitoring/prometheus/alerts/health.yml",
+    "monitoring/prometheus/alerts/lag_and_errors.yml",
+    "monitoring/prometheus/alerts/progress.yml",
+    "monitoring/prometheus/alerts/write_outage.yml",
+    "monitoring/prometheus/prometheus.yml",
+}
+# The approved extras (E15 D15-4, decision D05 as amended): explicit, so an unlisted extra in pyproject.toml fails; the base
+# dependency list is unchanged.
+APPROVED_EXTRAS = {"sql": ["SQLAlchemy>=2.0.30,<3"],
+                   "postgres": ["SQLAlchemy>=2.0.30,<3", "psycopg[binary]>=3.1.12,<4"]}
+# Modules that need an optional dependency at import time: a base install must fail to import them with exactly this
+# ModuleNotFoundError, an install with the extra must import them. Every other module imports on a base install.
+OPTIONAL_MODULES = {"neo4j_graph_loader/status/sql_store.py": "sqlalchemy"}
+# Optional distributions that must be ABSENT from an environment installed without the extra (module name -> extra).
+OPTIONAL_DISTRIBUTIONS = {"sqlalchemy": "sql", "psycopg": "postgres"}
 EGG_FILES = {"PKG-INFO", "SOURCES.txt", "dependency_links.txt", "top_level.txt", "requires.txt", "entry_points.txt"}
 
 
@@ -31,6 +60,10 @@ def inspect(wheel, sdist):
     config = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     package = ROOT / "src/neo4j_graph_loader"
     modules = {str(p.relative_to(package.parent)): p.read_bytes() for p in package.rglob("*.py")}
+    present = {str(p.relative_to(package)).replace(os.sep, "/") for p in package.rglob("*")
+               if p.is_file() and p.suffix not in {".py", ".pyc"} and "__pycache__" not in p.parts}
+    assert present == RESOURCE_FILES, ("checkout resources differ from the approved list", sorted(present ^ RESOURCE_FILES))
+    assert config.get("optional-dependencies") == APPROVED_EXTRAS, "pyproject extras differ from the approved list"
     resources = {"neo4j_graph_loader/" + n: (package / n).read_bytes() for n in RESOURCE_FILES}
     payload = modules | resources
     tree = ast.parse((package / "_version.py").read_text())
@@ -54,14 +87,15 @@ def inspect(wheel, sdist):
         assert metadata["License-Expression"] == "Apache-2.0"
         assert metadata.get_all("License-File") == ["LICENSE"]
         assert {Requirement(r) for r in metadata.get_all("Requires-Dist", [])} == {
-            Requirement(r) for r in config["dependencies"]}
+            Requirement(r) for r in config["dependencies"]} | {
+            Requirement(f'{r}; extra == "{extra}"') for extra, requirements in APPROVED_EXTRAS.items() for r in requirements}
         assert metadata.get_payload(decode=True).decode().rstrip() == (ROOT / "PACKAGE_README.md").read_text().rstrip()
         assert archive.read(next(n for n in names if n.endswith("/licenses/LICENSE"))) == (ROOT / "LICENSE").read_bytes()
         assert archive.read(next(n for n in names if n.endswith("/top_level.txt"))).decode().strip() == "neo4j_graph_loader"
         assert config["scripts"] == {"graph-loader": "neo4j_graph_loader.cli:main"}
         assert archive.read(f"{dist_info}/entry_points.txt").decode() == (
             "[console_scripts]\ngraph-loader = neo4j_graph_loader.cli:main\n")
-        assert not metadata.get_all("Provides-Extra"), "D05: no extras"
+        assert sorted(metadata.get_all("Provides-Extra") or []) == sorted(APPROVED_EXTRAS), "only the approved extras"
     with tarfile.open(sdist) as archive:
         allowed = SDIST_INPUTS | {"src/" + n for n in payload} | {
             "src/neo4j_graph_loader.egg-info/" + n for n in EGG_FILES}
@@ -88,8 +122,12 @@ def inspect(wheel, sdist):
                           for p in (wheel, sdist)]}
 
 
-def probe(python, modules, cwd, *, command_runner=None):
-    """Application imports must resolve exclusively from a clean site-packages."""
+def probe(python, modules, cwd, *, command_runner=None, extras=()):
+    """Application imports must resolve exclusively from a clean site-packages.
+
+    ``extras`` names the extras the environment was installed with: every module imports on a base install except the
+    explicit ``OPTIONAL_MODULES``, which must then fail with a ModuleNotFoundError for exactly their optional dependency
+    (and import with it); a distribution of an extra that was NOT requested must be absent."""
     execute = command_runner or subprocess.run
     code = '''
 import hashlib, importlib, importlib.metadata as metadata, json, logging, pathlib, socket, subprocess, sys, sysconfig, threading
@@ -100,6 +138,8 @@ threading.Thread.start = subprocess.Popen = forbidden
 site = pathlib.Path(sysconfig.get_paths()['purelib']).resolve()
 origins = {}
 for name in NAMES:
+    if name + '.py' in OPTIONAL or name.replace('.', '/') + '.py' in OPTIONAL:
+        continue
     module = importlib.import_module(name)
     origin = pathlib.Path(module.__file__).resolve()
     assert origin.is_relative_to(site), (name, str(origin), str(site))
@@ -107,6 +147,18 @@ for name in NAMES:
     key = key + ("/__init__.py" if origin.name == "__init__.py" else ".py")
     assert hashlib.sha256(origin.read_bytes()).hexdigest() == DIGESTS[key], key
     origins[name] = str(origin)
+for relative, dependency in OPTIONAL.items():
+    name = relative.removesuffix('.py').replace('/', '.')
+    wanted = dependency in INSTALLED
+    try:
+        module = importlib.import_module(name)
+    except ModuleNotFoundError as error:
+        assert not wanted and error.name == dependency, (name, error.name, wanted)
+    else:
+        assert wanted, (name, 'imported without its optional dependency')
+        origin = pathlib.Path(module.__file__).resolve()
+        assert origin.is_relative_to(site) and hashlib.sha256(origin.read_bytes()).hexdigest() == DIGESTS[relative], relative
+        origins[name] = str(origin)
 import neo4j_graph_loader as package
 from neo4j_graph_loader.utils import metrics
 assert package.__version__ == metadata.version('neo4j-graph-loader') == metrics.PROCESS_VERSION
@@ -118,10 +170,16 @@ assert [(e.group,e.name,e.value) for e in dist.entry_points] == [("console_scrip
 assert not json.loads(dist.read_text('direct_url.json') or '{}').get('dir_info', {}).get('editable')
 assert not list(site.glob('__editable__*'))
 assert not any(metadata.packages_distributions().get(n) for n in ['pytest','testcontainers','pandas','dotenv','build','twine'])
+for module_name, expected in PRESENT.items():
+    assert bool(metadata.packages_distributions().get(module_name)) == expected, (module_name, expected)
 print(json.dumps({'version': package.__version__, 'origins': origins, 'site': str(site)}))
 '''
     names = [n.removesuffix('.py').replace('/', '.').removesuffix('.__init__') for n in modules]
-    code = code.replace('NAMES', repr(names)).replace('DIGESTS', repr(modules))
+    present = {"sqlalchemy": bool(set(extras) & {"sql", "postgres"}), "psycopg": "postgres" in extras}
+    installed = sorted(name for name, here in present.items() if here)
+    assert set(present) == set(OPTIONAL_DISTRIBUTIONS), "every optional distribution has an expectation"
+    code = (code.replace('NAMES', repr(names)).replace('DIGESTS', repr(modules)).replace('PRESENT', repr(present))
+            .replace('OPTIONAL', repr(OPTIONAL_MODULES)).replace('INSTALLED', repr(installed)))
     env = {k: v for k, v in os.environ.items() if k not in {"PYTHONPATH", "PYTHONHOME", "GRAPH_LOADER_VERSION"}}
     result = execute([str(python), "-I", "-c", code], cwd=cwd, env=env,
                             capture_output=True, text=True, timeout=60)

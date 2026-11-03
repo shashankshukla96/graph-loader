@@ -14,6 +14,20 @@ def _exit_stopped_while_importing(_signum, _frame) -> None:
     is an immediate exit 0. Finishing the imports first would take seconds
     on a busy loader CPU and could outlast Docker's stop grace.
     """
+    if os.environ.get("GRAPH_LOADER_LOG_FORMAT", "").strip().lower() == "json":
+        # JSON log mode: the same event as one JSON line (standard library only; this runs before the heavy imports)
+        import json
+        import time
+        now = time.time()
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now)) + f".{int(now * 1000) % 1000:03d}Z"
+        os.write(2, (json.dumps({
+            "ts": stamp, "level": "warning", "logger": __name__, "execution_id": os.environ.get("GRAPH_LOADER_EXECUTION_ID"),
+            "run_id": os.environ.get("GRAPH_LOADER_RUN_ID"), "kind": "node", "name": None, "replica": None,
+            "incarnation": os.environ.get("GRAPH_LOADER_INCARNATION"), "stage": "node-startup-stopped",
+            "message": "stage=node-startup-stopped reason=stop requested while the loader was still importing; "
+                       "nothing was read, written or committed",
+        }, separators=(",", ":")) + "\n").encode())
+        os._exit(0)
     os.write(2, b"WARNING: stage=node-startup-stopped reason=stop requested while the loader was still "
                 b"importing; nothing was read, written or committed\n")
     os._exit(0)
@@ -60,6 +74,7 @@ from neo4j_graph_loader.orchestrator.schema_initializer import get_neo4j_driver
 from neo4j_graph_loader.utils.schema_loader import load_schema
 from neo4j_graph_loader.utils.neo4j_session import open_session
 from neo4j_graph_loader.utils import metrics as metrics_module
+from neo4j_graph_loader.utils.logging_config import structured
 
 
 logger = logging.getLogger(__name__)
@@ -883,6 +898,8 @@ class NodeLoader:
                     self._node_config.label, self._topic, self._replica_id,
                     self._run_id, len(records), attempt + 1,
                     elapsed_seconds * 1000,
+                    extra=structured("node-write", label=self._node_config.label, topic=self._topic, replica=self._replica_id,
+                                     run_id=self._run_id, records=len(records), attempts=attempt + 1, write_ms=round(elapsed_seconds * 1000, 3)),
                 )
                 # One observe/inc per batch (never per record) - P6-S2
                 # Story 4. Routed through safe_emit (review finding S4-1)
@@ -1178,6 +1195,8 @@ def main(argv: list[str] | None = None, *, shutdown_requested: Event | None = No
     )
     try:
         args = build_parser().parse_args(argv)
+        from neo4j_graph_loader.utils.logging_config import set_log_context
+        set_log_context(name=args.node_label, replica=getattr(args, "replica_id", None))
         configure_write_timing_capture(logger, "node-write")
         if args.max_messages is not None and args.max_messages <= 0:
             raise SystemExit("--max-messages must be positive")
@@ -1341,5 +1360,7 @@ def main(argv: list[str] | None = None, *, shutdown_requested: Event | None = No
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    raise SystemExit(main())
+    from neo4j_graph_loader.utils.logging_config import configure_logging
+    configure_logging(kind="node")
+    from neo4j_graph_loader.utils.logging_config import run_entrypoint
+    raise SystemExit(run_entrypoint(main))

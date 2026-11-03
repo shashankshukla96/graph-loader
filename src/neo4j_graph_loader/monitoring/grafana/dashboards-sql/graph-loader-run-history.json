@@ -1,0 +1,471 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_POSTGRES",
+      "label": "PostgreSQL (run status)",
+      "description": "The database of `--status-store sql`",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "title": "graph-loader run history (PostgreSQL)",
+  "uid": "graph-loader-run-history",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "tags": [
+    "graph-loader",
+    "postgresql"
+  ],
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "graphTooltip": 1,
+  "description": "Executions recorded by `graph-loader start --status-store sql`: the SQL read schema (executions, execution_roles, execution_events). Timestamps are UTC.",
+  "templating": {
+    "list": [
+      {
+        "name": "pg_datasource",
+        "type": "datasource",
+        "label": "PostgreSQL",
+        "query": "grafana-postgresql-datasource",
+        "refresh": 1,
+        "hide": 0,
+        "current": {
+          "selected": false,
+          "text": "${DS_POSTGRES}",
+          "value": "${DS_POSTGRES}"
+        }
+      },
+      {
+        "name": "schema",
+        "type": "textbox",
+        "label": "database schema",
+        "query": "graph_loader",
+        "current": {
+          "text": "graph_loader",
+          "value": "graph_loader"
+        },
+        "hide": 0,
+        "description": "GRAPH_LOADER_STATUS_SCHEMA of the run (default graph_loader). Used as a plain identifier."
+      },
+      {
+        "name": "execution_id",
+        "type": "query",
+        "label": "execution",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${pg_datasource}"
+        },
+        "refresh": 2,
+        "sort": 0,
+        "includeAll": false,
+        "multi": false,
+        "query": "SELECT execution_id AS __value, (to_char(started_at, 'YYYY-MM-DD HH24:MI') || ' ' || state || ' ' || COALESCE(run_id, '-')) AS __text FROM $schema.executions ORDER BY started_at DESC LIMIT 100",
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Executions in range",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS executions FROM $schema.executions WHERE $__timeFilter(started_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Failed in range",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS failed FROM $schema.executions WHERE state = 'failed' AND $__timeFilter(started_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Active now",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS active FROM $schema.executions WHERE state IN ('starting', 'running', 'stopping')"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Not finished. A crashed command stays here until it is marked stale/dead by `graph-loader status`; compare `heartbeat_at` in the table below."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Executions with incomplete history",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS incomplete FROM $schema.executions WHERE history_incomplete AND $__timeFilter(started_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Events were lost beyond the local outbox bound (a recorded gap)."
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Executions started per hour by state",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('hour', started_at) AS time, state AS metric, count(*) AS executions FROM $schema.executions WHERE $__timeFilter(started_at) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Executions",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Executions",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT execution_id, run_id, state, mode, runtime, host, started_at, finished_at, round(EXTRACT(EPOCH FROM (COALESCE(finished_at, now()) - started_at))::numeric, 1) AS duration_s, exit_code, heartbeat_at, history_incomplete FROM $schema.executions WHERE $__timeFilter(started_at) ORDER BY started_at DESC LIMIT 200"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Failed executions",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT execution_id, run_id, mode, runtime, started_at, finished_at, outcome->>'reason' AS reason, outcome->'error'->>'message' AS error FROM $schema.executions WHERE state = 'failed' AND $__timeFilter(started_at) ORDER BY started_at DESC LIMIT 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "outcome is the JSON recorded at the end of the run: exit code, reason and the captured error."
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Selected execution",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "table",
+      "title": "Roles and incarnations",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT role, name, replica, incarnation, restart_count, state, started_at, finished_at, exit_code, exit_reason FROM $schema.execution_roles WHERE execution_id = '$execution_id' ORDER BY ordinal"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 22,
+      "type": "table",
+      "title": "Recent events",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${pg_datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${pg_datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT seq, ts, event_type, payload::text AS payload FROM $schema.execution_events WHERE execution_id = '$execution_id' ORDER BY seq DESC LIMIT 200"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "The newest 200 events of the selected execution (the full history is in this table and through the Python accessor `iter_events`)."
+    }
+  ]
+}

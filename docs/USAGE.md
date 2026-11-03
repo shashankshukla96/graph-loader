@@ -1659,6 +1659,23 @@ identical either way.
 
 * **Exit status:** `0` only after the completion proof described in
   [section 6](#6-planned-mode-in-depth).
+* **Run status and event history (every runtime, both modes).** `graph-loader start` records what it is doing as a
+  status document (state, roles, per-type progress) and a gap-free event list, in the attempt directory
+  (`status.json`, `events.<first seq>.jsonl`; `--status-store json`, the default) or in a database
+  (`--status-store sql` with `GRAPH_LOADER_STATUS_DB_URL`, after `graph-loader status-store migrate`; needs
+  `pip install "neo4j-graph-loader[postgres]"`). Read it while the run is live or after:
+  `graph-loader status --run --run-dir <base>` (summary), `--json`, `--watch`, `--list`; it needs no Docker or Kafka.
+  Fields and their sources: [STATUS_FIELDS](STATUS_FIELDS.md); stores, tables, outbox, retention and the database
+  schema: [STATUS_SQL](STATUS_SQL.md); the JSON Schemas: [status-schemas/](status-schemas/). The status exit code is
+  `0` running or succeeded, `1` failed, `2` stale, dead or not found, `3` stopped ([CLI](CLI.md#status)).
+* **JSON logs.** `graph-loader --log-format json start ...` (or `GRAPH_LOADER_LOG_FORMAT=json`) writes one JSON object
+  per line on stderr from the CLI and every role, each with `ts`, `level`, `logger`, `execution_id`, `run_id`, `kind`,
+  `name`, `replica`, `incarnation` and `stage`, so a log system can follow one run across all of its roles. The default
+  `text` format is unchanged ([CLI](CLI.md#logging)).
+* **Run identity on metrics.** Every sample and snapshot carries `run_id`, `execution_id`, `exporter` and `runtime`.
+  Scrape through one path per run and use `graph-loader monitoring export` for your own Prometheus and Grafana
+  ([MONITORING §9](MONITORING.md#9-bring-your-own-prometheus-and-grafana)); with `--runtime process --metrics-port N`
+  one aggregated `/metrics` carries the CLI's and every role's series.
 * **Plan and ledger:** `edge-plan.json` and `edge-plan.json.ledger.json` in
   `--plan-dir`. These record every chunk, its resources and when it committed.
 * **Write-timing logs:** use `<attempt>/timings/`, or set `GRAPH_LOADER_TIMING_DIR` to override it. Each node batch and

@@ -41,6 +41,24 @@ class StatusDataError(ValueError):
 _STORE_READERS: dict[str, dict[str, Callable]] = {}
 
 
+def _reader_for(store: str, directory: Path, what: str) -> dict[str, Callable]:
+    """The registered reader of ``store``; the SQL reader is imported on first use (it needs the optional extras)."""
+    if store not in _STORE_READERS and store == "sql":
+        try:
+            import importlib
+            module = importlib.import_module("neo4j_graph_loader.status.sql_store")
+            if "sql" not in _STORE_READERS:
+                module.register()
+        except ImportError as exc:
+            raise StatusStoreError(f"the {what} of {directory} are in the 'sql' store, which needs the optional SQL support "
+                                   f"(install neo4j-graph-loader[sql], and [postgres] for PostgreSQL): {exc}") from None
+    reader = _STORE_READERS.get(store)
+    if reader is None:
+        raise StatusStoreError(f"the {what} of {directory} are in the {store!r} store, which cannot be read here "
+                               "(install the neo4j-graph-loader[sql] or [postgres] extra)")
+    return reader
+
+
 def register_store_reader(store: str, *, read_status: Callable, iter_events: Callable) -> None:
     """Install the readers of another store (``sql``); called by that store's module on import."""
     _STORE_READERS[store] = {"read_status": read_status, "iter_events": iter_events}
@@ -82,11 +100,7 @@ def read_status(location: Path | str | None = None, *, execution_id: str | None 
     directory, locator = resolve(location, execution_id=execution_id)
     store = locator["store"]
     if store != "json":
-        reader = _STORE_READERS.get(store)
-        if reader is None:
-            raise StatusStoreError(f"the status of {directory} is in the {store!r} store, which cannot be read here "
-                                   "(install the neo4j-graph-loader[sql] or [postgres] extra)")
-        return reader["read_status"](directory, locator, validate=validate)
+        return _reader_for(store, directory, "status")["read_status"](directory, locator, validate=validate)
     path = directory / json_store.STATUS_NAME
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
@@ -116,10 +130,7 @@ def iter_events(location: Path | str | None = None, *, execution_id: str | None 
     directory, locator = resolve(location, execution_id=execution_id)
     store = locator["store"]
     if store != "json":
-        reader = _STORE_READERS.get(store)
-        if reader is None:
-            raise StatusStoreError(f"the events of {directory} are in the {store!r} store, which cannot be read here "
-                                   "(install the neo4j-graph-loader[sql] or [postgres] extra)")
+        reader = _reader_for(store, directory, "events")
         yield from reader["iter_events"](directory, locator, follow=follow, start_seq=start_seq, poll_interval=poll_interval,
                                          stop=stop, idle_timeout=idle_timeout, validate=validate)
         return

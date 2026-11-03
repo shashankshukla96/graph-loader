@@ -19,7 +19,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Planned dispatcher run_id={{ $labels.run_id }} has not committed a chunk in ~20m (10m window + 10m for:) and is not yet complete."
+          summary: "Planned dispatcher execution {{ $labels.execution_id }} (run_id={{ $labels.run_id }}) has not committed a chunk in ~20m (10m window + 10m for:) and is not yet complete."
           description: >
             A long node-readiness phase (chunks blocked on `ready_labels`
             that are not yet ready) can also hold `committed` flat for
@@ -36,19 +36,21 @@ groups:
         # written its first record at all, since records_consumed has no
         # series yet and `initialize_zero_series` does not pre-create it
         # — `and` silently drops an absent right-hand side. Matching on
-        # the per-container `instance` target label (always present via
-        # Story 1's relabeling) and using `unless` (fires when NO matching
+        # the per-process `exporter` METRIC label (E15: unique per role
+        # incarnation and on every sample, so it does not depend on how the
+        # target was discovered; it replaces the `instance` target label)
+        # and using `unless` (fires when NO matching
         # series with nonzero increase exists, including "no series at
         # all") fixes all three.
         expr: >
           (graph_loader_process_up{kind=~"node|edge|planned-writer"} == 1)
-          unless on(instance)
-          (sum by (instance) (increase(graph_loader_records_consumed_total[10m])) > 0)
+          unless on(exporter)
+          (sum by (exporter) (increase(graph_loader_records_consumed_total[10m])) > 0)
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "{{ $labels.kind }}/{{ $labels.name }} ({{ $labels.instance }}) is up but has consumed 0 records in the last ~20m, or has never consumed one."
+          summary: "{{ $labels.kind }}/{{ $labels.name }} ({{ $labels.exporter }}) is up but has consumed 0 records in the last ~20m, or has never consumed one."
           description: >
             Expected to fire during legitimate idle periods for
             long-lived streaming loaders with no traffic — tune `for:`

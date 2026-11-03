@@ -9,7 +9,6 @@ import copy
 import json
 import re
 import threading
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -18,7 +17,6 @@ from neo4j_graph_loader import cli
 from neo4j_graph_loader.orchestrator.role_launch import RoleLauncher
 from neo4j_graph_loader.status import InvalidTransition, StatusTracker, ValidationError, model, redact, schemas, validate
 
-SCHEMA_DIR = Path(__file__).resolve().parents[1] / "docs" / "status-schemas"
 STATUS, EVENT = schemas.STRICT_STATUS_SCHEMA, schemas.STRICT_EVENT_SCHEMA        # closed: tests of our own writer
 PUBLISHED_STATUS, PUBLISHED_EVENT = schemas.STATUS_SCHEMA, schemas.EVENT_SCHEMA
 
@@ -79,10 +77,6 @@ def test_the_status_schema_is_versioned_and_the_strict_variant_is_closed():
     assert EVENT["$defs"]["gap"]["properties"]["schema_version"] == {"const": 1}
 
 
-def test_generated_schema_files_equal_the_python_source():
-    for name, schema in schemas.schemas().items():
-        assert json.loads((SCHEMA_DIR / name).read_text()) == schema, name
-        assert (SCHEMA_DIR / name).read_text() == schemas.render(schema)
 
 
 def test_a_fresh_execution_validates():

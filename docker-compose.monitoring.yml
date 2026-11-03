@@ -72,7 +72,10 @@ services:
       # flag back explicitly, after also narrowing PROMETHEUS_HOST_BIND
       # to 127.0.0.1 or adding their own auth in front of it.
     volumes:
-      - ./monitoring/prometheus:/etc/prometheus:ro
+      # E15.F2.S10: the monitoring bundle. The default is the checkout's monitoring/ tree, which equals the one packaged with
+      # graph-loader; point MONITORING_DIR at a `graph-loader monitoring export --discovery docker` output (thresholds, labels
+      # and intervals from a values file) to run the quick start on your own settings.
+      - ${MONITORING_DIR:-./monitoring}/prometheus:/etc/prometheus:ro
       # Root-adjacent access to the whole Docker daemon, not just this
       # project's containers — required by docker_sd_configs, which talks
       # to the Docker Engine API directly. Reviewer finding S3-SF2:
@@ -89,7 +92,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}/prometheus:/prometheus
     ports:
-      - "${PROMETHEUS_HOST_BIND:-0.0.0.0}:9090:9090"
+      # E15 D15-2: loopback by default. Set PROMETHEUS_HOST_BIND=0.0.0.0 (or an address) to expose it, knowingly.
+      - "${PROMETHEUS_HOST_BIND:-127.0.0.1}:9090:9090"
     networks:
       - graph-loader-net
     # P6-S5 (found during P6-S3): lets prometheus.yml's graph-loader-cli
@@ -115,25 +119,24 @@ services:
       prometheus:
         condition: service_healthy
     environment:
-      # Anonymous Viewer access matches docker-compose.yaml's existing
-      # security posture for kafka-ui (also unauthenticated, also bound
-      # 0.0.0.0 by default) — consistency with the existing file, not a
-      # new precedent. This stack assumes a trusted local/private network
-      # (docs/MONITORING.md).
+      # E15 D15-2: the admin password is REQUIRED when the stack starts (Compose fails `up` without it; `make monitoring-up`
+      # says why and rejects "admin"), and is not needed to stop it (`make monitoring-down` supplies a placeholder, because
+      # Compose interpolates the whole file for every subcommand). Anonymous Viewer access is opt-in
+      # (GRAFANA_ANONYMOUS_ENABLED=true) and both UIs bind 127.0.0.1 unless told otherwise.
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
-      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD to a password of your own before starting the stack}"
+      GF_AUTH_ANONYMOUS_ENABLED: "${GRAFANA_ANONYMOUS_ENABLED:-false}"
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ${MONITORING_DIR:-./monitoring}/grafana/provisioning:/etc/grafana/provisioning:ro
       # Reviewer nit: mounted under /etc/grafana, not nested inside the
       # /var/lib/grafana data bind mount below — avoids Docker silently
       # creating an empty dashboards/ dir inside the data volume.
-      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ${MONITORING_DIR:-./monitoring}/grafana/dashboards:/etc/grafana/dashboards:ro
       - ${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}/grafana:/var/lib/grafana
     ports:
-      - "${GRAFANA_HOST_BIND:-0.0.0.0}:3000:3000"
+      - "${GRAFANA_HOST_BIND:-127.0.0.1}:3000:3000"
     networks:
       - graph-loader-net
 

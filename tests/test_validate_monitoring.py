@@ -43,6 +43,8 @@ def _module_pointed_at(scratch_monitoring):
     vm = _load_module()
     vm.DASHBOARDS_DIR = scratch_monitoring / "grafana" / "dashboards"
     vm.ALERTS_GLOB = str(scratch_monitoring / "prometheus" / "alerts" / "*.yml")
+    vm.ALERT_TESTS_GLOB = str(scratch_monitoring / "prometheus" / "alert_tests" / "*_test.yml")
+    vm.PROMETHEUS_CONFIG = scratch_monitoring / "prometheus" / "prometheus.yml"
     return vm
 
 
@@ -101,8 +103,9 @@ class TestQueryableNames:
         # graph_loader_retry_stalled_seconds (P5-S4 round 4, decision D1), plus
         # graph_loader_parked_pair_index_wait_seconds (v7-S4 admission barrier), plus
         # graph_loader_write_outage_seconds (stream outage ride-out), plus four run-status families (E15.F1.S2):
-        # two *_observed_at_seconds companions, graph_loader_rejected and graph_loader_retry_outcome.
-        assert len(vm.EXPECTED_METRIC_FAMILIES) == 30
+        # two *_observed_at_seconds companions, graph_loader_rejected and graph_loader_retry_outcome, and (E15.F1.S4)
+        # graph_loader_status_store_errors.
+        assert len(vm.EXPECTED_METRIC_FAMILIES) == 32
 
 
 class TestCheckMetricNames:
@@ -158,7 +161,7 @@ class TestTemplateVariableQueries:
             scratch_monitoring / "grafana" / "dashboards" / "graph-loader-overview.json"
         )
         data = json.loads(dashboard_path.read_text(encoding="utf-8"))
-        data["templating"]["list"][0]["query"] = "label_values(graph_loader_proces_up, kind)"
+        next(v for v in data["templating"]["list"] if v["name"] == "kind")["query"] = "label_values(graph_loader_proces_up, kind)"
         dashboard_path.write_text(json.dumps(data), encoding="utf-8")
 
         scoped_vm = _module_pointed_at(scratch_monitoring)
@@ -317,3 +320,68 @@ class TestCatalogueDriftAgainstRealMetricsModule:
             for family in metrics.GraphLoaderMetrics().registry.collect()
         }
         assert real_types == vm.FAMILY_TYPES
+
+
+class TestE15LabelPolicy:
+    """E15.F2.S9: queries use metric labels only, no pinned datasource, every promtool test is run, honor_labels."""
+
+    @pytest.mark.parametrize("expr", [
+        'graph_loader_process_up{instance="x"}',
+        'sum by (instance) (graph_loader_records_consumed_total)',
+        'a unless on(container_name) b',
+        'graph_loader_process_up{node_label=~"A"}',
+        'a * on (exporter) group_left (kind) graph_loader_process_info',
+    ])
+    def test_target_only_labels_and_joins_are_rejected(self, vm, expr):
+        with pytest.raises(vm.ValidationError):
+            vm._check_label_policy([("test", expr)])
+
+    @pytest.mark.parametrize("expr", [
+        'sum by (kind, name, execution_id) (rate(graph_loader_retry_total{exporter=~"a.*"}[5m]))',
+        'name=~"$edge_type"',
+        'up{job=~"$job"}',
+    ])
+    def test_metric_labels_pass(self, vm, expr):
+        vm._check_label_policy([("test", expr)])
+
+    def test_real_files_pass_every_check(self):
+        vm = _load_module()
+        vm._check_label_policy(vm._validate_dashboards()[2] + vm._validate_alerts())
+        vm._check_datasources_not_pinned()
+        vm._check_promtool_tests_are_run()
+        vm._check_honor_labels()
+
+    def test_a_pinned_datasource_uid_is_rejected(self, tmp_path):
+        scratch = _scratch_monitoring_copy(tmp_path)
+        path = scratch / "grafana" / "dashboards" / "graph-loader-overview.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["panels"][1]["datasource"] = {"type": "prometheus", "uid": "prometheus"}
+        path.write_text(json.dumps(data), encoding="utf-8")
+        scoped = _module_pointed_at(scratch)
+        with pytest.raises(scoped.ValidationError, match="pins the datasource uid"):
+            scoped._check_datasources_not_pinned()
+
+    def test_an_alert_on_instance_is_rejected_by_main(self, tmp_path, capsys):
+        scratch = _scratch_monitoring_copy(tmp_path)
+        path = scratch / "prometheus" / "alerts" / "progress.yml"
+        path.write_text(path.read_text(encoding="utf-8").replace("unless on(exporter)", "unless on(instance)"), encoding="utf-8")
+        scoped = _module_pointed_at(scratch)
+        assert scoped.main() == 1
+        assert "target-only label" in capsys.readouterr().err
+
+    def test_an_alert_test_file_that_make_does_not_run_is_rejected(self, tmp_path):
+        scratch = _scratch_monitoring_copy(tmp_path)
+        (scratch / "prometheus" / "alert_tests" / "orphan_test.yml").write_text("tests: []\n", encoding="utf-8")
+        scoped = _module_pointed_at(scratch)
+        with pytest.raises(scoped.ValidationError, match="orphan_test.yml"):
+            scoped._check_promtool_tests_are_run()
+
+    def test_a_scrape_job_without_honor_labels_is_rejected(self, tmp_path):
+        scratch = _scratch_monitoring_copy(tmp_path)
+        path = scratch / "prometheus" / "prometheus.yml"
+        text = path.read_text(encoding="utf-8")
+        assert text.count("honor_labels: true") >= 2
+        path.write_text(text.replace("    honor_labels: true\n", "", 1), encoding="utf-8")
+        scoped = _module_pointed_at(scratch)
+        with pytest.raises(scoped.ValidationError, match="honor_labels"):
+            scoped._check_honor_labels()

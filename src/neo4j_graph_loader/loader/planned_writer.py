@@ -37,6 +37,7 @@ from neo4j_graph_loader.loader.edge_plan import (
 )
 from neo4j_graph_loader.models.schema import EdgeConfig
 from neo4j_graph_loader.utils import metrics as metrics_module
+from neo4j_graph_loader.utils.logging_config import structured
 
 
 logger = logging.getLogger(__name__)
@@ -613,6 +614,8 @@ class PlannedEdgeWriterWorker:
                     "write_ms=%.3f lease_wait_ms=%.3f fetch_wait_ms=%.3f fetch_ms=%.3f prefetched=%d attempts=%s",
                     chunk.edge_type, self._plan.topic, self._writer_id, chunk.id, len(fetched.rows), write_ms,
                     waited * 1000, fetch_wait_ms, fetched.fetch_ms, int(prefetched), attempts,
+                    extra=structured("edge-write", edge=chunk.edge_type, topic=self._plan.topic, planned=True, writer=self._writer_id,
+                                     chunk=chunk.id, records=len(fetched.rows), write_ms=round(write_ms, 3), attempts=attempts),
                 )
                 chunk_id, waited = None, 0.0
         except _WriterShutdownRequested:
@@ -746,5 +749,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    raise SystemExit(main())
+    from neo4j_graph_loader.utils.logging_config import configure_logging
+    configure_logging(kind="planned-writer")
+    from neo4j_graph_loader.utils.logging_config import run_entrypoint
+    raise SystemExit(run_entrypoint(main))

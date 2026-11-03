@@ -11,7 +11,7 @@ import json
 import os
 import threading
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from neo4j_graph_loader.status import model
 
@@ -30,7 +30,9 @@ def sanitize_db_url(url: str) -> str:
     host = parts.netloc.rsplit("@", 1)[-1]
     query = urlencode([(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True)
                        if key.lower() not in _SECRET_QUERY_KEYS])
-    return urlunsplit((parts.scheme, host, parts.path, query, ""))
+    # Built by hand, not with urlunsplit: before CPython 3.12.4 urlunsplit dropped the "//" of an empty netloc, which turned
+    # sqlite:////abs/path.db into sqlite://abs/path.db (found on the host's 3.12.3).
+    return f"{parts.scheme}://{host}{parts.path}" + (f"?{query}" if query else "")
 
 
 def atomic_write(path: Path, data: bytes, *, fsync: bool = True) -> None:

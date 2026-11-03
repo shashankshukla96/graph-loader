@@ -213,19 +213,53 @@ a Prometheus [`file_sd`](https://prometheus.io/docs/prometheus/latest/configurat
 
 ```yaml
 scrape_configs:
-  - job_name: graph-loader-process
+  - job_name: graph-loader
+    honor_labels: true
     file_sd_configs:
-      - files: ["/home/me/graph-loader/runs/graph-loader-*/metrics/targets.json"]
+      - files: ["/home/me/graph-loader/targets/*.json"]
 ```
 
-One group per live role with labels `exporter`, `runtime="process"`, and the
-role's own labels (`component`, `kind`, `run_id`, `node_label`, `edge_type`,
-`replica_id`, ...); the command's own endpoint is listed as `exporter="cli"`. A
-role whose endpoint is disabled or could not bind gets a group with no targets
-and a `metrics_state` label (`disabled`, `failed`); the role keeps writing. Exited
+Prometheus accepts a wildcard **only in the last path element**, so a pattern
+such as `runs/graph-loader-*/metrics/targets.json` is rejected. Keep a directory
+of links, one per run you want scraped
+(`ln -s <attempt>/metrics/targets.json /home/me/graph-loader/targets/<name>.json`),
+or point `files` at one run's file. `graph-loader monitoring export --discovery
+file --targets-file '/home/me/graph-loader/targets/*.json'` writes this job and the
+rest of a bundle ([Monitoring §9](MONITORING.md#9-bring-your-own-prometheus-and-grafana)).
+
+One group per live role with the same labels the role puts on every sample:
+`exporter` (unique per incarnation: `<kind>-<name>-r<replica>-<first 8 of the
+incarnation>`, so a restarted role is a new exporter), `execution_id`, `run_id`
+(empty when the run has none), `runtime="process"`, `role` (the name the
+registry uses) and the role's own labels (`component`, `kind`, `node_label`,
+`edge_type`, `replica_id`, ...). The command's own endpoint is listed with
+`exporter="cli-<first 8 of the execution>"`, `kind="cli"`. A role whose
+endpoint is disabled or could not bind gets a group with no targets and a
+`metrics_state` label (`disabled`, `failed`); the role keeps writing. Exited
 roles disappear. Targets are written as `<metrics host>:<port>` (`127.0.0.1` when
 you pass `0.0.0.0`), so a Prometheus on another host or in another pod cannot use
 the file as is. The metric names are in [Monitoring](MONITORING.md).
+
+**When the run ends.** An orderly end of the command (`bulk` finished, a stop)
+rewrites `targets.json` as `[]`, so Prometheus drops the targets instead of
+reporting the finished command's endpoint as down. A command killed with
+`kill -9` cannot do this: its file keeps the dead endpoint (so `up == 0` and
+`GraphLoaderTargetDown` fire, correctly), until `stop --recover` empties it
+([section 7](#7-stopping-and-recovery)).
+
+**One aggregated endpoint instead.** `--metrics-port N` serves a single
+`/metrics` on `--metrics-addr`'s host that merges the command's own metrics and
+every role's (the command scrapes each role in parallel and publishes
+`graph_loader_exporter_up{exporter}` per role). It is one stable target for
+Prometheus, which suits a static job, a pod or a single container; scrape it
+**or** `targets.json`, never both for the same run (`GraphLoaderDuplicateScrape`).
+A static job cannot tell a finished run from a down one
+([Monitoring §11](MONITORING.md#11-short-runs-finished-runs-and-what-a-panel-needs)).
+
+**Status and logs of the run.** The same run is described by
+`graph-loader status --run --run-dir <base>` ([status stores](STATUS_SQL.md)), and
+with `--log-format json` every line of the command and of the relayed roles
+carries the run's `execution_id` ([CLI](CLI.md#logging)).
 
 **Health.** With `--health-addr` the command serves two paths and 404 for
 anything else (JSON bodies):
@@ -295,8 +329,14 @@ stage=recover retained (never deleted) files=<n>: plans/edge-plan.json.lock, pla
 
 Normally `signalled=[]` because the lifeline already stopped everything. It
 **deletes nothing**: spill, plan, ledger, progress, lock and rejection files stay
-and are only listed (first 50). It exits `0`, or `1` if a process is still alive
-after the `SIGKILL`.
+and are only listed (first 50). The one file it rewrites is `metrics/targets.json`,
+which it empties to `[]` (`stage=recover targets_cleared=True` is logged): the
+killed command could not, and a Prometheus `file_sd` would keep scraping the dead
+endpoints, or, after a new run reuses the default CLI port, scrape the new one
+under the old run's labels. `honor_labels: true` keeps the samples' own identity
+either way, and `GraphLoaderDuplicateScrape` may fire for a moment if a job still
+holds both paths. It exits `0`, or `1` if a process is still alive after the
+`SIGKILL`.
 
 **After `kill -9` of a planned bulk run.** The processes are gone within seconds,
 but the run's leftovers remain:

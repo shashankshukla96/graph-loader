@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import os
 import logging
+from neo4j_graph_loader.utils.logging_config import structured
 from pathlib import Path
 import stat
 import tempfile
@@ -70,7 +71,7 @@ def prepare_run(args, config: str) -> RunPaths:
     precreated = getattr(args, '_attempt_root', None)
     root = Path(precreated) if precreated is not None else Path(tempfile.mkdtemp(prefix='graph-loader-', dir=base)).resolve()
     args.runtime_root = root
-    logging.getLogger(__name__).info('stage=runtime directory=%s', root)
+    logging.getLogger(__name__).info('stage=runtime directory=%s', root, extra=structured('runtime', directory=str(root)))
     # mkdtemp provides exclusive0700 ownership, even for repeated run identities.
     schema = root/'runtime_schema.yaml'
     with schema.open('xb') as output:

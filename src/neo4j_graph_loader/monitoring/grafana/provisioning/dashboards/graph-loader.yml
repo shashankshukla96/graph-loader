@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: graph-loader
+    folder: ""
+    type: file
+    options:
+      # Matches docker-compose.monitoring.yml's dashboards mount
+      # (/etc/grafana/dashboards, not nested inside the /var/lib/grafana
+      # data bind mount — reviewer nit, avoids Docker silently creating
+      # an empty dashboards/ dir inside the data volume).
+      path: /etc/grafana/dashboards

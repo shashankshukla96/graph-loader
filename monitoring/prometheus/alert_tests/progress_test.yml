@@ -1,24 +1,37 @@
-# promtool unit tests for progress.yml's GraphLoaderNoRecordsConsumed —
-# added at completion-review time (reviewer finding: only
-# GraphLoaderPlannedModeDeadlockObserved had a committed unit test; this
-# rule's `unless on(instance)` rewrite was previously proven only by the
-# reviewer's own scratch promtool runs, never committed). Run with:
+# promtool unit tests for progress.yml (GraphLoaderNoRecordsConsumed and
+# GraphLoaderPlannedRunStalled). Run with:
 #   docker run --rm --entrypoint promtool \
 #     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
 #     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/progress_test.yml
+#
+# E15 label mapping (every series below is written as a process exposes it
+# since E15: run_id, execution_id, exporter and runtime are METRIC labels, and
+# `instance` is no longer used by any rule):
+#   instance="stalled-0"  -> exporter="node-Person-r0-stalled0"   (+ execution_id, run_id, runtime)
+#   instance="busy-0"     -> exporter="node-Person-r0-busy0000"
+#   instance="n1-busy"    -> exporter="node-Person-r0-n1busy00";  "n2-idle" -> exporter="node-Person-r1-n2idle00"
+#   instance="pw-0"       -> exporter="planned-writer-WORKS_AT-r0-pw000000"
+# Outcomes are the same as before the rewrite, test by test:
+#   1 stalled-0 (up, never wrote)            fires        (unchanged; alert label instance -> exporter)
+#   2 busy-0 (writes steadily)               does not fire (unchanged)
+#   3 two replicas, one busy one idle        fires for the idle one only (unchanged)
+#   4 planned-writer (name "-" vs edge name) does not fire (unchanged)
+# New controls (E15): 5 PlannedRunStalled fires / does not fire (progressing,
+# complete); 6 two executions with the SAME run_id kept separate; 7 a short-lived
+# run that ends before the `for:` never fires; 8 absent series; 9 empty run_id.
 rule_files:
   - ../alerts/progress.yml
 
 evaluation_interval: 1m
 
 tests:
-  # A container that is up but has never written a single record: no
-  # graph_loader_records_consumed_total series exists at all for its
-  # instance. The old `and on(kind,name)` join silently dropped this case
-  # (an absent right-hand side); `unless on(instance)` must still fire.
+  # 1. A process that is up but has never written a single record: no
+  # graph_loader_records_consumed_total series exists at all for its exporter.
+  # The old `and on(kind,name)` join silently dropped this case (an absent
+  # right-hand side); `unless on(exporter)` must still fire.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_process_up{kind="node",name="Person",instance="stalled-0"}'
+      - series: 'graph_loader_process_up{kind="node",name="Person",execution_id="x1",exporter="node-Person-r0-stalled0",run_id="r1",runtime="process"}'
         values: "1x12"
     alert_rule_test:
       - eval_time: 11m
@@ -27,36 +40,37 @@ tests:
           - exp_labels:
               kind: node
               name: Person
-              instance: stalled-0
+              execution_id: x1
+              exporter: node-Person-r0-stalled0
+              run_id: r1
+              runtime: process
               severity: warning
             exp_annotations:
-              summary: "node/Person (stalled-0) is up but has consumed 0 records in the last ~20m, or has never consumed one."
+              summary: "node/Person (node-Person-r0-stalled0) is up but has consumed 0 records in the last ~20m, or has never consumed one."
               description: "Expected to fire during legitimate idle periods for long-lived streaming loaders with no traffic — tune `for:` or scope this rule to bulk runs only in your own environment (P6-Q4: not an SLO). Also fires for a container stuck before its first batch write (bad Kafka config, stuck initial flush), which is the more common real-world case this rule exists to catch.\n"
 
-  # A busy container consuming records steadily must never fire.
+  # 2. A busy process consuming records steadily must never fire.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_process_up{kind="node",name="Person",instance="busy-0"}'
+      - series: 'graph_loader_process_up{kind="node",name="Person",execution_id="x1",exporter="node-Person-r0-busy0000",run_id="r1",runtime="process"}'
         values: "1x12"
-      - series: 'graph_loader_records_consumed_total{kind="node",name="Person",label_or_type="Person",instance="busy-0"}'
+      - series: 'graph_loader_records_consumed_total{kind="node",name="Person",label_or_type="Person",execution_id="x1",exporter="node-Person-r0-busy0000",run_id="r1",runtime="process"}'
         values: "0+100x12"
     alert_rule_test:
       - eval_time: 11m
         alertname: GraphLoaderNoRecordsConsumed
         exp_alerts: []
 
-  # Reviewer follow-up (optional nit, added for completeness): two
-  # replicas of the SAME kind+name, one busy and one idle. The old
+  # 3. Two replicas of the SAME kind+name, one busy and one idle. The old
   # `and on(kind,name)` join collapsed distinct replicas sharing one
-  # (kind,name) — a busy replica would have flagged an idle sibling too.
-  # `unless on(instance)` must fire for exactly the idle one.
+  # (kind,name); `unless on(exporter)` must fire for exactly the idle one.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_process_up{kind="node",name="Person",instance="n1-busy"}'
+      - series: 'graph_loader_process_up{kind="node",name="Person",execution_id="x1",exporter="node-Person-r0-n1busy00",run_id="r1",runtime="process"}'
         values: "1x12"
-      - series: 'graph_loader_records_consumed_total{kind="node",name="Person",label_or_type="Person",instance="n1-busy"}'
+      - series: 'graph_loader_records_consumed_total{kind="node",name="Person",label_or_type="Person",execution_id="x1",exporter="node-Person-r0-n1busy00",run_id="r1",runtime="process"}'
         values: "0+50x12"
-      - series: 'graph_loader_process_up{kind="node",name="Person",instance="n2-idle"}'
+      - series: 'graph_loader_process_up{kind="node",name="Person",execution_id="x1",exporter="node-Person-r1-n2idle00",run_id="r1",runtime="process"}'
         values: "1x12"
     alert_rule_test:
       - eval_time: 11m
@@ -65,25 +79,143 @@ tests:
           - exp_labels:
               kind: node
               name: Person
-              instance: n2-idle
+              execution_id: x1
+              exporter: node-Person-r1-n2idle00
+              run_id: r1
+              runtime: process
               severity: warning
             exp_annotations:
-              summary: "node/Person (n2-idle) is up but has consumed 0 records in the last ~20m, or has never consumed one."
+              summary: "node/Person (node-Person-r1-n2idle00) is up but has consumed 0 records in the last ~20m, or has never consumed one."
               description: "Expected to fire during legitimate idle periods for long-lived streaming loaders with no traffic — tune `for:` or scope this rule to bulk runs only in your own environment (P6-Q4: not an SLO). Also fires for a container stuck before its first batch write (bad Kafka config, stuck initial flush), which is the more common real-world case this rule exists to catch.\n"
 
-  # Reviewer follow-up (optional nit): a planned-writer's process_up
-  # carries name="-" while its records_consumed carries
-  # name=<edge_type> (metrics.py) — the old `and on(kind,name)` join
-  # never matched this kind at all. `unless on(instance)` must not fire
-  # for a busy planned-writer despite the name mismatch, since instance
-  # is the same for both series.
+  # 4. A planned-writer's process_up carries name="-" while its
+  # records_consumed carries name=<edge_type> (metrics.py) — the old
+  # `and on(kind,name)` join never matched this kind at all. Matching on
+  # exporter (the same for both series) must not fire for a busy planned-writer.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_process_up{kind="planned-writer",name="-",instance="pw-0"}'
+      - series: 'graph_loader_process_up{kind="planned-writer",name="-",execution_id="x1",exporter="planned-writer-WORKS_AT-r0-pw000000",run_id="r1",runtime="process"}'
         values: "1x12"
-      - series: 'graph_loader_records_consumed_total{kind="planned-writer",name="WORKS_AT",label_or_type="WORKS_AT",instance="pw-0"}'
+      - series: 'graph_loader_records_consumed_total{kind="planned-writer",name="WORKS_AT",label_or_type="WORKS_AT",execution_id="x1",exporter="planned-writer-WORKS_AT-r0-pw000000",run_id="r1",runtime="process"}'
         values: "0+20x12"
     alert_rule_test:
       - eval_time: 11m
         alertname: GraphLoaderNoRecordsConsumed
         exp_alerts: []
+
+  # 5. GraphLoaderPlannedRunStalled (no unit test before E15): `committed`
+  # flat below `planned` fires once the 10m `for:` has elapsed (a flat gauge has
+  # changes()==0 from its first sample, so it is pending from the start); a
+  # dispatcher that keeps committing does not; one that completed
+  # (committed == planned) does not.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_plan_chunks_committed{kind="planned-dispatcher",name="-",execution_id="x1",exporter="planned-dispatcher-cccccccc",run_id="r1",runtime="process"}'
+        values: "3x30"
+      - series: 'graph_loader_plan_chunks_planned{kind="planned-dispatcher",name="-",execution_id="x1",exporter="planned-dispatcher-cccccccc",run_id="r1",runtime="process"}'
+        values: "10x30"
+      - series: 'graph_loader_plan_chunks_committed{kind="planned-dispatcher",name="-",execution_id="x2",exporter="planned-dispatcher-dddddddd",run_id="r2",runtime="process"}'
+        values: "0+1x30"
+      - series: 'graph_loader_plan_chunks_planned{kind="planned-dispatcher",name="-",execution_id="x2",exporter="planned-dispatcher-dddddddd",run_id="r2",runtime="process"}'
+        values: "40x30"
+      - series: 'graph_loader_plan_chunks_committed{kind="planned-dispatcher",name="-",execution_id="x3",exporter="planned-dispatcher-eeeeeeee",run_id="r3",runtime="process"}'
+        values: "10x30"
+      - series: 'graph_loader_plan_chunks_planned{kind="planned-dispatcher",name="-",execution_id="x3",exporter="planned-dispatcher-eeeeeeee",run_id="r3",runtime="process"}'
+        values: "10x30"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: GraphLoaderPlannedRunStalled
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: GraphLoaderPlannedRunStalled
+        exp_alerts:
+          - exp_labels:
+              kind: planned-dispatcher
+              name: "-"
+              execution_id: x1
+              exporter: planned-dispatcher-cccccccc
+              run_id: r1
+              runtime: process
+              severity: warning
+            exp_annotations:
+              summary: "Planned dispatcher execution x1 (run_id=r1) has not committed a chunk in ~20m (10m window + 10m for:) and is not yet complete."
+              description: "A long node-readiness phase (chunks blocked on `ready_labels` that are not yet ready) can also hold `committed` flat for more than 10m during an otherwise-healthy run — check the dispatcher's own logs for \"waiting on ready_labels\" before treating this as stuck (P6-Q4: not an SLO).\n"
+
+  # 6. Two executions that REUSE one run_id: only the stalled one fires, with its
+  # own execution_id (a rule keyed on run_id could not tell them apart).
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_plan_chunks_committed{kind="planned-dispatcher",name="-",execution_id="old",exporter="planned-dispatcher-11111111",run_id="same",runtime="process"}'
+        values: "3x30"
+      - series: 'graph_loader_plan_chunks_planned{kind="planned-dispatcher",name="-",execution_id="old",exporter="planned-dispatcher-11111111",run_id="same",runtime="process"}'
+        values: "10x30"
+      - series: 'graph_loader_plan_chunks_committed{kind="planned-dispatcher",name="-",execution_id="new",exporter="planned-dispatcher-22222222",run_id="same",runtime="process"}'
+        values: "0+1x30"
+      - series: 'graph_loader_plan_chunks_planned{kind="planned-dispatcher",name="-",execution_id="new",exporter="planned-dispatcher-22222222",run_id="same",runtime="process"}'
+        values: "40x30"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: GraphLoaderPlannedRunStalled
+        exp_alerts:
+          - exp_labels:
+              kind: planned-dispatcher
+              name: "-"
+              execution_id: old
+              exporter: planned-dispatcher-11111111
+              run_id: same
+              runtime: process
+              severity: warning
+            exp_annotations:
+              summary: "Planned dispatcher execution old (run_id=same) has not committed a chunk in ~20m (10m window + 10m for:) and is not yet complete."
+              description: "A long node-readiness phase (chunks blocked on `ready_labels` that are not yet ready) can also hold `committed` flat for more than 10m during an otherwise-healthy run — check the dispatcher's own logs for \"waiting on ready_labels\" before treating this as stuck (P6-Q4: not an SLO).\n"
+
+  # 7. A short-lived run: the dispatcher exits (its series go stale) after 8m,
+  # before the 10m `for:` has elapsed — nothing fires, then or later (the
+  # exporter disappearing is not a stall).
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_plan_chunks_committed{kind="planned-dispatcher",name="-",execution_id="x4",exporter="planned-dispatcher-44444444",run_id="r4",runtime="process"}'
+        values: "3x7 stale"
+      - series: 'graph_loader_plan_chunks_planned{kind="planned-dispatcher",name="-",execution_id="x4",exporter="planned-dispatcher-44444444",run_id="r4",runtime="process"}'
+        values: "10x7 stale"
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: GraphLoaderPlannedRunStalled
+        exp_alerts: []
+      - eval_time: 30m
+        alertname: GraphLoaderPlannedRunStalled
+        exp_alerts: []
+
+  # 8. Missing series: no process, no data — neither rule fires on nothing.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_deadlocks_recovered_total{kind="planned-writer",name="X",execution_id="x1",exporter="planned-writer-X-r0-ffffffff",run_id="r1",runtime="process"}'
+        values: "0x30"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: GraphLoaderNoRecordsConsumed
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: GraphLoaderPlannedRunStalled
+        exp_alerts: []
+
+  # 9. A stream started without --run-id has run_id="" (an absent label). The
+  # rule still fires and keys on exporter/execution_id, not on run_id.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_process_up{kind="edge",name="KNOWS",execution_id="x5",exporter="edge-KNOWS-r0-99999999",run_id="",runtime="docker"}'
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: GraphLoaderNoRecordsConsumed
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: KNOWS
+              execution_id: x5
+              exporter: edge-KNOWS-r0-99999999
+              runtime: docker
+              severity: warning
+            exp_annotations:
+              summary: "edge/KNOWS (edge-KNOWS-r0-99999999) is up but has consumed 0 records in the last ~20m, or has never consumed one."
+              description: "Expected to fire during legitimate idle periods for long-lived streaming loaders with no traffic — tune `for:` or scope this rule to bulk runs only in your own environment (P6-Q4: not an SLO). Also fires for a container stuck before its first batch write (bad Kafka config, stuck initial flush), which is the more common real-world case this rule exists to catch.\n"

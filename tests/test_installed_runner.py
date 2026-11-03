@@ -151,7 +151,7 @@ def test_rejected_existing_output_preserves_previous_result(tmp_path,symlink):
     payload={path:b'# fixture\n' for path in data['package_payload']}
     dist='neo4j_graph_loader-0.1.0a1.dev0.dist-info/'
     metadata={dist+name:b'' for name in ('WHEEL','top_level.txt','RECORD','licenses/LICENSE','entry_points.txt')}
-    metadata[dist+'METADATA']=b'Name: neo4j-graph-loader\nVersion: 0.1.0a1.dev0\n'
+    metadata[dist+'METADATA']=b'Name: neo4j-graph-loader\nVersion: 0.1.0a1.dev0\nProvides-Extra: postgres\nProvides-Extra: sql\n'
     sha=lambda content:hashlib.sha256(content).hexdigest()
     data['package_payload']={path:sha(content) for path,content in payload.items()}
     data['distribution_files']={path:sha(content) for path,content in metadata.items()}
@@ -243,7 +243,7 @@ def test_main_persists_owned_failure_manifest_and_preserves_interruption(tmp_pat
     payload = {path: b'# fixture\n' for path in data['package_payload']}
     dist = 'neo4j_graph_loader-0.1.0a1.dev0.dist-info/'
     metadata = {dist+name: b'' for name in ('WHEEL', 'top_level.txt', 'RECORD', 'licenses/LICENSE', 'entry_points.txt')}
-    metadata[dist+'METADATA'] = b'Name: neo4j-graph-loader\nVersion: 0.1.0a1.dev0\n'
+    metadata[dist+'METADATA'] = b'Name: neo4j-graph-loader\nVersion: 0.1.0a1.dev0\nProvides-Extra: postgres\nProvides-Extra: sql\n'
     data['package_payload'] = {path: hashlib.sha256(value).hexdigest() for path, value in payload.items()}
     data['distribution_files'] = {path: hashlib.sha256(value).hexdigest() for path, value in metadata.items()}
     wheel = tmp_path/'fixture.whl'

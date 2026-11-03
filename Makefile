@@ -29,7 +29,7 @@ CANDIDATE_OUTPUT ?= var/candidate-images-$(CANDIDATE_SUFFIX)
 build-images: check-requirements
 	python3 scripts/build_candidate_images.py --suffix "$(CANDIDATE_SUFFIX)" --output "$(CANDIDATE_OUTPUT)"
 
-.PHONY: monitoring-up monitoring-down monitoring-validate
+.PHONY: monitoring-up monitoring-down monitoring-validate monitoring-bundle
 
 # monitoring-up sources .env itself (reviewer finding, should-fix 1):
 # docker-compose.yaml/.monitoring.yml are read by `docker compose`, which
@@ -52,11 +52,13 @@ build-images: check-requirements
 # stack you mean before running this.
 monitoring-up:
 	@__gl_exported="$$(export -p | grep -Ev '^(export|declare -x) (BASHOPTS|SHELLOPTS)=')"; set -a; [ -f .env ] && . ./.env; set +a; eval "$$__gl_exported"; unset __gl_exported; \
+	if [ -z "$$GRAFANA_ADMIN_PASSWORD" ]; then echo "monitoring-up: GRAFANA_ADMIN_PASSWORD is required (Grafana's admin password is never defaulted); export one of your own, or put it in .env" >&2; exit 1; fi; \
+	if [ "$$GRAFANA_ADMIN_PASSWORD" = "admin" ] || [ "$${#GRAFANA_ADMIN_PASSWORD}" -lt 8 ]; then echo "monitoring-up: GRAFANA_ADMIN_PASSWORD must be at least 8 characters and not 'admin'" >&2; exit 1; fi; \
 	d="$${GRAPH_LOADER_DATA_DIR:-/mnt/graph-loader/data}"; \
 	mkdir -p "$$d/prometheus" "$$d/grafana"; \
 	chown 65534:65534 "$$d/prometheus" || { echo "monitoring-up: chown failed on $$d/prometheus - run as root, or chown it to 65534:65534 manually (prom/prometheus runs as uid 65534)" >&2; exit 1; }; \
 	chown 472:472 "$$d/grafana" || { echo "monitoring-up: chown failed on $$d/grafana - run as root, or chown it to 472:472 manually (grafana/grafana-oss runs as uid 472)" >&2; exit 1; }; \
-	DOCKER_GID=$${DOCKER_GID:-$$(stat -c %g /var/run/docker.sock)} docker compose -f docker-compose.yaml -f docker-compose.monitoring.yml up -d prometheus grafana
+	DOCKER_GID=$${DOCKER_GID:-$$(stat -c %g /var/run/docker.sock)} docker compose -f docker-compose.yaml -f docker-compose.monitoring.yml $${MONITORING_EXTRA_COMPOSE:+-f $$MONITORING_EXTRA_COMPOSE} up -d prometheus grafana
 
 # Scoped stop+rm, NOT `down`: with both -f files loaded, Compose treats
 # neo4j/kafka/kafka-ui as part of the same project (reviewer finding
@@ -67,8 +69,15 @@ monitoring-up:
 # not just `up` — `stop`/`rm` fail the same required-variable error
 # without it.
 monitoring-down:
-	DOCKER_GID=$${DOCKER_GID:-$$(stat -c %g /var/run/docker.sock)} docker compose -f docker-compose.yaml -f docker-compose.monitoring.yml stop prometheus grafana
-	DOCKER_GID=$${DOCKER_GID:-$$(stat -c %g /var/run/docker.sock)} docker compose -f docker-compose.yaml -f docker-compose.monitoring.yml rm -f prometheus grafana
+	GRAFANA_ADMIN_PASSWORD=$${GRAFANA_ADMIN_PASSWORD:-unused-for-shutdown} DOCKER_GID=$${DOCKER_GID:-$$(stat -c %g /var/run/docker.sock)} docker compose -f docker-compose.yaml -f docker-compose.monitoring.yml $${MONITORING_EXTRA_COMPOSE:+-f $$MONITORING_EXTRA_COMPOSE} stop prometheus grafana
+	GRAFANA_ADMIN_PASSWORD=$${GRAFANA_ADMIN_PASSWORD:-unused-for-shutdown} DOCKER_GID=$${DOCKER_GID:-$$(stat -c %g /var/run/docker.sock)} docker compose -f docker-compose.yaml -f docker-compose.monitoring.yml $${MONITORING_EXTRA_COMPOSE:+-f $$MONITORING_EXTRA_COMPOSE} rm -f prometheus grafana
+
+# E15.F2.S12: MONITORING_EXTRA_COMPOSE=<file> appends one more Compose override file (another network, container names or ports) to
+# monitoring-up/-down, for running the quick start beside other stacks.
+# E15.F2.S10: write the monitoring bundle (docker discovery, the quick start's scrape interval) with your own values, then
+# `MONITORING_DIR=$$(pwd)/.monitoring-bundle make monitoring-up`. Needs the graph-loader package installed.
+monitoring-bundle:
+	graph-loader monitoring export --discovery docker --scrape-interval 3s --out .monitoring-bundle --force $${MONITORING_VALUES:+--values $$MONITORING_VALUES}
 
 # --user matches the promtool container to this host user (reviewer nit):
 # without it, the image's own default user may not be able to read a
@@ -78,7 +87,7 @@ monitoring-validate:
 	for f in monitoring/prometheus/alerts/*.yml; do \
 		docker run --rm --user "$$(id -u):$$(id -g)" --entrypoint promtool -v "$$(pwd)/monitoring/prometheus:/etc/prometheus:ro" prom/prometheus:v2.55.1 check rules "/etc/prometheus/alerts/$$(basename $$f)" || exit 1; \
 	done
-	docker run --rm --user "$$(id -u):$$(id -g)" --entrypoint promtool -v "$$(pwd)/monitoring/prometheus:/etc/prometheus:ro" prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/concurrency_test.yml /etc/prometheus/alert_tests/progress_test.yml /etc/prometheus/alert_tests/dlq_test.yml /etc/prometheus/alert_tests/write_outage_test.yml
+	docker run --rm --user "$$(id -u):$$(id -g)" --entrypoint promtool -v "$$(pwd)/monitoring/prometheus:/etc/prometheus:ro" prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/concurrency_test.yml /etc/prometheus/alert_tests/progress_test.yml /etc/prometheus/alert_tests/dlq_test.yml /etc/prometheus/alert_tests/write_outage_test.yml /etc/prometheus/alert_tests/health_test.yml /etc/prometheus/alert_tests/lag_errors_test.yml
 	python3 scripts/validate_monitoring.py
 
 .PHONY: stress-100k stress-1m
