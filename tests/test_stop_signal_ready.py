@@ -79,7 +79,7 @@ def _launch(clock: FakeClock, cid: str = "c0", **kwargs) -> InitRaceContainer:
     client = configure_images(MagicMock())
     client.containers.run.side_effect = lambda **_kw: InitRaceContainer(cid, clock, **kwargs)
     service = DockerService(client=client)
-    return service._run_container(image=IMAGE_IDS["node"], name=cid)
+    return service._run_container(image=IMAGE_IDS["node"], name=cid).container   # the fake behind the handle
 
 
 def test_reproduction_an_immediate_stop_loses_the_sigterm_and_ends_in_sigkill(clock, monkeypatch) -> None:

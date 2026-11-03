@@ -19,6 +19,7 @@ This is an alpha (`0.1.0a1`). The guarantees and limits of this release are in t
 | Nothing else | [Quick start 1](#quick-start-1-describe-and-validate-a-graph-schema) | It runs without Kafka, Neo4j or Docker. |
 | A Kafka broker you can reach and create topics on | [Quick start 2](#quick-start-2-plan-relationships-into-kafka) | Producer planning publishes chunks to Kafka, even for in-memory rows. A single broker is enough. The release is tested against Kafka 3.7 (`confluentinc/cp-kafka:7.7.0`). |
 | Neo4j 5.26 Enterprise, Docker, and the loader images | [loading the graph](#after-the-quick-starts-loading) | Not needed for either quick start. |
+| Neo4j 5.26 Enterprise and a Linux host (no Docker) | [loading the graph as processes](#after-the-quick-starts-loading) | `graph-loader start --runtime process`; see [Process runtime](PROCESS_RUNTIME.md). |
 
 `pip install` installs the Python package and its eight runtime dependencies
 (`neo4j`, `neo4j-rust-ext`, `confluent-kafka`, `pydantic`, `PyYAML`, `docker`,
@@ -246,3 +247,9 @@ where the load goes; the command does not read `.env` files:
 
 Producer planning itself ignores both: it never opens a Neo4j connection. The
 end-to-end load walk-through is the [bulk load guide](BULK_LOAD.md).
+
+To load without Docker, run the same command on a Linux host with
+`--runtime process` (the roles then run as child processes of the command, and
+the images above are not used). Its quick starts for a bulk and a stream run, the
+run directory, stopping and recovery, and the systemd service are in
+[Process runtime](PROCESS_RUNTIME.md).

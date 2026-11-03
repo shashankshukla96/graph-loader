@@ -2002,12 +2002,12 @@ def test_stop_exact_containers_stops_one_labels_replicas_in_parallel():
 
 
 def test_stop_exact_containers_parallel_failures_keep_retry_and_attribution():
-    from docker.errors import NotFound
+    from neo4j_graph_loader.orchestrator.runtime import HandleGone
     from neo4j_graph_loader.cli import _stop_exact_containers
 
     gone, stuck, fine = MagicMock(name="gone"), MagicMock(name="stuck"), MagicMock(name="fine")
     gone.stop.side_effect = RuntimeError("already removed")
-    gone.reload.side_effect = NotFound("gone")
+    gone.reload.side_effect = HandleGone("gone")
     stuck.stop.side_effect = RuntimeError("daemon unavailable")
     stuck.attrs = {"State": {"Status": "running"}}
     failures = _stop_exact_containers([gone, stuck, fine], identities={id(stuck): "label=Person replica=1"})

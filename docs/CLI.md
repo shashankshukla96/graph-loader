@@ -10,6 +10,7 @@ Docker needed to print help).
 Related: [README](../README.md) (quick start) | [USAGE](USAGE.md) (detailed
 reference) | [ARCHITECTURE](ARCHITECTURE.md) | [BULK_LOAD](BULK_LOAD.md) |
 [INCREMENTAL_LOAD](INCREMENTAL_LOAD.md) | [MONITORING](MONITORING.md) |
+[PROCESS_RUNTIME](PROCESS_RUNTIME.md) (`--runtime process`, host and systemd) |
 [CHANGELOG](../CHANGELOG.md)
 
 Contents: [Commands](#commands) | [start](#start) | [stop](#stop) |
@@ -21,9 +22,9 @@ Contents: [Commands](#commands) | [start](#start) | [stop](#stop) |
 
 | Command | Purpose |
 | --- | --- |
-| `start` | Apply the schema DDL, launch the node-loader fleet (Docker containers) and the relationship machinery, in `--mode bulk` (finite) or `--mode stream` (open-ended). |
-| `stop` | Stop node-loader containers (all, or one label). |
-| `status` | List node-loader containers and their state. |
+| `start` | Apply the schema DDL, launch the node-loader fleet (Docker containers, or child processes with `--runtime process`) and the relationship machinery, in `--mode bulk` (finite) or `--mode stream` (open-ended). |
+| `stop` | Stop node-loader containers (all, or one label). With `--runtime process`: stop the run's command, or one label's node loaders; `--recover` cleans up after an abruptly killed command. |
+| `status` | List node-loader containers (or, with `--runtime process`, node-loader processes) and their state. |
 | `schema-example` | Print the bundled default or social schema with `--name default\|social`, without services. |
 | `validate-schema` | Validate `--config PATH` or `--sample default\|social` without services. |
 | `replay-dlq` | Republish dead-lettered (or parked) records of one node label or relationship type to their source topic. |
@@ -33,6 +34,12 @@ private run directories and read-only installations. Related helpers are separat
 (single-topic debugging runs), `python -m neo4j_graph_loader.loader.retry_consumer`
 (standalone DLQ drain), `scripts/validate_monitoring.py`, and the
 `make monitoring-up|monitoring-down|monitoring-validate` targets.
+
+Every command that talks to roles accepts `--runtime {docker,process}`
+(environment `GRAPH_LOADER_RUNTIME`; default `docker`). `docker` runs one container
+per role; `process` runs the roles as child processes of the `start` command on a
+Linux host, with no Docker daemon, network or images. See
+[Process runtime](PROCESS_RUNTIME.md).
 
 The CLI does **not** read `.env`. Export the connection variables yourself
 (see [Environment variables](#environment-variables)); `docker compose` reads
@@ -45,7 +52,7 @@ graph-loader start --mode {bulk,stream} [--config PATH] [options]
 ```
 
 Validation errors are logged as `stage=launch reason=...` and exit 1 before any
-container is started, except where noted.
+container (or process) is started, except where noted.
 
 ### General
 
@@ -54,8 +61,13 @@ container is started, except where noted.
 | `--mode {bulk,stream}` | required | `bulk`, `stream` | both | `bulk` is finite and verifies a zero-lag drain; `stream` runs until SIGINT/SIGTERM. |
 | `--config PATH` | bundled canonical schema | a caller schema YAML | both | Explicit caller paths take priority; no cwd config fallback. |
 | `--run-dir BASE` | OS temporary directory | a writable parent directory | both | Create a unique private persistent attempt under BASE; see [runtime paths](CLI_RUNTIME.md). |
-| `--network NAME` | `graph-loader-net` | an existing Docker network | both | The network the loader containers join; it must reach Kafka and Neo4j under the `LOADER_*` addresses. |
-| `--skip-image-build` | off | flag | both | Require matching preloaded images; never pull. Starts never build images. See [image policy](DOCKER_EXECUTION.md). |
+| `--runtime {docker,process}` | `docker`, or `$GRAPH_LOADER_RUNTIME` | `docker`, `process` | both | How roles run: one container each, or child processes of this command (Linux >= 5.3 only; refused on other systems with `stage=runtime reason=...`). See [Process runtime](PROCESS_RUNTIME.md). |
+| `--network NAME` | `graph-loader-net` | an existing Docker network | both | Docker runtime only: the network the loader containers join; it must reach Kafka and Neo4j under the `LOADER_*` addresses. Refused with `--runtime process`, even with the default value. |
+| `--skip-image-build` | off | flag | both | Docker runtime only: require matching preloaded images; never pull. Starts never build images. See [image policy](DOCKER_EXECUTION.md). Refused with `--runtime process`. |
+| `--metrics-addr HOST[:PORT]` | `127.0.0.1`, OS-assigned port per role | host, or `HOST:PORT` | both | Process runtime only: where every role binds its metrics endpoint. The ports are listed in `<attempt>/metrics/targets.json`. Use `0.0.0.0` only when something outside the host must scrape. Refused with `--runtime docker`. |
+| `--health-addr HOST:PORT` | off | `HOST:PORT`, `:PORT` or `PORT`; port `0` allowed | both | Process runtime only: serve `GET /healthz` and `GET /readyz`; the bound port is logged as `stage=health`. Refused with `--runtime docker`. |
+| `--health-stale-after SECONDS` | `30` | float | both | Process runtime only: `/healthz` turns unhealthy when the supervision loop has not ticked for this long. Refused with `--runtime docker`. |
+| `--child-logs {relay,files}` | `relay` | `relay`, `files` | both | Process runtime only: `relay` also prints every role's output to this command's stdout as `[name] line`; `files` keeps it only in `<attempt>/logs/`. Refused with `--runtime docker`. |
 | `--run-id ID` | random UUID hex | 1-128 chars of `[A-Za-z0-9._-]`, starting with a letter or digit | both | Run identity. Scopes container names and labels, the planned chunk topic, the lease server and the **bulk** relationship consumer groups. Stream groups do **not** contain it; in stream mode it only lets the CLI migrate legacy run-scoped offsets (see the stream notes below). |
 | `--bulk-timeout-seconds S` | `300` | float > 0, validated before any side effect | bulk | Ignored in stream (any value is accepted there). Maximum seconds for each bulk lifecycle stage. Progress-based for node draining, waiting for the edge plan (planner heartbeat) and the planned dispatch: those fail only after `S` seconds **without progress**. |
 | `--accept-former-dlq TOPIC` | none | repeatable; a topic name | both (classic, lease, stream; not planned) | Start although `TOPIC`, a relationship type's former default DLQ name (`<topic>.dlq` or `<type>.dlq`), still holds records. Deleting the old topic is the expected step. |
@@ -180,12 +192,15 @@ Stream mode always uses the bucket-lease fleet (unless the deprecated
 ## stop
 
 ```text
-graph-loader stop [--loader LABEL]
+graph-loader stop [--runtime {docker,process}] [--loader LABEL] [--run-dir DIR] [--recover]
 ```
 
 | Flag | Default | Notes |
 | --- | --- | --- |
-| `--loader LABEL` | all | Stop only the node-loader containers whose `node_label` label is `LABEL`. |
+| `--runtime {docker,process}` | `docker`, or `$GRAPH_LOADER_RUNTIME` | Which runtime's run to stop. |
+| `--loader LABEL` | all | Stop only the node-loader containers whose `node_label` label is `LABEL` (process runtime: the registered node-loader processes of that label). |
+| `--run-dir DIR` | OS temporary directory | Process runtime only: the run's attempt directory, or the base given to `start` (exactly one live run under it is chosen; otherwise name the attempt directory). |
+| `--recover` | off | Process runtime only: after the `start` command died abruptly (`kill -9`), stop what it left behind and report what is retained; deletes nothing. Refused while that command is alive. No effect with `--runtime docker`. |
 
 Stops containers labelled `component=node-loader` (running or not) once their
 stop-signal handler is ready. It does not stop relationship loaders, the retry
@@ -196,12 +211,27 @@ the `start` process, which stops everything it launched. Exits 0; exits 1 with a
 graph-loader node-loader container, including other users' runs. Use
 `--loader LABEL`, or stop your own run through its `start` process.
 
+**Process runtime.** `stop` works through the run's `registry.jsonl`. Without
+`--loader` it opens a pidfd to the registered `start` command, verifies its start
+time and boot id, and sends it `SIGTERM`, so the command performs its normal
+ordered stop of everything it started (it is scoped to the one run). With
+`--loader LABEL` it signals only that label's node loaders; in a stream run with
+relationships the supervisor then fails the run (exit 1). With `--recover` it
+signals the leftover registered processes of a dead command (`SIGTERM`, `SIGKILL`
+after 15 s), appends a `recovered` record and logs
+`stage=recover attempt=... signalled=[...] killed=[...] remaining=[...]` and
+`stage=recover retained (never deleted) files=<n>: ...`; it exits 1 only if a
+process is still alive. A stale or ambiguous registry exits 1 with
+`stage=runtime reason=...`. See [Process runtime](PROCESS_RUNTIME.md#7-stopping-and-recovery).
+
 ## status
 
 ```text
-graph-loader status [--config PATH]
+graph-loader status [--runtime {docker,process}] [--config PATH] [--run-dir DIR]
 ```
 
+With `--runtime process` (and `--run-dir`, as for `stop`) the node loaders are
+read from the run's registry and listed in the same format with status `running`.
 Logs one line per node-loader container (`Loader <name> (<id>): <status> [Node:
 <label>]`) or `No loaders running.` `--config` (default
 the bundled canonical schema) is only logged. Exits 0; exits 1 with a clear message when Docker is unreachable. For lag, use the
@@ -212,6 +242,8 @@ metrics ([MONITORING](MONITORING.md)) or Kafka's consumer-group tooling.
 ```text
 graph-loader replay-dlq (--node-label LABEL | --edge-type TYPE) [options]
 ```
+
+`--runtime` is accepted but changes nothing: `replay-dlq` talks only to Kafka.
 
 Reads the entity's DLQ topic (or parking lot) up to a captured boundary and
 republishes the matching envelopes to their source topic. Every envelope is
@@ -248,6 +280,14 @@ protects newer values). For a multi-pair type, `--target-topic` needs
 A nonzero bulk result makes no claim of a successful load: inspect the run's
 logs and the rejection files before retrying.
 
+With `--runtime process`, exit `1` also covers: a system other than Linux >= 5.3,
+a Docker-only or process-only option given with the wrong runtime, a role that
+exits before it reports ready or is silent for 60 seconds, a planner budget that
+does not fit the memory limit (`stage=sizing`), and `stop`/`status` finding no
+unambiguous live run or a registry that does not match the running command.
+A role killed by a signal *n* is reported as exit `128 + n` (`137` after
+`SIGKILL`).
+
 ## Key `stage=` log lines
 
 All logs go to stderr/stdout of the process in `LEVEL: message` form; the
@@ -277,6 +317,10 @@ Selected lines (source in parentheses):
 | `stage=retry-consumer-ready run_id=... dlq_topics=...` | retry consumer | DLQ retry consumer running. |
 | `stage=replay-dlq matched=... replayed=...` | CLI | `replay-dlq` summary. |
 | `stage=metrics-ready kind=... name=... addr=... port=...` | every process | Its Prometheus endpoint is up. |
+| `stage=process-preflight platform=... pidfd=ok run_dir=...` | CLI (process runtime) | The local checks passed (Linux >= 5.3, pidfd, `/proc`, writable run directories, an isolated child can import the package). |
+| `stage=sizing planner_workers=... planner_memory_mb=... headroom_mb=... reserved_mb=... planner_mb=... roles=...` | CLI (process runtime, planned bulk) | The planner budget computed inside the memory limit. `stage=sizing reason=...` at ERROR refuses the run before any role starts. |
+| `stage=health addr=... port=...` | CLI (process runtime) | The `/healthz` and `/readyz` server is listening. |
+| `stage=recover ...` | CLI (`stop --recover`) | What was signalled and killed, and which files are retained. |
 | `stage=shutdown ...` | all | Operator stop, container stop and cleanup progress. |
 | `stage=deprecation flag=<old> superseded_by=<new>` | CLI | A deprecated flag was used. |
 | `stage=write-outage*` | stream writers | A Neo4j outage was ridden out (stream only). |
@@ -291,16 +335,19 @@ some derived from the host variables. "Host" below means the `start`/
 
 | Variable | Default | Read by | Notes |
 | --- | --- | --- | --- |
-| `NEO4J_URI` | `bolt://localhost:7687` | CLI (host); loaders and retry consumer (container, set by the CLI from `LOADER_NEO4J_URI`) | Bolt endpoint. |
+| `NEO4J_URI` | `bolt://localhost:7687` | CLI (host); loaders and retry consumer (container, set by the CLI from `LOADER_NEO4J_URI`; with `--runtime process` the roles get this value unless `LOADER_NEO4J_URI` is set) | Bolt endpoint. |
 | `NEO4J_USERNAME` | `neo4j` | CLI; passed through unchanged to containers | The CLI falls back to the legacy `NEO4J_USER` when it is unset, and passes the resolved value to containers as `NEO4J_USERNAME`. |
 | `NEO4J_PASSWORD` | `changeme` | CLI; passed through unchanged to containers | Also used by `docker compose` (from `.env`) to set the local Neo4j password. |
 | `NEO4J_DATABASE` | server default | every process opening sessions (CLI schema init, loaders, retry consumer, planned writers) | Target a named database; forwarded to containers when set on the host. |
-| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | CLI (host); every container (set by the CLI from `LOADER_KAFKA_BOOTSTRAP_SERVERS`) | Kafka bootstrap. |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | CLI (host); every container (set by the CLI from `LOADER_KAFKA_BOOTSTRAP_SERVERS`; with `--runtime process` the roles get this value unless `LOADER_KAFKA_BOOTSTRAP_SERVERS` is set) | Kafka bootstrap. |
 | `LOADER_NEO4J_URI` | `bolt://neo4j:7687` | CLI, when building container environments | Bolt URI as seen from the Docker network. |
 | `LOADER_KAFKA_BOOTSTRAP_SERVERS` | `kafka:29092` | CLI, when building container environments | Kafka as seen from the Docker network. |
-| `LOADER_CPUSET` | unset | CLI | Docker `cpuset_cpus` pin for every loader container (keeps them off the cores of Kafka and Neo4j). |
+| `LOADER_CPUSET` | unset | CLI | Docker `cpuset_cpus` pin for every loader container (keeps them off the cores of Kafka and Neo4j). With `--runtime process` each role pins itself to these CPUs (`12-15,18` form); the command and the planner workers are not pinned. |
+| `GRAPH_LOADER_RUNTIME` | `docker` | CLI | Default for `--runtime` (`docker` or `process`); the flag wins. Any other value exits 1. |
 
 ### Container images
+
+Docker runtime only; `--runtime process` does not read them.
 
 | Variable | Default | Read by |
 | --- | --- | --- |
@@ -334,6 +381,7 @@ See [MONITORING](MONITORING.md) for the metric catalogue.
 | --- | --- | --- | --- |
 | `GRAPH_LOADER_METRICS_ENABLED` | enabled | every process (forwarded by the CLI) | `0` or `false` disables the endpoint and snapshots. |
 | `GRAPH_LOADER_METRICS_PORT` | `9464` | every process (forwarded by the CLI) | Prometheus endpoint port. The CLI falls back to an ephemeral port when taken. |
+| `GRAPH_LOADER_METRICS_LISTEN` | set by the runtime | roles, `--runtime process` only | `host:port` from `--metrics-addr` (port `0` = OS-assigned); replaces `GRAPH_LOADER_METRICS_PORT` for the roles. Not an operator setting. |
 | `GRAPH_LOADER_METRICS_BIND_ADDR` | `127.0.0.1` | CLI only | Set to expose the CLI's endpoint to a Prometheus container; logs a warning because the endpoint is unauthenticated. |
 | `GRAPH_LOADER_METRICS_SNAPSHOT_PATH` | set by the CLI per replica | containers; CLI uses its resolved timing directory/metrics-cli.prom | Atomic Prometheus-text snapshot written periodically and at exit. |
 | `GRAPH_LOADER_METRICS_SNAPSHOT_INTERVAL_S` | `15` | every process (forwarded by the CLI) | Seconds between periodic snapshot rewrites. `0` disables the periodic timer (the exit-time write still happens); non-finite values fall back to the default, values below 1 are raised to 1 and values above 86400 are clamped. |

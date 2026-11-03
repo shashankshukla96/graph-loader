@@ -1,0 +1,13 @@
+{
+ "bucket-lease-server": 31625216,
+ "cli-process": 107536384,
+ "edge-loader:FOLLOWS": 157573120,
+ "edge-loader:PURCHASED": 174452736,
+ "edge-loader:STOCKS": 130555904,
+ "edge-loader:VIEWED": 149073920,
+ "harness": 335544320,
+ "node-loader:Customer": 112406528,
+ "node-loader:Product": 106475520,
+ "node-loader:Store": 103641088,
+ "retry-consumer": 120532992
+}

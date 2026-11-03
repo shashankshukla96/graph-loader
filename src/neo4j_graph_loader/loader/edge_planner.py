@@ -1063,11 +1063,47 @@ def _default_producer_factory(bootstrap_servers: str, producer_config: dict):
     return factory
 
 
+@dataclass(frozen=True)
+class PlannerSupervision:
+    """Opt-in supervision of the planner worker processes (the process runtime; Docker mode leaves it off).
+
+    ``parent_watch``: every worker gets a parent-death socket and watches it in a thread independent of
+    its command loop, so a long scan stops when the CLI dies (even by ``kill -9``).
+    ``on_process``: called in the parent with ``{"role", "index", "pid"}`` for every worker and for the
+    multiprocessing resource-tracker helper, so they can be recorded in the run registry.
+    """
+
+    parent_watch: bool = False
+    on_process: Callable[[dict], None] | None = None
+
+
+PARENT_GONE_EXIT_CODE = 143
+
+
+def _watch_parent(sock) -> None:
+    """Worker side: the parent never sends on this socket; end of file means it is gone."""
+    try:
+        while sock.recv(1):
+            pass
+    except OSError:
+        pass
+    try:
+        os.write(2, b"WARNING: stage=edge-plan-worker parent process exited; stopping this planner worker\n")
+    except OSError:
+        pass
+    os._exit(PARENT_GONE_EXIT_CODE)
+
+
 def _planner_worker_main(sock, worker: dict, bootstrap_servers: str, producer_config: dict,
-                         producer_class=None, consumer_factory=None, progress=None, parent_duplicate=None) -> None:
+                         producer_class=None, consumer_factory=None, progress=None, parent_duplicate=None,
+                         death=None, death_duplicate=None) -> None:
     """Child-only initial source unpickling, then closed-codec command/result frames."""
     if parent_duplicate is not None:
         parent_duplicate.close()
+    if death is not None:
+        if death_duplicate is not None:
+            death_duplicate.close()      # the child must not hold the parent's end, or it would never see EOF
+        threading.Thread(target=_watch_parent, args=(death,), name="parent-watch", daemon=True).start()
     connection = FrameStream(sock)
     state = None
     try:
@@ -1107,14 +1143,19 @@ def _planner_worker_main(sock, worker: dict, bootstrap_servers: str, producer_co
 class _ProcessWorker:
     _is_process_worker = True
     def __init__(self, context, worker: dict, bootstrap_servers: str, producer_config: dict,
-                 producer_class, consumer_factory) -> None:
+                 producer_class, consumer_factory, supervision: "PlannerSupervision | None" = None) -> None:
         parent, child = socket.socketpair()
+        self._death_parent = self._death_child = None
         try:
             self.progress = context.RawArray("q", 3)
+            extra = ()
+            if supervision is not None and supervision.parent_watch:
+                self._death_parent, self._death_child = socket.socketpair()
+                extra = (self._death_child, self._death_parent)
             self.process = context.Process(
                 target=_planner_worker_main,
                 args=(child, worker, bootstrap_servers, producer_config, producer_class, consumer_factory,
-                      self.progress, parent), daemon=True,
+                      self.progress, parent, *extra), daemon=True,
             )
             self.connection = FrameStream(parent)
             self._child = child
@@ -1122,7 +1163,19 @@ class _ProcessWorker:
             self._submitted = False
         except BaseException:
             parent.close(); child.close()
+            self.release_lifeline()
             raise
+
+    def release_lifeline(self) -> None:
+        """Close the parent's end of the parent-death socket (only after the worker is gone, or it would exit)."""
+        for name in ("_death_child", "_death_parent"):
+            end = getattr(self, name, None)
+            if end is not None:
+                setattr(self, name, None)
+                try:
+                    end.close()
+                except OSError:
+                    pass
 
     def start(self) -> None:
         # The planner owns this handle before start, including partial startup.
@@ -1130,11 +1183,16 @@ class _ProcessWorker:
             self.process.start()
         except BaseException:
             self.close_endpoints()
+            self.release_lifeline()
             raise
         finally:
             if self._child is not None:
                 self._child.close()
                 self._child = None
+            death_child = getattr(self, "_death_child", None)
+            if death_child is not None:      # the worker owns its copy now
+                death_child.close()
+                self._death_child = None
 
     def close_endpoints(self) -> None:
         try:
@@ -1232,6 +1290,10 @@ def _cleanup_process_workers(workers, terminate, deadline, clock):
     for worker in survivors: attempt(worker, "kill")
     for worker in survivors:
         attempt(worker, "join", timeout=max(0., deadline - clock()))
+    for worker in active:
+        release = getattr(worker, "release_lifeline", None)
+        if release is not None:
+            release()
     return list(dict.fromkeys(uncertain + [worker for worker in survivors if _process_alive(worker)]))
 
 
@@ -1366,7 +1428,9 @@ class ParallelEdgePlanner:
                  plan_path: Path | str | None = None,
                  metrics: "metrics_module.GraphLoaderMetrics | None" = None,
                  rejection_dir: Path | str | None = None,
-                 cancel_event=None, timeout_seconds: float | None = None) -> None:
+                 cancel_event=None, timeout_seconds: float | None = None,
+                 supervision: PlannerSupervision | None = None) -> None:
+        self.supervision = supervision
         if timeout_seconds is not None:
             try:
                 valid = not isinstance(timeout_seconds, bool) and math.isfinite(timeout_seconds) and timeout_seconds > 0
@@ -1552,10 +1616,11 @@ class ParallelEdgePlanner:
                         self._begin_operation()
                     else:
                         handle = _ProcessWorker(context, worker, self.bootstrap_servers, self.producer_config,
-                                                self.producer_class, self.consumer_factory)
+                                                self.producer_class, self.consumer_factory, self.supervision)
                     self._workers.append(handle)
                     if not inline:
                         handle.start()
+                        self._announce_process("planner-worker", index, handle.process.pid)
                     handle.send("scan", lane)
                 if not inline:
                     self._begin_operation()
@@ -1576,6 +1641,20 @@ class ParallelEdgePlanner:
                 except Exception as cleanup:
                     exc.add_note(str(cleanup))
                 raise
+
+    def _announce_process(self, role: str, index: int, pid: int | None) -> None:
+        notify = None if self.supervision is None else self.supervision.on_process
+        if notify is None or pid is None:
+            return
+        try:
+            notify({"role": role, "index": index, "pid": pid})
+            if role == "planner-worker" and index == 0:
+                from multiprocessing import resource_tracker
+                tracker = getattr(resource_tracker._resource_tracker, "_pid", None)
+                if tracker:
+                    notify({"role": "planner-helper", "index": 0, "pid": tracker})
+        except Exception as exc:          # recording is best effort for the planner; the registry reports its own failures
+            logger.warning("stage=edge-plan reason=process_registration_failed role=%s pid=%s error=%s", role, pid, exc)
 
     def _gather(self) -> list:
         results = []
@@ -2041,7 +2120,9 @@ class KafkaEdgePlanner:
                  read_timeout_seconds: float = DEFAULT_READ_TIMEOUT_SECONDS,
                  plan_path: Path | str | None = None,
                  metrics: "metrics_module.GraphLoaderMetrics | None" = None,
-                 rejection_dir: Path | str | None = None) -> None:
+                 rejection_dir: Path | str | None = None,
+                 supervision: PlannerSupervision | None = None) -> None:
+        self.supervision = supervision
         self.schema = schema
         # Malformed records are rejected to ``<rejection_dir>/<plan id>-planner-<worker>.jsonl`` (classic
         # rejection-log entries) and skipped; ``None`` keeps the plan fail-closed on any invalid record.
@@ -2102,6 +2183,7 @@ class KafkaEdgePlanner:
                 topic: [list(item) for item in ranges] for topic, ranges in self.boundary.items()
             }},
             plan_path=self.plan_path, metrics=self._metrics, rejection_dir=self.rejection_dir,
+            supervision=self.supervision,
         )
         self.planner.start()
 

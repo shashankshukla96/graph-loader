@@ -16,6 +16,7 @@ from typing import Callable, Deque, Mapping, Sequence
 from confluent_kafka import OFFSET_BEGINNING, Consumer, Message, Producer, TopicPartition
 from neo4j import Driver
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.cli import get_neo4j_credentials
 from neo4j_graph_loader.loader.control import CONTROL_TOPIC
 from neo4j_graph_loader.loader.dead_letter import (
@@ -1888,6 +1889,7 @@ def main(argv: list[str] | None = None) -> int:
     process_metrics = metrics_module.process_metrics()
     metrics_module.install_dlq_routed_listener()
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="edge", name=args.edge_type)
+    runtime_ready(metrics=metrics_module.metrics_status(metrics_server))
     try:
         schema = load_schema(args.config)
         edge_config = _select_edge_config(schema, args.edge_type)

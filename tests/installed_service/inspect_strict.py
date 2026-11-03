@@ -34,7 +34,8 @@ def group_offsets(stack, group, topic, partitions):
 
     def read():
         rows = committed_offsets(owner=stack.owner, bootstrap=stack.bootstrap, group=group,
-                                 partitions=[(topic, p) for p in range(partitions)], broker_guard=running)
+                                 partitions=[(topic, p) for p in range(partitions)], broker_guard=running,
+                                 prefix_name=getattr(stack, 'prefix', 'e09'))
         return {r['partition']: r['offset'] for r in rows}
     result = retried(read)
     if sorted(result) != list(range(partitions)):

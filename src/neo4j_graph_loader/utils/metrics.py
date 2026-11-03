@@ -716,6 +716,11 @@ def _start_metrics_server_impl(
     if _metrics_disabled():
         return None
     try:
+        listen = os.environ.get(METRICS_LISTEN_ENV) if port is None else None
+        if listen:
+            # The process runtime's explicit listen address ("host:port", port 0 = OS-assigned). Docker mode never sets it.
+            host_part, _, port_part = listen.rpartition(":")
+            addr, port = (host_part or addr), int(port_part)
         if port is not None:
             # An explicit `port` (including the internal ephemeral-fallback
             # call's `port=0`, meaning "OS-assigned") is caller-controlled
@@ -748,7 +753,7 @@ def _start_metrics_server_impl(
             server, _thread = start_http_server(
                 resolved_port, addr=addr, registry=metrics.registry
             )
-            bound_port = resolved_port
+            bound_port = getattr(server, "server_port", resolved_port)     # 0 -> the OS-assigned port
         except OSError as exc:
             if not allow_ephemeral_fallback:
                 logger.warning(
@@ -790,6 +795,17 @@ def _start_metrics_server_impl(
             kind, name, exc,
         )
         return None
+
+
+METRICS_LISTEN_ENV = "GRAPH_LOADER_METRICS_LISTEN"
+
+
+def metrics_status(server: Any | None) -> dict:
+    """What a role tells the process runtime about its metrics endpoint: ``listening`` (with the bound port),
+    ``disabled`` (``GRAPH_LOADER_METRICS_ENABLED=0``) or ``failed`` (the bind failed; the role keeps writing)."""
+    if server is not None:
+        return {"state": "listening", "port": int(getattr(server, "server_port", 0))}
+    return {"state": "disabled" if _metrics_disabled() else "failed"}
 
 
 def start_metrics_server(

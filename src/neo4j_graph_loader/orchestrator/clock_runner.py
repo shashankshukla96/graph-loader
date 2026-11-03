@@ -16,6 +16,7 @@ from threading import Event
 
 from confluent_kafka import Producer
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.orchestrator.coordination import GlobalBatchClock
 from neo4j_graph_loader.orchestrator.dependency_manager import build_conflict_families
 from neo4j_graph_loader.orchestrator.fleet_contract import parse_fleet_edge_types, select_shared_fleet_edges
@@ -49,6 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     producer = None
     process_metrics = metrics_module.process_metrics()
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="clock", name="-")
+    runtime_ready(metrics=metrics_module.metrics_status(metrics_server))
     try:
         if not isinstance(args.run_id, str) or not args.run_id.strip():
             raise ValueError("stage=clock reason=run id must be nonblank")

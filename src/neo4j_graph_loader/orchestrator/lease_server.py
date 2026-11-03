@@ -75,6 +75,7 @@ import time
 import uuid
 from typing import Iterable, Sequence
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.utils import metrics as metrics_module
 
 
@@ -722,6 +723,7 @@ async def serve(host: str, port: int, *, bucket_count: int | None, stop: asyncio
     )
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="lease-server", name="-")
     metrics_module.initialize_zero_series(process_metrics, kind="lease-server", name="-")
+    runtime_ready({"control": bound_port}, metrics=metrics_module.metrics_status(metrics_server))
     try:
         await stop.wait()
     finally:

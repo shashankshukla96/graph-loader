@@ -10,12 +10,13 @@ from typing import Callable, Mapping, Sequence
 
 from confluent_kafka import Consumer, ConsumerGroupTopicPartitions, TopicPartition
 from confluent_kafka.admin import AdminClient
-from docker.errors import NotFound
 
 from neo4j_graph_loader.loader.control import CONTROL_TOPIC
 from neo4j_graph_loader.models.schema import EdgeConfig
 from neo4j_graph_loader.orchestrator.coordination import ClockLease, decode_clock_lease
 from neo4j_graph_loader.orchestrator.rotation import RotationPlan
+from neo4j_graph_loader.orchestrator import heartbeat
+from neo4j_graph_loader.orchestrator.runtime import HandleGone
 from neo4j_graph_loader.orchestrator.bulk_monitor import (
     AssignmentCoverageError, BulkMonitorError, BulkShutdownRequested, BulkTimeoutError, LoaderCrashError,
     OffsetResolutionError, QuiescentViolationError,
@@ -317,7 +318,7 @@ class RelationshipBulkMonitor:
             try:
                 container.reload(); state = getattr(container, "attrs", {}).get("State", {})
                 status = state.get("Status", getattr(container, "status", "running"))
-            except NotFound:
+            except HandleGone:
                 status = "removed"
             except Exception as exc:
                 raise self._failure(
@@ -358,7 +359,7 @@ class RelationshipBulkMonitor:
                 container.reload()
                 state = getattr(container, "attrs", {}).get("State", {})
                 status = state.get("Status", getattr(container, "status", "running"))
-            except NotFound:
+            except HandleGone:
                 status, state = "removed", {}
             except Exception as exc:
                 raise LoaderCrashError(
@@ -395,7 +396,7 @@ class RelationshipBulkMonitor:
             self._tracked_clock.reload()
             state = getattr(self._tracked_clock, "attrs", {}).get("State", {})
             status = state.get("Status", getattr(self._tracked_clock, "status", "running"))
-        except NotFound:
+        except HandleGone:
             status = "removed"
         except Exception as exc:
             raise LoaderCrashError(
@@ -475,6 +476,7 @@ class RelationshipBulkMonitor:
         self._operation_deadline = deadline
         try:
             while self._clock() < deadline:
+                heartbeat.beat()
                 if self._abort_requested is not None and self._abort_requested():
                     raise BulkShutdownRequested(
                         f"shutdown requested while waiting for relationship stage={self._stage()} {name}"
@@ -629,6 +631,7 @@ class RelationshipBulkMonitor:
                     "initial stream clock lease timed out",
                 ) from exc
         while not shutdown_requested.is_set():
+            heartbeat.beat()
             if self._rotation_plan is not None:
                 self._check_clock_health()
             self._check_health()
@@ -706,7 +709,7 @@ class RelationshipBulkMonitor:
             self._tracked_lease_server.reload()
             state = getattr(self._tracked_lease_server, "attrs", {}).get("State", {})
             status = state.get("Status", getattr(self._tracked_lease_server, "status", "running"))
-        except NotFound:
+        except HandleGone:
             status = "removed"
         except Exception as exc:
             raise LoaderCrashError(

@@ -31,6 +31,28 @@ def _reap(process):
     assert not process.is_alive()
 
 
+def reap_resource_tracker(timeout=5.):
+    """Stop and wait for this client's multiprocessing resource tracker.
+
+    The spawn context starts one tracker child in the client's session. Some CPython releases (the host's 3.12.3; 3.12.14 stops it in ResourceTracker.__del__) never wait
+    for it at exit: it noticed EOF on its pipe only after the client had died, so
+    the supervisor's group probe (run_e04_fault.py, right after client.wait()) still found it and
+    reported emergency_group_cleanup. Closing its pipe and reaping it here is deterministic. All
+    fault children are already reaped, so no other process holds the pipe; the wait is bounded.
+    """
+    from multiprocessing import resource_tracker
+    tracker=resource_tracker._resource_tracker
+    with tracker._lock:
+        fd,pid=tracker._fd,tracker._pid
+        if fd is None or pid is None:return
+        os.close(fd);tracker._fd=None
+        deadline=time.monotonic()+timeout
+        while not os.waitpid(pid,os.WNOHANG)[0]:
+            if time.monotonic()>=deadline:raise AssertionError('resource tracker did not exit after its pipe closed')
+            time.sleep(.002)
+        tracker._pid=None
+
+
 def private_fault(scenario,mode,*,workers=None,context=None):
     if workers is not None:
         from tests.fixtures.e08_fault_matrix import private_fault as matrix_fault
@@ -342,3 +364,4 @@ if __name__=='__main__':
     result=(private_fault(scenario,mode,workers=args.workers,context=args.context) if scenario.startswith('private-') else
             public_fault(scenario,mode,output,workers=args.workers,context=args.context))
     Path(output).write_text(json.dumps(result,indent=2)+'\n')
+    reap_resource_tracker()  # leave no helper in the client's group for the supervisor's probe

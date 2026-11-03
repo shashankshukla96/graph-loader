@@ -63,6 +63,7 @@ import signal
 import time
 from typing import Callable, Iterable
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.loader.edge_plan import EdgePlan, read_plan_file
 from neo4j_graph_loader.utils import metrics as metrics_module
 
@@ -647,6 +648,7 @@ async def serve(plan_path: str, host: str, port: int, *, stop: asyncio.Event,
         process_metrics, kind="planned-dispatcher", name="-"
     )
     metrics_module.initialize_zero_series(process_metrics, kind="planned-dispatcher", name="-")
+    runtime_ready({"control": bound_port}, metrics=metrics_module.metrics_status(metrics_server))
     try:
         await stop.wait()
     finally:

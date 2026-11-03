@@ -20,7 +20,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from threading import Condition, Event, Lock, Thread
 
-from docker.errors import NotFound
 
 from neo4j_graph_loader.utils.schema_loader import load_schema, SchemaLoadError
 from neo4j_graph_loader._runtime import prepare_run, timing_directory, timing_kwargs
@@ -116,8 +115,13 @@ def get_neo4j_credentials() -> tuple[str, str, str]:
     )
 
 
-from neo4j_graph_loader.orchestrator.docker_service import DockerService, wait_until_stop_signal_ready
+from neo4j_graph_loader.orchestrator.docker_service import DockerService
+from neo4j_graph_loader.orchestrator.runtime import (
+    DEFAULT_RUNTIME_BACKEND, REJECTION_DIR, RUNTIME_BACKENDS, RUNTIME_ENV, HandleGone, Runtime,
+    wait_until_stop_signal_ready,
+)
 from neo4j_graph_loader.orchestrator.bulk_monitor import BulkMonitor, BulkShutdownRequested
+from neo4j_graph_loader.orchestrator.heartbeat import beat as _beat
 from neo4j_graph_loader.orchestrator.dependency_manager import (
     build_conflict_families,
     build_relationship_conflict_plan,
@@ -140,7 +144,6 @@ from neo4j_graph_loader.orchestrator.planned_edges import (
     replace_stale_chunk_topic, run_planned_edge_phase, start_kafka_edge_planner,
 )
 from neo4j_graph_loader.orchestrator import auto_settings
-from neo4j_graph_loader.orchestrator.docker_service import REJECTION_DIR
 
 # ``--edge-plan`` without a file: the library plans from the schema's edge topics.
 AUTO_EDGE_PLAN = "auto"
@@ -197,7 +200,7 @@ def _is_running(container: object) -> bool:
     """Return whether an exact tracked Docker container still needs a stop attempt."""
     try:
         container.reload()
-    except NotFound:
+    except HandleGone:
         return False
     except Exception:
         return True
@@ -369,6 +372,31 @@ class _NodeLoaderWatcher:
                     return
 
 
+def _supervise_node_loaders_only(containers: Iterable[object], shutdown: Event, cleanups: list, *, interval: float = 1.0) -> int:
+    """A stream schema without relationship types, ``--runtime process`` (decision D14-5).
+
+    Docker mode launches the node loaders and returns, leaving the containers running. Process-mode children are tied to the
+    command (control-socket lifeline), so returning would end them silently with exit 0. Instead the command stays up as their
+    supervisor, like every other stream shape: a stop request (SIGTERM, SIGINT, ``stop``) ends them in order and exits 0;
+    a node loader that dies makes it stop the rest and exit 1.
+    """
+    from neo4j_graph_loader.orchestrator import heartbeat
+
+    started = tuple(containers)
+    cleanups.append(lambda: (
+        _stop_exact_containers(started, stop_timeout=_NODE_STOP_TIMEOUT_SECONDS),
+        _remove_exact_containers(started),
+    ))
+    watcher = _NodeLoaderWatcher(started, shutdown).start()
+    logger.info("stage=supervise reason=stream schema without relationship types: supervising %s node loader(s) until stopped", len(started))
+    try:
+        while not shutdown.wait(interval):
+            heartbeat.beat()
+    finally:
+        watcher.stop()
+    return 1 if watcher.failed else 0
+
+
 def _lease_launch_kwargs(args: argparse.Namespace) -> dict:
     """Return bucket-lease launch settings for an edge loader, if enabled."""
     address = getattr(args, "lease_address", None)
@@ -509,7 +537,7 @@ def _remove_exact_containers(containers: Iterable[object]) -> None:
     for container in containers:
         try:
             container.remove(force=True)
-        except NotFound:
+        except HandleGone:
             pass
         except Exception as exc:
             if _removal_already_in_progress(exc):
@@ -519,7 +547,7 @@ def _remove_exact_containers(containers: Iterable[object]) -> None:
             logger.error("stage=shutdown container cleanup failed: %s", exc)
 
 
-def _run_relationship_bulk_stages(schema, docker_service: DockerService, args: argparse.Namespace) -> int:
+def _run_relationship_bulk_stages(schema, docker_service: Runtime, args: argparse.Namespace) -> int:
     """Run deterministic, exact-container relationship bulk stages."""
     edges = tuple(getattr(schema, "edges", ()))
     plan = build_relationship_conflict_plan(edges)
@@ -613,7 +641,7 @@ def _refuse_multi_pair(edges, path: str) -> None:
 
 def _run_bulk_relationship_edge(
     edge: EdgeConfig,
-    docker_service: DockerService,
+    docker_service: Runtime,
     args: argparse.Namespace,
     *,
     run_id: str,
@@ -868,7 +896,7 @@ def _assert_finished_topics_unchanged(
 
 def _run_precedence_substages(
     edge: EdgeConfig,
-    docker_service: DockerService,
+    docker_service: Runtime,
     args: argparse.Namespace,
     *,
     run_id: str,
@@ -949,7 +977,7 @@ def _run_precedence_substages(
 
 def _run_isolated_relationship_bulk_phase(
     edge: EdgeConfig,
-    docker_service: DockerService,
+    docker_service: Runtime,
     args: argparse.Namespace,
     *,
     run_id: str,
@@ -1033,7 +1061,7 @@ def _record_bulk_edge_stage_timing(
 
 
 def _run_completion_driven_bulk_edges(
-    edges: tuple[EdgeConfig, ...], docker_service: DockerService,
+    edges: tuple[EdgeConfig, ...], docker_service: Runtime,
     args: argparse.Namespace, *, parent_run_id: str, consumer_group_prefix: str,
     ready_labels: set[str] | None = None,
     ready_condition: Condition | None = None,
@@ -1097,6 +1125,7 @@ def _run_completion_driven_bulk_edges(
     order = sorted(by_type, key=lambda edge_type: (-weights.get(edge_type, 0), edge_type))
     with ThreadPoolExecutor(max_workers=len(edges), thread_name_prefix="bulk-edge") as executor:
         while pending or active:
+            _beat()                          # the scheduler's own wait can outlast /healthz's stale limit with no monitor beating
             if cancelled.is_set():
                 with launch_lock:
                     running = tuple(container for edge_type in active.values() for container in launched.get(edge_type, ()))
@@ -1203,7 +1232,7 @@ def _derive_relationship_phase_run_id(
 
 def _run_isolated_relationship_stream_phase(
     edge: EdgeConfig,
-    docker_service: DockerService,
+    docker_service: Runtime,
     args: argparse.Namespace,
     *,
     run_id: str,
@@ -1281,7 +1310,7 @@ def _run_isolated_relationship_stream_phase(
 
 
 def _run_relationship_orchestration(
-    schema, docker_service: DockerService, args: argparse.Namespace, *, parent_run_id: str,
+    schema, docker_service: Runtime, args: argparse.Namespace, *, parent_run_id: str,
     shared_already_loaded: bool = False,
     self_references_already_loaded: frozenset[str] = frozenset(),
 ) -> int:
@@ -1364,7 +1393,7 @@ def _run_relationship_orchestration(
 
 
 def _run_rotating_relationship_fleet(
-    schema, docker_service: DockerService, args: argparse.Namespace, *,
+    schema, docker_service: Runtime, args: argparse.Namespace, *,
     selected_edges: tuple[EdgeConfig, ...] | None = None, phase_run_id: str | None = None,
 ) -> int:
     """Run one exact eligible-edge fleet under a single run-scoped clock.
@@ -1565,14 +1594,14 @@ def _run_rotating_relationship_fleet(
         _remove_exact_containers(edge_containers)
 
 
-def _sweep_orphaned_lease_containers(docker_service: DockerService, run_id: str) -> None:
+def _sweep_orphaned_lease_containers(docker_service: Runtime, run_id: str) -> None:
     """Review finding M5-1 backstop: a lease-server relaunch whose
     ``containers.run()`` call raised *after* Docker already created the
     container leaves the monitor with no object to stop. Sweep by label
     so this run's lease server is never left running regardless."""
     try:
-        containers = docker_service.client.containers.list(
-            all=True, filters={"label": [f"run_id={run_id}", "component=bucket-lease-server"]},
+        containers = docker_service.list_run_containers(
+            label_filters=(f"run_id={run_id}", "component=bucket-lease-server"),
         )
     except Exception as exc:
         logger.warning("stage=shutdown run_id=%s lease-server label sweep failed: %s", run_id, exc)
@@ -1588,7 +1617,7 @@ def _sweep_orphaned_lease_containers(docker_service: DockerService, run_id: str)
             pass
 
 
-def _launch_stream_lease_server(docker_service: DockerService, schema, args: argparse.Namespace, *, run_id: str):
+def _launch_stream_lease_server(docker_service: Runtime, schema, args: argparse.Namespace, *, run_id: str):
     """Select keyed labels and launch the run's long-lived lease coordinator."""
     args.lease_keyed_labels = _select_keyed_lease_labels(schema, args)
     try:
@@ -1604,7 +1633,7 @@ def _launch_stream_lease_server(docker_service: DockerService, schema, args: arg
     return container
 
 
-def _start_stream_lease_for_nodes(schema, docker_service: DockerService, args: argparse.Namespace, *, run_id: str):
+def _start_stream_lease_for_nodes(schema, docker_service: Runtime, args: argparse.Namespace, *, run_id: str):
     """Start the stream lease server BEFORE the node loaders (they lease too).
 
     Returns ``(container, node_launch_kwargs)``; the kwargs carry the lease
@@ -1709,7 +1738,7 @@ def _prepare_stream_consumer_groups(schema, args: argparse.Namespace, *, explici
 
 
 def _run_lease_relationship_fleet(
-    schema, docker_service: DockerService, args: argparse.Namespace, *, parent_run_id: str,
+    schema, docker_service: Runtime, args: argparse.Namespace, *, parent_run_id: str,
     prestarted_lease_container: object | None = None, node_containers: Iterable[object] = (),
 ) -> int:
     """Run every relationship type concurrently under one long-lived
@@ -2649,6 +2678,13 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
     # Resolve and pin every required component before service-side changes.
     try:
         docker_service = _docker_service_for_run(args)
+        if _runtime_backend(args) == "process":
+            docker_service.register_cli()
+            cleanups.append(docker_service.close)        # registered first, so it runs last (after planner and node cleanups)
+            docker_service.set_stopping_check(shutdown.is_set)
+            docker_service.set_cli_metrics(cli_metrics_server)
+            if getattr(args, "health_addr", None):
+                docker_service.start_health(args.health_addr)
         if getattr(args, "skip_image_build", False):
             roles = ["node"] + (["edge"] if edge_configs else [])
             if edge_configs and args.mode == "stream" and getattr(args, "stream_clock_rotation", False):
@@ -2711,6 +2747,13 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                         neo4j_cores or f"unknown, assumed {auto_settings.DEFAULT_NEO4J_CORES}")
         if args.edge_plan == AUTO_EDGE_PLAN:
             # Plan from the edge topics while images build and nodes load.
+            if _runtime_backend(args) == "process":
+                from neo4j_graph_loader.orchestrator.cgroup_budget import SizingError
+                try:
+                    docker_service.apply_plan_budget(args, schema)
+                except SizingError as exc:
+                    logger.error("stage=sizing reason=%s", exc)
+                    return 1
             try:
                 if getattr(args, "replace_stale_plan_topic", False) and explicit_run_id is not None \
                         and not getattr(args, "plan_topic", None):
@@ -2722,12 +2765,16 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                     schema, args, run_id=parent_run_id, writers=args.plan_writers,
                     bootstrap_servers=os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
                     stop_requested=_shutdown_requested,
+                    **({"supervision": docker_service.planner_supervision()} if _runtime_backend(args) == "process" else {}),
                 )
             except Exception as exc:
                 logger.error("stage=edge-plan reason=planner could not start: %s", exc)
                 return 1
             keep = bool(getattr(args, "keep_plan_topic", False))
             cleanups.append(lambda: planner.close(delete_topic=not keep))
+            if _runtime_backend(args) == "process":
+                # An ordered planner stop comes before any process-group signal the runtime sends.
+                docker_service.add_pre_signal_hook(lambda: planner.close(delete_topic=not keep))
     elif getattr(args, "edge_plan", None) == AUTO_EDGE_PLAN:
         args.edge_plan = None
 
@@ -2838,7 +2885,9 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
 
     if not is_bulk:
         if not edge_configs:
-            return 0
+            if _runtime_backend(args) == "process":
+                return _supervise_node_loaders_only(started_containers, shutdown, cleanups)
+            return 0                  # Docker mode: the containers keep running after the command returns (documented)
         # Every exit from here on - graceful stop (result 0), failure, an
         # isolation-policy rejection or an escaping exception - stops
         # exactly the node loaders this run started.  Neither relationship
@@ -2987,6 +3036,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                             edge_result = edge_future.result(timeout=0.25)
                             break
                         except FuturesTimeoutError:
+                            _beat()          # nodes done, waiting for the dependent phase: still supervising
                             if shutdown.is_set():
                                 scheduler_cancelled.set()
                                 with ready_condition:
@@ -3049,28 +3099,79 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
         _remove_exact_containers(started_containers)
 
 
-def _docker_service_for_run(args):
-    runtime = getattr(args, "runtime", None)
+def _default_run_dir() -> str:
+    import tempfile
+    return tempfile.gettempdir()
+
+
+def _runtime_backend(args) -> str:
+    return getattr(args, "runtime_backend", None) or DEFAULT_RUNTIME_BACKEND
+
+
+def _build_runtime(backend: str, paths, args=None) -> Runtime:
+    if backend == "docker":
+        return DockerService(runtime=paths) if paths is not None else DockerService()
+    if backend == "process":
+        from neo4j_graph_loader.orchestrator.process_service import ProcessService
+        return ProcessService(paths, metrics_addr=getattr(args, "metrics_addr", None) or "127.0.0.1",
+                              child_logs=getattr(args, "child_logs", None) or "relay",
+                              health_stale_after=getattr(args, "health_stale_after", None) or 30.0)
+    raise RuntimeError(f"unknown runtime backend {backend!r}")
+
+
+def _docker_service_for_run(args) -> Runtime:
+    """The run's runtime (backend chosen by ``--runtime``), built once per run."""
+    paths = getattr(args, "runtime", None)
     service = getattr(args, "_docker_service", None)
     if service is None:
-        service = DockerService(runtime=runtime) if runtime is not None else DockerService()
+        service = _build_runtime(_runtime_backend(args), paths, args)
         args._docker_service = service
     return service
 
 
-def _docker_service_or_none() -> DockerService | None:
-    """A ``DockerService``, or None (after a clear error) when Docker is unreachable."""
+def _docker_service_or_none(args=None) -> Runtime | None:
+    """The selected runtime, or None (after a clear error) when it is unreachable."""
     try:
-        return DockerService()
+        return _build_runtime(_runtime_backend(args), None)
     except Exception as exc:
         logger.error("stage=docker reason=unreachable detail=%s", exc)
         return None
 
 
+def _second_shell_registry_error(exc: Exception) -> int:
+    logger.error("stage=runtime reason=%s", exc)
+    return 1
+
+
 def handle_stop(args: argparse.Namespace) -> int:
     loader = args.loader
     logger.info("Stopping loader(s)...")
-    docker_service = _docker_service_or_none()
+    if _runtime_backend(args) == "process" and getattr(args, "recover", False):
+        from neo4j_graph_loader.orchestrator.process_service import recover_registered
+        from neo4j_graph_loader.orchestrator.run_registry import RegistryError
+        try:
+            report = recover_registered(getattr(args, "run_dir", None) or _default_run_dir())
+        except (RegistryError, OSError) as exc:
+            return _second_shell_registry_error(exc)
+        logger.info("stage=recover attempt=%s signalled=%s killed=%s remaining=%s", report["attempt_dir"], report["signalled"],
+                    report["killed"], report["remaining"])
+        retained = report["retained"]
+        shown = ", ".join(retained[:50]) + (f", ... and {len(retained) - 50} more" if len(retained) > 50 else "")
+        logger.info("stage=recover retained (never deleted) files=%s: %s", len(retained), shown or "nothing beyond the registry and logs")
+        return 1 if report["remaining"] else 0
+    if _runtime_backend(args) == "process":
+        from neo4j_graph_loader.orchestrator.process_service import stop_registered
+        from neo4j_graph_loader.orchestrator.run_registry import RegistryError
+        try:
+            stopped = stop_registered(getattr(args, "run_dir", None) or _default_run_dir(), loader)
+        except (RegistryError, OSError) as exc:
+            return _second_shell_registry_error(exc)
+        if not stopped:
+            logger.info("No matching loaders running.")
+        for item in stopped:
+            logger.info("Stop requested: %s", item)
+        return 0
+    docker_service = _docker_service_or_none(args)
     if docker_service is None:
         return 1
     docker_service.stop_node_loaders(node_label=loader)
@@ -3080,10 +3181,18 @@ def handle_stop(args: argparse.Namespace) -> int:
 
 def handle_status(args: argparse.Namespace) -> int:
     logger.info(f"Checking status for config: {args.config}")
-    docker_service = _docker_service_or_none()
-    if docker_service is None:
-        return 1
-    containers = docker_service.list_node_loaders()
+    if _runtime_backend(args) == "process":
+        from neo4j_graph_loader.orchestrator.process_service import describe_registered
+        from neo4j_graph_loader.orchestrator.run_registry import RegistryError
+        try:
+            containers = describe_registered(getattr(args, "run_dir", None) or _default_run_dir())
+        except (RegistryError, OSError) as exc:
+            return _second_shell_registry_error(exc)
+    else:
+        docker_service = _docker_service_or_none(args)
+        if docker_service is None:
+            return 1
+        containers = docker_service.list_node_loaders()
     if not containers:
         logger.info("No loaders running.")
     for c in containers:
@@ -3296,6 +3405,23 @@ def handle_validate_schema(args: argparse.Namespace) -> int:
     return 0
 
 
+class _ExplicitStore(argparse.Action):
+    """``store`` that also records the option was given (``args._explicit_<dest>``), whatever its value."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values)
+        setattr(namespace, f"_explicit_{self.dest}", True)
+
+
+def _add_runtime_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--runtime", dest="runtime_backend", choices=RUNTIME_BACKENDS,
+        default=os.environ.get(RUNTIME_ENV) or DEFAULT_RUNTIME_BACKEND,
+        help="How roles are run: 'docker' (one container per role, default; env %s) or 'process' "
+        "(child processes of this command, Linux only; no Docker daemon, network or images)" % RUNTIME_ENV,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     from neo4j_graph_loader._version import __version__
 
@@ -3317,7 +3443,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser_start.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
     parser_start.add_argument("--run-dir", metavar="BASE", help="Create a private persistent attempt under BASE (default: OS temporary directory)")
     parser_start.add_argument("--mode", choices=["bulk", "stream"], required=True, help="Ingestion mode")
-    parser_start.add_argument("--network", default="graph-loader-net", help="Docker network for containers")
+    parser_start.add_argument("--network", default="graph-loader-net", action=_ExplicitStore, help="Docker network for containers")
+    _add_runtime_option(parser_start)
+    parser_start.add_argument("--metrics-addr", default=None, metavar="HOST[:PORT]",
+                              help="process runtime: where every role binds its metrics endpoint (default 127.0.0.1, an OS-assigned "
+                              "port per role, listed in <run dir>/metrics/targets.json); use 0.0.0.0 inside a pod")
+    parser_start.add_argument("--health-addr", default=None, metavar="HOST:PORT",
+                              help="process runtime: serve /healthz and /readyz here (off by default)")
+    parser_start.add_argument("--health-stale-after", type=float, default=None, metavar="SECONDS",
+                              help="process runtime: /healthz turns unhealthy when the supervision loop has not ticked for "
+                              "this long (default 30)")
+    parser_start.add_argument("--child-logs", choices=("relay", "files"), default=None,
+                              help="process runtime: 'relay' (default) also prints each role's output to this command's stdout "
+                              "with a [name] prefix; 'files' keeps it in <run dir>/logs only")
     parser_start.add_argument(
         "--skip-image-build",
         action="store_true",
@@ -3535,11 +3673,20 @@ def build_parser() -> argparse.ArgumentParser:
     # Stop command
     parser_stop = subparsers.add_parser("stop", help="Stop running ingestion containers")
     parser_stop.add_argument("--loader", help="Specific loader name to stop")
+    _add_runtime_option(parser_stop)
+    parser_stop.add_argument("--run-dir", metavar="DIR", help="process runtime: the run's attempt directory, or the base given to start "
+                             "(default: the OS temporary directory)")
+    parser_stop.add_argument("--recover", action="store_true",
+                             help="process runtime: after the command died abruptly, stop what it left behind and report what is "
+                             "retained (refused while it is alive)")
     parser_stop.set_defaults(func=handle_stop)
 
     # Status command
     parser_status = subparsers.add_parser("status", help="Check pipeline status and lags")
     parser_status.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
+    _add_runtime_option(parser_status)
+    parser_status.add_argument("--run-dir", metavar="DIR", help="process runtime: the run's attempt directory, or the base given to start "
+                               "(default: the OS temporary directory)")
     parser_status.set_defaults(func=handle_status)
 
     # Replay-DLQ command
@@ -3547,6 +3694,7 @@ def build_parser() -> argparse.ArgumentParser:
         "replay-dlq", help="Read a DLQ topic and republish matching envelopes to their source topic",
     )
     parser_replay.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
+    _add_runtime_option(parser_replay)
     replay_entity = parser_replay.add_mutually_exclusive_group(required=True)
     replay_entity.add_argument("--node-label", help="Replay this node label's DLQ topic")
     replay_entity.add_argument("--edge-type", help="Replay this relationship type's DLQ topic")
@@ -3592,6 +3740,34 @@ def main(args_list: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     parser = build_parser()
     args = parser.parse_args(args_list)
+    if args.command in {"start", "stop", "status", "replay-dlq"}:
+        if args.runtime_backend not in RUNTIME_BACKENDS:
+            logger.error("stage=runtime reason=%s must be one of %s, got %r", RUNTIME_ENV, ", ".join(RUNTIME_BACKENDS), args.runtime_backend)
+            return 1
+        if args.runtime_backend == "process" and args.command != "replay-dlq":
+            from neo4j_graph_loader.orchestrator.process_service import ProcessPreflightError, check_platform
+            try:
+                check_platform()
+            except ProcessPreflightError as exc:
+                logger.error("stage=runtime reason=%s", exc)
+                return 1
+            if args.command == "start":
+                for given, option in ((getattr(args, "_explicit_network", False), "--network"),
+                                      (getattr(args, "skip_image_build", False), "--skip-image-build")):
+                    if given:
+                        logger.error("stage=runtime reason=%s applies to Docker containers and is not accepted with --runtime process", option)
+                        return 1
+    if args.command in {"stop", "status"} and args.runtime_backend != "process":
+        for given, option in ((getattr(args, "run_dir", None), "--run-dir"), (getattr(args, "recover", False), "--recover")):
+            if given:
+                logger.error("stage=runtime reason=%s applies to --runtime process only", option)
+                return 1
+    if args.command == "start" and args.runtime_backend != "process":
+        for given, option in ((args.metrics_addr, "--metrics-addr"), (args.health_addr, "--health-addr"), (args.child_logs, "--child-logs"),
+                              (args.health_stale_after, "--health-stale-after")):
+            if given:
+                logger.error("stage=runtime reason=%s applies to --runtime process only", option)
+                return 1
     if args.command == "start":
         try:
             _merge_deprecated_lease_flags(args)

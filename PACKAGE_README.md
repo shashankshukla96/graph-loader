@@ -42,6 +42,7 @@ provide them:
 | Validate a schema, call `neo4j_graph_loader.schema` | nothing beyond the install |
 | Plan relationships with `neo4j_graph_loader.planning` | a Kafka broker you can create topics on |
 | Run `graph-loader start` (a load) | Neo4j 5.26 Enterprise, Kafka, Docker Engine on Linux, and the loader images `ghcr.io/shashankshukla96/graph-loader-{cli,node,edge,clock}:<package version>`, which `start` pulls when they are missing |
+| Run `graph-loader start --runtime process` (a load without Docker, as host processes or a systemd service) | Neo4j 5.26 Enterprise, Kafka and Linux (kernel 5.3 or newer); see the [process runtime guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) |
 
 ## Quick start
 
@@ -72,6 +73,8 @@ and the
 | [Bulk load guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/BULK_LOAD.md) | Run an initial load: prerequisites, producer contract, flags, edge modes, verification, recovery. |
 | [Incremental load guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/INCREMENTAL_LOAD.md) | Repeated batches or continuous streaming, ordering, dead-letter queue, restart. |
 | [CLI reference](https://github.com/shashankshukla96/graph-loader/blob/main/docs/CLI.md) | Every command, flag, default, exit code and environment variable. |
+| [Process runtime](https://github.com/shashankshukla96/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) | Run the loader as host processes or a systemd service instead of containers: install, quick start, stopping and recovery, sizing. |
+| [Single container](https://github.com/shashankshukla96/graph-loader/blob/main/docs/SINGLE_CONTAINER.md) | Run the whole loader in one CLI-image container with `--runtime process`: image, `docker run`, stopping, memory, limits. |
 | [Public library API](https://github.com/shashankshukla96/graph-loader/blob/main/docs/LIBRARY_API.md) | The supported Python modules, Kafka requirements, ownership and cancellation. |
 | [Usage reference](https://github.com/shashankshukla96/graph-loader/blob/main/docs/USAGE.md) | Schema fields, input contract, planned mode, dead-lettering, operations, troubleshooting. |
 | [Support, security and reporting problems](https://github.com/shashankshukla96/graph-loader/blob/main/docs/SUPPORT.md) | Get help, report a vulnerability, write a minimal reproduction. |

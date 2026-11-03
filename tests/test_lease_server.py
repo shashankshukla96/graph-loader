@@ -999,12 +999,12 @@ def test_no_old_lease_setting_names_used_internally_in_src() -> None:
 def test_lease_address_env_string_only_referenced_where_expected() -> None:
     """N3: LEASE_ADDRESS_ENV (the deprecated env var *name*) must only be
     referenced in lease_client.py (definition + fallback resolution) and
-    docker_service.py (the dual-set), never re-implemented ad hoc
+    role_launch.py (the dual-set; moved out of docker_service.py by E14.F1.S4), never re-implemented ad hoc
     elsewhere."""
     from installed_support import application_root
 
     root = application_root()
-    allowed_files = {"loader/lease_client.py", "orchestrator/docker_service.py"}
+    allowed_files = {"loader/lease_client.py", "orchestrator/docker_service.py", "orchestrator/role_launch.py"}
     violations = []
     for path in root.rglob("*.py"):
         relative = str(path.relative_to(root))

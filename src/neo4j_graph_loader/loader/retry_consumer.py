@@ -178,6 +178,7 @@ import threading
 import time
 from typing import Callable, Mapping, Protocol, Sequence, runtime_checkable
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.loader.dead_letter import (
     DeadLetterEnvelope,
     DeadLetterEnvelopeError,
@@ -3065,6 +3066,7 @@ def main(argv: list[str] | None = None) -> int:
     metrics_module.install_dlq_routed_listener()
     metrics_module.install_parked_listener()
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="retry-consumer", name="-")
+    runtime_ready(metrics=metrics_module.metrics_status(metrics_server))
     exit_code = 1
     try:
         from confluent_kafka import Consumer

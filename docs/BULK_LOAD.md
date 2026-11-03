@@ -543,14 +543,16 @@ Expect only `waiting: 0` for planned and lease runs (on the IMDb 40k load, 0 ms 
 
 * **Stop with `Ctrl-C` (SIGINT) or SIGTERM on the `start` process.** The first signal sets a shutdown flag that every wait notices within about 0.1-0.25 s (not after `--bulk-timeout-seconds`). The run then stops exactly the containers it started, in a safe order, and exits **`1`**, logging `stage=shutdown Bulk run stopped by operator/signal request` at WARNING. A chunk transaction in progress is never abandoned half-applied; planned writers between chunks exit `0`. A second signal changes nothing. Container stops run concurrently with Docker's own limits: up to 30 s for node loaders, 10 s for the lease server.
 * A stop during the plan wait terminates the planner processes at once and removes their spill and progress files and the chunk topic (unless `--keep-plan-topic`).
-* **`kill -9` is the last resort.** It cannot be caught, so every container the run started keeps running. Recover with:
+* **`kill -9` is the last resort.** It cannot be caught, so with the default Docker runtime every container the run started keeps running. First confirm the run's `start` command is gone (`pgrep -af 'graph-loader start'`), then list its containers and remove only that run's:
 
   ```bash
-  docker ps -a --filter label=app=graph-loader
-  docker rm -f $(docker ps -aq --filter label=app=graph-loader)
+  docker ps -a --filter label=app=graph-loader \
+    --format 'table {{.ID}}\t{{.Names}}\t{{.Label "component"}}\t{{.Label "run_id"}}\t{{.Status}}'
+  docker rm -f <id> <id> ...
   ```
 
-  Narrow with `--filter label=run_id=<id>` when you used an explicit `--run-id` (in bulk every container carries a `run_id` label: node loaders the parent id, lease/classic edge loaders the derived stage id described in section 14, so `label=run_id=<id>` misses the edge loaders; only stream node loaders started without `--run-id` have no such label), or `--filter label=component=<kind>` (`node-loader`, `edge-loader`, `bucket-lease-server`, `retry-consumer`, `planned-dispatcher`, `planned-edge-writer`) to leave other runs alone. Then see [section 14](#14-re-running-and-recovering) for the chunk topic.
+  Narrow with `--filter label=run_id=<id>` when you used an explicit `--run-id` (in bulk every container carries a `run_id` label: node loaders the parent id, lease/classic edge loaders the derived stage id described in section 14, so `label=run_id=<id>` misses the edge loaders; only stream node loaders started without `--run-id` have no such label), or `--filter label=component=<kind>` (`node-loader`, `edge-loader`, `bucket-lease-server`, `retry-consumer`, `planned-dispatcher`, `planned-edge-writer`) to leave other runs alone. The unfiltered `docker rm -f $(docker ps -aq --filter label=app=graph-loader)` removes every graph-loader container on the Docker host, other runs and other users' included; use it only when nothing else of graph-loader runs there. Then see [section 14](#14-re-running-and-recovering) for the chunk topic.
+* **With `--runtime process`** there are no containers to remove: after a `kill -9` of the CLI the roles stop themselves within seconds, and `graph-loader stop --runtime process --recover --run-dir <attempt or base>` stops anything left (through the run's registry, after identity checks, deleting nothing). The chunk topic below still has to be deleted by you. See [Process runtime](PROCESS_RUNTIME.md#7-stopping-and-recovery).
 * `graph-loader stop [--loader NAME]` stops node-loader containers only. `graph-loader status --config ...` lists node-loader containers and their status; despite its help text it does not report lag.
 * Run the recovery recipe after any stop you did not watch; after a normal stop it finds nothing.
 
@@ -579,7 +581,7 @@ Expect only `waiting: 0` for planned and lease runs (on the IMDb 40k load, 0 ms 
   docker exec graph-loader-kafka kafka-topics --bootstrap-server localhost:9092 --delete --topic graph-loader-edge-chunks-<run id>
   ```
 
-  To reuse the same `--run-id` instead, add `--replace-stale-plan-topic` after removing the run's containers (the start is refused while any is alive). The planner also removes a leftover plan directory's files and its own spill directory at start.
+  To reuse the same `--run-id` instead, add `--replace-stale-plan-topic` after removing the run's containers (the start is refused while any is alive; with `--runtime process` the check only sees roles of the current command, so run `stop --recover` first and check that nothing remains). The planner also removes a leftover plan directory's files and its own spill directory at start.
 * **Clearing the inputs.** Delete and recreate your topics, and delete the node groups too (see above): a committed offset that survives on a recreated topic would be used as the loaders' start position, or fails the zero-lag proof (`committed offset above the high watermark ... topic recreated under a reused run id?`). Wait until Kafka has finished deleting a topic before recreating it.
 * **Fresh database.** `CREATE OR REPLACE DATABASE <name> WAIT` against the `system` database. Constraints and indexes are recreated on the next run.
 * **Concurrent runs** must use different topics, groups and databases.

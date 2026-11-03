@@ -31,6 +31,7 @@ from threading import Lock, Thread
 import time
 from typing import Callable, Mapping, NoReturn
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.loader.edge_plan import (
     DEFAULT_MAX_MESSAGE_BYTES, EdgePlan, EdgePlanError, PlannedChunk, decode_chunk_message, read_plan_file,
 )
@@ -682,6 +683,7 @@ def main(argv: list[str] | None = None) -> int:
     driver = consumer = fetcher = client = None
     process_metrics = metrics_module.process_metrics()
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="planned-writer", name="-")
+    runtime_ready(metrics=metrics_module.metrics_status(metrics_server))
     metrics_module.initialize_zero_series(process_metrics, kind="planned-writer", name="-")
     try:
         schema = load_schema(args.config)

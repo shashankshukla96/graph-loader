@@ -41,6 +41,7 @@ from confluent_kafka import Consumer, Message, Producer, TopicPartition
 from neo4j import Driver
 from neo4j.exceptions import Neo4jError
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.cli import get_neo4j_credentials
 from neo4j_graph_loader.loader.control import CONTROL_TOPIC
 from neo4j_graph_loader.loader.fenced_tx import begin_fenced_transaction, check_deadline
@@ -1159,6 +1160,7 @@ def main(argv: list[str] | None = None, *, shutdown_requested: Event | None = No
     process_metrics = metrics_module.process_metrics()
     metrics_module.install_dlq_routed_listener()
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="node", name=args.node_label)
+    runtime_ready(metrics=metrics_module.metrics_status(metrics_server))
     loop_started = False
     try:
         if args.mode == "stream" and shutdown_requested.is_set():

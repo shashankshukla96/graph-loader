@@ -1,5 +1,11 @@
 # Checkout-free Docker execution
 
+This page describes the default `--runtime docker`: one container per role. To
+run the roles as processes of the command instead (no Docker daemon, no images),
+see [Process runtime](PROCESS_RUNTIME.md); image options and
+`GRAPH_LOADER_*_IMAGE` do not apply there. To run all roles inside one CLI-image
+container, see [Single container](SINGLE_CONTAINER.md).
+
 `graph-loader start` resolves prebuilt images and never builds from cwd. Defaults
 are `ghcr.io/shashankshukla96/graph-loader-{node,edge,clock}:<package-version>`;
 the current package version is `0.1.0a1`. The CLI image follows

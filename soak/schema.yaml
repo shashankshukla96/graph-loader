@@ -1,0 +1,115 @@
+# E13 soak schema (stream rules). The all-zero token is a template: a run substitutes its own owner token
+# (soak/schema.py render). Every type declares the string property `rid`, the generator's logical record id.
+loading:
+  mode: stream
+  consumer_group_id: e13-00000000000000000000000000000000
+  flush_interval_ms: 1000
+  retry_consumer:
+    max_records_per_partition: 1000
+    write_workers: 4
+nodes:
+  - label: Customer
+    topic: e13-00000000000000000000000000000000-customers
+    replicas: 2
+    key_property: customer_id
+    properties:
+      customer_id: {type: string, required: true, constraint: {type: uniqueness}}
+      rid: {type: string, required: true}
+      name: {type: string, required: true}
+      tier: {type: string}
+      city: {type: string}
+      updated_at: {type: datetime}
+  - label: Product
+    topic: e13-00000000000000000000000000000000-products
+    replicas: 1
+    key_property: product_id
+    properties:
+      product_id: {type: string, required: true, constraint: {type: uniqueness}}
+      rid: {type: string, required: true}
+      title: {type: string, required: true}
+      price: {type: float, required: true}
+      category: {type: string}
+  - label: Store
+    topic: e13-00000000000000000000000000000000-stores
+    replicas: 1
+    key_property: store_id
+    properties:
+      store_id: {type: string, required: true, constraint: {type: uniqueness}}
+      rid: {type: string, required: true}
+      name: {type: string, required: true}
+edges:
+  - type: PURCHASED
+    topics:
+      - name: e13-00000000000000000000000000000000-purchases-web
+        nodes: {source: Customer, target: Product}
+        source_key_property: customer_id
+        target_key_property: product_id
+      - name: e13-00000000000000000000000000000000-purchases-app
+        nodes: {source: Customer, target: Product}
+        source_key_property: customer_id
+        target_key_property: product_id
+    replicas: 2
+    order_by: version
+    retry: {base_delay_seconds: 1.0, max_delay_seconds: 60.0}
+    dead_letter:
+      enabled: true
+      topic: e13-00000000000000000000000000000000-dlq-purchased
+      max_retry_attempts: 11
+    properties:
+      rid: {type: string, required: true}
+      qty: {type: integer, required: true}
+      amount: {type: float, required: true}
+      version: {type: integer, required: true}
+      at: {type: datetime, required: true}
+  - type: STOCKS
+    topic: e13-00000000000000000000000000000000-stock
+    nodes: {source: Store, target: Product}
+    source_key_property: store_id
+    target_key_property: product_id
+    replicas: 1
+    order_by: updated_at
+    retry: {base_delay_seconds: 1.0, max_delay_seconds: 60.0}
+    dead_letter:
+      enabled: true
+      topic: e13-00000000000000000000000000000000-dlq-stocks
+      max_retry_attempts: 11
+    properties:
+      rid: {type: string, required: true}
+      quantity: {type: integer, required: true}
+      updated_at: {type: datetime, required: true}
+  - type: FOLLOWS
+    topic: e13-00000000000000000000000000000000-follows
+    nodes: {source: Customer, target: Customer}
+    source_key_property: customer_id
+    target_key_property: customer_id
+    replicas: 1
+    retry: {base_delay_seconds: 1.0, max_delay_seconds: 60.0}
+    dead_letter:
+      enabled: true
+      topic: e13-00000000000000000000000000000000-dlq-follows
+      max_retry_attempts: 11
+    properties:
+      rid: {type: string, required: true}
+      since: {type: date}
+      strength: {type: integer}
+  - type: VIEWED
+    topics:
+      - name: e13-00000000000000000000000000000000-views-product
+        nodes: {source: Customer, target: Product}
+        source_key_property: customer_id
+        target_key_property: product_id
+      - name: e13-00000000000000000000000000000000-views-store
+        nodes: {source: Customer, target: Store}
+        source_key_property: customer_id
+        target_key_property: store_id
+    replicas: 1
+    order_by: seen_at
+    retry: {base_delay_seconds: 1.0, max_delay_seconds: 60.0}
+    dead_letter:
+      enabled: true
+      topic: e13-00000000000000000000000000000000-dlq-viewed
+      max_retry_attempts: 11
+    properties:
+      rid: {type: string, required: true}
+      seen_at: {type: datetime, required: true}
+      device: {type: string, required: true}

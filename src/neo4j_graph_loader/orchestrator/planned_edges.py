@@ -32,7 +32,8 @@ from typing import Callable, Iterable
 
 from neo4j_graph_loader.loader.edge_plan import EdgePlan, EdgePlanError, plan_failure_marker, plan_progress_path, read_plan_file
 from neo4j_graph_loader.loader.planned_writer import STOP_REASON, DispatcherClient
-from neo4j_graph_loader.orchestrator.docker_service import REJECTION_DIR
+from neo4j_graph_loader.orchestrator import heartbeat
+from neo4j_graph_loader.orchestrator.runtime import REJECTION_DIR
 from neo4j_graph_loader._runtime import timing_kwargs
 
 
@@ -65,13 +66,14 @@ def replace_stale_chunk_topic(docker_service, run_id: str, bootstrap_servers: st
     admin = admin_factory({"bootstrap.servers": bootstrap_servers})
     if topic not in admin.list_topics(timeout=30.0).topics:
         return False
+    stop_hint = getattr(docker_service, "stop_hint", None)        # the process runtime names its own stop command
     alive = [c for c in docker_service.list_run_containers(label_filters=("app=graph-loader", f"run_id={run_id}"))
              if getattr(c, "status", "") in ("running", "restarting", "paused", "created")]
     if alive:
         raise PlannedEdgeError(
             f"chunk topic {topic} exists and {len(alive)} container(s) of run {run_id} are still alive "
             f"({', '.join(sorted(c.name for c in alive)[:5])}); stop them first "
-            f"(docker rm -f $(docker ps -aq --filter label=run_id={run_id}))"
+            f"({stop_hint(run_id) if stop_hint is not None else f'docker rm -f $(docker ps -aq --filter label=run_id={run_id})'})"
         )
     delete_chunk_topic(bootstrap_servers, topic, admin_factory=admin_factory)
     # Kafka deletes asynchronously: wait until the name is really gone, or the
@@ -86,7 +88,7 @@ def replace_stale_chunk_topic(docker_service, run_id: str, bootstrap_servers: st
 
 
 def start_kafka_edge_planner(schema, args, *, run_id: str, writers: int, bootstrap_servers: str,
-                             planner_factory=None, stop_requested=None):
+                             planner_factory=None, stop_requested=None, supervision=None):
     """Start planning every relationship from the schema's edge topics in the background.
 
     Planning parameters not given on ``args`` are derived from the number of
@@ -141,9 +143,11 @@ def start_kafka_edge_planner(schema, args, *, run_id: str, writers: int, bootstr
 
     # Malformed relationship records go to the same rejection directory the classic loaders use
     # (one file per planner worker) and are skipped instead of failing the run.
+    # ``supervision`` (process runtime only) is passed on only when given, so Docker mode calls the factory exactly as before.
+    extra = {} if supervision is None else {"supervision": supervision}
     planner = (planner_factory or KafkaEdgePlanner)(schema, bootstrap_servers, settings_for, plan_id=run_id,
                                                     plan_path=plan_path, rejection_dir=(args.runtime.rejections if getattr(args, "runtime", None) is not None
-                                                                                      else Path(REJECTION_DIR)))
+                                                                                      else Path(REJECTION_DIR)), **extra)
     try:
         planner.start()
         ledger_path(plan_path).unlink(missing_ok=True)
@@ -179,6 +183,7 @@ def wait_for_plan(path: Path, timeout_seconds: float, *, cancelled: Event | None
     last_progress = None
     last_check = None
     while True:
+        heartbeat.beat()                   # a long plan scan is progress-supervised here; keep /healthz fresh meanwhile
         if marker.exists():
             try:
                 reason = marker.read_text(encoding="utf-8").strip()
@@ -525,6 +530,7 @@ def run_planned_edge_phase(
         progress_deadline = clock() + timeout
         done = -1
         while True:
+            heartbeat.beat()
             if cancelled.is_set():
                 raise PlannedEdgeError(
                     "cancelled: stop requested" if stop_requested() else "cancelled by a node-label failure"
