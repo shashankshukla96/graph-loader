@@ -123,6 +123,7 @@ execution discovery exceeds that bound and re-review the changed epic.
 | [E15 — Run status and portable monitoring](epics/e15.md) | `status.json`, `events.jsonl`, JSON logs, `status --json`; dashboards/alerts for the user's own Prometheus/Grafana | E14 |
 | E16 — Checkpoint/resume for planned bulk (later, not yet written) | A failed planned bulk load resumes from committed chunks | First release |
 | [E17 — Native Windows process launcher (later)](epics/e17.md) | `--runtime process` natively on Windows; backlog placeholder | First release, E14, E15 |
+| [E19 — Org publishing and restricted-network images](epics/e19.md) | Public home `Neburyx/graph-loader` with clean snapshots; default images `ghcr.io/neburyx`; `GRAPH_LOADER_IMAGE_REGISTRY`; `graph-loader images build` from internal mirrors or a wheelhouse | E14, E15 merged; before the `0.1.0a2` freeze |
 | E18 — Stream start-up rebalance (later, not yet written) | A replica that joins a stream group late no longer stops the run. Options: static membership (`group.instance.id`) or a grace period before the first write. Found in E14.F3.S10; see e13.md "Carried into the rerun". User 2026-11-03: later version. Until then it is documented as a known limit: one extra restart, no data impact | First release |
 
 **Priority (2026-11-02, user instruction "prioritize it").** E14 is P1, the next product epic and ahead of all other open
@@ -132,9 +133,22 @@ S3) on the post-E14/E15 candidate ("Run e13 after the changes"). **Release after
 the E13 compressed run rerun on it, and E11.F2/E12 apply to that candidate (they also still need user accounts and an
 explicit upload instruction).
 **Status 2026-11-03.**
-- E14 is complete and committed (`1211283` on `e14-process-runtime`, local, not pushed).
-- E15 is **not started**: it waits for the user's explicit go ("DO NOT START E15 UNTIL I SAY SO").
+- E14 is complete, committed and pushed (`1211283` on `e14-process-runtime`).
+- E15 is complete, committed and pushed (`f3a74a2` on `e15-run-status`). The user started it on 2026-11-03.
 - E18 (stream start-up rebalance) is added for a later version.
+- E19 was added on 2026-11-03 at the user's request. The project is released under the GitHub org Neburyx from a new
+  public repo with fresh history and no plan documents. Development stays in this private repo, and clean snapshots are
+  published. Restricted-network images are in the first release. The plan was approved with changes (all folded in),
+  and the user approved it on 2026-11-03, including the D19-8 proof environment.
+- **Release order:**
+  1. merge E14 and E15 into `main`;
+  2. E19;
+  3. the `0.1.0a2` freeze;
+  4. the final candidate images and E11.F1 gates;
+  5. the E13 candidate run;
+  6. the validated public export;
+  7. E11.F1.S1 accounts;
+  8. publications, each separately approved (E11.F2, E12).
 
 E14's offline stories may run in parallel with E13; its live stories never overlap the E13 8-hour soak on the shared host.
 
