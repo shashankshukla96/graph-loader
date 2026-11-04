@@ -517,7 +517,7 @@ class BucketLeaseStreamConfig(BaseModel):
     keeps its own CLI-only settings). ``tx_timeout_ms``/
     ``expected_chunk_commit_ms``/``restart_quiet_margin_ms`` are NOT
     streaming-only: per the P5-Q1 fencing amendment
-    (``plan/v5-v6-orchestration.md``), every leased relationship write
+    (the lease fencing design), every leased relationship write
     (streaming or bulk lease mode) is opened with a fenced BEGIN whose Neo4j
     timeout is at most ``tx_timeout_ms`` (``T``) minus 4 s, and planned
     writes use the flat ``T``, so Neo4j itself terminates any transaction

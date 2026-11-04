@@ -44,7 +44,7 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -76,7 +76,7 @@
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -338,14 +338,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -1096,14 +1096,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -1854,14 +1854,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -2734,7 +2734,7 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -3010,14 +3010,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -3694,14 +3694,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -4396,14 +4396,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -5073,14 +5073,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -5932,14 +5932,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -6791,14 +6791,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -7737,14 +7737,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -8192,21 +8192,21 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-clock:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-clock:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
@@ -8850,14 +8850,14 @@
     "MainThread": [
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"
      },
      {
       "args": {
-       "reference": "ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>"
+       "reference": "ghcr.io/neburyx/graph-loader-edge:<VERSION>"
       },
       "op": "images.get",
       "subject": "client"

@@ -1,0 +1,4 @@
+{"t": 1793766096.97, "method": "GET", "path": "/debian/dists/trixie/InRelease", "auth": "n/a"}
+{"t": 1793766096.971, "method": "GET", "path": "/debian/dists/trixie-updates/InRelease", "auth": "n/a"}
+{"t": 1793766096.972, "method": "GET", "path": "/debian/dists/trixie/Release", "auth": "n/a"}
+{"t": 1793766096.973, "method": "GET", "path": "/debian/dists/trixie-updates/Release", "auth": "n/a"}

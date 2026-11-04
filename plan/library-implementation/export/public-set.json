@@ -1,0 +1,16 @@
+{
+  "comment": "D19-2: the explicit allowlist of top-level paths that a public snapshot may hold. Everything else (plan/, soak/, var/, .claude/, .agents/ and any new top-level path) is excluded by default.",
+  "directories": ["src", "tests", "docs", "scripts", "examples", "monitoring", "config"],
+  "files": [".env.example", ".gitignore", ".python-version", "CHANGELOG.md", "LICENSE", "MANIFEST.in", "Makefile", "PACKAGE_README.md", "README.md",
+            "SECURITY.md", "docker-compose.monitoring.yml", "docker-compose.yaml", "pyproject.toml", "requirements-build.txt", "requirements-dev.txt",
+            "requirements.txt"],
+  "excluded_paths": ["docs/PYPI_CHECKLIST_REVIEW.md", "docs/PYPI_LIBRARY_CHECKLIST.md"],
+  "excluded_names": ["__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", ".DS_Store"],
+  "excluded_suffixes": [".pyc", ".pyo"],
+  "excluded_directory_suffixes": [".egg-info"],
+  "identity": {
+    "name": "Shashank Shukla",
+    "email": "39862387+shashankshukla96@users.noreply.github.com",
+    "public_contact": "shashankshukla96@gmail.com"
+  }
+}

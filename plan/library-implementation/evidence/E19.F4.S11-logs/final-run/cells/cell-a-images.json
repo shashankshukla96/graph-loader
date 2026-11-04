@@ -1,0 +1,253 @@
+{
+ "schema": "graph-loader-image-manifest/2",
+ "version": "0.1.0a1",
+ "platform": "linux/amd64",
+ "dry_run": false,
+ "base_image": {
+  "requested": "registry:5000/e19/python:3.12-slim",
+  "resolved": "registry:5000/e19/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b"
+ },
+ "dependency_source": "index-secret",
+ "package_wheel": {
+  "file": "neo4j_graph_loader-0.1.0a1-py3-none-any.whl",
+  "sha256": "7125fbfbcfdd8e40afad7567dfcde01fd24a618aa28a8e46c0f3cb793ecf2bdb"
+ },
+ "lock": {
+  "file": "py312-linux-amd64.txt",
+  "sha256": "112cb6b21b12008f84db5e5cb43962a6cc364c25cb8c10511bea0e4e53ce7750"
+ },
+ "dependency_sha256": [
+  "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+  "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+  "3d31298449090ab8d47b7b1b2a555ff73cac7ed438a08b7ac160980c7ebed649",
+  "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+  "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+  "7efbf7507b937931cd32a5755acb00ea1cf5ccb1d4e8067a5850d5069e382118",
+  "7fed3fee8fd6bd4a2b7b75a8d56021d0624127bf69bd5691f115db929ac570b3",
+  "9667637665acba166a7dbbc786f14c50512d3a01f7199e0e1a13b929e92d7c7a",
+  "a3f45fdeb9165e2d25d9a1d02ddf3bc70fb572cf5ebbf9b58558c22caf29b71f",
+  "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+  "ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc",
+  "c3a55c8edf6e0c13d88af80b6d300ad8dc76eaa3fea32ec5641097551e197fb4",
+  "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+  "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+  "f56a281c74355522fc2642df8919bec450115431531b8f3f6fe1cc17acb57a27",
+  "fa93d06737aa02bacd05794768508bb97d2fbee28cb3bca04eaae92f0ca953d6",
+  "fbde6962867ee75b48b0ee29b2b9372ec5d617799dbaf38e82dc0596f2f7738a",
+  "fdb2c4d53e84e10f4e567f4e74bba45d0ce90276b81259c3fc58df6960caabf5"
+ ],
+ "recipe": {
+  "version": 1,
+  "dockerfiles": {
+   "Dockerfile": "286eee9c2262270e605f541a1e859c64eacce7dcc51e391dfd1b21dff71072f2",
+   "Dockerfile.node_loader": "9aa76e203fc1560652b9d769eaee23525b13f7ac64e9412a7e5055ef7ab2925d",
+   "Dockerfile.edge_loader": "955045577c39284b6deb553c3a0c97d7016603ca571adc362665005a2cb95f05",
+   "Dockerfile.clock": "c3d2899c2aa2a6c1ba543ca997b26f5091b44dc80f9d749d0fa0b58a814974c3"
+  },
+  "install_helper_sha256": "4235e0ea0dd78624f87037ad9a9defc144fabdd70eb5cfac2354aa443ce4e3ea"
+ },
+ "images": [
+  {
+   "component": "cli",
+   "id": "sha256:b08e51259de79b9527c37e2c5abb34a0829b84435ea6c9cb0ced72c44e164b57",
+   "local_tag": "registry:5000/cell-a/graph-loader-cli:0.1.0a1",
+   "proposed_registry_tag": "registry:5000/cell-a/graph-loader-cli:0.1.0a1",
+   "registry_digest": "sha256:b08e51259de79b9527c37e2c5abb34a0829b84435ea6c9cb0ced72c44e164b57",
+   "platform": "linux/amd64",
+   "labels": {
+    "io.graph-loader.component": "cli",
+    "io.graph-loader.image-contract": "1",
+    "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+    "org.opencontainers.image.version": "0.1.0a1"
+   },
+   "entrypoint": [
+    "tini",
+    "--",
+    "python",
+    "-m",
+    "neo4j_graph_loader.cli"
+   ],
+   "command": [
+    "docker",
+    "buildx",
+    "build",
+    "--load",
+    "--progress=plain",
+    "--provenance=false",
+    "--sbom=false",
+    "--file",
+    "Dockerfile",
+    "-t",
+    "registry:5000/cell-a/graph-loader-cli:0.1.0a1",
+    "--build-arg",
+    "BASE_IMAGE=registry:5000/e19/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b",
+    "--build-arg",
+    "GRAPH_LOADER_VERSION=0.1.0a1",
+    "--build-arg",
+    "PACKAGE_WHEEL=neo4j_graph_loader-0.1.0a1-py3-none-any.whl",
+    "--build-arg",
+    "PACKAGE_WHEEL_SHA256=7125fbfbcfdd8e40afad7567dfcde01fd24a618aa28a8e46c0f3cb793ecf2bdb",
+    "--build-arg",
+    "DEPENDENCY_SOURCE=index-secret",
+    "--build-arg",
+    "DEBIAN_MIRROR=http://debian/debian",
+    "--secret",
+    "id=pip_index,src=<secret file>",
+    "<generated context>"
+   ],
+   "exit_code": 0
+  },
+  {
+   "component": "node",
+   "id": "sha256:f6f71ba2250d34e57d05a67077b191c750289891a0df1779772de04f9560058d",
+   "local_tag": "registry:5000/cell-a/graph-loader-node:0.1.0a1",
+   "proposed_registry_tag": "registry:5000/cell-a/graph-loader-node:0.1.0a1",
+   "registry_digest": "sha256:f6f71ba2250d34e57d05a67077b191c750289891a0df1779772de04f9560058d",
+   "platform": "linux/amd64",
+   "labels": {
+    "io.graph-loader.component": "node",
+    "io.graph-loader.image-contract": "1",
+    "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+    "org.opencontainers.image.version": "0.1.0a1"
+   },
+   "entrypoint": [
+    "python",
+    "-m",
+    "neo4j_graph_loader.loader.node_loader"
+   ],
+   "command": [
+    "docker",
+    "buildx",
+    "build",
+    "--load",
+    "--progress=plain",
+    "--provenance=false",
+    "--sbom=false",
+    "--file",
+    "Dockerfile.node_loader",
+    "-t",
+    "registry:5000/cell-a/graph-loader-node:0.1.0a1",
+    "--build-arg",
+    "BASE_IMAGE=registry:5000/e19/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b",
+    "--build-arg",
+    "GRAPH_LOADER_VERSION=0.1.0a1",
+    "--build-arg",
+    "PACKAGE_WHEEL=neo4j_graph_loader-0.1.0a1-py3-none-any.whl",
+    "--build-arg",
+    "PACKAGE_WHEEL_SHA256=7125fbfbcfdd8e40afad7567dfcde01fd24a618aa28a8e46c0f3cb793ecf2bdb",
+    "--build-arg",
+    "DEPENDENCY_SOURCE=index-secret",
+    "--secret",
+    "id=pip_index,src=<secret file>",
+    "<generated context>"
+   ],
+   "exit_code": 0
+  },
+  {
+   "component": "edge",
+   "id": "sha256:fb95caaa8ee975f6c4143170125894286d89a33fa99e848964b7ed13432e4f50",
+   "local_tag": "registry:5000/cell-a/graph-loader-edge:0.1.0a1",
+   "proposed_registry_tag": "registry:5000/cell-a/graph-loader-edge:0.1.0a1",
+   "registry_digest": "sha256:fb95caaa8ee975f6c4143170125894286d89a33fa99e848964b7ed13432e4f50",
+   "platform": "linux/amd64",
+   "labels": {
+    "io.graph-loader.component": "edge",
+    "io.graph-loader.image-contract": "1",
+    "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+    "org.opencontainers.image.version": "0.1.0a1"
+   },
+   "entrypoint": [
+    "python",
+    "-m",
+    "neo4j_graph_loader.loader.edge_loader"
+   ],
+   "command": [
+    "docker",
+    "buildx",
+    "build",
+    "--load",
+    "--progress=plain",
+    "--provenance=false",
+    "--sbom=false",
+    "--file",
+    "Dockerfile.edge_loader",
+    "-t",
+    "registry:5000/cell-a/graph-loader-edge:0.1.0a1",
+    "--build-arg",
+    "BASE_IMAGE=registry:5000/e19/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b",
+    "--build-arg",
+    "GRAPH_LOADER_VERSION=0.1.0a1",
+    "--build-arg",
+    "PACKAGE_WHEEL=neo4j_graph_loader-0.1.0a1-py3-none-any.whl",
+    "--build-arg",
+    "PACKAGE_WHEEL_SHA256=7125fbfbcfdd8e40afad7567dfcde01fd24a618aa28a8e46c0f3cb793ecf2bdb",
+    "--build-arg",
+    "DEPENDENCY_SOURCE=index-secret",
+    "--secret",
+    "id=pip_index,src=<secret file>",
+    "<generated context>"
+   ],
+   "exit_code": 0
+  },
+  {
+   "component": "clock",
+   "id": "sha256:701a738b414d7df05aa4c9441b1316512ade20ac4a7e5125c83b9240c21b59dc",
+   "local_tag": "registry:5000/cell-a/graph-loader-clock:0.1.0a1",
+   "proposed_registry_tag": "registry:5000/cell-a/graph-loader-clock:0.1.0a1",
+   "registry_digest": "sha256:701a738b414d7df05aa4c9441b1316512ade20ac4a7e5125c83b9240c21b59dc",
+   "platform": "linux/amd64",
+   "labels": {
+    "io.graph-loader.component": "clock",
+    "io.graph-loader.image-contract": "1",
+    "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+    "org.opencontainers.image.version": "0.1.0a1"
+   },
+   "entrypoint": [
+    "python",
+    "-m",
+    "neo4j_graph_loader.orchestrator.clock_runner"
+   ],
+   "command": [
+    "docker",
+    "buildx",
+    "build",
+    "--load",
+    "--progress=plain",
+    "--provenance=false",
+    "--sbom=false",
+    "--file",
+    "Dockerfile.clock",
+    "-t",
+    "registry:5000/cell-a/graph-loader-clock:0.1.0a1",
+    "--build-arg",
+    "BASE_IMAGE=registry:5000/e19/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b",
+    "--build-arg",
+    "GRAPH_LOADER_VERSION=0.1.0a1",
+    "--build-arg",
+    "PACKAGE_WHEEL=neo4j_graph_loader-0.1.0a1-py3-none-any.whl",
+    "--build-arg",
+    "PACKAGE_WHEEL_SHA256=7125fbfbcfdd8e40afad7567dfcde01fd24a618aa28a8e46c0f3cb793ecf2bdb",
+    "--build-arg",
+    "DEPENDENCY_SOURCE=index-secret",
+    "--secret",
+    "id=pip_index,src=<secret file>",
+    "<generated context>"
+   ],
+   "exit_code": 0
+  }
+ ],
+ "push": true,
+ "published": false,
+ "build_args": {
+  "BASE_IMAGE": "registry:5000/e19/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b",
+  "GRAPH_LOADER_VERSION": "0.1.0a1",
+  "PACKAGE_WHEEL": "neo4j_graph_loader-0.1.0a1-py3-none-any.whl",
+  "PACKAGE_WHEEL_SHA256": "7125fbfbcfdd8e40afad7567dfcde01fd24a618aa28a8e46c0f3cb793ecf2bdb",
+  "DEPENDENCY_SOURCE": "index-secret"
+ },
+ "debian_packages": {
+  "base-files": "13.8+deb13u7",
+  "tini": "0.19.0-3+b8"
+ },
+ "proxy": false
+}

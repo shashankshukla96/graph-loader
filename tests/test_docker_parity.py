@@ -65,9 +65,10 @@ def replay_raw(name: str) -> dict:
 
 
 def replay(name: str) -> dict:
-    """The scenario against the frozen 0.1.0a1 golden: the 0.1.0a2 run-status environment keys are the only
-    deliberate difference, so they are removed before comparing (``test_a2_differs_...`` pins exactly that)."""
-    return support.strip_status_env(replay_raw(name))
+    """The scenario against the frozen 0.1.0a1 golden: the 0.1.0a2 run-status environment keys and the image namespace
+    are the only deliberate differences, so they are removed and restored before comparing (``test_a2_differs_...`` pins
+    exactly that)."""
+    return support.restore_a1_namespace(support.strip_status_env(replay_raw(name)))
 
 
 def test_golden_was_produced_by_the_frozen_source() -> None:
@@ -188,13 +189,15 @@ def _without_runtime_option(text: str) -> str:
     text = re.sub(r" --log-format \{text,json\} how this command and its roles log: .*?is never affected", "", text)
     text = text.replace("{status-store,", "{")                      # E15: the `status-store` command (listed first, with its help line)
     text = text.replace("{monitoring,", "{")  # E15.F2.S10: the `monitoring` command (listed right after `status-store`, with its help line)
+    text = text.replace("{images,", "{")      # E19.F2.S6: the `images` command (listed right after `monitoring`, with its help line)
+    text = re.sub(r" images Build the loader images from this installed package, for a registry you control", "", text)
     text = re.sub(r" monitoring Monitoring assets for your own Prometheus and Grafana \(alert rules, dashboards, scrape configuration\)", "", text)
     text = re.sub(r" status-store Maintain the SQL run status database \(URL from GRAPH_LOADER_STATUS_DB_URL, never on the command line\)", "", text)
     return text
 
 
 def test_help_is_unchanged_apart_from_the_new_runtime_option() -> None:
-    current = {name: text for name, text in support.help_texts().items() if name not in ("status-store", "monitoring")}   # E15's own commands
+    current = {name: text for name, text in support.help_texts().items() if name not in ("status-store", "monitoring", "images")}   # E15's and E19's own commands
     assert set(current) == set(GOLDEN["_help"])
     for name, frozen in GOLDEN["_help"].items():
         collapsed_frozen = re.sub(r"\s+", " ", frozen)
@@ -256,6 +259,11 @@ def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
     assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
 
 
+def to_a1(record):
+    """A 0.1.0a2 record reduced to what the frozen 0.1.0a1 golden can hold: no status keys, the 0.1.0a1 namespace."""
+    return support.restore_a1_namespace(support.strip_status_env(record))
+
+
 def _launches(record: dict) -> list[dict]:
     return [event["args"] for events in record["trace"].values() for event in events if event["op"] == "containers.run"]
 
@@ -264,10 +272,10 @@ def test_a2_differs_from_a1_by_exactly_the_three_status_env_keys_per_role_launch
     added_total = 0
     for name, record in GOLDEN_A2["scenarios"].items():
         # everything except those three keys is byte-identical to the frozen source's trace and outcome
-        assert diff(GOLDEN["scenarios"][name], support.strip_status_env(record)) == [], name
-        assert json.dumps(support.strip_status_env(record), sort_keys=True) == json.dumps(GOLDEN["scenarios"][name], sort_keys=True), name
+        assert diff(GOLDEN["scenarios"][name], to_a1(record)) == [], name
+        assert json.dumps(to_a1(record), sort_keys=True) == json.dumps(GOLDEN["scenarios"][name], sort_keys=True), name
         for old, new in zip(sorted(_launches(GOLDEN["scenarios"][name]), key=json.dumps),
-                            sorted((support.strip_status_env(launch) for launch in _launches(record)), key=json.dumps)):
+                            sorted((to_a1(launch) for launch in _launches(record)), key=json.dumps)):
             assert old == new
         for launch in _launches(record):
             env = launch.get("environment") or {}
@@ -287,7 +295,7 @@ def test_control_a_fourth_added_env_key_fails_the_a2_comparison() -> None:
                   for args in [event["args"]] if "GRAPH_LOADER_INCARNATION" in (args.get("environment") or {}))
     launch["environment"]["GRAPH_LOADER_SOMETHING_ELSE"] = "x"
     assert diff(record, replay_raw("stream_start_stop")) != []
-    assert json.dumps(support.strip_status_env(record), sort_keys=True) != json.dumps(GOLDEN["scenarios"]["stream_start_stop"], sort_keys=True)
+    assert json.dumps(to_a1(record), sort_keys=True) != json.dumps(GOLDEN["scenarios"]["stream_start_stop"], sort_keys=True)
 
 
 def test_control_a_missing_status_key_or_a_new_mount_fails_the_a2_comparison() -> None:
@@ -298,3 +306,38 @@ def test_control_a_missing_status_key_or_a_new_mount_fails_the_a2_comparison() -
     record = json.loads(json.dumps(GOLDEN_A2["scenarios"]["stream_start_stop"]))
     [event["args"] for events in record["trace"].values() for event in events if event["op"] == "containers.run"][0]["volumes"]["/extra"] = {"bind": "/x"}
     assert diff(record, replay_raw("stream_start_stop")) != []
+
+
+# -- E19.F1.S1: the image namespace is the only other difference between the two goldens -------------------------------
+def test_a1_golden_keeps_the_original_namespace_and_a2_has_the_neburyx_one() -> None:
+    a1_text, a2_text = GOLDEN_PATH.read_text(encoding="utf-8"), GOLDEN_A2_PATH.read_text(encoding="utf-8")
+    assert support.A1_IMAGE_PREFIX in a1_text and "neburyx" not in a1_text.lower()
+    assert support.A2_IMAGE_PREFIX in a2_text and support.A1_IMAGE_PREFIX not in a2_text
+    assert support.A1_IMAGE_PREFIX == "ghcr.io/shashankshukla96/graph-loader-" and support.A2_IMAGE_PREFIX == "ghcr.io/neburyx/graph-loader-"
+
+
+def test_the_namespace_normalization_rewrites_the_image_prefix_and_nothing_else() -> None:
+    record = {"reference": "ghcr.io/neburyx/graph-loader-node:<VERSION>", "other": ["ghcr.io/neburyx/other:1", "ghcr.io/neburyx"],
+              "n": 3, "flag": True, "key ghcr.io/neburyx/graph-loader-": "x"}
+    assert support.restore_a1_namespace(record) == {
+        "reference": "ghcr.io/shashankshukla96/graph-loader-node:<VERSION>", "other": ["ghcr.io/neburyx/other:1", "ghcr.io/neburyx"],
+        "n": 3, "flag": True, "key ghcr.io/neburyx/graph-loader-": "x"}
+    assert support.restore_a1_namespace(GOLDEN["scenarios"]) == GOLDEN["scenarios"], "the 0.1.0a1 golden has no 0.1.0a2 prefix to rewrite"
+
+
+@pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+def test_a2_golden_differs_from_a1_only_by_the_namespace_and_the_status_keys(name) -> None:
+    """Restoring the namespace in the a2 golden, then removing the status keys, gives the a1 golden exactly; restoring the
+    namespace alone leaves only the status keys, so no other value moved."""
+    a2 = GOLDEN_A2["scenarios"][name]
+    assert to_a1(a2) == GOLDEN["scenarios"][name]
+    assert support.A2_IMAGE_PREFIX not in json.dumps(support.restore_a1_namespace(a2))
+
+
+def test_control_a_different_namespace_is_not_normalized_and_fails_both_comparisons() -> None:
+    from neo4j_graph_loader import _images
+    with patch.object(_images, "NAMESPACE", "ghcr.io/someone-else"):
+        wrong_a2 = replay_raw("stream_start_stop")
+        problems_a1 = diff(GOLDEN["scenarios"]["stream_start_stop"], replay("stream_start_stop"))
+    assert diff(GOLDEN_A2["scenarios"]["stream_start_stop"], wrong_a2) != []
+    assert problems_a1 and "someone-else" in " ".join(problems_a1)

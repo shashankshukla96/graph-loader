@@ -43,11 +43,11 @@ start Neo4j, Kafka or Docker.** You provide them:
 | --- | --- |
 | Validate a schema, call `neo4j_graph_loader.schema` | nothing beyond the install |
 | Plan relationships with `neo4j_graph_loader.planning` | a Kafka broker you can create topics on |
-| Run `graph-loader start` (a load) | Neo4j 5.26 Enterprise, Kafka, Docker Engine on Linux, and the loader images `ghcr.io/shashankshukla96/graph-loader-{cli,node,edge,clock}:<package version>`, which `start` pulls when they are missing |
+| Run `graph-loader start` (a load) | Neo4j 5.26 Enterprise, Kafka, Docker Engine on Linux, and the loader images `ghcr.io/neburyx/graph-loader-{cli,node,edge,clock}:<package version>`, which `start` pulls when they are missing |
 | Read the status of a run (`graph-loader status --run`), or log it as JSON lines (`--log-format json`) | nothing beyond the install; the JSON status files are written next to the run, no services needed |
-| Keep run status and history in PostgreSQL (`--status-store sql`) | `pip install "neo4j-graph-loader[postgres]==0.1.0a1"` and a database ([status stores](https://github.com/shashankshukla96/graph-loader/blob/main/docs/STATUS_SQL.md)) |
-| Write Prometheus rules, scrape configuration and Grafana dashboards for your own monitoring (`graph-loader monitoring export`) | nothing beyond the install and your own Prometheus and Grafana ([monitoring guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/MONITORING.md#9-bring-your-own-prometheus-and-grafana)) |
-| Run `graph-loader start --runtime process` (a load without Docker, as host processes or a systemd service) | Neo4j 5.26 Enterprise, Kafka and Linux (kernel 5.3 or newer); see the [process runtime guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) |
+| Keep run status and history in PostgreSQL (`--status-store sql`) | `pip install "neo4j-graph-loader[postgres]==0.1.0a1"` and a database ([status stores](https://github.com/Neburyx/graph-loader/blob/main/docs/STATUS_SQL.md)) |
+| Write Prometheus rules, scrape configuration and Grafana dashboards for your own monitoring (`graph-loader monitoring export`) | nothing beyond the install and your own Prometheus and Grafana ([monitoring guide](https://github.com/Neburyx/graph-loader/blob/main/docs/MONITORING.md#9-bring-your-own-prometheus-and-grafana)) |
+| Run `graph-loader start --runtime process` (a load without Docker, as host processes or a systemd service) | Neo4j 5.26 Enterprise, Kafka and Linux (kernel 5.3 or newer); see the [process runtime guide](https://github.com/Neburyx/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) |
 
 ## Quick start
 
@@ -62,31 +62,31 @@ graph-loader validate-schema --config social.yaml
 Schema valid: 6 node types, 6 relationship types
 ```
 
-The [quick start guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/QUICKSTART.md)
+The [quick start guide](https://github.com/Neburyx/graph-loader/blob/main/docs/QUICKSTART.md)
 continues with your own schema and with planning relationships into Kafka from
 Python, with exact commands, expected output and cleanup. Loading a graph is
 described in the
-[bulk load guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/BULK_LOAD.md)
+[bulk load guide](https://github.com/Neburyx/graph-loader/blob/main/docs/BULK_LOAD.md)
 and the
-[incremental load guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/INCREMENTAL_LOAD.md).
+[incremental load guide](https://github.com/Neburyx/graph-loader/blob/main/docs/INCREMENTAL_LOAD.md).
 
 ## Documentation
 
 | Document | Read it to |
 | --- | --- |
-| [Quick start](https://github.com/shashankshukla96/graph-loader/blob/main/docs/QUICKSTART.md) | Install the package, validate a schema, plan relationships into Kafka. |
-| [Bulk load guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/BULK_LOAD.md) | Run an initial load: prerequisites, producer contract, flags, edge modes, verification, recovery. |
-| [Incremental load guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/INCREMENTAL_LOAD.md) | Repeated batches or continuous streaming, ordering, dead-letter queue, restart. |
-| [CLI reference](https://github.com/shashankshukla96/graph-loader/blob/main/docs/CLI.md) | Every command, flag, default, exit code and environment variable. |
-| [Monitoring](https://github.com/shashankshukla96/graph-loader/blob/main/docs/MONITORING.md) | Metrics, alert rules and dashboards, the quick-start stack, and `monitoring export` for your own Prometheus and Grafana. |
-| [Run status stores](https://github.com/shashankshukla96/graph-loader/blob/main/docs/STATUS_SQL.md) | Where a run's status and events are kept (JSON files or a database), the tables, the outbox, retention. |
-| [Process runtime](https://github.com/shashankshukla96/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) | Run the loader as host processes or a systemd service instead of containers: install, quick start, stopping and recovery, sizing. |
-| [Single container](https://github.com/shashankshukla96/graph-loader/blob/main/docs/SINGLE_CONTAINER.md) | Run the whole loader in one CLI-image container with `--runtime process`: image, `docker run`, stopping, memory, limits. |
-| [Public library API](https://github.com/shashankshukla96/graph-loader/blob/main/docs/LIBRARY_API.md) | The supported Python modules, Kafka requirements, ownership and cancellation. |
-| [Usage reference](https://github.com/shashankshukla96/graph-loader/blob/main/docs/USAGE.md) | Schema fields, input contract, planned mode, dead-lettering, operations, troubleshooting. |
-| [Support, security and reporting problems](https://github.com/shashankshukla96/graph-loader/blob/main/docs/SUPPORT.md) | Get help, report a vulnerability, write a minimal reproduction. |
-| [Migration from the source checkout](https://github.com/shashankshukla96/graph-loader/blob/main/docs/MIGRATION.md) | Names, defaults, images and stored formats when moving from `python -m src.cli`. |
-| [Changelog](https://github.com/shashankshukla96/graph-loader/blob/main/CHANGELOG.md) | What changed and how to upgrade. |
+| [Quick start](https://github.com/Neburyx/graph-loader/blob/main/docs/QUICKSTART.md) | Install the package, validate a schema, plan relationships into Kafka. |
+| [Bulk load guide](https://github.com/Neburyx/graph-loader/blob/main/docs/BULK_LOAD.md) | Run an initial load: prerequisites, producer contract, flags, edge modes, verification, recovery. |
+| [Incremental load guide](https://github.com/Neburyx/graph-loader/blob/main/docs/INCREMENTAL_LOAD.md) | Repeated batches or continuous streaming, ordering, dead-letter queue, restart. |
+| [CLI reference](https://github.com/Neburyx/graph-loader/blob/main/docs/CLI.md) | Every command, flag, default, exit code and environment variable. |
+| [Monitoring](https://github.com/Neburyx/graph-loader/blob/main/docs/MONITORING.md) | Metrics, alert rules and dashboards, the quick-start stack, and `monitoring export` for your own Prometheus and Grafana. |
+| [Run status stores](https://github.com/Neburyx/graph-loader/blob/main/docs/STATUS_SQL.md) | Where a run's status and events are kept (JSON files or a database), the tables, the outbox, retention. |
+| [Process runtime](https://github.com/Neburyx/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) | Run the loader as host processes or a systemd service instead of containers: install, quick start, stopping and recovery, sizing. |
+| [Single container](https://github.com/Neburyx/graph-loader/blob/main/docs/SINGLE_CONTAINER.md) | Run the whole loader in one CLI-image container with `--runtime process`: image, `docker run`, stopping, memory, limits. |
+| [Public library API](https://github.com/Neburyx/graph-loader/blob/main/docs/LIBRARY_API.md) | The supported Python modules, Kafka requirements, ownership and cancellation. |
+| [Usage reference](https://github.com/Neburyx/graph-loader/blob/main/docs/USAGE.md) | Schema fields, input contract, planned mode, dead-lettering, operations, troubleshooting. |
+| [Support, security and reporting problems](https://github.com/Neburyx/graph-loader/blob/main/docs/SUPPORT.md) | Get help, report a vulnerability, write a minimal reproduction. |
+| [Migration from the source checkout](https://github.com/Neburyx/graph-loader/blob/main/docs/MIGRATION.md) | Names, defaults, images and stored formats when moving from `python -m src.cli`. |
+| [Changelog](https://github.com/Neburyx/graph-loader/blob/main/CHANGELOG.md) | What changed and how to upgrade. |
 
 ## Support and limits
 
@@ -171,18 +171,18 @@ classic mode with concurrent sessions did, as documented.
 ## Getting help and reporting problems
 
 * **Questions and bugs:** open an issue at
-  <https://github.com/shashankshukla96/graph-loader/issues> with a minimal
+  <https://github.com/Neburyx/graph-loader/issues> with a minimal
   reproduction (template in the
-  [support guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/SUPPORT.md#minimal-reproduction-template)).
+  [support guide](https://github.com/Neburyx/graph-loader/blob/main/docs/SUPPORT.md#minimal-reproduction-template)).
 * **Security problems:** do not open a public issue. Email
   **shashankshukla96@gmail.com** with the subject `graph-loader security`; see
-  [SECURITY.md](https://github.com/shashankshukla96/graph-loader/blob/main/SECURITY.md).
+  [SECURITY.md](https://github.com/Neburyx/graph-loader/blob/main/SECURITY.md).
 * **Maintainer:** Shashank Shukla.
 
 ## License and attribution
 
 Apache License 2.0; the full text is in
-[LICENSE](https://github.com/shashankshukla96/graph-loader/blob/main/LICENSE).
+[LICENSE](https://github.com/Neburyx/graph-loader/blob/main/LICENSE).
 Neo4j and Kafka are trademarks of their owners and this project is not affiliated
 with or endorsed by them; Neo4j Enterprise Edition is licensed separately by Neo4j
 and you are responsible for your own licence. The repository's IMDb example uses

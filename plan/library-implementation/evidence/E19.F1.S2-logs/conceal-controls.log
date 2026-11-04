@@ -1,0 +1,6 @@
+GREEN comparison from the concealed record alone: {'baseline_ids': 4934, 'migrated_ids': 4994, 'order_preserved': True, 'dispositions_compared': 4934, 'dispositions_changed': 0, 'renamed': 1, 'added_ids': 60, 'changed_fields': 91} renamed pairs: 1
+concealed problems: [] | LAN address in public file: False
+sidecar maps digest to the old id: True | old id in public file: False
+RED concealed rename entry removed -> migration lost 1 IDs, first: tests/test_installed_service.py::test_remote_or_ambiguous_docker_hosts_
+RED tampered digest -> ['inconsistent concealed rename: sha256:1e8a8503e106b']
+RED planted LAN address -> ['the inventory contains a private LAN address (192.168.x.x)']

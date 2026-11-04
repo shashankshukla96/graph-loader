@@ -1,0 +1,166 @@
+{
+ "docker_df_before": {
+  "ok": true,
+  "detail": [
+   "Images total=12 size=7.021GB reclaimable=1.66GB (23%)",
+   "Containers total=11 size=603.3MB reclaimable=0B (0%)",
+   "Local Volumes total=12 size=15.38GB reclaimable=14.14GB (91%)",
+   "Build Cache total=38 size=1.308GB reclaimable=668.3MB"
+  ]
+ },
+ "scoped login and base pull": {
+  "ok": true,
+  "seconds": 2.1,
+  "detail": {
+   "registry_digest": "sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b"
+  }
+ },
+ "images build into the inner store": {
+  "ok": true,
+  "seconds": 37.6,
+  "detail": {
+   "seconds": 37,
+   "images": [
+    [
+     "cli",
+     "registry:5000/e19/graph-loader-cli:0.1.0a1",
+     "sha256:533bfca40f7be3ac715bf7e47efee0bcf000e9b7924a497c1c925e99133b47d8"
+    ],
+    [
+     "node",
+     "registry:5000/e19/graph-loader-node:0.1.0a1",
+     "sha256:00b6fc900022eafce0ebedaaf0fbdcd435b555df6d5d97ef665f918d68866fa3"
+    ],
+    [
+     "edge",
+     "registry:5000/e19/graph-loader-edge:0.1.0a1",
+     "sha256:ec02cb1fe47793603535843903d0361624d9a782aa63919f6a41c914557731f3"
+    ],
+    [
+     "clock",
+     "registry:5000/e19/graph-loader-clock:0.1.0a1",
+     "sha256:b8ba70e3e5e2a8cbefeb361a032480371c4805ca13ae5a9096fc3c1450e1410d"
+    ]
+   ],
+   "schema": "graph-loader-image-manifest/2",
+   "base_image": {
+    "requested": "registry:5000/e19/python:3.12-slim",
+    "resolved": "registry:5000/e19/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b"
+   },
+   "loaded_into_inner_store": true,
+   "absent_from_shared_daemon": true
+  }
+ },
+ "inner load services": {
+  "ok": true,
+  "seconds": 59.1,
+  "detail": {
+   "network": "e19-load",
+   "neo4j_heap": "1G",
+   "pagecache": "512M",
+   "kafka_heap": "-Xms512m -Xmx1g"
+  }
+ },
+ "place 1: runner": {
+  "ok": false,
+  "seconds": 1.8,
+  "detail": "runner: [{\"class\": \"other\", \"exit\": 1, \"kind\": \"public-denied\", \"name\": \"pip pypi.org\", \"ok\": false, \"place\": \"runner\", \"tail\": \"ERROR: No matching distribution found for six\"}]"
+ },
+ "place 2: inner daemon pull": {
+  "ok": true,
+  "seconds": 0.5,
+  "detail": {
+   "denied": 2,
+   "denied_ok": 2,
+   "allowed": 1,
+   "allowed_ok": 1,
+   "reached": 0,
+   "reached_ok": 0,
+   "ok": true
+  }
+ },
+ "place 3: build RUN step": {
+  "ok": false,
+  "seconds": 151.6,
+  "detail": "build-run: [{\"class\": \"reached\", \"exit\": 0, \"kind\": \"public-denied\", \"lines\": [\"Err:1 http://deb.debian.org/debian trixie InRelease\", \"Err:2 http://deb.debian.org/debian trixie-updates InRelease\", \"Err:3 http://deb.debian.org/debian-security trixie-security InRelease\", \"W: Failed to fetch http://deb.debian.org/debian/dists/trixie/InRelease  Could not connect to deb.debian.org:80 (151.101.54.132), connection timed out\", \"W: Failed to fetch http://deb.debian.org/debian/dists/trixie-updates/InRelease  Unable to connect to deb.debian.org:http:\", \"W: Failed to fetch http://deb.debian.org/debian-security/dists/trixie-security/InRelease  Unable to connect to deb.debian.org:http:\"], \"name\": \"apt deb.debian.org"
+ },
+ "place 4: role container": {
+  "ok": false,
+  "seconds": 127.1,
+  "detail": "role-container: [{\"authenticated\": false, \"class\": \"dns\", \"error\": \"-5\", \"kind\": \"internal-allowed\", \"name\": \"http debian\", \"ok\": false, \"place\": \"role-container\", \"url\": \"http://debian/debian/dists/trixie/InRelease\"}, {\"class\": \"dns\", \"error\": \"-5\", \"kind\": \"internal-allowed\", \"name\": \"tcp registry:5000\", \"ok\": false, \"place\": \"role-container\", \"to\": \"registry:5000\"}, {\"class\": \"dns\", \"error\": \"-5\", \"kind\": \"internal-allowed\", \"name\": \"tcp pypi:8443\", \"ok\": false, \"place\": \"role-container\", \"to\": \"pypi:8443\"}, {\"class\": \"dns\", \"error\": \"-5\", \"kind\": \"internal-allowed\", \"name\": \"tcp debian:80\", \"ok\": false, \"place\": \"role-container\", \"to\": \"debian:80\"}]"
+ },
+ "control: owned container on a normal bridge network": {
+  "ok": true,
+  "seconds": 4.7,
+  "detail": {
+   "denied": 0,
+   "denied_ok": 0,
+   "allowed": 0,
+   "allowed_ok": 0,
+   "reached": 6,
+   "reached_ok": 6,
+   "ok": true
+  }
+ },
+ "classifier controls (auth, missing image, DNS only are not denials)": {
+  "ok": true,
+  "seconds": 0.3,
+  "detail": {
+   "registry pull without a scoped login": {
+    "class": "auth",
+    "message": "Error response from daemon: failed to resolve reference \"registry:5000/e19/python:3.12-slim\": pull access denied, repository does not exist or may require authorization: authorization failed: no basic"
+   },
+   "missing image in the owned registry": {
+    "class": "not-found",
+    "message": "Error response from daemon: failed to resolve reference \"registry:5000/e19/does-not-exist:1\": registry:5000/e19/does-not-exist:1: not found"
+   },
+   "name the resolver does not know": {
+    "class": "dns",
+    "message": "gaierror [Errno -2] Name or service not known"
+   }
+  }
+ },
+ "owned resolver answered the public names": {
+  "ok": true,
+  "seconds": 0.0,
+  "detail": {
+   "public_names_answered": [
+    "deb.debian.org",
+    "ghcr.io",
+    "pypi.org",
+    "registry-1.docker.io"
+   ],
+   "queries_public": 49,
+   "queries_owned": 13,
+   "queries_nxdomain": 18
+  }
+ },
+ "docker_df_after": {
+  "ok": true,
+  "detail": [
+   "Images total=12 size=7.021GB reclaimable=1.66GB (23%)",
+   "Containers total=11 size=604.5MB reclaimable=0B (0%)",
+   "Local Volumes total=12 size=20.24GB reclaimable=14.14GB (69%)",
+   "Build Cache total=38 size=1.308GB reclaimable=668.3MB"
+  ]
+ },
+ "footprint": {
+  "ok": true,
+  "detail": {
+   "budget": {
+    "memory_limits_mb": 4752,
+    "memory_budget_mb": 5120,
+    "cpus": 3.9,
+    "cpu_budget": 4.0,
+    "work_dir_mb": 345,
+    "owned_volumes_mb": 6190,
+    "new_images_on_shared_daemon_mb": 3079,
+    "disk_budget_mb": 10240,
+    "min_host_memory_available_mb": 5665,
+    "host_memory_floor_mb": 2048,
+    "ok": true
+   },
+   "host_memory_available_mb": 5738
+  }
+ }
+}

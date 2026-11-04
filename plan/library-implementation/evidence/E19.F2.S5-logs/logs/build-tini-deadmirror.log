@@ -1,0 +1,67 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 4.86kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [stage-0 1/6] FROM docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#4 resolve docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 658.85kB done
+#5 DONE 0.0s
+
+#6 [stage-0 2/6] RUN set -eu;     if tini --version 2>/dev/null | grep -qF "tini version 0.19.0"; then         echo "tini 0.19.0 is already in the base image; apt is skipped";     else         if [ -n "http://host.docker.internal:56483/debian" ]; then             . /etc/os-release;             rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*;             printf 'Types: deb\nURIs: %s\nSuites: %s %s-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n'                 "http://host.docker.internal:56483/debian" "${VERSION_CODENAME}" "${VERSION_CODENAME}" > /etc/apt/sources.list.d/debian.sources;         fi;         apt-get update;         apt-get install -y --no-install-recommends tini;         rm -rf /var/lib/apt/lists/*;     fi;     tini --version | grep -F "tini version 0.19.0"
+#6 0.083 Ign:1 http://host.docker.internal:56483/debian trixie InRelease
+#6 0.084 Ign:2 http://host.docker.internal:56483/debian trixie-updates InRelease
+#6 0.085 Err:3 http://host.docker.internal:56483/debian trixie Release
+#6 0.085   404  Not Found [IP: 192.168.65.254 56483]
+#6 0.086 Err:4 http://host.docker.internal:56483/debian trixie-updates Release
+#6 0.086   404  Not Found [IP: 192.168.65.254 56483]
+#6 0.087 Reading package lists...
+#6 0.089 E: The repository 'http://host.docker.internal:56483/debian trixie Release' does not have a Release file.
+#6 0.089 E: The repository 'http://host.docker.internal:56483/debian trixie-updates Release' does not have a Release file.
+#6 ERROR: process "/bin/sh -c set -eu;     if tini --version 2>/dev/null | grep -qF \"tini version ${TINI_VERSION}\"; then         echo \"tini ${TINI_VERSION} is already in the base image; apt is skipped\";     else         if [ -n \"${DEBIAN_MIRROR}\" ]; then             . /etc/os-release;             rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*;             printf 'Types: deb\\nURIs: %s\\nSuites: %s %s-updates\\nComponents: main\\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\\n'                 \"${DEBIAN_MIRROR}\" \"${VERSION_CODENAME}\" \"${VERSION_CODENAME}\" > /etc/apt/sources.list.d/debian.sources;         fi;         apt-get update;         apt-get install -y --no-install-recommends tini;         rm -rf /var/lib/apt/lists/*;     fi;     tini --version | grep -F \"tini version ${TINI_VERSION}\"" did not complete successfully: exit code: 100
+------
+ > [stage-0 2/6] RUN set -eu;     if tini --version 2>/dev/null | grep -qF "tini version 0.19.0"; then         echo "tini 0.19.0 is already in the base image; apt is skipped";     else         if [ -n "http://host.docker.internal:56483/debian" ]; then             . /etc/os-release;             rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*;             printf 'Types: deb\nURIs: %s\nSuites: %s %s-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n'                 "http://host.docker.internal:56483/debian" "${VERSION_CODENAME}" "${VERSION_CODENAME}" > /etc/apt/sources.list.d/debian.sources;         fi;         apt-get update;         apt-get install -y --no-install-recommends tini;         rm -rf /var/lib/apt/lists/*;     fi;     tini --version | grep -F "tini version 0.19.0":
+0.083 Ign:1 http://host.docker.internal:56483/debian trixie InRelease
+0.084 Ign:2 http://host.docker.internal:56483/debian trixie-updates InRelease
+0.085 Err:3 http://host.docker.internal:56483/debian trixie Release
+0.085   404  Not Found [IP: 192.168.65.254 56483]
+0.086 Err:4 http://host.docker.internal:56483/debian trixie-updates Release
+0.086   404  Not Found [IP: 192.168.65.254 56483]
+0.087 Reading package lists...
+0.089 E: The repository 'http://host.docker.internal:56483/debian trixie Release' does not have a Release file.
+0.089 E: The repository 'http://host.docker.internal:56483/debian trixie-updates Release' does not have a Release file.
+------
+Dockerfile:22
+--------------------
+  21 |     ARG DEBIAN_MIRROR=
+  22 | >>> RUN set -eu; \
+  23 | >>>     if tini --version 2>/dev/null | grep -qF "tini version ${TINI_VERSION}"; then \
+  24 | >>>         echo "tini ${TINI_VERSION} is already in the base image; apt is skipped"; \
+  25 | >>>     else \
+  26 | >>>         if [ -n "${DEBIAN_MIRROR}" ]; then \
+  27 | >>>             . /etc/os-release; \
+  28 | >>>             rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*; \
+  29 | >>>             printf 'Types: deb\nURIs: %s\nSuites: %s %s-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' \
+  30 | >>>                 "${DEBIAN_MIRROR}" "${VERSION_CODENAME}" "${VERSION_CODENAME}" > /etc/apt/sources.list.d/debian.sources; \
+  31 | >>>         fi; \
+  32 | >>>         apt-get update; \
+  33 | >>>         apt-get install -y --no-install-recommends tini; \
+  34 | >>>         rm -rf /var/lib/apt/lists/*; \
+  35 | >>>     fi; \
+  36 | >>>     tini --version | grep -F "tini version ${TINI_VERSION}"
+  37 |     
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c set -eu;     if tini --version 2>/dev/null | grep -qF \"tini version ${TINI_VERSION}\"; then         echo \"tini ${TINI_VERSION} is already in the base image; apt is skipped\";     else         if [ -n \"${DEBIAN_MIRROR}\" ]; then             . /etc/os-release;             rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*;             printf 'Types: deb\\nURIs: %s\\nSuites: %s %s-updates\\nComponents: main\\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\\n'                 \"${DEBIAN_MIRROR}\" \"${VERSION_CODENAME}\" \"${VERSION_CODENAME}\" > /etc/apt/sources.list.d/debian.sources;         fi;         apt-get update;         apt-get install -y --no-install-recommends tini;         rm -rf /var/lib/apt/lists/*;     fi;     tini --version | grep -F \"tini version ${TINI_VERSION}\"" did not complete successfully: exit code: 100
+
+View build details: docker-desktop://dashboard/build/default/default/hqistg3rbdl01xhrhbyaos5u1

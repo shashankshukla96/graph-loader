@@ -1,0 +1,20 @@
+The push refers to repository [registry:5000/e19/python-tini]
+6fc242d221a6: Waiting
+f574edac59d9: Mounted from e19/python
+acca7542dfc7: Waiting
+3eb771151506: Mounted from e19/python
+66595e1be03b: Waiting
+7ad4a34e2eb2: Waiting
+6fc242d221a6: Mounted from e19/python
+acca7542dfc7: Waiting
+acca7542dfc7: Waiting
+7ad4a34e2eb2: Waiting
+acca7542dfc7: Waiting
+7ad4a34e2eb2: Waiting
+acca7542dfc7: Waiting
+7ad4a34e2eb2: Waiting
+acca7542dfc7: Mounted from e19/python
+66595e1be03b: Pushed
+44136fa355b3: Pushed
+7ad4a34e2eb2: Pushed
+3.12-slim: digest: sha256:b0eb32bc10d9f2047cdc090224d2656d60431f0368963cba297620d5fb9964be size: 856

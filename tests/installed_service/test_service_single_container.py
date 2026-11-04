@@ -127,7 +127,7 @@ def test_s8_image_contract_is_unchanged_and_bytes_are_recorded(docker_client, re
     labels = image.attrs['Config']['Labels']
     assert labels['org.opencontainers.image.version'] == version
     assert labels['io.graph-loader.component'] == 'cli' and labels['io.graph-loader.image-contract'] == '1'
-    assert labels['org.opencontainers.image.source'] == 'https://github.com/shashankshukla96/graph-loader'
+    assert labels['org.opencontainers.image.source'] == 'https://github.com/Neburyx/graph-loader'
     assert image.attrs['Config']['Entrypoint'] == TINI_ENTRYPOINT and not image.attrs['Config'].get('Cmd')
     assert image.attrs['Config'].get('User') in (None, '') and image.attrs['Config']['WorkingDir'] == '/app'
 
@@ -145,7 +145,7 @@ def test_s8_image_contract_is_unchanged_and_bytes_are_recorded(docker_client, re
 
     for role, dockerfile in (('node', 'Dockerfile.node_loader'), ('edge', 'Dockerfile.edge_loader'), ('clock', 'Dockerfile.clock')):
         other = docker_client.images.get(service_config['images'][role]['id'])
-        expected = dockerfile_entrypoint(ROOT / dockerfile)
+        expected = dockerfile_entrypoint(ROOT / 'src' / 'neo4j_graph_loader' / 'image_build' / 'dockerfiles' / dockerfile)
         assert other.attrs['Config']['Entrypoint'] == expected and 'tini' not in expected, role
 
     sizes = {r: docker_client.images.get(v['id']).attrs['Size'] for r, v in service_config['images'].items()}

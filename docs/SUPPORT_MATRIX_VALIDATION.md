@@ -7,7 +7,7 @@ including native-volume export verification. Independent S2 review verifies
 all36 current observations,14,688 installed passes/four intentional core skips
 and536 process cases across both architectures. Final E08 artifact, service and
 delivery results are recorded separately in
-[final validation](../plan/library-implementation/evidence/e08-final-validation.md).
+the final validation record.
 No matrix or release acceptance follows from a tool reporting an observation.
 
 The checkout-only tools keep runtime dependencies separate from test and authoring
@@ -147,6 +147,6 @@ process/exitcode37 after cleanup rather than requiring37 in transient error
 text. Original public error/cause/marker text remains retained.
 
 Fresh native minimum/current S2 runs are independently accepted in
-[the full S2 review](../plan/library-implementation/reviews/e08-s2-full-review-20261028.md).
+the full S2 review.
 The tool's complete process-envelope receipt, or any historical S1/Mac result,
 does not by itself close E08's final artifact/image/service/delivery gates.

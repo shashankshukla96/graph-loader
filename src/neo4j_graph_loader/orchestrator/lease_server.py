@@ -26,8 +26,7 @@ per persistent TCP connection):
     useful for diagnosing a restart transition, but it is not itself the
     fencing mechanism: the binding guarantee against a restarted server
     re-granting a resource a prior holder may still be committing is the
-    time-based fencing in ``plan/v5-v6-orchestration.md``'s P5-Q1 amendment
-    (a Neo4j transaction timeout on every write, plus a post-restart quiet
+    time-based fencing (a Neo4j transaction timeout on every write, plus a post-restart quiet
     period the new generation waits out before its first grant), not this
     token.  (Review finding S2-1: the generation does *not* appear in the
     exit-time Prometheus metrics snapshot -- adding it there would be a new
@@ -82,7 +81,7 @@ from neo4j_graph_loader.utils import metrics as metrics_module
 logger = logging.getLogger(__name__)
 
 DEFAULT_BUCKET_LEASE_PORT = 7700
-# Deprecated alias (removed one release after plan/v5/slice-1): kept for any
+# Deprecated alias (scheduled for removal in a later release): kept for any
 # external importer of the old, undocumented-but-importable name.
 DEFAULT_LEASE_PORT = DEFAULT_BUCKET_LEASE_PORT
 MAX_WAIT_MS = 60_000

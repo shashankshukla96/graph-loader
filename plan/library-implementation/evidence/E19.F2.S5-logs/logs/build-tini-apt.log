@@ -1,0 +1,147 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 4.86kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [stage-0 1/6] FROM docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#4 resolve docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 658.85kB done
+#5 DONE 0.0s
+
+#6 [stage-0 2/6] RUN set -eu;     if tini --version 2>/dev/null | grep -qF "tini version 0.19.0"; then         echo "tini 0.19.0 is already in the base image; apt is skipped";     else         if [ -n "http://host.docker.internal:56522/debian" ]; then             . /etc/os-release;             rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*;             printf 'Types: deb\nURIs: %s\nSuites: %s %s-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n'                 "http://host.docker.internal:56522/debian" "${VERSION_CODENAME}" "${VERSION_CODENAME}" > /etc/apt/sources.list.d/debian.sources;         fi;         apt-get update;         apt-get install -y --no-install-recommends tini;         rm -rf /var/lib/apt/lists/*;     fi;     tini --version | grep -F "tini version 0.19.0"
+#6 0.255 Get:1 http://host.docker.internal:56522/debian trixie InRelease [140 kB]
+#6 0.368 Get:2 http://host.docker.internal:56522/debian trixie-updates InRelease [47.3 kB]
+#6 0.725 Get:3 http://host.docker.internal:56522/debian trixie/main arm64 Packages [9614 kB]
+#6 0.847 Get:4 http://host.docker.internal:56522/debian trixie-updates/main arm64 Packages [1108 B]
+#6 1.242 Fetched 9803 kB in 1s (8427 kB/s)
+#6 1.242 Reading package lists...
+#6 1.463 Reading package lists...
+#6 1.678 Building dependency tree...
+#6 1.737 Reading state information...
+#6 1.846 The following NEW packages will be installed:
+#6 1.846   tini
+#6 2.011 0 upgraded, 1 newly installed, 0 to remove and 1 not upgraded.
+#6 2.011 Need to get 234 kB of archives.
+#6 2.011 After this operation, 745 kB of additional disk space will be used.
+#6 2.011 Get:1 http://host.docker.internal:56522/debian trixie/main arm64 tini arm64 0.19.0-3+b8 [234 kB]
+#6 2.065 debconf: unable to initialize frontend: Dialog
+#6 2.065 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#6 2.065 debconf: falling back to frontend: Readline
+#6 2.065 debconf: unable to initialize frontend: Readline
+#6 2.065 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 1.)
+#6 2.065 debconf: falling back to frontend: Teletype
+#6 2.067 debconf: unable to initialize frontend: Teletype
+#6 2.067 debconf: (This frontend requires a controlling tty.)
+#6 2.067 debconf: falling back to frontend: Noninteractive
+#6 2.295 Fetched 234 kB in 0s (1452 kB/s)
+#6 2.300 Selecting previously unselected package tini.
+#6 2.300 (Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 5655 files and directories currently installed.)
+#6 2.303 Preparing to unpack .../tini_0.19.0-3+b8_arm64.deb ...
+#6 2.304 Unpacking tini (0.19.0-3+b8) ...
+#6 2.319 Setting up tini (0.19.0-3+b8) ...
+#6 2.327 tini version 0.19.0
+#6 DONE 2.4s
+
+#7 [stage-0 3/6] WORKDIR /app
+#7 DONE 0.0s
+
+#8 [stage-0 4/6] RUN --mount=type=bind,source=.,target=/ctx     --mount=type=secret,id=pip_index,required=false     set -eu;     case "index-secret" in         index-secret) source="--index-secret /run/secrets/pip_index" ;;         index-url)    source="--index-url " ;;         wheelhouse)   source="--wheelhouse /ctx/wheelhouse" ;;         *) echo "DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse" >&2; exit 2 ;;     esac;     python -I /ctx/install.py --lock /ctx/lock.txt --wheel "/ctx/neo4j_graph_loader-0.1.0a1-py3-none-any.whl" --wheel-sha256 "bf59e2f2a7dd3e96910104939f748526de6cc0c6d20d72e00e970b3f363e151b"         --ca-bundle /ctx/pip-ca.pem  ${source}
+#8 0.713 pip configuration check: cert, config-file, index-url
+#8 0.713 Looking in indexes: https://***@host.docker.internal:56482/simple/
+#8 0.725 Collecting annotated-types==0.8.0 (from -r /ctx/lock.txt (line 10))
+#8 0.733   Downloading https://host.docker.internal:56482/files/annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#8 0.744 Collecting certifi==2026.10.23 (from -r /ctx/lock.txt (line 12))
+#8 0.753   Downloading https://host.docker.internal:56482/files/certifi-2026.10.23-py3-none-any.whl (135 kB)
+#8 0.761 Collecting charset-normalizer==3.5.2 (from -r /ctx/lock.txt (line 14))
+#8 0.769   Downloading https://host.docker.internal:56482/files/charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (246 kB)
+#8 0.782 Collecting confluent-kafka==2.16.1 (from -r /ctx/lock.txt (line 16))
+#8 0.789   Downloading https://host.docker.internal:56482/files/confluent_kafka-2.16.1-cp312-cp312-manylinux_2_28_aarch64.whl (5.2 MB)
+#8 0.794      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 1.4 GB/s eta 0:00:00
+#8 0.826 Collecting docker==7.2.0 (from -r /ctx/lock.txt (line 18))
+#8 0.833   Downloading https://host.docker.internal:56482/files/docker-7.2.0-py3-none-any.whl (148 kB)
+#8 0.842 Collecting idna==3.20 (from -r /ctx/lock.txt (line 20))
+#8 0.850   Downloading https://host.docker.internal:56482/files/idna-3.20-py3-none-any.whl (69 kB)
+#8 0.860 Collecting neo4j==6.4.1 (from -r /ctx/lock.txt (line 22))
+#8 0.868   Downloading https://host.docker.internal:56482/files/neo4j-6.4.1-py3-none-any.whl (390 kB)
+#8 0.879 Collecting neo4j-rust-ext==6.4.1.0 (from -r /ctx/lock.txt (line 24))
+#8 0.886   Downloading https://host.docker.internal:56482/files/neo4j_rust_ext-6.4.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (312 kB)
+#8 0.906 Collecting numpy==2.5.4 (from -r /ctx/lock.txt (line 26))
+#8 0.914   Downloading https://host.docker.internal:56482/files/numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)
+#8 0.927      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.7/15.7 MB 1.3 GB/s eta 0:00:00
+#8 0.943 Collecting prometheus-client==0.26.0 (from -r /ctx/lock.txt (line 28))
+#8 0.949   Downloading https://host.docker.internal:56482/files/prometheus_client-0.26.0-py3-none-any.whl (64 kB)
+#8 0.956 Collecting pydantic==2.14.2 (from -r /ctx/lock.txt (line 30))
+#8 0.963   Downloading https://host.docker.internal:56482/files/pydantic-2.14.2-py3-none-any.whl (490 kB)
+#8 0.975 Collecting pydantic-core==2.50.2 (from -r /ctx/lock.txt (line 32))
+#8 0.983   Downloading https://host.docker.internal:56482/files/pydantic_core-2.50.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (2.1 MB)
+#8 0.986      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 1.2 GB/s eta 0:00:00
+#8 0.996 Collecting pytz==2026.6 (from -r /ctx/lock.txt (line 34))
+#8 1.003   Downloading https://host.docker.internal:56482/files/pytz-2026.6-py2.py3-none-any.whl (506 kB)
+#8 1.014 Collecting pyyaml==6.0.3 (from -r /ctx/lock.txt (line 36))
+#8 1.022   Downloading https://host.docker.internal:56482/files/pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (775 kB)
+#8 1.023      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 775.1/775.1 kB 1.3 GB/s eta 0:00:00
+#8 1.032 Collecting requests==2.34.2 (from -r /ctx/lock.txt (line 38))
+#8 1.040   Downloading https://host.docker.internal:56482/files/requests-2.34.2-py3-none-any.whl (73 kB)
+#8 1.048 Collecting typing-extensions==4.16.0 (from -r /ctx/lock.txt (line 40))
+#8 1.056   Downloading https://host.docker.internal:56482/files/typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#8 1.065 Collecting typing-inspection==0.4.4 (from -r /ctx/lock.txt (line 42))
+#8 1.074   Downloading https://host.docker.internal:56482/files/typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#8 1.083 Collecting urllib3==2.8.0 (from -r /ctx/lock.txt (line 44))
+#8 1.091   Downloading https://host.docker.internal:56482/files/urllib3-2.8.0-py3-none-any.whl (135 kB)
+#8 1.095 Installing collected packages: pytz, urllib3, typing-inspection, typing-extensions, requests, pyyaml, pydantic-core, pydantic, prometheus-client, numpy, neo4j-rust-ext, neo4j, idna, docker, confluent-kafka, charset-normalizer, certifi, annotated-types
+#8 2.609 Successfully installed annotated-types-0.8.0 certifi-2026.10.23 charset-normalizer-3.5.2 confluent-kafka-2.16.1 docker-7.2.0 idna-3.20 neo4j-6.4.1 neo4j-rust-ext-6.4.1.0 numpy-2.5.4 prometheus-client-0.26.0 pydantic-2.14.2 pydantic-core-2.50.2 pytz-2026.6 pyyaml-6.0.3 requests-2.34.2 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0
+#8 2.759 Processing /ctx/neo4j_graph_loader-0.1.0a1-py3-none-any.whl (from -r /tmp/tmp9fspo10z/package.txt (line 1))
+#8 2.762 Installing collected packages: neo4j-graph-loader
+#8 2.918 Successfully installed neo4j-graph-loader-0.1.0a1
+#8 3.035 No broken requirements found.
+#8 DONE 3.1s
+
+#9 [stage-0 5/6] RUN python -I -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "0.1.0a1"
+#9 DONE 0.1s
+
+#10 [stage-0 6/6] RUN mkdir -p config && python -I -c 'import importlib.resources as r, shutil; shutil.copyfile(r.files("neo4j_graph_loader").joinpath("data", "graph_schema.yaml"), "config/graph_schema.yaml")'
+#10 DONE 0.1s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 1.7s done
+#11 exporting manifest sha256:ccc7e4239c0eed286c81ab514beeca70289a0c866f556297ee0e8a1ec7c02dac done
+#11 exporting config sha256:8c7e63f05d218aaaa837dc07ebd09fe3a4e3ac0563882055b0f98f583934a796 done
+#11 naming to e19-s5-20261103T231205/graph-loader-cli:0.1.0a1-tini-apt done
+#11 unpacking to e19-s5-20261103T231205/graph-loader-cli:0.1.0a1-tini-apt
+#11 unpacking to e19-s5-20261103T231205/graph-loader-cli:0.1.0a1-tini-apt 0.4s done
+#11 DONE 2.1s
+
+View build details: docker-desktop://dashboard/build/default/default/ghvwvo3dblxsi2ghwn30l8fzi

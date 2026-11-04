@@ -1,0 +1,42 @@
+--- docker ps of the owned containers (EXPOSE metadata only; no '->' mapping: nothing is published)
+e19-s10-20261104c-runner []
+e19-s10-20261104c-dind [2375-2376/tcp]
+e19-s10-20261104c-debian [80/tcp]
+e19-s10-20261104c-pypi-proxy [80/tcp]
+e19-s10-20261104c-pypiserver [8080/tcp]
+e19-s10-20261104c-registry [5000/tcp]
+e19-s10-20261104c-dns []
+--- owned networks
+e19-s10-20261104c-net
+e19-s10-20261104c-open
+e19-net internal=true driver=bridge
+--- dind
+[--host=unix:///run/dind/docker.sock --insecure-registry=registry:5000 --dns=172.20.0.2] privileged=true mem=4194304000 dns=[172.20.0.2] dnssearch=[.]
+--- listening host ports now
+22 53 631 3389 5432 7474 7687 8080 9092 9101 
+--- resolver log (last 25)
+07:58:35 172.20.0.7 pypi type=28 owned
+07:58:38 172.20.0.7 registry-1.docker.io type=1 public
+07:58:48 172.20.0.7 registry-1.docker.io type=28 public
+07:58:48 172.20.0.7 registry-1.docker.io type=1 public
+07:59:43 172.20.0.7 ghcr.io type=1 public
+07:59:48 172.20.0.7 ghcr.io type=28 public
+07:59:48 172.20.0.7 ghcr.io type=1 public
+07:59:55 172.20.0.7 pypi.org type=1 public
+08:00:05 172.20.0.7 pypi.org type=28 public
+08:00:05 172.20.0.7 pypi.org type=1 public
+08:00:32 172.20.0.7 deb.debian.org type=1 public
+08:00:37 172.20.0.7 deb.debian.org type=28 public
+08:00:37 172.20.0.7 deb.debian.org type=1 public
+08:00:44 172.20.0.7 debian.e19.internal type=1 owned
+08:00:44 172.20.0.7 debian.e19.internal type=28 owned
+08:00:44 172.20.0.7 registry.e19.internal type=1 owned
+08:00:44 172.20.0.7 registry.e19.internal type=28 owned
+08:00:44 172.20.0.7 pypi.e19.internal type=1 owned
+08:00:44 172.20.0.7 pypi.e19.internal type=28 owned
+08:00:44 172.20.0.7 debian.e19.internal type=28 owned
+08:00:44 172.20.0.7 debian.e19.internal type=1 owned
+08:00:48 172.20.0.8 e19-unresolvable.example type=28 nxdomain
+08:00:48 172.20.0.8 e19-unresolvable.example type=1 nxdomain
+08:00:48 172.20.0.8 e19-unresolvable.example.attlocal.net type=28 nxdomain
+08:00:48 172.20.0.8 e19-unresolvable.example.attlocal.net type=1 nxdomain

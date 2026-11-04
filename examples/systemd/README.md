@@ -4,8 +4,7 @@ Back to: [Examples](../README.md) | [CLI reference](../../docs/CLI.md) | [Increm
 
 `graph-loader.service` runs one `graph-loader start --mode stream --runtime process` under the **user** service manager: the
 command starts every role (lease server, node loaders, edge loaders, retry consumer) as a child process, supervises them, and
-systemd supervises the command. No Docker is involved. Tested on a real systemd 255 user manager (see
-`plan/library-implementation/evidence/E14.F3.S9.md`).
+systemd supervises the command. No Docker is involved., tested on a real systemd 255 user manager.
 
 ```bash
 python3 -m venv ~/graph-loader/venv && ~/graph-loader/venv/bin/pip install neo4j-graph-loader

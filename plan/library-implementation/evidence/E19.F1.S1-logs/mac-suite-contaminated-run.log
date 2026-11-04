@@ -1,0 +1,1182 @@
+ssssssss................................................................ [  1%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+....................................................s................... [ 10%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+............................................FF.......................... [ 36%]
+........................................................................ [ 37%]
+............................................................s........... [ 39%]
+........................................................................ [ 40%]
+..........................s............................................. [ 42%]
+........................................................................ [ 43%]
+...............................................................s...ssss. [ 45%]
+..............................s.............s........................... [ 46%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 59%]
+................................................s........s.......s...... [ 61%]
+.........s......s....................................................... [ 62%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+...............s........................................................ [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 84%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+.s.........................................................s............ [ 92%]
+.............................s.......................................... [ 93%]
+........................................................................ [ 95%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+................................................................         [100%]
+=================================== FAILURES ===================================
+___ test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[False] ___
+
+tmp_path = PosixPath('/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-384/test_interrupted_supervisor_re0')
+cleanup_raises = False
+
+    @pytest.mark.parametrize('cleanup_raises', [False, True])
+    def test_interrupted_supervisor_reaps_owned_child_and_retains_receipt(tmp_path, cleanup_raises):
+        import os
+        import signal
+    
+        root = Path(__file__).resolve().parents[1]
+        identity = tmp_path/'child.json'
+        result_path = tmp_path/'interrupted.json'
+        code = '''import json,sys
+    from pathlib import Path
+    sys.path.insert(0,sys.argv[1])
+    from scripts import verify_installed as runner
+    if sys.argv[4]=='True':
+     def fail_cleanup(_path):raise RuntimeError('controlled cleanup failure')
+     runner.cleanup_owned=fail_cleanup
+    receipts=[]
+    worker='import json,os,time,psutil;from pathlib import Path;Path('+repr(sys.argv[2])+').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)'
+    try:
+     runner.run([sys.executable,'-c',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix('.log'),timeout=20,receipts=receipts)
+    except KeyboardInterrupt:
+     Path(sys.argv[3]).write_text(json.dumps({'interrupt_preserved':True,'receipts':receipts}))
+    '''
+        supervisor = subprocess.Popen([sys.executable, '-I', '-c', code, str(root), str(identity),
+                                        str(result_path), str(cleanup_raises)], start_new_session=True)
+        child = None
+        created = None
+        try:
+            deadline = time.monotonic()+5
+            while not identity.exists() and time.monotonic()<deadline:
+                time.sleep(.01)
+            row = json.loads(identity.read_text())
+            child = psutil.Process(row['pid'])
+            created = row['created']
+            assert child.create_time() == created
+            os.kill(supervisor.pid, signal.SIGINT)
+>           supervisor.wait(timeout=10)
+
+tests/test_installed_runner.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../../.pyenv/versions/3.12.14/lib/python3.12/subprocess.py:1264: in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Popen: returncode: -9 args: ['/private/tmp/claude-501/-Users-shashank-Deskt...>
+timeout = 10
+
+    def _wait(self, timeout):
+        """Internal implementation of wait() on POSIX."""
+        if self.returncode is not None:
+            return self.returncode
+    
+        if timeout is not None:
+            endtime = _time() + timeout
+            # Enter a busy loop if we have a timeout.  This busy loop was
+            # cribbed from Lib/threading.py in Thread.wait() at r71065.
+            delay = 0.0005 # 500 us -> initial delay of 1 ms
+            while True:
+                if self._waitpid_lock.acquire(False):
+                    try:
+                        if self.returncode is not None:
+                            break  # Another thread waited.
+                        (pid, sts) = self._try_wait(os.WNOHANG)
+                        assert pid == self.pid or pid == 0
+                        if pid == self.pid:
+                            self._handle_exitstatus(sts)
+                            break
+                    finally:
+                        self._waitpid_lock.release()
+                remaining = self._remaining_time(endtime)
+                if remaining <= 0:
+>                   raise TimeoutExpired(self.args, timeout)
+E                   subprocess.TimeoutExpired: Command '['/private/tmp/claude-501/-Users-shashank-Desktop-Code-Graph-graph-loader-e19/7077dc83-4cf7-4aa3-97d1-cf58fc388689/scratchpad/venv/bin/python', '-I', '-c', 'import json,sys\nfrom pathlib import Path\nsys.path.insert(0,sys.argv[1])\nfrom scripts import verify_installed as runner\nif sys.argv[4]==\'True\':\n def fail_cleanup(_path):raise RuntimeError(\'controlled cleanup failure\')\n runner.cleanup_owned=fail_cleanup\nreceipts=[]\nworker=\'import json,os,time,psutil;from pathlib import Path;Path(\'+repr(sys.argv[2])+\').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)\'\ntry:\n runner.run([sys.executable,\'-c\',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix(\'.log\'),timeout=20,receipts=receipts)\nexcept KeyboardInterrupt:\n Path(sys.argv[3]).write_text(json.dumps({\'interrupt_preserved\':True,\'receipts\':receipts}))\n', '/Users/shashank/Desktop/Code/Graph/graph-loader-e19', '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-384/test_interrupted_supervisor_re0/child.json', '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-384/test_interrupted_supervisor_re0/interrupted.json', 'False']' timed out after 10 seconds
+
+../../../../.pyenv/versions/3.12.14/lib/python3.12/subprocess.py:2045: TimeoutExpired
+----------------------------- Captured stderr call -----------------------------
+Traceback (most recent call last):
+  File "<string>", line 11, in <module>
+  File "/Users/shashank/Desktop/Code/Graph/graph-loader-e19/scripts/verify_installed.py", line 366, in run
+    raise RuntimeError('command failed; retained output: ' + str(log))
+RuntimeError: command failed; retained output: /private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-384/test_interrupted_supervisor_re0/child.log
+___ test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[True] ____
+
+tmp_path = PosixPath('/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-384/test_interrupted_supervisor_re1')
+cleanup_raises = True
+
+    @pytest.mark.parametrize('cleanup_raises', [False, True])
+    def test_interrupted_supervisor_reaps_owned_child_and_retains_receipt(tmp_path, cleanup_raises):
+        import os
+        import signal
+    
+        root = Path(__file__).resolve().parents[1]
+        identity = tmp_path/'child.json'
+        result_path = tmp_path/'interrupted.json'
+        code = '''import json,sys
+    from pathlib import Path
+    sys.path.insert(0,sys.argv[1])
+    from scripts import verify_installed as runner
+    if sys.argv[4]=='True':
+     def fail_cleanup(_path):raise RuntimeError('controlled cleanup failure')
+     runner.cleanup_owned=fail_cleanup
+    receipts=[]
+    worker='import json,os,time,psutil;from pathlib import Path;Path('+repr(sys.argv[2])+').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)'
+    try:
+     runner.run([sys.executable,'-c',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix('.log'),timeout=20,receipts=receipts)
+    except KeyboardInterrupt:
+     Path(sys.argv[3]).write_text(json.dumps({'interrupt_preserved':True,'receipts':receipts}))
+    '''
+        supervisor = subprocess.Popen([sys.executable, '-I', '-c', code, str(root), str(identity),
+                                        str(result_path), str(cleanup_raises)], start_new_session=True)
+        child = None
+        created = None
+        try:
+            deadline = time.monotonic()+5
+            while not identity.exists() and time.monotonic()<deadline:
+                time.sleep(.01)
+            row = json.loads(identity.read_text())
+            child = psutil.Process(row['pid'])
+            created = row['created']
+            assert child.create_time() == created
+            os.kill(supervisor.pid, signal.SIGINT)
+>           supervisor.wait(timeout=10)
+
+tests/test_installed_runner.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../../.pyenv/versions/3.12.14/lib/python3.12/subprocess.py:1264: in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Popen: returncode: -9 args: ['/private/tmp/claude-501/-Users-shashank-Deskt...>
+timeout = 10
+
+    def _wait(self, timeout):
+        """Internal implementation of wait() on POSIX."""
+        if self.returncode is not None:
+            return self.returncode
+    
+        if timeout is not None:
+            endtime = _time() + timeout
+            # Enter a busy loop if we have a timeout.  This busy loop was
+            # cribbed from Lib/threading.py in Thread.wait() at r71065.
+            delay = 0.0005 # 500 us -> initial delay of 1 ms
+            while True:
+                if self._waitpid_lock.acquire(False):
+                    try:
+                        if self.returncode is not None:
+                            break  # Another thread waited.
+                        (pid, sts) = self._try_wait(os.WNOHANG)
+                        assert pid == self.pid or pid == 0
+                        if pid == self.pid:
+                            self._handle_exitstatus(sts)
+                            break
+                    finally:
+                        self._waitpid_lock.release()
+                remaining = self._remaining_time(endtime)
+                if remaining <= 0:
+>                   raise TimeoutExpired(self.args, timeout)
+E                   subprocess.TimeoutExpired: Command '['/private/tmp/claude-501/-Users-shashank-Desktop-Code-Graph-graph-loader-e19/7077dc83-4cf7-4aa3-97d1-cf58fc388689/scratchpad/venv/bin/python', '-I', '-c', 'import json,sys\nfrom pathlib import Path\nsys.path.insert(0,sys.argv[1])\nfrom scripts import verify_installed as runner\nif sys.argv[4]==\'True\':\n def fail_cleanup(_path):raise RuntimeError(\'controlled cleanup failure\')\n runner.cleanup_owned=fail_cleanup\nreceipts=[]\nworker=\'import json,os,time,psutil;from pathlib import Path;Path(\'+repr(sys.argv[2])+\').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)\'\ntry:\n runner.run([sys.executable,\'-c\',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix(\'.log\'),timeout=20,receipts=receipts)\nexcept KeyboardInterrupt:\n Path(sys.argv[3]).write_text(json.dumps({\'interrupt_preserved\':True,\'receipts\':receipts}))\n', '/Users/shashank/Desktop/Code/Graph/graph-loader-e19', '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-384/test_interrupted_supervisor_re1/child.json', '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-384/test_interrupted_supervisor_re1/interrupted.json', 'True']' timed out after 10 seconds
+
+../../../../.pyenv/versions/3.12.14/lib/python3.12/subprocess.py:2045: TimeoutExpired
+----------------------------- Captured stderr call -----------------------------
+Traceback (most recent call last):
+  File "<string>", line 11, in <module>
+  File "/Users/shashank/Desktop/Code/Graph/graph-loader-e19/scripts/verify_installed.py", line 366, in run
+    raise RuntimeError('command failed; retained output: ' + str(log))
+RuntimeError: command failed; retained output: /private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-384/test_interrupted_supervisor_re1/child.log
+=========================== short test summary info ============================
+FAILED tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[False]
+FAILED tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[True]
+2 failed, 4571 passed, 29 skipped, 24 deselected in 328.54s (0:05:28)
+ction refused (after 0ms in state CONNECT)
+%3|1793759265.899|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759265.953|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.009|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.065|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.122|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.175|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.232|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.288|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.344|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.397|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.450|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.502|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.559|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.615|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.672|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.728|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.784|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.841|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.897|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759266.954|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.006|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.062|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.119|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.174|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.230|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.286|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.341|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.397|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.453|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.507|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.563|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.619|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.676|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.732|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.788|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.845|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.901|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759267.958|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.012|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.065|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.121|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.176|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.233|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.289|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.345|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.402|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.458|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.514|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.570|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.627|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.683|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.740|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.792|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.848|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.904|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759268.955|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.010|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.065|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.121|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.177|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.232|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.288|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.345|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.401|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.458|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.514|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.566|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.618|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.670|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.726|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.782|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.835|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.892|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759269.948|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.005|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.061|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.118|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.174|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.227|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.281|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.337|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.393|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.450|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.501|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.558|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.614|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.671|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.723|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.779|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.835|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.892|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759270.948|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.005|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.062|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.118|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.175|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.228|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.282|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.338|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.394|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.450|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.502|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.559|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.615|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.672|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.724|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.780|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.835|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.891|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759271.948|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.000|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.056|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.109|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.165|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.221|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.275|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.332|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.388|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.445|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.498|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.554|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.609|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.665|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.721|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.773|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.830|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.886|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.941|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection refused (after 0ms in state CONNECT)
+%3|1793759272.997|FAIL|rdkafka#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:498 stage=lease-server keyed labels disabled: node topic sizes unavailable: KafkaError{code=_TRANSPORT,val=-195,str="Failed to get metadata: Local: Broker transport failure"}
+WARNING  neo4j_graph_loader.cli:cli.py:2953 stage=shutdown reason=stop requested during node launch
+__ test_docker_trace_equals_the_frozen_source[crash_detection_real_monitors] ___
+
+name = 'crash_detection_real_monitors'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    neo4j_graph_loader.cli:cli.py:334 stage=diagnostics container=graph-loader-node-Person-1-72756e2d706172697479 exit_code=1 last log lines:
+boom: write failed
+ERROR    neo4j_graph_loader.cli:cli.py:382 stage=node-loader-supervision container=graph-loader-node-Person-0-72756e2d706172697479 reason=node loader exited while the stream run was active; stopping the run (rc 1)
+___ test_docker_trace_equals_the_frozen_source[edge_classic_overlap_labels] ____
+
+name = 'edge_classic_overlap_labels'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+___ test_docker_trace_equals_the_frozen_source[edge_classic_overlap_shared] ____
+
+name = 'edge_classic_overlap_shared'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+___________ test_docker_trace_equals_the_frozen_source[edge_leases] ____________
+
+name = 'edge_leases'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+_____ test_docker_trace_equals_the_frozen_source[lease_server_replacement] _____
+
+name = 'lease_server_replacement'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-edge:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-edge:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.orchestrator.relationship_bulk_monitor:relationship_bulk_monitor.py:792 stage=lease-server-restart run_id=run-parity attempt=1/2 generation=1
+WARNING  neo4j_graph_loader.orchestrator.relationship_bulk_monitor:relationship_bulk_monitor.py:792 stage=lease-server-restart run_id=run-parity attempt=2/2 generation=2
+________ test_docker_trace_equals_the_frozen_source[loader_crash_bulk] _________
+
+name = 'loader_crash_bulk'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    neo4j_graph_loader.cli:cli.py:797 stage=bulk-edge run_id=run-parity.bulk.0.2454f50f61698cd92b7692b2 edge=WORKS_AT failed: node Person replica 0 exited with code 1
+ERROR    neo4j_graph_loader.cli:cli.py:1259 stage=bulk-scheduler parent_run_id=run-parity failed edges=WORKS_AT
+ERROR    neo4j_graph_loader.cli:cli.py:3164 Bulk run failed: shared bulk relationship scheduler failed
+_______ test_docker_trace_equals_the_frozen_source[loader_crash_stream] ________
+
+name = 'loader_crash_stream'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    neo4j_graph_loader.cli:cli.py:1946 stage=lease-relationship-fleet run_id=run-parity failed: edge WORKS_AT replica 0 exited with code 1
+_____ test_docker_trace_equals_the_frozen_source[partial_launch_rollback] ______
+
+name = 'partial_launch_rollback'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    neo4j_graph_loader.cli:cli.py:1946 stage=lease-relationship-fleet run_id=run-parity failed: stage=launch run_id=run-parity edge=KNOWS reason=boom
+___________ test_docker_trace_equals_the_frozen_source[planned_bulk] ___________
+
+name = 'planned_bulk'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+___ test_docker_trace_equals_the_frozen_source[planned_bulk_overlap_labels] ____
+
+name = 'planned_bulk_overlap_labels'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:2166 --bulk-edge-overlap/--max-concurrent-bulk-edges tune classic only; ignored (add --edge-classic to use classic)
+___ test_docker_trace_equals_the_frozen_source[planned_bulk_overlap_shared] ____
+
+name = 'planned_bulk_overlap_shared'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:2166 --bulk-edge-overlap/--max-concurrent-bulk-edges tune classic only; ignored (add --edge-classic to use classic)
+_______ test_docker_trace_equals_the_frozen_source[stop_during_startup] ________
+
+name = 'stop_during_startup'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:2953 stage=shutdown reason=stop requested during node launch
+______ test_docker_trace_equals_the_frozen_source[stream_clock_rotation] _______
+
+name = 'stream_clock_rotation'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:2981 stage=deprecation flag=--stream-clock-rotation reason=Phase 4 clock/rotation streaming path; removed after one release
+________ test_docker_trace_equals_the_frozen_source[stream_start_stop] _________
+
+name = 'stream_start_stop'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN["scenarios"]))
+    def test_docker_trace_equals_the_frozen_source(name) -> None:
+>       assert diff(GOLDEN["scenarios"][name], replay(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/shashankshukla96/graph-loader-node:<VERSION>'}, 'op': 'imag...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:86: AssertionError
+__ test_docker_trace_equals_the_0_1_0a2_golden[crash_detection_real_monitors] __
+
+name = 'crash_detection_real_monitors'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    neo4j_graph_loader.cli:cli.py:334 stage=diagnostics container=graph-loader-node-Person-1-72756e2d706172697479 exit_code=1 last log lines:
+boom: write failed
+ERROR    neo4j_graph_loader.cli:cli.py:382 stage=node-loader-supervision container=graph-loader-node-Person-0-72756e2d706172697479 reason=node loader exited while the stream run was active; stopping the run (rc 1)
+___ test_docker_trace_equals_the_0_1_0a2_golden[edge_classic_overlap_labels] ___
+
+name = 'edge_classic_overlap_labels'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+___ test_docker_trace_equals_the_0_1_0a2_golden[edge_classic_overlap_shared] ___
+
+name = 'edge_classic_overlap_shared'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+___________ test_docker_trace_equals_the_0_1_0a2_golden[edge_leases] ___________
+
+name = 'edge_leases'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+____ test_docker_trace_equals_the_0_1_0a2_golden[lease_server_replacement] _____
+
+name = 'lease_server_replacement'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-edge:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-edge:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.orchestrator.relationship_bulk_monitor:relationship_bulk_monitor.py:792 stage=lease-server-restart run_id=run-parity attempt=1/2 generation=1
+WARNING  neo4j_graph_loader.orchestrator.relationship_bulk_monitor:relationship_bulk_monitor.py:792 stage=lease-server-restart run_id=run-parity attempt=2/2 generation=2
+________ test_docker_trace_equals_the_0_1_0a2_golden[loader_crash_bulk] ________
+
+name = 'loader_crash_bulk'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    neo4j_graph_loader.cli:cli.py:797 stage=bulk-edge run_id=run-parity.bulk.0.2454f50f61698cd92b7692b2 edge=WORKS_AT failed: node Person replica 0 exited with code 1
+ERROR    neo4j_graph_loader.cli:cli.py:1259 stage=bulk-scheduler parent_run_id=run-parity failed edges=WORKS_AT
+ERROR    neo4j_graph_loader.cli:cli.py:3164 Bulk run failed: shared bulk relationship scheduler failed
+_______ test_docker_trace_equals_the_0_1_0a2_golden[loader_crash_stream] _______
+
+name = 'loader_crash_stream'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    neo4j_graph_loader.cli:cli.py:1946 stage=lease-relationship-fleet run_id=run-parity failed: edge WORKS_AT replica 0 exited with code 1
+_____ test_docker_trace_equals_the_0_1_0a2_golden[partial_launch_rollback] _____
+
+name = 'partial_launch_rollback'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    neo4j_graph_loader.cli:cli.py:1946 stage=lease-relationship-fleet run_id=run-parity failed: stage=launch run_id=run-parity edge=KNOWS reason=boom
+__________ test_docker_trace_equals_the_0_1_0a2_golden[planned_bulk] ___________
+
+name = 'planned_bulk'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+___ test_docker_trace_equals_the_0_1_0a2_golden[planned_bulk_overlap_labels] ___
+
+name = 'planned_bulk_overlap_labels'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:2166 --bulk-edge-overlap/--max-concurrent-bulk-edges tune classic only; ignored (add --edge-classic to use classic)
+___ test_docker_trace_equals_the_0_1_0a2_golden[planned_bulk_overlap_shared] ___
+
+name = 'planned_bulk_overlap_shared'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:2166 --bulk-edge-overlap/--max-concurrent-bulk-edges tune classic only; ignored (add --edge-classic to use classic)
+_______ test_docker_trace_equals_the_0_1_0a2_golden[stop_during_startup] _______
+
+name = 'stop_during_startup'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:2953 stage=shutdown reason=stop requested during node launch
+______ test_docker_trace_equals_the_0_1_0a2_golden[stream_clock_rotation] ______
+
+name = 'stream_clock_rotation'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  neo4j_graph_loader.cli:cli.py:2981 stage=deprecation flag=--stream-clock-rotation reason=Phase 4 clock/rotation streaming path; removed after one release
+________ test_docker_trace_equals_the_0_1_0a2_golden[stream_start_stop] ________
+
+name = 'stream_start_stop'
+
+    @pytest.mark.parametrize("name", sorted(GOLDEN_A2["scenarios"]))
+    def test_docker_trace_equals_the_0_1_0a2_golden(name) -> None:
+>       assert diff(GOLDEN_A2["scenarios"][name], replay_raw(name)) == []
+E       assert ["lane 'MainT...<VERSION>'}}"] == []
+E         
+E         Left contains one more item: "lane 'MainThread' call 0: {'args': {'reference': 'ghcr.io/neburyx/graph-loader-node:<VERSION>'}, 'op': 'images.get', ...ent'} != {'subject': 'client', 'op': 'images.get', 'args': {'reference': 'ghcr.io/wrong/graph-loader-node:<VERSION>'}}"
+E         Use -v to get more diff
+
+tests/test_docker_parity.py:257: AssertionError
+____ TestDockerService.test_build_image_resolves_prebuilt_without_cwd_build ____
+
+self = <test_docker_service.TestDockerService testMethod=test_build_image_resolves_prebuilt_without_cwd_build>
+
+    def test_build_image_resolves_prebuilt_without_cwd_build(self):
+        assert self.service.build_image() == IMAGE_IDS["node"]
+        self.mock_client.images.build.assert_not_called()
+>       self.mock_client.images.get.assert_called_once_with(
+            "ghcr.io/neburyx/graph-loader-node:0.1.0a1")
+
+tests/test_docker_service.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../../.pyenv/versions/3.12.14/lib/python3.12/unittest/mock.py:961: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <MagicMock name='mock.images.get' id='4555585392'>
+args = ('ghcr.io/neburyx/graph-loader-node:0.1.0a1',), kwargs = {}
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: get('ghcr.io/neburyx/graph-loader-node:0.1.0a1')
+E             Actual: get('ghcr.io/wrong/graph-loader-node:0.1.0a1')
+
+../../../../.pyenv/versions/3.12.14/lib/python3.12/unittest/mock.py:949: AssertionError
+__________ test_default_reference_matches_package_and_namespace[cli] ___________
+
+role = 'cli'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11f3f2180>
+
+    @pytest.mark.parametrize('role', ['cli','node','edge','clock'])
+    def test_default_reference_matches_package_and_namespace(role, monkeypatch):
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+>       assert image_reference(role) == f'ghcr.io/neburyx/graph-loader-{role}:{__version__}'
+E       AssertionError: assert 'ghcr.io/wron...r-cli:0.1.0a1' == 'ghcr.io/nebu...r-cli:0.1.0a1'
+E         
+E         - ghcr.io/neburyx/graph-loader-cli:0.1.0a1
+E         ?          ^^^^^^
+E         + ghcr.io/wrong/graph-loader-cli:0.1.0a1
+E         ?         +++ ^
+
+tests/test_image_selection.py:25: AssertionError
+__________ test_default_reference_matches_package_and_namespace[node] __________
+
+role = 'node'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11fed15b0>
+
+    @pytest.mark.parametrize('role', ['cli','node','edge','clock'])
+    def test_default_reference_matches_package_and_namespace(role, monkeypatch):
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+>       assert image_reference(role) == f'ghcr.io/neburyx/graph-loader-{role}:{__version__}'
+E       AssertionError: assert 'ghcr.io/wron...-node:0.1.0a1' == 'ghcr.io/nebu...-node:0.1.0a1'
+E         
+E         - ghcr.io/neburyx/graph-loader-node:0.1.0a1
+E         ?          ^^^^^^
+E         + ghcr.io/wrong/graph-loader-node:0.1.0a1
+E         ?         +++ ^
+
+tests/test_image_selection.py:25: AssertionError
+__________ test_default_reference_matches_package_and_namespace[edge] __________
+
+role = 'edge'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11f3f2360>
+
+    @pytest.mark.parametrize('role', ['cli','node','edge','clock'])
+    def test_default_reference_matches_package_and_namespace(role, monkeypatch):
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+>       assert image_reference(role) == f'ghcr.io/neburyx/graph-loader-{role}:{__version__}'
+E       AssertionError: assert 'ghcr.io/wron...-edge:0.1.0a1' == 'ghcr.io/nebu...-edge:0.1.0a1'
+E         
+E         - ghcr.io/neburyx/graph-loader-edge:0.1.0a1
+E         ?          ^^^^^^
+E         + ghcr.io/wrong/graph-loader-edge:0.1.0a1
+E         ?         +++ ^
+
+tests/test_image_selection.py:25: AssertionError
+_________ test_default_reference_matches_package_and_namespace[clock] __________
+
+role = 'clock'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11f3f1bb0>
+
+    @pytest.mark.parametrize('role', ['cli','node','edge','clock'])
+    def test_default_reference_matches_package_and_namespace(role, monkeypatch):
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+>       assert image_reference(role) == f'ghcr.io/neburyx/graph-loader-{role}:{__version__}'
+E       AssertionError: assert 'ghcr.io/wron...clock:0.1.0a1' == 'ghcr.io/nebu...clock:0.1.0a1'
+E         
+E         - ghcr.io/neburyx/graph-loader-clock:0.1.0a1
+E         ?          ^^^^^^
+E         + ghcr.io/wrong/graph-loader-clock:0.1.0a1
+E         ?         +++ ^
+
+tests/test_image_selection.py:25: AssertionError
+___ test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[False] ___
+
+tmp_path = PosixPath('/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-382/test_interrupted_supervisor_re0')
+cleanup_raises = False
+
+    @pytest.mark.parametrize('cleanup_raises', [False, True])
+    def test_interrupted_supervisor_reaps_owned_child_and_retains_receipt(tmp_path, cleanup_raises):
+        import os
+        import signal
+    
+        root = Path(__file__).resolve().parents[1]
+        identity = tmp_path/'child.json'
+        result_path = tmp_path/'interrupted.json'
+        code = '''import json,sys
+    from pathlib import Path
+    sys.path.insert(0,sys.argv[1])
+    from scripts import verify_installed as runner
+    if sys.argv[4]=='True':
+     def fail_cleanup(_path):raise RuntimeError('controlled cleanup failure')
+     runner.cleanup_owned=fail_cleanup
+    receipts=[]
+    worker='import json,os,time,psutil;from pathlib import Path;Path('+repr(sys.argv[2])+').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)'
+    try:
+     runner.run([sys.executable,'-c',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix('.log'),timeout=20,receipts=receipts)
+    except KeyboardInterrupt:
+     Path(sys.argv[3]).write_text(json.dumps({'interrupt_preserved':True,'receipts':receipts}))
+    '''
+        supervisor = subprocess.Popen([sys.executable, '-I', '-c', code, str(root), str(identity),
+                                        str(result_path), str(cleanup_raises)], start_new_session=True)
+        child = None
+        created = None
+        try:
+            deadline = time.monotonic()+5
+            while not identity.exists() and time.monotonic()<deadline:
+                time.sleep(.01)
+            row = json.loads(identity.read_text())
+            child = psutil.Process(row['pid'])
+            created = row['created']
+            assert child.create_time() == created
+            os.kill(supervisor.pid, signal.SIGINT)
+>           supervisor.wait(timeout=10)
+
+tests/test_installed_runner.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../../.pyenv/versions/3.12.14/lib/python3.12/subprocess.py:1264: in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Popen: returncode: -9 args: ['/private/tmp/claude-501/-Users-shashank-Deskt...>
+timeout = 10
+
+    def _wait(self, timeout):
+        """Internal implementation of wait() on POSIX."""
+        if self.returncode is not None:
+            return self.returncode
+    
+        if timeout is not None:
+            endtime = _time() + timeout
+            # Enter a busy loop if we have a timeout.  This busy loop was
+            # cribbed from Lib/threading.py in Thread.wait() at r71065.
+            delay = 0.0005 # 500 us -> initial delay of 1 ms
+            while True:
+                if self._waitpid_lock.acquire(False):
+                    try:
+                        if self.returncode is not None:
+                            break  # Another thread waited.
+                        (pid, sts) = self._try_wait(os.WNOHANG)
+                        assert pid == self.pid or pid == 0
+                        if pid == self.pid:
+                            self._handle_exitstatus(sts)
+                            break
+                    finally:
+                        self._waitpid_lock.release()
+                remaining = self._remaining_time(endtime)
+                if remaining <= 0:
+>                   raise TimeoutExpired(self.args, timeout)
+E                   subprocess.TimeoutExpired: Command '['/private/tmp/claude-501/-Users-shashank-Desktop-Code-Graph-graph-loader-e19/7077dc83-4cf7-4aa3-97d1-cf58fc388689/scratchpad/venv/bin/python', '-I', '-c', 'import json,sys\nfrom pathlib import Path\nsys.path.insert(0,sys.argv[1])\nfrom scripts import verify_installed as runner\nif sys.argv[4]==\'True\':\n def fail_cleanup(_path):raise RuntimeError(\'controlled cleanup failure\')\n runner.cleanup_owned=fail_cleanup\nreceipts=[]\nworker=\'import json,os,time,psutil;from pathlib import Path;Path(\'+repr(sys.argv[2])+\').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)\'\ntry:\n runner.run([sys.executable,\'-c\',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix(\'.log\'),timeout=20,receipts=receipts)\nexcept KeyboardInterrupt:\n Path(sys.argv[3]).write_text(json.dumps({\'interrupt_preserved\':True,\'receipts\':receipts}))\n', '/Users/shashank/Desktop/Code/Graph/graph-loader-e19', '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-382/test_interrupted_supervisor_re0/child.json', '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-382/test_interrupted_supervisor_re0/interrupted.json', 'False']' timed out after 10 seconds
+
+../../../../.pyenv/versions/3.12.14/lib/python3.12/subprocess.py:2045: TimeoutExpired
+----------------------------- Captured stderr call -----------------------------
+Traceback (most recent call last):
+  File "<string>", line 11, in <module>
+  File "/Users/shashank/Desktop/Code/Graph/graph-loader-e19/scripts/verify_installed.py", line 366, in run
+    raise RuntimeError('command failed; retained output: ' + str(log))
+RuntimeError: command failed; retained output: /private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-382/test_interrupted_supervisor_re0/child.log
+___ test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[True] ____
+
+tmp_path = PosixPath('/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-382/test_interrupted_supervisor_re1')
+cleanup_raises = True
+
+    @pytest.mark.parametrize('cleanup_raises', [False, True])
+    def test_interrupted_supervisor_reaps_owned_child_and_retains_receipt(tmp_path, cleanup_raises):
+        import os
+        import signal
+    
+        root = Path(__file__).resolve().parents[1]
+        identity = tmp_path/'child.json'
+        result_path = tmp_path/'interrupted.json'
+        code = '''import json,sys
+    from pathlib import Path
+    sys.path.insert(0,sys.argv[1])
+    from scripts import verify_installed as runner
+    if sys.argv[4]=='True':
+     def fail_cleanup(_path):raise RuntimeError('controlled cleanup failure')
+     runner.cleanup_owned=fail_cleanup
+    receipts=[]
+    worker='import json,os,time,psutil;from pathlib import Path;Path('+repr(sys.argv[2])+').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)'
+    try:
+     runner.run([sys.executable,'-c',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix('.log'),timeout=20,receipts=receipts)
+    except KeyboardInterrupt:
+     Path(sys.argv[3]).write_text(json.dumps({'interrupt_preserved':True,'receipts':receipts}))
+    '''
+        supervisor = subprocess.Popen([sys.executable, '-I', '-c', code, str(root), str(identity),
+                                        str(result_path), str(cleanup_raises)], start_new_session=True)
+        child = None
+        created = None
+        try:
+            deadline = time.monotonic()+5
+            while not identity.exists() and time.monotonic()<deadline:
+                time.sleep(.01)
+            row = json.loads(identity.read_text())
+            child = psutil.Process(row['pid'])
+            created = row['created']
+            assert child.create_time() == created
+            os.kill(supervisor.pid, signal.SIGINT)
+>           supervisor.wait(timeout=10)
+
+tests/test_installed_runner.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../../.pyenv/versions/3.12.14/lib/python3.12/subprocess.py:1264: in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Popen: returncode: 1 args: ['/private/tmp/claude-501/-Users-shashank-Deskto...>
+timeout = 10
+
+    def _wait(self, timeout):
+        """Internal implementation of wait() on POSIX."""
+        if self.returncode is not None:
+            return self.returncode
+    
+        if timeout is not None:
+            endtime = _time() + timeout
+            # Enter a busy loop if we have a timeout.  This busy loop was
+            # cribbed from Lib/threading.py in Thread.wait() at r71065.
+            delay = 0.0005 # 500 us -> initial delay of 1 ms
+            while True:
+                if self._waitpid_lock.acquire(False):
+                    try:
+                        if self.returncode is not None:
+                            break  # Another thread waited.
+                        (pid, sts) = self._try_wait(os.WNOHANG)
+                        assert pid == self.pid or pid == 0
+                        if pid == self.pid:
+                            self._handle_exitstatus(sts)
+                            break
+                    finally:
+                        self._waitpid_lock.release()
+                remaining = self._remaining_time(endtime)
+                if remaining <= 0:
+>                   raise TimeoutExpired(self.args, timeout)
+E                   subprocess.TimeoutExpired: Command '['/private/tmp/claude-501/-Users-shashank-Desktop-Code-Graph-graph-loader-e19/7077dc83-4cf7-4aa3-97d1-cf58fc388689/scratchpad/venv/bin/python', '-I', '-c', 'import json,sys\nfrom pathlib import Path\nsys.path.insert(0,sys.argv[1])\nfrom scripts import verify_installed as runner\nif sys.argv[4]==\'True\':\n def fail_cleanup(_path):raise RuntimeError(\'controlled cleanup failure\')\n runner.cleanup_owned=fail_cleanup\nreceipts=[]\nworker=\'import json,os,time,psutil;from pathlib import Path;Path(\'+repr(sys.argv[2])+\').write_text(json.dumps({"pid":os.getpid(),"created":psutil.Process().create_time()}));time.sleep(60)\'\ntry:\n runner.run([sys.executable,\'-c\',worker],cwd=Path(sys.argv[2]).parent,env=runner.runtime_environment(Path(sys.executable)),log=Path(sys.argv[2]).with_suffix(\'.log\'),timeout=20,receipts=receipts)\nexcept KeyboardInterrupt:\n Path(sys.argv[3]).write_text(json.dumps({\'interrupt_preserved\':True,\'receipts\':receipts}))\n', '/Users/shashank/Desktop/Code/Graph/graph-loader-e19', '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-382/test_interrupted_supervisor_re1/child.json', '/private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-382/test_interrupted_supervisor_re1/interrupted.json', 'True']' timed out after 10 seconds
+
+../../../../.pyenv/versions/3.12.14/lib/python3.12/subprocess.py:2045: TimeoutExpired
+----------------------------- Captured stderr call -----------------------------
+Traceback (most recent call last):
+  File "<string>", line 11, in <module>
+  File "/Users/shashank/Desktop/Code/Graph/graph-loader-e19/scripts/verify_installed.py", line 366, in run
+    raise RuntimeError('command failed; retained output: ' + str(log))
+RuntimeError: command failed; retained output: /private/var/folders/5p/84cp5b7s72q_ymcsd4qlvq8r0000gn/T/pytest-of-shashank/pytest-382/test_interrupted_supervisor_re1/child.log
+_____________ test_package_constant_is_the_neburyx_namespace[cli] ______________
+
+role = 'cli'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10dc1ff50>
+
+    @pytest.mark.parametrize('role', ['cli', 'node', 'edge', 'clock'])
+    def test_package_constant_is_the_neburyx_namespace(role, monkeypatch) -> None:
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+>       assert _images.NAMESPACE == IMAGE_NAMESPACE
+E       AssertionError: assert 'ghcr.io/wrong' == 'ghcr.io/neburyx'
+E         
+E         - ghcr.io/neburyx
+E         + ghcr.io/wrong
+
+tests/test_neburyx_namespace.py:27: AssertionError
+_____________ test_package_constant_is_the_neburyx_namespace[node] _____________
+
+role = 'node'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d5d87d0>
+
+    @pytest.mark.parametrize('role', ['cli', 'node', 'edge', 'clock'])
+    def test_package_constant_is_the_neburyx_namespace(role, monkeypatch) -> None:
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+>       assert _images.NAMESPACE == IMAGE_NAMESPACE
+E       AssertionError: assert 'ghcr.io/wrong' == 'ghcr.io/neburyx'
+E         
+E         - ghcr.io/neburyx
+E         + ghcr.io/wrong
+
+tests/test_neburyx_namespace.py:27: AssertionError
+_____________ test_package_constant_is_the_neburyx_namespace[edge] _____________
+
+role = 'edge'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cedfe90>
+
+    @pytest.mark.parametrize('role', ['cli', 'node', 'edge', 'clock'])
+    def test_package_constant_is_the_neburyx_namespace(role, monkeypatch) -> None:
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+>       assert _images.NAMESPACE == IMAGE_NAMESPACE
+E       AssertionError: assert 'ghcr.io/wrong' == 'ghcr.io/neburyx'
+E         
+E         - ghcr.io/neburyx
+E         + ghcr.io/wrong
+
+tests/test_neburyx_namespace.py:27: AssertionError
+____________ test_package_constant_is_the_neburyx_namespace[clock] _____________
+
+role = 'clock'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10dca4380>
+
+    @pytest.mark.parametrize('role', ['cli', 'node', 'edge', 'clock'])
+    def test_package_constant_is_the_neburyx_namespace(role, monkeypatch) -> None:
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+>       assert _images.NAMESPACE == IMAGE_NAMESPACE
+E       AssertionError: assert 'ghcr.io/wrong' == 'ghcr.io/neburyx'
+E         
+E         - ghcr.io/neburyx
+E         + ghcr.io/wrong
+
+tests/test_neburyx_namespace.py:27: AssertionError
+_____________________ test_scripts_use_the_same_namespace ______________________
+
+    def test_scripts_use_the_same_namespace() -> None:
+>       assert build_candidate_images.NAMESPACE == IMAGE_NAMESPACE == _images.NAMESPACE
+E       AssertionError: assert 'ghcr.io/neburyx' == 'ghcr.io/wrong'
+E         
+E         - ghcr.io/wrong
+E         + ghcr.io/neburyx
+
+tests/test_neburyx_namespace.py:32: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cli.py::test_stream_relationship_stop_stops_node_containers_whatever_the_result[0]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[crash_detection_real_monitors]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[edge_classic_overlap_labels]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[edge_classic_overlap_shared]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[edge_leases]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[lease_server_replacement]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[loader_crash_bulk]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[loader_crash_stream]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[partial_launch_rollback]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[planned_bulk]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[planned_bulk_overlap_labels]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[planned_bulk_overlap_shared]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[stop_during_startup]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[stream_clock_rotation]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_frozen_source[stream_start_stop]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[crash_detection_real_monitors]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[edge_classic_overlap_labels]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[edge_classic_overlap_shared]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[edge_leases]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[lease_server_replacement]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[loader_crash_bulk]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[loader_crash_stream]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[partial_launch_rollback]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[planned_bulk]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[planned_bulk_overlap_labels]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[planned_bulk_overlap_shared]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[stop_during_startup]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[stream_clock_rotation]
+FAILED tests/test_docker_parity.py::test_docker_trace_equals_the_0_1_0a2_golden[stream_start_stop]
+FAILED tests/test_docker_service.py::TestDockerService::test_build_image_resolves_prebuilt_without_cwd_build
+FAILED tests/test_image_selection.py::test_default_reference_matches_package_and_namespace[cli]
+FAILED tests/test_image_selection.py::test_default_reference_matches_package_and_namespace[node]
+FAILED tests/test_image_selection.py::test_default_reference_matches_package_and_namespace[edge]
+FAILED tests/test_image_selection.py::test_default_reference_matches_package_and_namespace[clock]
+FAILED tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[False]
+FAILED tests/test_installed_runner.py::test_interrupted_supervisor_reaps_owned_child_and_retains_receipt[True]
+FAILED tests/test_neburyx_namespace.py::test_package_constant_is_the_neburyx_namespace[cli]
+FAILED tests/test_neburyx_namespace.py::test_package_constant_is_the_neburyx_namespace[node]
+FAILED tests/test_neburyx_namespace.py::test_package_constant_is_the_neburyx_namespace[edge]
+FAILED tests/test_neburyx_namespace.py::test_package_constant_is_the_neburyx_namespace[clock]
+FAILED tests/test_neburyx_namespace.py::test_scripts_use_the_same_namespace
+41 failed, 4532 passed, 29 skipped, 24 deselected in 329.70s (0:05:29)

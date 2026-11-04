@@ -1,0 +1,1 @@
+ERROR: unexpected status from HEAD request to https://registry:5000/v2/e19/python/manifests/3.12-slim: 401 Unauthorized

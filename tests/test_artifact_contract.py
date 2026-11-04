@@ -1,7 +1,7 @@
 """E15.F2.S11: the artifact contract is explicit and finite (approved resources, approved extras, optional modules).
 
 Builds the real wheel and sdist from the checkout (``python -m build --no-isolation``: needs ``build`` and ``setuptools``;
-skipped without them) and runs the strict verifier of ``plan/library-implementation/tools/verify_e03_artifacts.py`` on them
+skipped without them) and runs the strict verifier of ``scripts/verify_artifacts.py`` on them
 and on copies with one planted extra, then checks the same finite lists in ``scripts/verify_installed.py``.
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
-TOOL = REPO / "plan" / "library-implementation" / "tools" / "verify_e03_artifacts.py"
+TOOL = REPO / "scripts" / "verify_artifacts.py"
 pytest.importorskip("packaging")
 BUILD = pytest.mark.skipif(not (importlib.util.find_spec("build") and importlib.util.find_spec("setuptools")),
                            reason="needs build and setuptools (python -m build --no-isolation)")
@@ -34,7 +34,7 @@ def load(path: Path, name: str):
 
 @pytest.fixture(scope="module")
 def verifier():
-    return load(TOOL, "verify_e03_artifacts_under_test")
+    return load(TOOL, "verify_artifacts_under_test")
 
 
 @pytest.fixture(scope="module")
@@ -149,7 +149,7 @@ def test_the_approved_lists_are_finite_and_equal_the_checkout() -> None:
     assert sorted(verifier.APPROVED_EXTRAS) == ["postgres", "sql"] and set(verifier.OPTIONAL_DISTRIBUTIONS.values()) <= set(verifier.APPROVED_EXTRAS)
     present = {p.relative_to(REPO / "src" / "neo4j_graph_loader").as_posix() for p in (REPO / "src" / "neo4j_graph_loader").rglob("*")
                if p.is_file() and p.suffix not in {".py", ".pyc"} and "__pycache__" not in p.parts and ".egg-info" not in str(p)}
-    assert present == verifier.RESOURCE_FILES and len(verifier.RESOURCE_FILES) == 19
+    assert present == verifier.RESOURCE_FILES and len(verifier.RESOURCE_FILES) == 25      # 19 + the 4 Dockerfiles and 2 locks of the image build
     text = (REPO / "scripts" / "verify_installed.py").read_text()
     assert "APPROVED_EXTRAS = ('postgres', 'sql')" in text and "metadata.get_all('Provides-Extra') or []) != sorted(APPROVED_EXTRAS)" in text
 
@@ -172,9 +172,12 @@ def test_the_installed_runner_approves_exactly_the_monitoring_resources_of_the_s
     runner = load(REPO / "scripts" / "verify_installed.py", "verify_installed_resources")
     expected = {"neo4j_graph_loader/" + name for name in verifier.RESOURCE_FILES if name.startswith("monitoring/")}
     assert set(runner.MONITORING_RESOURCES) == expected and len(expected) == 17
-    for name in expected:
+    images = {"neo4j_graph_loader/" + name for name in verifier.RESOURCE_FILES if name.startswith("image_build/")}
+    assert set(runner.IMAGE_BUILD_RESOURCES) == images and len(images) == 6 and not images & expected
+    for name in expected | images:
         runner.safe_relative(name, payload=True)
-    for planted in ("neo4j_graph_loader/monitoring/prometheus/alerts/planted.yml", "neo4j_graph_loader/data/planted.json", "neo4j_graph_loader/x.txt"):
+    for planted in ("neo4j_graph_loader/monitoring/prometheus/alerts/planted.yml", "neo4j_graph_loader/data/planted.json", "neo4j_graph_loader/x.txt",
+                    "neo4j_graph_loader/image_build/dockerfiles/Dockerfile.planted", "neo4j_graph_loader/image_build/locks/py312-linux-s390x.txt"):
         with pytest.raises(ValueError, match="unexpected application payload"):
             runner.safe_relative(planted, payload=True)
 

@@ -5,7 +5,7 @@ There is no service-level commitment and no promised response time. Only the
 latest alpha release receives fixes.
 
 * **Maintainer:** Shashank Shukla
-* **Questions, bugs, feature requests:** <https://github.com/shashankshukla96/graph-loader/issues>
+* **Questions, bugs, feature requests:** <https://github.com/Neburyx/graph-loader/issues>
 * **Security problems (private):** shashankshukla96@gmail.com, subject
   `graph-loader security`. See [SECURITY.md](../SECURITY.md).
 * **License:** Apache License 2.0 ([LICENSE](../LICENSE)).

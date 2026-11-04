@@ -80,7 +80,7 @@ def test_public_errors_remain_in_the_approved_plan_family():
 ])
 def test_external_public_source_clients_preserve_data_errors_context_and_cleanup(tmp_path, workers, context, scenario):
     output = tmp_path/'external'
-    command = [sys.executable, str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'), 'external-'+scenario,
+    command = [sys.executable, str(ROOT/'tests/fixtures/run_fault.py'), 'external-'+scenario,
                '--context', context, '--workers', str(workers), '--hard-timeout', '180',
                '--python', sys.executable, '--output', str(output)]
     result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=200)
@@ -105,7 +105,7 @@ def test_external_public_source_clients_preserve_data_errors_context_and_cleanup
 @pytest.mark.parametrize('mode',['timeout','cancel'])
 def test_public_process_waits_observe_errors_under_an_external_supervisor(tmp_path,scenario,mode):
     output=tmp_path/'fault'
-    command=[sys.executable,str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'),scenario,
+    command=[sys.executable,str(ROOT/'tests/fixtures/run_fault.py'),scenario,
         '--mode',mode,'--python',sys.executable,'--output',str(output)]
     result=subprocess.run(command,cwd=ROOT,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stdout+result.stderr+(output/'client.log').read_text()
@@ -118,7 +118,7 @@ def test_public_process_waits_observe_errors_under_an_external_supervisor(tmp_pa
 
 def test_process_submission_anchor_and_later_start_finish_gap_are_supervised(tmp_path):
     output=tmp_path/'gap'
-    result=subprocess.run([sys.executable,str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'),
+    result=subprocess.run([sys.executable,str(ROOT/'tests/fixtures/run_fault.py'),
         'public-gap','--mode','timeout','--python',sys.executable,'--output',str(output)],
         cwd=ROOT,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stdout+result.stderr+(output/'client.log').read_text()

@@ -14,7 +14,8 @@ import pytest
 from tests.installed_service.container_support import dockerfile_entrypoint
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = (ROOT / 'Dockerfile').read_text()
+DOCKERFILES = ROOT / 'src' / 'neo4j_graph_loader' / 'image_build' / 'dockerfiles'
+CLI = (DOCKERFILES / 'Dockerfile').read_text()
 ROLE_ENTRYPOINTS = {
     'Dockerfile.node_loader': ['python', '-m', 'neo4j_graph_loader.loader.node_loader'],
     'Dockerfile.edge_loader': ['python', '-m', 'neo4j_graph_loader.loader.edge_loader'],
@@ -29,39 +30,39 @@ def instructions(text):
 
 
 def test_tini_is_pid_one_in_exec_form_and_arguments_still_reach_the_cli() -> None:
-    assert dockerfile_entrypoint(ROOT / 'Dockerfile') == ['tini', '--', 'python', '-m', 'neo4j_graph_loader.cli']
+    assert dockerfile_entrypoint(DOCKERFILES / 'Dockerfile') == ['tini', '--', 'python', '-m', 'neo4j_graph_loader.cli']
     lines = instructions(CLI)
     assert sum(line.startswith('ENTRYPOINT') for line in lines) == 1
     assert not any(line.startswith(('CMD', 'USER', 'HEALTHCHECK', 'STOPSIGNAL')) for line in lines), 'the CLI image contract has none of these'
-    assert '-g' not in dockerfile_entrypoint(ROOT / 'Dockerfile'), 'tini -g would signal every process group before the CLI stops its planners'
+    assert '-g' not in dockerfile_entrypoint(DOCKERFILES / 'Dockerfile'), 'tini -g would signal every process group before the CLI stops its planners'
 
 
 def test_tini_is_installed_from_the_distribution_and_its_version_is_asserted_at_build() -> None:
-    run = next(line for line in instructions(CLI) if line.startswith('RUN apt-get'))
+    run = next(line for line in instructions(CLI) if line.startswith('RUN') and 'apt-get install' in line)
     assert 'apt-get install -y --no-install-recommends tini' in run
     assert 'rm -rf /var/lib/apt/lists/*' in run
     assert 'tini --version | grep -F "tini version ${TINI_VERSION}"' in run
     assert re.search(r'^ARG TINI_VERSION=\d+\.\d+\.\d+$', CLI, re.M)
-    assert CLI.index('apt-get install') < CLI.index('pip install'), 'tini is installed before the dependency layers so they stay cached'
+    assert CLI.index('apt-get install') < CLI.index('python -I /ctx/install.py'), 'tini is installed before the dependency layers so they stay cached'
 
 
 def test_image_contract_labels_and_version_check_are_unchanged() -> None:
     lines = instructions(CLI)
     label = next(line for line in lines if line.startswith('LABEL'))
     assert label == ('LABEL org.opencontainers.image.version=$GRAPH_LOADER_VERSION '
-                     'org.opencontainers.image.source="https://github.com/shashankshukla96/graph-loader" '
+                     'org.opencontainers.image.source="https://github.com/Neburyx/graph-loader" '
                      'io.graph-loader.component="cli" io.graph-loader.image-contract="1"')
     assert 'ARG GRAPH_LOADER_VERSION' in lines
-    assert any(line.startswith('RUN python -c') and 'm.version("neo4j-graph-loader") == sys.argv[1]' in line
+    assert any(line.startswith('RUN python -I -c') and 'm.version("neo4j-graph-loader") == sys.argv[1]' in line
                and line.endswith('"$GRAPH_LOADER_VERSION"') for line in lines)
     assert 'WORKDIR /app' in lines and 'ENV PYTHONUNBUFFERED=1' in lines
-    assert lines[0] == 'FROM python:3.12-slim'
+    assert 'ARG BASE_IMAGE=python:3.12-slim' in lines and lines.count('FROM ${BASE_IMAGE}') == 1 and sum(l.startswith('FROM') for l in lines) == 1
 
 
 @pytest.mark.parametrize('dockerfile,entrypoint', ROLE_ENTRYPOINTS.items())
 def test_role_images_are_untouched(dockerfile: str, entrypoint: list) -> None:
-    text = (ROOT / dockerfile).read_text()
-    assert dockerfile_entrypoint(ROOT / dockerfile) == entrypoint
+    text = (DOCKERFILES / dockerfile).read_text()
+    assert dockerfile_entrypoint(DOCKERFILES / dockerfile) == entrypoint
     assert 'tini' not in text and 'apt-get' not in text, 'Docker mode starts roles with Docker\'s own init; only the CLI image gains tini'
 
 

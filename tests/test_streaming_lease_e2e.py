@@ -38,9 +38,8 @@ server simply relaunches with nothing in-flight) and asserting it
 deterministically would need a fault-injection hook this slice does not
 have; this test kills while a write burst is in progress to make hitting
 that window likely, and does not fail if the exact log line is absent.
-The throughput comparison against ``--stream-clock-rotation`` is recorded
-as a documented manual benchmark in ``plan/v5/completion_slice-1.md``
-instead of an automated assertion here, matching how the existing IMDb
+The throughput comparison against ``--stream-clock-rotation`` is a manual
+benchmark rather than an automated assertion here, matching how the existing IMDb
 performance numbers in ``docs/USAGE.md`` are sourced from a manual
 ``examples/`` run rather than from ``tests/``.
 """
@@ -416,9 +415,8 @@ def test_lease_fleet_streams_conflicting_and_self_referencing_edges_with_zero_lo
                 process.kill()
         if log_reader is not None:
             log_reader.join(timeout=5)
-        # Story 10 found that streaming's clean-SIGTERM path can leave
-        # node loaders running (a recorded, pre-existing gap -- see
-        # plan/v5/completion_slice-1.md); sweep everything this run
+        # Streaming's clean-SIGTERM path can leave node loaders running
+        # (a known, pre-existing gap); sweep everything this run
         # launched by label rather than relying on the CLI's own cleanup.
         for container in docker_client.containers.list(all=True, filters={"label": f"run_id={run_id}"}):
             try:

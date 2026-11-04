@@ -13,7 +13,7 @@ from types import SimpleNamespace
 import pytest
 
 from scripts.installed_service import local_docker_host, validate_images
-from scripts import build_candidate_images, installed_service, verify_installed
+from scripts import installed_service, verify_installed
 from scripts.verify_installed import main as installed_main, validate_service_inventory
 
 
@@ -108,36 +108,55 @@ def test_service_cli_remains_closed_until_controller_and_image_preflight_exist(t
     assert not (tmp_path/'output').exists()
 
 
+BINDING_DIGEST = 'a' * 64
+
+
+def fake_binding(dockerfile_digest=BINDING_DIGEST, version='0.1.0a1.dev0', extra=False):
+    """What ``wheel_binding`` returns for a wheel: its hash, version, the Dockerfile and lock hashes and the lock's artifact hashes."""
+    dockerfiles = {name: dockerfile_digest for name in installed_service.DOCKERFILE_NAMES}
+    if extra:
+        dockerfiles['Dockerfile.extra'] = 'e' * 64
+    return {'sha256': 'f' * 64, 'version': version, 'dockerfiles': dockerfiles, 'install_helper_sha256': 'd' * 64,
+            'locks': {name: {'sha256': 'c' * 64, 'hashes': ['1' * 64, '2' * 64]} for name in sorted(installed_service.LOCK_NAMES)}}
+
+
+def payload_for(binding):
+    payload = {installed_service.IMAGE_BUILD + 'dockerfiles/' + n: d for n, d in binding['dockerfiles'].items() if n != 'Dockerfile.extra'}
+    payload |= {installed_service.IMAGE_BUILD + 'locks/' + n: row['sha256'] for n, row in binding['locks'].items()}
+    payload[installed_service.IMAGE_BUILD + 'install.py'] = binding['install_helper_sha256']
+    return payload
+
+
 @pytest.mark.parametrize('change', ['none', 'daemon', 'inputs', 'version', 'payload', 'extra_source'])
 def test_service_image_preflight_rechecks_daemon_and_source(monkeypatch, tmp_path, change):
+    """Name kept so the frozen test ID stays. The images are bound to the wheel under test: the daemon identity, the wheel's own version, the
+    wheel's image build files against its frozen payload, and the wheel itself must be the same before and after the inspection."""
     calls = []
+
     def info():
         calls.append('daemon')
         return {'ID': 'second' if change == 'daemon' and calls.count('daemon') > 1 else 'first'}
-    def inputs():
-        calls.append('inputs')
-        result = {'src/neo4j_graph_loader/__init__.py': 'b'*64 if change == 'inputs' and calls.count('inputs') > 1 else 'a'*64}
-        if change == 'extra_source':
-            result['src/neo4j_graph_loader/extra.py'] = 'e'*64
-        return result
-    monkeypatch.setattr(build_candidate_images, 'package_version',
-                        lambda: 'different' if change == 'version' else '0.1.0a1.dev0')
-    monkeypatch.setattr(build_candidate_images, 'build_inputs', inputs)
+
+    def binding(wheel):
+        calls.append('binding')
+        return fake_binding('b' * 64 if change == 'inputs' and calls.count('binding') > 1 else BINDING_DIGEST,
+                            version='different' if change == 'version' else '0.1.0a1.dev0', extra=change == 'extra_source')
+
+    payload = payload_for(fake_binding())
+    if change == 'payload':
+        payload[installed_service.IMAGE_BUILD + 'dockerfiles/Dockerfile'] = 'c' * 64
+    monkeypatch.setattr(installed_service, 'wheel_binding', binding)
     monkeypatch.setattr(installed_service, 'validate_images', lambda path, **kwargs: {'cli': {'id': IMAGE}})
+    arguments = dict(version='0.1.0a1.dev0', payload=payload, client=SimpleNamespace(info=info), wheel=tmp_path / 'w.whl')
     if change == 'none':
-        result = verify_installed.preflight_service_images(tmp_path/'manifest.json',
-                                                           version='0.1.0a1.dev0', payload={'neo4j_graph_loader/__init__.py': 'a'*64},
-                                                           client=SimpleNamespace(info=info))
-        assert result['daemon_id'] == 'first' and result['images']['cli']['id'] == IMAGE
+        result = verify_installed.preflight_service_images(tmp_path / 'manifest.json', **arguments)
+        assert result['daemon_id'] == 'first' and result['images']['cli']['id'] == IMAGE and result['package_wheel_sha256'] == 'f' * 64
     else:
         with pytest.raises(ValueError):
-            verify_installed.preflight_service_images(tmp_path/'manifest.json',
-                                                      version='0.1.0a1.dev0',
-                                                      payload={'neo4j_graph_loader/__init__.py': 'c'*64 if change == 'payload' else 'a'*64},
-                                                      client=SimpleNamespace(info=info))
+            verify_installed.preflight_service_images(tmp_path / 'manifest.json', **arguments)
 
 
-@pytest.mark.parametrize('url', ['tcp://192.168.1.75:2375', 'ssh://host', 'unix://host/socket',
+@pytest.mark.parametrize('url', ['tcp://192.0.2.75:2375', 'ssh://host', 'unix://host/socket',
                                  'unix:///tmp/../socket', 'unix:///tmp/sock?x=1', 'unix:///tmp/%2esock'])
 def test_remote_or_ambiguous_docker_hosts_are_rejected(url):
     with pytest.raises(ValueError):
@@ -152,14 +171,20 @@ def manifest(tmp_path):
     rows, images = [], {}
     for index, role in enumerate(('cli', 'node', 'edge', 'clock')):
         identity = 'sha256:' + str(index + 1) * 64
-        tag = f'ghcr.io/shashankshukla96/graph-loader-{role}:0.1.0a1.dev0-test'
+        tag = f'ghcr.io/neburyx/graph-loader-{role}:0.1.0a1.dev0-test'
         labels = {'org.opencontainers.image.version': '0.1.0a1.dev0',
                   'io.graph-loader.component': role, 'io.graph-loader.image-contract': '1'}
         rows.append({'component': role, 'id': identity, 'local_tag': tag, 'labels': labels,
                      'registry_digest': None, 'exit_code': 0, 'platform': 'linux/arm64'})
         images[tag] = SimpleNamespace(id=identity, attrs={'Id': identity, 'Config': {'Labels': labels.copy()},
                                                            'Os': 'linux', 'Architecture': 'arm64'})
-    data = {'version': '0.1.0a1.dev0', 'published': False, 'input_sha256': {'source': 'hash'}, 'images': rows}
+    binding = fake_binding()
+    lock = sorted(binding['locks'])[0]
+    data = {'schema': installed_service.MANIFEST_SCHEMA, 'version': '0.1.0a1.dev0', 'published': False, 'platform': 'linux/arm64',
+            'package_wheel': {'file': 'neo4j_graph_loader-0.1.0a1.dev0-py3-none-any.whl', 'sha256': binding['sha256']},
+            'recipe': {'version': 1, 'dockerfiles': dict(binding['dockerfiles']), 'install_helper_sha256': binding['install_helper_sha256']},
+            'lock': {'file': lock, 'sha256': binding['locks'][lock]['sha256']}, 'dependency_sha256': list(binding['locks'][lock]['hashes']),
+            'base_image': {'requested': 'python:3.12-slim', 'resolved': 'python@sha256:' + '9' * 64}, 'images': rows}
     path = tmp_path / 'images.json'
     path.write_text(json.dumps(data))
     return path, data, images
@@ -171,7 +196,7 @@ def image_client(images):
 
 def test_manifest_binds_all_four_actual_images(tmp_path):
     path, _, images = manifest(tmp_path)
-    result = validate_images(path, version='0.1.0a1.dev0', inputs={'source': 'hash'}, client=image_client(images))
+    result = validate_images(path, version='0.1.0a1.dev0', wheel=fake_binding(), client=image_client(images))
     assert set(result) == {'cli', 'node', 'edge', 'clock'}
 
 
@@ -186,7 +211,7 @@ def test_manifest_or_daemon_identity_disagreement_is_rejected(tmp_path, change):
     elif change == 'digest':
         first['registry_digest'] = 'sha256:' + 'a' * 64
     elif change == 'source':
-        data['input_sha256'] = {}
+        data['package_wheel']['sha256'] = 'e' * 64
     elif change == 'tag':
         first['local_tag'] = 'other:latest'
     elif change == 'label':
@@ -195,7 +220,63 @@ def test_manifest_or_daemon_identity_disagreement_is_rejected(tmp_path, change):
         first['platform'] = 'linux/amd64'
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError):
-        validate_images(path, version='0.1.0a1.dev0', inputs={'source': 'hash'}, client=image_client(images))
+        validate_images(path, version='0.1.0a1.dev0', wheel=fake_binding(), client=image_client(images))
+
+
+@pytest.mark.parametrize('control', ['substituted_wheel_same_version', 'changed_dockerfile', 'changed_install_helper', 'changed_lock', 'wrong_dependency_hashes',
+                                     'missing_dependency_hash', 'unresolved_base', 'old_manifest_schema', 'no_wheel_record'])
+def test_control_the_manifest_must_match_the_wheel_it_claims_to_come_from(tmp_path, control):
+    """Adversarial controls of the wheel-hash binding: each one is a manifest that no longer describes the wheel under test."""
+    path, data, images = manifest(tmp_path)
+    if control == 'substituted_wheel_same_version':
+        data['package_wheel']['sha256'] = hashlib.sha256(b'another build of the same version').hexdigest()
+    elif control == 'changed_dockerfile':
+        data['recipe']['dockerfiles']['Dockerfile.node_loader'] = '0' * 64
+    elif control == 'changed_install_helper':
+        data['recipe']['install_helper_sha256'] = '0' * 64
+    elif control == 'changed_lock':
+        data['lock']['sha256'] = '0' * 64
+    elif control == 'wrong_dependency_hashes':
+        data['dependency_sha256'] = ['3' * 64, '2' * 64]
+    elif control == 'missing_dependency_hash':
+        data['dependency_sha256'] = data['dependency_sha256'][:1]
+    elif control == 'unresolved_base':
+        data['base_image']['resolved'] = 'python:3.12-slim'
+    elif control == 'old_manifest_schema':
+        data['schema'] = 'graph-loader-image-manifest/1'
+    else:
+        data.pop('package_wheel')
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError):
+        validate_images(path, version='0.1.0a1.dev0', wheel=fake_binding(), client=image_client(images))
+
+
+def test_wheel_binding_reads_the_build_files_from_the_wheel_and_refuses_a_wheel_with_other_files(tmp_path):
+    import zipfile
+    files = {installed_service.IMAGE_BUILD + 'dockerfiles/' + n: b'FROM x\n' + n.encode() for n in installed_service.DOCKERFILE_NAMES}
+    files |= {installed_service.IMAGE_BUILD + 'locks/' + n: ('x==1 \\\n    --hash=sha256:' + (str(i + 1) * 64) + '\n').encode()
+              for i, n in enumerate(sorted(installed_service.LOCK_NAMES))}
+    files[installed_service.IMAGE_BUILD + 'install.py'] = b'print(1)\n'
+    files['neo4j_graph_loader-9.9.dist-info/METADATA'] = b'Name: x\n'
+    wheel = tmp_path / 'neo4j_graph_loader-9.9-py3-none-any.whl'
+    with zipfile.ZipFile(wheel, 'w') as archive:
+        for name, content in files.items():
+            archive.writestr(name, content)
+    binding = installed_service.wheel_binding(wheel)
+    assert binding['version'] == '9.9' and binding['sha256'] == hashlib.sha256(wheel.read_bytes()).hexdigest()
+    assert set(binding['dockerfiles']) == installed_service.DOCKERFILE_NAMES and binding['install_helper_sha256'] == hashlib.sha256(b'print(1)\n').hexdigest()
+    assert binding['locks']['py312-linux-amd64.txt']['hashes'] == ['1' * 64] and binding['locks']['py312-linux-arm64.txt']['hashes'] == ['2' * 64]
+    for broken in ('missing lock', 'extra dockerfile', 'no helper'):
+        other = tmp_path / (broken.replace(' ', '_') + '.whl')
+        with zipfile.ZipFile(other, 'w') as archive:
+            for name, content in files.items():
+                if (broken == 'missing lock' and name.endswith('amd64.txt')) or (broken == 'no helper' and name.endswith('install.py')):
+                    continue
+                archive.writestr(name, content)
+            if broken == 'extra dockerfile':
+                archive.writestr(installed_service.IMAGE_BUILD + 'dockerfiles/Dockerfile.extra', b'FROM x')
+        with pytest.raises(ValueError, match='exactly the image build files'):
+            installed_service.wheel_binding(other)
 
 
 def test_manifest_symlink_is_rejected(tmp_path):
@@ -203,7 +284,7 @@ def test_manifest_symlink_is_rejected(tmp_path):
     link = tmp_path / 'link.json'
     link.symlink_to(path)
     with pytest.raises(ValueError):
-        validate_images(link, version='0.1.0a1.dev0', inputs={'source': 'hash'}, client=image_client(images))
+        validate_images(link, version='0.1.0a1.dev0', wheel=fake_binding(), client=image_client(images))
 
 
 def test_fifo_evidence_is_rejected_without_waiting_for_a_writer(tmp_path):

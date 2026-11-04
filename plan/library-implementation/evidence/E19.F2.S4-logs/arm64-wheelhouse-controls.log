@@ -1,0 +1,8 @@
+GREEN real arm64 wheelhouse
+RED   missing wheel (numpy removed, no fallback) -> wheelhouse is missing numpy==2.5.4
+RED   wrong-platform wheel (real x86_64 numpy in an arm64 wheelhouse) -> numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl is not a CPython 3.12 wheel for linux/
+RED   wrong-platform wheel disguised under the arm64 file name -> numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl does not match any hash in the lock
+RED   extra wheel not in the lock -> wheelhouse holds files the lock does not name: idna-3.19-py3-none-any.whl
+RED   sdist present -> wheelhouse holds files the lock does not name: pkg-1.0.tar.gz
+RED   wheel content changed (same name) -> idna-3.20-py3-none-any.whl does not match any hash in the lock
+RED   package wheel missing -> wheelhouse is missing the package wheel neo4j_graph_loader-0.1.0a1-py3-none-any.whl

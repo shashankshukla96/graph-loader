@@ -22,29 +22,30 @@ def test_builder_uses_literal_version_authority(tmp_path):
 
 @pytest.mark.parametrize('role,dockerfile', builder.DOCKERFILES.items())
 def test_each_candidate_checks_version_and_defines_role(role, dockerfile):
-    content = (ROOT / dockerfile).read_text()
+    content = (ROOT / 'src/neo4j_graph_loader/image_build/dockerfiles' / dockerfile).read_text()
     assert 'ARG GRAPH_LOADER_VERSION\n' in content
     assert 'org.opencontainers.image.version=$GRAPH_LOADER_VERSION' in content
     assert f'io.graph-loader.component="{role}"' in content
     assert 'io.graph-loader.image-contract="1"' in content
     assert 'm.version("neo4j-graph-loader") == sys.argv[1]' in content
-    assert 'pip install --no-cache-dir --no-deps .' in content
+    assert 'python -I /ctx/install.py' in content, 'the install goes through the helper that starts pip in a fresh environment'
+    assert 'pip install' not in content
 
 
 def test_copy_closure_includes_nested_and_non_python_inputs(tmp_path):
-    for name in (*builder.DOCKERFILES.values(), 'pyproject.toml', 'requirements.txt', 'MANIFEST.in',
-                 'PACKAGE_README.md', 'LICENSE', '.dockerignore', '.env.example',
-                 'scripts/build_candidate_images.py', 'src/neo4j_graph_loader/x.py',
-                 'src/neo4j_graph_loader/data/sample.yaml', 'config/neo4j/server-logs.xml', 'config/.gitkeep'):
-        path = tmp_path / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(name)
-    ignored = tmp_path / 'src/neo4j_graph_loader/__pycache__/x.pyc'
-    ignored.parent.mkdir(); ignored.write_bytes(b'ignored')
-    inputs = builder.build_inputs(tmp_path)
-    assert 'config/neo4j/server-logs.xml' in inputs and 'config/.gitkeep' in inputs
-    assert 'src/neo4j_graph_loader/data/sample.yaml' in inputs
-    assert not any('egg-info' in n or '__pycache__' in n for n in inputs)
-    (tmp_path / 'config/link').symlink_to('neo4j/server-logs.xml')
-    with pytest.raises(ValueError, match='unsafe candidate build input'):
-        builder.build_inputs(tmp_path)
+    """The candidate's build context is generated from package data plus the candidate wheel: the four Dockerfiles, the helper, the lock of the
+    platform, the wheel, the CA bundle file (empty here) and, offline, the wheelhouse; nothing is copied from the checkout."""
+    from neo4j_graph_loader.image_build import builder as core
+    wheel = tmp_path / 'neo4j_graph_loader-1.0-py3-none-any.whl'
+    wheel.write_bytes(b'wheel')
+    house = tmp_path / 'house'
+    house.mkdir()
+    (house / 'dep-1-py3-none-any.whl').write_bytes(b'dep')
+    context = tmp_path / 'context'
+    context.mkdir()
+    core.build_context(context, core.Settings(registry='r.example/team', wheelhouse=house), 'py312-linux-arm64.txt', wheel)
+    names = sorted(str(p.relative_to(context)) for p in context.rglob('*') if p.is_file())
+    assert names == sorted([*core.DOCKERFILES.values(), 'install.py', 'lock.txt', wheel.name, 'pip-ca.pem', 'wheelhouse/dep-1-py3-none-any.whl'])
+    assert (context / 'pip-ca.pem').read_bytes() == b''
+    assert (context / 'Dockerfile.clock').read_bytes() == (ROOT / 'src/neo4j_graph_loader/image_build/dockerfiles/Dockerfile.clock').read_bytes()
+    assert not any(part in ('src', 'config', 'plan', '.env') for name in names for part in Path(name).parts), 'no checkout file is in the context'

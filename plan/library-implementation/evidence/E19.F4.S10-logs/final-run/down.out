@@ -1,0 +1,23 @@
+{"t": "2026-11-04T08:01:36Z", "event": "removed", "kind": "container", "name": "e19-s10-20261104c-runner", "id": "753d598833252f91370294068ddd7cabf8fa4b54bba09995f68dac6bc779fdfd"}
+{"t": "2026-11-04T08:01:47Z", "event": "removed", "kind": "container", "name": "e19-s10-20261104c-dind", "id": "bfea0b2c995a08abb9b66773d13dde063d2383146381565e8387fae4b2b14d99"}
+{"t": "2026-11-04T08:01:47Z", "event": "removed", "kind": "container", "name": "e19-s10-20261104c-debian", "id": "f83efcdb693574ffcad461ec64920530f36abb71d8c584bbf7fd0e2f11951d25"}
+{"t": "2026-11-04T08:01:47Z", "event": "removed", "kind": "container", "name": "e19-s10-20261104c-pypi-proxy", "id": "cfbf76061c37c2ee04d177410ee00dcb61150e8a266a58f1c64b50ea085e32a6"}
+{"t": "2026-11-04T08:02:17Z", "event": "removed", "kind": "container", "name": "e19-s10-20261104c-pypiserver", "id": "5195a09a659780db74687e5d240b175655849bf528b7904475e6d0c86783c366"}
+{"t": "2026-11-04T08:02:18Z", "event": "removed", "kind": "container", "name": "e19-s10-20261104c-registry", "id": "65b651432d46d363b03b3eb86f1ccc2e7d3ab603f3f40c3b28ab6cc966404041"}
+{"t": "2026-11-04T08:02:48Z", "event": "removed", "kind": "container", "name": "e19-s10-20261104c-dns", "id": "5be62f595bf3c18087c31fac6f7e39cda0854d9c220dc5ca6e223e575a6d6304"}
+{"t": "2026-11-04T08:02:48Z", "event": "removed", "kind": "network", "name": "e19-s10-20261104c-net", "id": "43c88217c98ebada10d5573b79c025f5815df97c264bdd5ab015f05029017c7d"}
+{"t": "2026-11-04T08:02:48Z", "event": "removed", "kind": "network", "name": "e19-s10-20261104c-open", "id": "03f621e78c2d82afac43fd495823341e602dc456a9cbf4dfb7ea7fc2fe802715"}
+{"t": "2026-11-04T08:02:48Z", "event": "removed", "kind": "volume", "name": "e19-s10-20261104c-registry-data"}
+{"t": "2026-11-04T08:02:49Z", "event": "removed", "kind": "volume", "name": "e19-s10-20261104c-dind-lib"}
+{"t": "2026-11-04T08:02:49Z", "event": "removed", "kind": "volume", "name": "e19-s10-20261104c-dind-sock"}
+{"t": "2026-11-04T08:02:49Z", "event": "removed", "kind": "volume", "name": "e19-s10-20261104c-work"}
+{"t": "2026-11-04T08:02:49Z", "event": "image", "ref": "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30", "action": "removed python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30"}
+{"t": "2026-11-04T08:02:49Z", "event": "image", "ref": "docker@sha256:0b6d18a4a222e71c88be6034926b4f6cde2fc33c2218643d03ccfddc65995470", "action": "removed docker@sha256:0b6d18a4a222e71c88be6034926b4f6cde2fc33c2218643d03ccfddc65995470"}
+{"t": "2026-11-04T08:02:50Z", "event": "image", "ref": "registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373", "action": "removed registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"}
+{"t": "2026-11-04T08:02:50Z", "event": "image", "ref": "pypiserver/pypiserver@sha256:286ce50e4a53b3fbc880d944d6a5e010ca6ccb1fe2ecad669b9f00a349107b20", "action": "removed pypiserver/pypiserver@sha256:286ce50e4a53b3fbc880d944d6a5e010ca6ccb1fe2ecad669b9f00a349107b20"}
+{"t": "2026-11-04T08:02:50Z", "event": "image", "ref": "nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10", "action": "removed nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10"}
+{"t": "2026-11-04T08:02:50Z", "event": "image", "ref": "httpd@sha256:070da7661f0be8a05430b2c125c0cde9e53176b4048c813024021969a0e3893c", "action": "removed httpd@sha256:070da7661f0be8a05430b2c125c0cde9e53176b4048c813024021969a0e3893c"}
+{"t": "2026-11-04T08:02:51Z", "event": "image", "ref": "neo4j@sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15", "action": "removed neo4j@sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15"}
+{"t": "2026-11-04T08:02:51Z", "event": "image", "ref": "confluentinc/cp-kafka@sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3", "action": "kept image id sha256:1fa3cdb3ef77 (preexisting)"}
+{"t": "2026-11-04T08:02:51Z", "event": "image", "ref": "e19-s10-20261104c/runner:1", "action": "untagged e19-s10-20261104c/runner:1"}
+{"t": "2026-11-04T08:02:51Z", "event": "down-complete", "left": {"token": "s10-20261104c", "containers": {}, "networks": {}, "volumes": [], "images": {}, "created": [], "anonymous_volumes": {}}}

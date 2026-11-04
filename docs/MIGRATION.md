@@ -46,7 +46,7 @@ exports only the version.
 
 | | Original checkout | Installed package |
 | --- | --- | --- |
-| Images | built locally by `make build-images`: `graph-loader-node`, `graph-loader-edge`, `graph-loader-clock`, tag `latest` | four prebuilt images, one tag per release: `ghcr.io/shashankshukla96/graph-loader-{cli,node,edge,clock}:<package version>`; there is no `latest` release identity |
+| Images | built locally by `make build-images`: `graph-loader-node`, `graph-loader-edge`, `graph-loader-clock`, tag `latest` | four prebuilt images, one tag per release: `ghcr.io/neburyx/graph-loader-{cli,node,edge,clock}:<package version>`; there is no `latest` release identity |
 | Selection | `GRAPH_LOADER_*_IMAGE` or the local default | defaults to the tag equal to `graph-loader --version`; `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE` and `GRAPH_LOADER_CLOCK_IMAGE` select explicit overrides |
 | Build | `start` could use whatever was built locally | `start` **never builds**: it uses a local image if present, pulls a missing one, and with `--skip-image-build` only uses local images and never pulls |
 | Version check | none | every selected image, overrides included, must carry `org.opencontainers.image.version` equal to the installed package version, `io.graph-loader.component` for its role and `io.graph-loader.image-contract=1`; a mismatch fails at `start` before any container runs |

@@ -1992,8 +1992,7 @@ class BucketLeaseExecutionCoordinator:
             # P5-S1 Story 4: the pre-commit PING optimisation. Its cost is
             # accounted as lease-wait time (same flush-level metric as the
             # ANY/EXT round trips), per this story's AC. Not the fencing
-            # guarantee -- see ApocLockedEdgeWriter's docstring and
-            # plan/v5-v6-orchestration.md's P5-Q1 amendment; ``deadline``
+            # guarantee -- see ApocLockedEdgeWriter's docstring; ``deadline``
             # above (Neo4j's own server-enforced transaction timeout) is.
             started = time.perf_counter()
             try:

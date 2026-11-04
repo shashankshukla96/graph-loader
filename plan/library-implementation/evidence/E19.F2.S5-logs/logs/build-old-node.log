@@ -1,0 +1,139 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.node_loader
+#1 transferring dockerfile: 1.17kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 302B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 9.15kB done
+#4 DONE 0.0s
+
+#5 [1/9] FROM docker.io/library/python:3.12-slim@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#5 resolve docker.io/library/python:3.12-slim@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 0.0s done
+#5 DONE 0.0s
+
+#6 [2/9] WORKDIR /app
+#6 CACHED
+
+#7 [3/9] COPY requirements.txt .
+#7 DONE 0.0s
+
+#8 [4/9] RUN pip install --no-cache-dir -r requirements.txt
+#8 1.002 Collecting neo4j<7,>=6.0 (from -r requirements.txt (line 5))
+#8 1.092   Downloading neo4j-6.4.1-py3-none-any.whl.metadata (5.5 kB)
+#8 1.412 Collecting confluent-kafka<3,>=2.5 (from -r requirements.txt (line 6))
+#8 1.438   Downloading confluent_kafka-2.16.1-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (38 kB)
+#8 1.645 Collecting pydantic<3,>=2.7 (from -r requirements.txt (line 7))
+#8 1.675   Downloading pydantic-2.14.2-py3-none-any.whl.metadata (137 kB)
+#8 1.814 Collecting PyYAML<7,>=6.0.1 (from -r requirements.txt (line 8))
+#8 1.842   Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.4 kB)
+#8 1.934 Collecting docker<8,>=7.1.0 (from -r requirements.txt (line 9))
+#8 1.961   Downloading docker-7.2.0-py3-none-any.whl.metadata (3.8 kB)
+#8 2.094 Collecting neo4j-rust-ext<7,>=6.0 (from -r requirements.txt (line 10))
+#8 2.123   Downloading neo4j_rust_ext-6.4.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (4.1 kB)
+#8 2.305 Collecting numpy<3,>=1.26 (from -r requirements.txt (line 11))
+#8 2.333   Downloading numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (6.6 kB)
+#8 2.426 Collecting prometheus-client<1,>=0.20 (from -r requirements.txt (line 12))
+#8 2.454   Downloading prometheus_client-0.26.0-py3-none-any.whl.metadata (2.1 kB)
+#8 2.556 Collecting pytz (from neo4j<7,>=6.0->-r requirements.txt (line 5))
+#8 2.584   Downloading pytz-2026.6-py2.py3-none-any.whl.metadata (22 kB)
+#8 2.679 Collecting annotated-types>=0.6.0 (from pydantic<3,>=2.7->-r requirements.txt (line 7))
+#8 2.708   Downloading annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
+#8 3.107 Collecting pydantic-core==2.50.2 (from pydantic<3,>=2.7->-r requirements.txt (line 7))
+#8 3.138   Downloading pydantic_core-2.50.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (6.5 kB)
+#8 3.230 Collecting typing-extensions>=4.16.0 (from pydantic<3,>=2.7->-r requirements.txt (line 7))
+#8 3.259   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+#8 3.366 Collecting typing-inspection>=0.4.4 (from pydantic<3,>=2.7->-r requirements.txt (line 7))
+#8 3.395   Downloading typing_inspection-0.4.4-py3-none-any.whl.metadata (2.6 kB)
+#8 3.491 Collecting requests>=2.26.0 (from docker<8,>=7.1.0->-r requirements.txt (line 9))
+#8 3.517   Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+#8 3.613 Collecting urllib3>=1.26.0 (from docker<8,>=7.1.0->-r requirements.txt (line 9))
+#8 3.641   Downloading urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+#8 3.771 Collecting charset_normalizer<4,>=2 (from requests>=2.26.0->docker<8,>=7.1.0->-r requirements.txt (line 9))
+#8 3.797   Downloading charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (46 kB)
+#8 3.893 Collecting idna<4,>=2.5 (from requests>=2.26.0->docker<8,>=7.1.0->-r requirements.txt (line 9))
+#8 3.919   Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+#8 4.019 Collecting certifi>=2023.5.7 (from requests>=2.26.0->docker<8,>=7.1.0->-r requirements.txt (line 9))
+#8 4.048   Downloading certifi-2026.10.23-py3-none-any.whl.metadata (2.5 kB)
+#8 4.079 Downloading neo4j-6.4.1-py3-none-any.whl (390 kB)
+#8 4.142 Downloading confluent_kafka-2.16.1-cp312-cp312-manylinux_2_28_aarch64.whl (5.2 MB)
+#8 4.245    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 49.4 MB/s eta 0:00:00
+#8 4.271 Downloading pydantic-2.14.2-py3-none-any.whl (490 kB)
+#8 4.311 Downloading pydantic_core-2.50.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (2.1 MB)
+#8 4.332    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 91.6 MB/s eta 0:00:00
+#8 4.360 Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (775 kB)
+#8 4.371    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 775.1/775.1 kB 83.5 MB/s eta 0:00:00
+#8 4.397 Downloading docker-7.2.0-py3-none-any.whl (148 kB)
+#8 4.430 Downloading neo4j_rust_ext-6.4.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (312 kB)
+#8 4.468 Downloading numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)
+#8 4.666    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.7/15.7 MB 78.5 MB/s eta 0:00:00
+#8 4.693 Downloading prometheus_client-0.26.0-py3-none-any.whl (64 kB)
+#8 4.723 Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#8 4.752 Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+#8 4.781 Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#8 4.807 Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#8 4.835 Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)
+#8 4.868 Downloading pytz-2026.6-py2.py3-none-any.whl (506 kB)
+#8 4.900 Downloading certifi-2026.10.23-py3-none-any.whl (135 kB)
+#8 4.929 Downloading charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (246 kB)
+#8 4.962 Downloading idna-3.20-py3-none-any.whl (69 kB)
+#8 4.999 Installing collected packages: pytz, urllib3, typing-extensions, PyYAML, prometheus-client, numpy, neo4j, idna, confluent-kafka, charset_normalizer, certifi, annotated-types, typing-inspection, requests, pydantic-core, neo4j-rust-ext, pydantic, docker
+#8 6.505 Successfully installed PyYAML-6.0.3 annotated-types-0.8.0 certifi-2026.10.23 charset_normalizer-3.5.2 confluent-kafka-2.16.1 docker-7.2.0 idna-3.20 neo4j-6.4.1 neo4j-rust-ext-6.4.1.0 numpy-2.5.4 prometheus-client-0.26.0 pydantic-2.14.2 pydantic-core-2.50.2 pytz-2026.6 requests-2.34.2 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0
+#8 6.505 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#8 6.960 
+#8 6.960 [notice] A new release of pip is available: 25.0.1 -> 26.3
+#8 6.960 [notice] To update, run: pip install --upgrade pip
+#8 DONE 7.1s
+
+#9 [5/9] COPY pyproject.toml PACKAGE_README.md LICENSE MANIFEST.in ./
+#9 DONE 0.0s
+
+#10 [6/9] COPY src/neo4j_graph_loader/ src/neo4j_graph_loader/
+#10 DONE 0.0s
+
+#11 [7/9] RUN pip install --no-cache-dir --no-deps .
+#11 0.193 Processing /app
+#11 0.194   Installing build dependencies: started
+#11 1.537   Installing build dependencies: finished with status 'done'
+#11 1.537   Getting requirements to build wheel: started
+#11 1.636   Getting requirements to build wheel: finished with status 'done'
+#11 1.636   Preparing metadata (pyproject.toml): started
+#11 1.724   Preparing metadata (pyproject.toml): finished with status 'done'
+#11 1.726 Building wheels for collected packages: neo4j-graph-loader
+#11 1.727   Building wheel for neo4j-graph-loader (pyproject.toml): started
+#11 1.879   Building wheel for neo4j-graph-loader (pyproject.toml): finished with status 'done'
+#11 1.880   Created wheel for neo4j-graph-loader: filename=neo4j_graph_loader-0.1.0a1-py3-none-any.whl size=631558 sha256=1e98b1eb5348f1d2e00613304eea4a67eb48ed85c51d76deb9d774f9b4e7fa51
+#11 1.880   Stored in directory: /tmp/pip-ephem-wheel-cache-ot4mygi0/wheels/54/1b/b7/aa63e25c8f14f4f2ae7b04e6097bdecb770e455c5c1ee0a600
+#11 1.882 Successfully built neo4j-graph-loader
+#11 1.882 Installing collected packages: neo4j-graph-loader
+#11 2.053 Successfully installed neo4j-graph-loader-0.1.0a1
+#11 2.053 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#11 2.611 
+#11 2.611 [notice] A new release of pip is available: 25.0.1 -> 26.3
+#11 2.611 [notice] To update, run: pip install --upgrade pip
+#11 DONE 2.7s
+
+#12 [8/9] RUN python -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "0.1.0a1"
+#12 DONE 0.1s
+
+#13 [9/9] COPY config/ config/
+#13 DONE 0.0s
+
+#14 exporting to image
+#14 exporting layers
+#14 exporting layers 1.7s done
+#14 exporting manifest sha256:713ffbf0b570db06086a268bed43f3ba82f1b7b60dbf1eef8b7ff304ff03e12f done
+#14 exporting config sha256:1752728605129d443d9e9399c4b01d3339ead33c5152bf883363a211f1a518ca done
+#14 naming to e19-s5-20261103T231205/old-graph-loader-node:0.1.0a1 done
+#14 unpacking to e19-s5-20261103T231205/old-graph-loader-node:0.1.0a1
+#14 unpacking to e19-s5-20261103T231205/old-graph-loader-node:0.1.0a1 0.5s done
+#14 DONE 2.2s
+
+View build details: docker-desktop://dashboard/build/default/default/y8nrftb08h7tel7gbojl5zogx

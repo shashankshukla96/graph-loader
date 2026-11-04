@@ -10,12 +10,13 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-INVENTORY = ROOT / 'plan/library-implementation/test-inventory.json'
+INVENTORY = ROOT / 'tests/inventory/test-inventory.json'
 EXTRA_LANES = {
     'public-contracts': (6, 1, '''namespace_migration public_api public_lifecycle public_cancellation
         public_cleanup planner_transport planner_imports installed_cli cli_resources runtime_paths
@@ -78,6 +79,13 @@ CHECKOUT = {
     'json_logs': 'E15 JSON-log controls include static drift guards over the checkout source tree (every logger call, every Kafka client factory) and a second Kafka client environment; retained checkout.',
     'monitoring_export': 'E15 monitoring bundle controls read the checkout monitoring/, Makefile, Compose and pyproject files; retained checkout plus the installed proof of `monitoring export` from the wheel.',
     'artifact_contract': 'E15 artifact-contract controls build the wheel and sdist from the checkout and mutate them; developer tooling, never part of the runtime artifact.',
+    'image_locks': 'E19 dependency-lock controls read the checkout lock files, requirements.txt and pyproject.toml; the lock tool is developer tooling.',
+    'image_install': 'E19 controls of the image install helper run it against local wheels and a local index; the helper itself ships in the wheel, the image proofs are the executed evidence.',
+    'image_builder': 'E19 controls of `graph-loader images build` and the shared build core against a recording stand-in for the docker CLI; the builds themselves are the executed proof.',
+    'image_build_files': 'E19 static controls on the four image Dockerfiles; they read the checkout Dockerfiles.',
+    'neburyx_namespace': 'E19 identity controls read the checkout Dockerfiles, pyproject, docs and scripts; the installed package constant is covered by the image-selection tests.',
+    'inventory_migration': 'E19 inventory migration and portability controls; developer tooling over the checkout inventory, never part of the runtime artifact.',
+    'no_plan_dependency': 'E19 checks that no product file points at a maintainers\' planning document; they read the checkout tree.',
 }
 HISTORY = {
     'tests/test_multi_pair_leases.py::test_the_slice_does_not_touch_the_lease_server_or_client',
@@ -169,8 +177,7 @@ def source_record(path):
 
 def closure(seeds):
     """Recursive local imports, ancestor config/packages and finite dynamic fixtures."""
-    python_files = sorted([*ROOT.glob('tests/**/*.py'), *ROOT.glob('examples/**/*.py'),
-                           ROOT / 'plan/library-implementation/tools/run_e04_fault.py'])
+    python_files = sorted([*ROOT.glob('tests/**/*.py'), *ROOT.glob('examples/**/*.py')])
     candidates = {str(p.relative_to(ROOT)) for p in python_files}
     basenames = {}
     for name in candidates:
@@ -216,8 +223,7 @@ def closure(seeds):
                 if value in candidates:
                     dependencies.add(value)
                 if len(value) < 200 and value.endswith('.py'):
-                    dependencies.update(p for p in basenames.get(Path(value).name, [])
-                                        if p.startswith('tests/fixtures/') or p == 'plan/library-implementation/tools/run_e04_fault.py')
+                    dependencies.update(p for p in basenames.get(Path(value).name, []) if p.startswith('tests/fixtures/'))
                 if len(value) < 200 and all(part.isidentifier() for part in value.split('.')):
                     names = [value]
             for name in names:
@@ -308,7 +314,9 @@ def freeze(data, collection, wheel):
         carried_set = set(carried)
         if [i for i in ids if i in carried_set] != carried:
             raise ValueError('re-freeze cannot remove/reorder previously frozen IDs')
-        if any(choices[renamed.get(i, i)] != old for i, old in data['test_dispositions'].items() if i not in removed):
+        # a reviewed rename moves an installed ID's ``mapping`` to the new ID; everything else must be identical
+        if any(choices[renamed.get(i, i)] != ({**old, 'mapping': renamed[i]} if i in renamed and 'mapping' in old else old)
+               for i, old in data['test_dispositions'].items() if i not in removed):
             raise ValueError('re-freeze cannot silently change a reviewed test disposition')
     result['test_dispositions'] = choices
     result['file_dispositions'] = {p: {'ids': [r['id'] for r in items if r['file'] == p],
@@ -363,6 +371,176 @@ def freeze(data, collection, wheel):
     return result
 
 
+PRIVATE_AMENDMENT_KEYS = ('previous_inventory', 'actual_unchanged_installed_reproduction')
+CONCEALED = 'sha256:'
+LAN_ADDRESS = re.compile(r'(?<![0-9.])192\.168\.[0-9]{1,3}\.[0-9]{1,3}')
+
+
+def id_digest(identifier):
+    return sha(identifier.encode())
+
+
+def conceal_renames(data, old_ids):
+    """Re-key the reviewed rename entries of ``old_ids`` by the sha256 of the old ID, so the public file does not carry the old string.
+
+    The old ID of a rename exists to be removed from the public tree (it held a private address), so the entry keeps the new ID,
+    the reviewer, the reason and the digest only. Returns ``{digest: old ID}`` for the private sidecar.
+    """
+    entries = data.get('reviewed_id_renames', {})
+    hidden = {}
+    for old in old_ids:
+        entry = entries.pop(old, None)
+        if entry is not None:
+            digest = id_digest(old)
+            entries[CONCEALED + digest] = {**entry, 'old_id_sha256': digest}
+            hidden[digest] = old
+    return hidden
+
+
+def resolve_renames(entries, baseline_ids):
+    """``{old ID: new ID}`` for the entries that rename an ID of ``baseline_ids`` (plain keys, or keys concealed by digest)."""
+    known = set(baseline_ids)
+    by_digest = {id_digest(i): i for i in known}
+    found = {}
+    for key, entry in entries.items():
+        old = by_digest.get(key[len(CONCEALED):]) if key.startswith(CONCEALED) else key
+        if old in known and isinstance(entry, dict) and isinstance(entry.get('new_id'), str):
+            found[old] = entry['new_id']
+    return found
+
+
+def concealed_problems(data):
+    """Malformed concealed rename entries, a concealed old ID that is still collected, and private LAN addresses anywhere in the file."""
+    problems, ids = [], data['source_collection']['test_ids']
+    digests = {id_digest(i) for i in ids}
+    for key, entry in data.get('reviewed_id_renames', {}).items():
+        if not key.startswith(CONCEALED):
+            continue
+        digest = key[len(CONCEALED):]
+        if not (len(digest) == 64 and all(c in '0123456789abcdef' for c in digest)) or not isinstance(entry, dict):
+            problems.append('malformed concealed rename: ' + key[:20])
+        elif (entry.get('old_id_sha256') != digest or entry.get('new_id') not in ids or not entry.get('reviewed')
+              or not entry.get('reason') or digest in digests):
+            problems.append('inconsistent concealed rename: ' + key[:20])
+    if LAN_ADDRESS.search(json.dumps(data)):
+        problems.append('the inventory contains a private LAN address (192.168.x.x)')
+    return problems
+
+
+def portable_command(command):
+    """The collection command with no machine path: interpreter, repository root and output become placeholders."""
+    launch = command[3]
+    return ['<python>', '-I', '-c', launch, '<repo-root>', '<collection-output>', *command[6:]]
+
+
+def make_portable(data):
+    """A copy of ``data`` that carries no machine, host or private-repository path, plus the private provenance removed from it.
+
+    The public inventory holds repository-relative paths only. What was removed (the collection command with its absolute paths,
+    the artifact paths and the private evidence paths of an amendment) is returned separately for a private sidecar.
+    """
+    result = json.loads(json.dumps(data))
+    provenance = {}
+    command = result.get('source_collection', {}).get('command')
+    if command and command[0] != '<python>':
+        provenance['source_collection.command'] = command
+        result['source_collection']['command'] = portable_command(command)
+    artifacts = result.get('artifact_contract', {}).get('artifacts', [])
+    if any(Path(a['path']).is_absolute() for a in artifacts):
+        provenance['artifact_contract.artifacts'] = artifacts
+        result['artifact_contract']['artifacts'] = [{**a, 'path': Path(a['path']).name} for a in artifacts]
+    for index, amendment in enumerate(result.get('disposition_amendments', [])):
+        private = {k: amendment.pop(k) for k in PRIVATE_AMENDMENT_KEYS if k in amendment}
+        if private:
+            provenance[f'disposition_amendments[{index}]'] = private
+    for lane in result.get('lanes', {}).values():
+        if 'command' in lane:
+            lane['command'] = re.sub(r'--inventory \S*test-inventory\.json', '--inventory tests/inventory/test-inventory.json', lane['command'])
+    return result, provenance
+
+
+def portability_problems(data):
+    """Every metadata path of the inventory that is absolute, climbs out of the repository or names ``plan/`` or ``var/``."""
+    values = list(data.get('source_collection', {}).get('command', [])[:3] + data.get('source_collection', {}).get('command', [])[4:])
+    values += [a['path'] for a in data.get('artifact_contract', {}).get('artifacts', [])]
+    for amendment in data.get('disposition_amendments', []):
+        values += [v for v in amendment.values() if isinstance(v, str)]
+    for lane in data.get('lanes', {}).values():
+        values += [lane.get('command', '')]
+        values += [*lane.get('stage_files', {}), *lane.get('reference_files', {}), *lane.get('recursive_imports', {})]
+    problems = []
+    for value in values:
+        if value in ('<python>', '-I', '-c', '<repo-root>', '<collection-output>'):
+            continue
+        looks_private = (Path(value).is_absolute() or ('/' + 'home/') in value or ('/' + 'Users/') in value or value.startswith(('var/', 'plan/'))
+                         or '/plan/' in value or ' plan/' in value or ' var/' in value or '..' in Path(value).parts)
+        if looks_private:
+            problems.append(value)
+    return problems
+
+
+def field_changes(old, new, path='', depth=0):
+    """Readable list of the fields that differ between two inventories (maps are summarized, never dumped)."""
+    if isinstance(old, dict) and isinstance(new, dict) and depth < 3 and len(old) + len(new) <= 400:
+        found = []
+        for key in dict.fromkeys([*old, *new]):
+            where = f'{path}.{key}' if path else str(key)
+            if key not in old:
+                found.append(f'{where}: added')
+            elif key not in new:
+                found.append(f'{where}: removed')
+            else:
+                found.extend(field_changes(old[key], new[key], where, depth + 1))
+        return found
+    if old == new:
+        return []
+    if isinstance(old, dict) and isinstance(new, dict):
+        keys = set(old) | set(new)
+        changed = sum(1 for k in keys if k in old and k in new and old[k] != new[k])
+        return [f'{path}: {len(keys - set(old))} added, {len(keys - set(new))} removed, {changed} changed (of {len(keys)})']
+    if isinstance(old, list) and isinstance(new, list):
+        return [f'{path}: list of {len(old)} -> {len(new)}']
+    return [f'{path}: changed']
+
+
+def compare_inventories(old, new, renames=None):
+    """Compare a migrated inventory with its baseline; raise on any lost, reordered or re-dispositioned ID.
+
+    Every baseline ID must survive in the same relative order (a reviewed rename maps it to its replacement, in the same position),
+    keep its disposition (the ``mapping`` of an installed ID follows a rename), and stay listed in the same lane. New IDs may be
+    added anywhere. Returns the report of added IDs, renames and changed fields.
+    """
+    baseline, migrated = old['source_collection']['test_ids'], new['source_collection']['test_ids']
+    renames = dict(renames) if renames is not None else resolve_renames(new.get('reviewed_id_renames', {}), baseline)
+    expected = [renames.get(i, i) for i in baseline]
+    if len(set(migrated)) != len(migrated):
+        raise ValueError('migrated inventory lists a duplicate ID')
+    missing = [i for i in expected if i not in set(migrated)]
+    if missing:
+        raise ValueError(f'migration lost {len(missing)} IDs, first: {missing[0]}')
+    kept = set(expected)
+    if [i for i in migrated if i in kept] != expected:
+        raise ValueError('migration reordered previously frozen IDs')
+    changed = []
+    for before in baseline:
+        after = renames.get(before, before)
+        was, now = old['test_dispositions'][before], new['test_dispositions'][after]
+        was = {**was, 'mapping': after} if 'mapping' in was else was
+        if was != now:
+            changed.append(before)
+    if changed:
+        raise ValueError(f'migration changed {len(changed)} dispositions, first: {changed[0]}')
+    for name, lane in old['lanes'].items():
+        if lane.get('kind') in ('installed unit regression', 'installed service regression'):
+            before = [renames.get(i, i) for i in lane['test_ids']]
+            after = [i for i in new['lanes'][name]['test_ids'] if i in set(before)]
+            if before != after:
+                raise ValueError('migration changed the selection or order of lane ' + name)
+    added = [i for i in migrated if i not in kept]
+    return {'baseline_ids': len(baseline), 'migrated_ids': len(migrated), 'order_preserved': True, 'dispositions_compared': len(baseline),
+            'dispositions_changed': 0, 'renamed': renames, 'added_ids': added, 'changed_fields': field_changes(old, new)}
+
+
 def check(data, collection):
     actual = [r['id'] for r in collection['items']]
     if actual != data['source_collection']['test_ids']:
@@ -375,30 +553,85 @@ def check(data, collection):
             for path, digest in lane['stage_files'].items():
                 if not (ROOT / path).is_file() or sha((ROOT / path).read_bytes()) != digest:
                     raise ValueError('staged file missing/changed: ' + path)
+    if portability_problems(data):
+        raise ValueError('inventory carries private or machine paths: ' + repr(portability_problems(data)[:3]))
+    if concealed_problems(data):
+        raise ValueError('inventory rename records are not clean: ' + repr(concealed_problems(data)[:3]))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inventory', type=Path, default=INVENTORY)
-    parser.add_argument('--collection-output', type=Path, required=True)
+    parser.add_argument('--collection-output', type=Path)
     parser.add_argument('--freeze', action='store_true')
     parser.add_argument('--wheel', type=Path)
     parser.add_argument('--sdist', type=Path)
+    parser.add_argument('--migrate-from', type=Path, help='baseline inventory to migrate: freeze from it, compare, and write --inventory')
+    parser.add_argument('--rename', nargs=3, action='append', default=[], metavar=('OLD_ID', 'NEW_ID', 'REASON'),
+                        help='record a reviewed ID rename in the migrated inventory (same file and test function only)')
+    parser.add_argument('--reviewed-by', help='who reviewed the --rename entries, with the date (required with --rename)')
+    parser.add_argument('--report', type=Path, help='with --migrate-from: write the comparison report here')
+    parser.add_argument('--provenance', type=Path, help='write the private provenance removed from the public inventory here (merged if it exists)')
+    parser.add_argument('--conceal-renames', nargs='+', metavar='OLD_ID',
+                        help='re-key these reviewed renames of --inventory by the sha256 of the old ID (no collection; the old IDs go to --provenance)')
     args = parser.parse_args()
+    if args.conceal_renames:
+        data = json.loads(args.inventory.read_text())
+        hidden = conceal_renames(data, args.conceal_renames)
+        if not hidden:
+            parser.error('none of the IDs has a reviewed rename entry in the inventory')
+        if concealed_problems(data):
+            parser.error('inventory rename records are not clean: ' + repr(concealed_problems(data)[:3]))
+        if args.provenance:
+            kept = json.loads(args.provenance.read_text()) if args.provenance.exists() else {}
+            kept.setdefault('reviewed_id_renames.old_ids', {}).update(hidden)
+            args.provenance.write_text(json.dumps(kept, indent=2) + '\n')
+        args.inventory.write_text(json.dumps(data, indent=2) + '\n')
+        print(json.dumps({'concealed': len(hidden)}))
+        return
+    if args.collection_output is None:
+        parser.error('--collection-output is required')
     if args.collection_output.exists() or args.collection_output.with_suffix('.log').exists():
         parser.error('collection output must be new')
+    if args.rename and not args.reviewed_by:
+        parser.error('--rename needs --reviewed-by')
+    if args.migrate_from:
+        args.freeze = True
     collection, command = collect(args.collection_output.resolve())
-    data = json.loads(args.inventory.read_text())
+    data = json.loads((args.migrate_from or args.inventory).read_text())
     if args.freeze:
         if args.wheel is None or args.sdist is None:
             parser.error('--freeze requires explicit wheel and sdist for strict validation')
-        spec = importlib.util.spec_from_file_location('strict_e07', ROOT/'plan/library-implementation/tools/verify_e03_artifacts.py')
+        baseline = json.loads(json.dumps(data))
+        renames = {}
+        for old_id, new_id, reason in args.rename:
+            data.setdefault('reviewed_id_renames', {})[old_id] = {'new_id': new_id, 'reviewed': args.reviewed_by, 'reason': reason}
+            renames[old_id] = new_id
+        spec = importlib.util.spec_from_file_location('strict_artifacts', ROOT/'scripts/verify_artifacts.py')
         strict = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(strict)
         contract = strict.inspect(args.wheel, args.sdist)
         data = freeze(data, collection, args.wheel)
         data['artifact_contract'] = contract
         data['source_collection']['command'] = command
+        data, provenance = make_portable(data)
+        if portability_problems(data):
+            raise ValueError('inventory still carries private paths: ' + repr(portability_problems(data)[:3]))
+        if args.migrate_from:
+            report = compare_inventories(baseline, data, renames)
+            provenance.setdefault('reviewed_id_renames.old_ids', {}).update(conceal_renames(data, list(renames)))
+            if resolve_renames(data['reviewed_id_renames'], baseline['source_collection']['test_ids']) != renames:
+                raise ValueError('concealed rename records do not reproduce the renames')
+            compare_inventories(baseline, data)        # the comparison also works from the concealed records alone
+            report['renamed'] = {id_digest(old): new for old, new in renames.items()}     # the report names no old ID
+            if args.report:
+                args.report.write_text(json.dumps(report, indent=2) + '\n')
+        if concealed_problems(data):
+            raise ValueError('inventory rename records are not clean: ' + repr(concealed_problems(data)[:3]))
+        if args.provenance:
+            kept = json.loads(args.provenance.read_text()) if args.provenance.exists() else {}
+            args.provenance.write_text(json.dumps({**kept, **provenance}, indent=2) + '\n')
+        args.inventory.parent.mkdir(parents=True, exist_ok=True)
         args.inventory.write_text(json.dumps(data, indent=2) + '\n')
     else:
         check(data, collection)

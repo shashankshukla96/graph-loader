@@ -63,6 +63,15 @@ MONITORING_RESOURCES = frozenset({
     'neo4j_graph_loader/monitoring/prometheus/alerts/write_outage.yml',
     'neo4j_graph_loader/monitoring/prometheus/prometheus.yml',
 })
+# E19.F2.S6: the other finite non-Python payload, the image build files (equal to the image_build entries of RESOURCE_FILES; a test keeps them equal).
+IMAGE_BUILD_RESOURCES = frozenset({
+    'neo4j_graph_loader/image_build/dockerfiles/Dockerfile',
+    'neo4j_graph_loader/image_build/dockerfiles/Dockerfile.clock',
+    'neo4j_graph_loader/image_build/dockerfiles/Dockerfile.edge_loader',
+    'neo4j_graph_loader/image_build/dockerfiles/Dockerfile.node_loader',
+    'neo4j_graph_loader/image_build/locks/py312-linux-amd64.txt',
+    'neo4j_graph_loader/image_build/locks/py312-linux-arm64.txt',
+})
 
 
 def safe_relative(value, *, payload=False, references=()):
@@ -70,12 +79,12 @@ def safe_relative(value, *, payload=False, references=()):
     if path.is_absolute() or str(path) != value or any(p in {'..', '.', '.git', '__pycache__', 'src', 'datasets', 'reports', 'logs'} or p.startswith('.env') for p in path.parts):
         raise ValueError('unsafe staged path: ' + value)
     if payload:
-        if not value.startswith('neo4j_graph_loader/') or (path.suffix not in {'.py', '.yaml'} and value not in MONITORING_RESOURCES):
+        if not value.startswith('neo4j_graph_loader/') or (path.suffix not in {'.py', '.yaml'} and value not in MONITORING_RESOURCES | IMAGE_BUILD_RESOURCES):
             raise ValueError('unexpected application payload: ' + value)
     elif value in references:
         if path.suffix not in {'.py', '.yaml', '.yml', '.json', '.csv', '.md'}:
             raise ValueError('unexpected reference fixture: ' + value)
-        if path.parts[0] not in {'tests', 'config', 'examples'} and value != 'plan/library-implementation/tools/run_e04_fault.py':
+        if path.parts[0] not in {'tests', 'config', 'examples'}:
             raise ValueError('unapproved reference location: ' + value)
     elif path.parts[0] not in {'tests', 'config', 'examples'} or (
             path.suffix not in {'.py', '.yaml', '.yml', '.json', '.csv'} and value != 'config/neo4j/server-logs.xml'):
@@ -197,33 +206,30 @@ def validate_service_inventory(data, lane):
     return selected
 
 
-def preflight_service_images(path, *, version, payload, client):
-    """Verify source closure, candidate images and a stable daemon identity."""
+def preflight_service_images(path, *, version, payload, client, wheel):
+    """Verify the image manifest against the wheel under test (wheel-hash binding), the candidate images and a stable daemon identity."""
     if __package__:
-        from .build_candidate_images import build_inputs, package_version
-        from .installed_service import validate_images
+        from .installed_service import IMAGE_BUILD, validate_images, wheel_binding
     else:
-        def load(name):
-            spec = importlib.util.spec_from_file_location(name, TOOLS/(name+'.py'))
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            return module
-        builder, service = load('build_candidate_images'), load('installed_service')
-        build_inputs, package_version, validate_images = builder.build_inputs, builder.package_version, service.validate_images
+        spec = importlib.util.spec_from_file_location('installed_service', TOOLS/'installed_service.py')
+        service = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(service)
+        IMAGE_BUILD, validate_images, wheel_binding = service.IMAGE_BUILD, service.validate_images, service.wheel_binding
     daemon = client.info().get('ID')
     if not isinstance(daemon, str) or not daemon:
         raise ValueError('Docker daemon identity is unavailable')
-    if package_version() != version:
-        raise ValueError('source and wheel package versions differ')
-    inputs = build_inputs()
-    source_payload = {name[4:]: digest for name, digest in inputs.items()
-                      if name.startswith('src/neo4j_graph_loader/')}
-    if not isinstance(payload, dict) or not payload or source_payload != payload:
-        raise ValueError('candidate image build inputs differ from wheel payload')
-    images = validate_images(path, version=version, inputs=inputs, client=client)
-    if client.info().get('ID') != daemon or build_inputs() != inputs:
-        raise ValueError('Docker daemon or candidate build inputs changed during inspection')
-    return {'daemon_id': daemon, 'images': images, 'input_sha256': inputs}
+    binding = wheel_binding(wheel)
+    if binding['version'] != version:
+        raise ValueError('the wheel and the frozen package version differ')
+    carried = {IMAGE_BUILD + 'dockerfiles/' + name: digest for name, digest in binding['dockerfiles'].items()}
+    carried |= {IMAGE_BUILD + 'locks/' + name: row['sha256'] for name, row in binding['locks'].items()}
+    carried[IMAGE_BUILD + 'install.py'] = binding['install_helper_sha256']
+    if not isinstance(payload, dict) or not payload or any(payload.get(name) != digest for name, digest in carried.items()):
+        raise ValueError('the image build files of the wheel differ from its frozen payload')
+    images = validate_images(path, version=version, wheel=binding, client=client)
+    if client.info().get('ID') != daemon or wheel_binding(wheel) != binding:
+        raise ValueError('Docker daemon or the wheel changed during inspection')
+    return {'daemon_id': daemon, 'images': images, 'package_wheel_sha256': binding['sha256']}
 
 
 def runtime_environment(python):
@@ -514,7 +520,7 @@ def run_process_envelope(python, stage, work, env, site, config, stage_files):
                        for name, digest in stage_files.items()):
                     raise RuntimeError('process client stage differs from frozen fixture closure')
                 config_path.write_text(json.dumps(case_config))
-                run([str(python), str(stage/'plan/library-implementation/tools/run_e04_fault.py'),
+                run([str(python), str(stage/'tests/fixtures/run_fault.py'),
                      case['scenario'], '--context', case['context'], '--workers', str(case['workers']),
                      '--mode', case['mode'], '--hard-timeout', '180', '--python', str(python),
                      '--output', str(output/'client')], cwd=stage, env=env,
@@ -683,7 +689,7 @@ def main(argv=None):
             import docker
             client = docker.DockerClient(base_url=host, timeout=30)
             try:
-                preflight = preflight_service_images(args.images, version=version, payload=actual, client=client)
+                preflight = preflight_service_images(args.images, version=version, payload=actual, client=client, wheel=wheel)
                 service = {'client': client, 'host': host, 'preflight': preflight, 'before': service_lane.snapshot(client)}
             except BaseException:
                 client.close()

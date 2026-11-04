@@ -381,8 +381,7 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
 * `.env.example` distinguishes host and container connections, provides local
   data and memory defaults, and removes unused settings. Blank CPU sets now
   disable Compose CPU pinning.
-* Planning and implementation records and authoring workflows are retained on
-  `codex/implementation-archive`. Generated `var/` output stays local.
+* Planning and implementation records are not part of the repository. Generated `var/` output stays local.
 * GitHub Actions workflows are not included in the current tree; validation
   commands are documented in [USAGE](docs/USAGE.md#13-development-and-validation).
 

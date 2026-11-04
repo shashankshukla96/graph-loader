@@ -1,0 +1,29 @@
+{
+  "source_collection.command": [
+    "/home/shashank/e19/s2-20261103T220133/tree/../venv/bin/python",
+    "-I",
+    "-c",
+    "import json,sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]);sys.path.insert(0,str(root))\nimport pytest\nclass Recorder:\n def pytest_collection_finish(self,session):\n  rows=[{'id':i.nodeid,'file':str(i.path.relative_to(root)),'markers':sorted({m.name for m in i.iter_markers()}),'fixtures':sorted(i.fixturenames)} for i in session.items]\n  Path(sys.argv[2]).write_text(json.dumps({'items':rows,'count':len(rows)},indent=2)+'\\n')\nraise SystemExit(pytest.main(['--collect-only','-q','-o','addopts=','tests','examples/imdb/tests',*sys.argv[3:]],plugins=[Recorder()]))\n",
+    "/home/shashank/e19/s2-20261103T220133/tree",
+    "/home/shashank/e19/s2-20261103T220133/out/collection.json"
+  ],
+  "artifact_contract.artifacts": [
+    {
+      "path": "/home/shashank/e19/s2-20261103T220133/dist/neo4j_graph_loader-0.1.0a1-py3-none-any.whl",
+      "size": 630687,
+      "sha256": "6e08a58d34b38740c09cddbce56e7b2091b8cbb7fefd8ddc828051c315448b5f"
+    },
+    {
+      "path": "/home/shashank/e19/s2-20261103T220133/dist/neo4j_graph_loader-0.1.0a1.tar.gz",
+      "size": 581123,
+      "sha256": "d7a9495bb49383354091522a72e5f2b3933e9b61376c5696dace78ca424188a8"
+    }
+  ],
+  "disposition_amendments[0]": {
+    "previous_inventory": "var/e07-validation-20261024/s3-inventory-before-distribution-finding.json",
+    "actual_unchanged_installed_reproduction": "var/e07-validation-20261024/s3-distribution-runtime.json"
+  },
+  "reviewed_id_renames.old_ids": {
+    "1e8a8503e106b2fc81a4fa2874f1a397483c9235b2893c590ed0b8c0baaf1a91": "tests/test_installed_service.py::test_remote_or_ambiguous_docker_hosts_are_rejected[tcp://192.168.1.75:2375]"
+  }
+}

@@ -216,15 +216,15 @@ scrape_configs:
   - job_name: graph-loader
     honor_labels: true
     file_sd_configs:
-      - files: ["/home/me/graph-loader/targets/*.json"]
+      - files: ["/path/to/graph-loader/targets/*.json"]
 ```
 
 Prometheus accepts a wildcard **only in the last path element**, so a pattern
 such as `runs/graph-loader-*/metrics/targets.json` is rejected. Keep a directory
 of links, one per run you want scraped
-(`ln -s <attempt>/metrics/targets.json /home/me/graph-loader/targets/<name>.json`),
+(`ln -s <attempt>/metrics/targets.json /path/to/graph-loader/targets/<name>.json`),
 or point `files` at one run's file. `graph-loader monitoring export --discovery
-file --targets-file '/home/me/graph-loader/targets/*.json'` writes this job and the
+file --targets-file '/path/to/graph-loader/targets/*.json'` writes this job and the
 rest of a bundle ([Monitoring §9](MONITORING.md#9-bring-your-own-prometheus-and-grafana)).
 
 One group per live role with the same labels the role puts on every sample:

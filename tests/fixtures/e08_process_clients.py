@@ -215,7 +215,7 @@ def reap_resource_tracker(timeout=5.):
     """Stop and wait for this client's multiprocessing resource tracker (same race and fix as tests/fixtures/e04_faults.py).
 
     Without it the tracker outlives the client by a few ms on CPython builds that never wait for it at exit (the host's 3.12.3), and the
-    supervisor's group probe (run_e04_fault.py, right after client.wait()) reports emergency_group_cleanup. Every worker is already reaped here.
+    supervisor's group probe (run_fault.py, right after client.wait()) reports emergency_group_cleanup. Every worker is already reaped here.
     """
     from multiprocessing import resource_tracker
     tracker = resource_tracker._resource_tracker

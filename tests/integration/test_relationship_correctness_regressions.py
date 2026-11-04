@@ -7,8 +7,7 @@ module already encodes -- but which never run in CI, because that test is
 gated behind `GRAPH_LOADER_IT_*` -- are continuously checked somewhere that
 actually executes on a stock runner.
 
-Correction vs. the story doc's sketch (`plan/v6/slice-4/stories.md` Story
-9): `build_edge_execution`'s classic-mode default (`explicit_locks=True`,
+Design note: `build_edge_execution`'s classic-mode default (`explicit_locks=True`,
 env `GRAPH_LOADER_EDGE_EXPLICIT_LOCKS` unset) and its bulk-lease path
 (`sort_rows=True`) both hit `build_apoc_locked_upsert_query`'s `CALL (vars)
 { ... }` branch, a Cypher syntax that is a syntax error on
@@ -266,7 +265,7 @@ def test_planned_classic_and_lease_modes_all_match_the_expected_graph(
     # `expected_graph` assumes, so this leg checks structural correctness
     # (exact node graph, zero duplicates, exact per-type relationship
     # counts) rather than full last-write-wins property equality --
-    # flagged in plan/v6/completion_slice-4.md for the owner; fixing it
+    # a known limitation; fixing it
     # would mean changing build_edge_execution's lease-writer construction
     # in src/, out of scope for this tests-only slice.
     assert lease_nodes == expected_nodes
@@ -286,7 +285,7 @@ def test_missing_endpoint_fails_closed_by_default_in_every_mode(
     opt-in field set on `VISITED` in `examples/social/graph_schema.yaml`):
     Phase 5 Slice 3's bulk opt-in is off by default and not merged yet, so
     today's uniform behaviour is fail-closed everywhere -- matching
-    `plan/v5/slices.md`'s owner decision, extended here to pin down what
+    the owner decision, extended here to pin down what
     classic/lease bulk mode do by default too, which `docs/USAGE.md`
     already states but no CI-checked test proves.
     """

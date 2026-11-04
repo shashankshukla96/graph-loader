@@ -40,10 +40,10 @@ sql = ["SQLAlchemy>=2.0.30,<3"]
 postgres = ["SQLAlchemy>=2.0.30,<3", "psycopg[binary]>=3.1.12,<4"]
 
 [project.urls]
-Repository = "https://github.com/shashankshukla96/graph-loader"
-Documentation = "https://github.com/shashankshukla96/graph-loader/blob/main/docs/QUICKSTART.md"
-Changelog = "https://github.com/shashankshukla96/graph-loader/blob/main/CHANGELOG.md"
-Issues = "https://github.com/shashankshukla96/graph-loader/issues"
+Repository = "https://github.com/Neburyx/graph-loader"
+Documentation = "https://github.com/Neburyx/graph-loader/blob/main/docs/QUICKSTART.md"
+Changelog = "https://github.com/Neburyx/graph-loader/blob/main/CHANGELOG.md"
+Issues = "https://github.com/Neburyx/graph-loader/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -61,6 +61,9 @@ neo4j_graph_loader = [
     "monitoring/grafana/dashboards-sql/*.json",
     "monitoring/grafana/provisioning/dashboards/*.yml",
     "monitoring/grafana/provisioning/datasources/*.yml",
+    # E19.F2.S6: what `graph-loader images build` needs to build the images from the installed package (four Dockerfiles, two hashed locks)
+    "image_build/dockerfiles/Dockerfile*",
+    "image_build/locks/*.txt",
 ]
 
 [tool.setuptools.packages.find]

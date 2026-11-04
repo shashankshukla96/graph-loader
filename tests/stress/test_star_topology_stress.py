@@ -3,8 +3,7 @@
 Every test in this file drives the real write-path classes directly
 (planned mode via `tests.stress.planned_harness`, contended modes via
 `neo4j_graph_loader.loader.edge_execution` directly -- Stories 5-6), multi-threaded,
-against real testcontainers-backed Neo4j/Kafka, per Decision 1 in
-`plan/v6/slice-4/stories.md`: this proves the epic's "no deadlocks/lock
+against real testcontainers-backed Neo4j/Kafka: this proves the "no deadlocks/lock
 waits under contention" claim at the level that actually decides it (the
 Cypher query shape and which transactions run concurrently), without
 needing built Docker images or `docker_service.py`.
@@ -75,9 +74,8 @@ def _load_schema(topology: str, run_id: str, tmp_path: Path):
 # introducing -- it is an existing version-pin mismatch between
 # tests/conftest.py's fixture (which no pre-existing integration test
 # happens to exercise this query path against) and the real deployment
-# target. Recorded as a residual risk in plan/v6/completion_slice-4.md;
-# fixing tests/conftest.py or src/ is out of scope for this tests-only
-# slice. Every container in this file uses this newer, pinned-minor tag
+# target. Recorded as a residual risk;
+# fixing tests/conftest.py or src/ is out of scope for these tests. Every container in this file uses this newer, pinned-minor tag
 # (not the fully-floating "5-enterprise") for reproducibility, including
 # the planned-mode tests above, which do not need it but are unaffected by
 # it either.
@@ -158,8 +156,7 @@ def stress_neo4j_apoc():
 def test_100k_edges_into_one_hub_planned_mode_zero_lock_waits(stress_neo4j, kafka_bootstrap, tmp_path) -> None:
     """The epic's headline AC: 100k relationships into one hub, planned mode, zero Neo4j lock waits.
 
-    Measured wall-clock at this scale (First Mate's own local run, before
-    fixing Story 8's CI timeout): see plan/v6/completion_slice-4.md.
+    Measured wall-clock at this scale is several minutes on a developer machine.
     """
     container, driver = stress_neo4j
     with lock_wait.hard_timeout(600):
@@ -363,8 +360,7 @@ def test_100k_edges_into_one_hub_shared_overlap_zero_unhandled_deadlocks(stress_
             driver, edge_config, missing_endpoint_error_factory=MissingRelationshipEndpointError,
         )
         rows = _classic_rows(dataset, "POINTS_AT")
-        # Tuned locally (see plan/v6/completion_slice-4.md for the measured
-        # evidence) so 16 threads on 100k rows against one hot node reliably
+        # Tuned locally against measured runs so 16 threads on 100k rows against one hot node reliably
         # reproduce real contention: a batch size too large serializes
         # everything through fewer, bigger transactions (less overlap
         # opportunity); too small and each transaction is too cheap for two
@@ -570,12 +566,12 @@ def test_1m_edges_into_one_hub_planned_mode_zero_lock_waits(stress_neo4j, kafka_
     """The epic's literal 1,000,000-edge scale, gated to the nightly/manual CI job only.
 
     A runtime check keyed to `GRAPH_LOADER_STRESS_SCALE`, not a second
-    pytest marker (Decision 2 in `plan/v6/slice-4/stories.md`): a
+    pytest marker (by design): a
     dedicated marker would need every CI invocation to remember to
     *exclude* it (`-m "stress and not stress_1m"`); one missed `-m` filter
     anywhere and this would silently run inside the ordinary nightly
     `integration` job. Implemented as `skipif` rather than a `pytest.skip()`
-    call inside the body (this story's own literal sketch) so an ordinary
+    call inside the body, so an ordinary
     run never pays for `stress_neo4j`'s own container startup/teardown
     (~15s) just to then skip -- `skipif`'s condition is still keyed to the
     same env var, evaluated the same way, so nothing about the tiering
@@ -586,9 +582,8 @@ def test_1m_edges_into_one_hub_planned_mode_zero_lock_waits(stress_neo4j, kafka_
     matters).
     """
     container, driver = stress_neo4j
-    # Sized with headroom above the measured 1M wall-clock -- see
-    # plan/v6/completion_slice-4.md for the actual local measurement that
-    # justified these two numbers (Story 7's own DoD: measure, don't guess).
+    # Sized with headroom above the measured 1M wall-clock (these two numbers
+    # come from a local measurement, not a guess).
     with lock_wait.hard_timeout(1800):
         run_id = uuid.uuid4().hex[:8]
         schema = _load_schema("target_hub", run_id, tmp_path)

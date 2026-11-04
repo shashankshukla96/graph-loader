@@ -1,0 +1,20 @@
+{"t": "2026-11-04T07:51:51Z", "event": "phase", "name": "up", "public_access": false}
+{"t": "2026-11-04T07:51:51Z", "event": "network", "name": "e19-s10-20261104c-net", "id": "43c88217c98ebada10d5573b79c025f5815df97c264bdd5ab015f05029017c7d", "internal": true}
+{"t": "2026-11-04T07:51:51Z", "event": "volume", "name": "e19-s10-20261104c-registry-data"}
+{"t": "2026-11-04T07:51:52Z", "event": "volume", "name": "e19-s10-20261104c-dind-lib"}
+{"t": "2026-11-04T07:51:52Z", "event": "volume", "name": "e19-s10-20261104c-dind-sock"}
+{"t": "2026-11-04T07:51:52Z", "event": "volume", "name": "e19-s10-20261104c-work"}
+{"t": "2026-11-04T07:51:52Z", "event": "container", "name": "e19-s10-20261104c-dns", "id": "5be62f595bf3c18087c31fac6f7e39cda0854d9c220dc5ca6e223e575a6d6304", "memory_mb": 48, "cpus": 0.1, "privileged": false}
+{"t": "2026-11-04T07:51:53Z", "event": "container", "name": "e19-s10-20261104c-registry", "id": "65b651432d46d363b03b3eb86f1ccc2e7d3ab603f3f40c3b28ab6cc966404041", "memory_mb": 128, "cpus": 0.3, "privileged": false}
+{"t": "2026-11-04T07:51:53Z", "event": "volume", "name": "3e154a4002c2dcda759bd2808ef983b80f0ec34f3041fe18e662121f2ad4cba4", "anonymous": true, "container": "e19-s10-20261104c-pypiserver"}
+{"t": "2026-11-04T07:51:53Z", "event": "container", "name": "e19-s10-20261104c-pypiserver", "id": "5195a09a659780db74687e5d240b175655849bf528b7904475e6d0c86783c366", "memory_mb": 128, "cpus": 0.2, "privileged": false}
+{"t": "2026-11-04T07:51:53Z", "event": "container", "name": "e19-s10-20261104c-pypi-proxy", "id": "cfbf76061c37c2ee04d177410ee00dcb61150e8a266a58f1c64b50ea085e32a6", "memory_mb": 64, "cpus": 0.1, "privileged": false}
+{"t": "2026-11-04T07:51:53Z", "event": "container", "name": "e19-s10-20261104c-debian", "id": "f83efcdb693574ffcad461ec64920530f36abb71d8c584bbf7fd0e2f11951d25", "memory_mb": 64, "cpus": 0.1, "privileged": false}
+{"t": "2026-11-04T07:51:55Z", "event": "container", "name": "e19-s10-20261104c-dind", "id": "bfea0b2c995a08abb9b66773d13dde063d2383146381565e8387fae4b2b14d99", "memory_mb": 4000, "cpus": 2.6, "privileged": true}
+{"t": "2026-11-04T07:52:12Z", "event": "inner-daemon", "info": "29.9.0 overlayfs /var/lib/docker", "dns": "172.20.0.2", "insecure_registry": "registry:5000", "published_ports": 0}
+{"t": "2026-11-04T07:52:12Z", "event": "registry-login", "ok": true}
+{"t": "2026-11-04T07:52:19Z", "event": "registry-seed", "key": "python", "source": "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30", "target": "registry:5000/e19/python:3.12-slim", "registry_digest": "sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b"}
+{"t": "2026-11-04T07:53:16Z", "event": "registry-seed", "key": "neo4j", "source": "neo4j@sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15", "target": "registry:5000/e19/neo4j:5.26-enterprise", "registry_digest": "sha256:7baa50e77eb554ada7b0f37c3c274a8e0c655ed1487530fa51c94a0dce7955c0"}
+{"t": "2026-11-04T07:54:02Z", "event": "registry-seed", "key": "kafka", "source": "confluentinc/cp-kafka@sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3", "target": "registry:5000/e19/cp-kafka:7.7.0", "registry_digest": "sha256:76288746f518b38eb30496f5b8a9f157fedb0418bcca3648af903d03fc16d2d3"}
+{"t": "2026-11-04T07:54:02Z", "event": "container", "name": "e19-s10-20261104c-runner", "id": "753d598833252f91370294068ddd7cabf8fa4b54bba09995f68dac6bc779fdfd", "memory_mb": 320, "cpus": 0.5, "privileged": false}
+{"t": "2026-11-04T07:54:02Z", "event": "phase-end", "name": "up", "memory_available_mb": 7242, "budget": {"memory_limits_mb": 4752, "memory_budget_mb": 5120, "cpus": 3.9, "cpu_budget": 4.0, "work_dir_mb": 345, "owned_volumes_mb": 1212, "new_images_on_shared_daemon_mb": 3079, "disk_budget_mb": 10240, "min_host_memory_available_mb": 7051, "host_memory_floor_mb": 2048, "ok": true}}

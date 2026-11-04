@@ -1,0 +1,46 @@
+# Built from a generated context (see docs/RESTRICTED_NETWORKS.md): the package wheel, the hashed dependency lock, install.py and,
+# optionally, a wheelhouse and a private CA bundle. Nothing here reaches a public host unless you point it at one.
+#
+#   BASE_IMAGE            the base image, ideally a digest of your own mirror (default: python:3.12-slim)
+#   PACKAGE_WHEEL         file name of the package wheel in the context, and PACKAGE_WHEEL_SHA256 its digest
+#   DEPENDENCY_SOURCE     index-secret (the URL is a BuildKit secret `pip_index`), index-url (INDEX_URL, no credentials) or wheelhouse
+#   GRAPH_LOADER_VERSION  the package version (labelled, and checked against the installed distribution)
+#   INSTALL_FLAGS         extra install.py flags for checks (for example --probe-cmdline)
+# No credential is ever a build argument. The Python dependency set is the hashed lock; the base image's Debian packages are not pinned.
+ARG BASE_IMAGE=python:3.12-slim
+FROM ${BASE_IMAGE}
+
+ARG GRAPH_LOADER_VERSION
+LABEL org.opencontainers.image.version=$GRAPH_LOADER_VERSION \
+      org.opencontainers.image.source="https://github.com/Neburyx/graph-loader" \
+      io.graph-loader.component="node" \
+      io.graph-loader.image-contract="1"
+
+ENV PYTHONUNBUFFERED=1
+WORKDIR /app
+
+# The package wheel and its locked dependencies, installed by the helper with pip started in a fresh environment (see install.py). The
+# context is bind-mounted, so neither the wheel, the lock nor any wheelhouse becomes a layer; the index URL arrives only as the BuildKit
+# secret `pip_index`, which pip reads from the environment of that one process and which never reaches an argument list or a layer.
+ARG PACKAGE_WHEEL
+ARG PACKAGE_WHEEL_SHA256
+ARG DEPENDENCY_SOURCE=index-secret
+ARG INDEX_URL=
+ARG INSTALL_FLAGS=
+RUN --mount=type=bind,source=.,target=/ctx \
+    --mount=type=secret,id=pip_index,required=false \
+    set -eu; \
+    case "${DEPENDENCY_SOURCE}" in \
+        index-secret) source="--index-secret /run/secrets/pip_index" ;; \
+        index-url)    source="--index-url ${INDEX_URL}" ;; \
+        wheelhouse)   source="--wheelhouse /ctx/wheelhouse" ;; \
+        *) echo "DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse" >&2; exit 2 ;; \
+    esac; \
+    python -I /ctx/install.py --lock /ctx/lock.txt --wheel "/ctx/${PACKAGE_WHEEL}" --wheel-sha256 "${PACKAGE_WHEEL_SHA256}" \
+        --ca-bundle /ctx/pip-ca.pem ${INSTALL_FLAGS} ${source}
+RUN python -I -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "$GRAPH_LOADER_VERSION"
+
+# The bundled canonical schema is the default --config of the role entry points (relative path config/graph_schema.yaml).
+RUN mkdir -p config && python -I -c 'import importlib.resources as r, shutil; shutil.copyfile(r.files("neo4j_graph_loader").joinpath("data", "graph_schema.yaml"), "config/graph_schema.yaml")'
+
+ENTRYPOINT ["python", "-m", "neo4j_graph_loader.loader.node_loader"]

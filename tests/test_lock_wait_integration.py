@@ -49,8 +49,7 @@ def test_assert_zero_lock_wait_passes_with_no_contention(logged_apoc_neo4j) -> N
 def test_total_lock_wait_ms_detects_a_genuine_induced_wait(logged_apoc_neo4j) -> None:
     """Two concurrent transactions on the same node must produce a real, nonzero wait.
 
-    This is the non-negotiable AC from Residual Risk 3 in
-    plan/v6/slice-4/stories.md: the helper must be proven to detect a REAL
+    This is a non-negotiable requirement: the helper must be proven to detect a REAL
     wait, not just always return zero (a wrong regex or a misconfigured
     query log would make every "zero lock wait" assertion in this slice
     vacuously true).

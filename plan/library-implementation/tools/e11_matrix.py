@@ -92,7 +92,7 @@ def main():
                 continue
             ctl = f'/work/ctl-{kind}/bin/python'
             lock = ['--resolution-constraints', f'{root}/config/support-matrix/{LOCKS[kind]}'] if arch == 'arm64' else []
-            common = ['--wheel', f'/work/cand/{wheel.name}', '--inventory', f'{root}/plan/library-implementation/test-inventory.json']
+            common = ['--wheel', f'/work/cand/{wheel.name}', '--inventory', f'{root}/tests/inventory/test-inventory.json']
             prepare = run_container(f'{kind}-prepare', [ctl, f'{root}/scripts/support_matrix.py', 'prepare',
                 '--pins', f'{root}/config/support-matrix/{PINS[kind]}', *lock, *common, '--output', f'/work/out/{kind}-prepare'],
                 network=True, timeout=1800)

@@ -1,16 +1,14 @@
-"""In-memory, cross-flush parked-pair index (P5-S4 Story 3).
+"""In-memory, cross-flush parked-pair index.
 
-Closes the gap P5-S3's own cartographer flagged: P5-S3's row-level DLQ only
+Closes a gap in the row-level DLQ: it only
 blocks a later record of the same ``(source_key, target_key)`` pair *within
 one flush* (its ``_classify_rows`` same-flush blocking pass). Across
 flushes, a parked older record can be retried after a newer record of the
 same pair has already committed, and would then overwrite newer properties
 with older ones.
 
-Design (revised twice from the original per-pair-counter sketch in
-``plan/v5/slice-4/stories.md`` Story 3, after two blocking review passes —
-M2, then M3-M5 — see ``plan/v5/completion_slice-4.md`` for the full
-rationale of each): a per-pair *counter*, incremented only when the retry
+Design (revised twice from an original per-pair-counter sketch, after two
+blocking review passes): a per-pair *counter*, incremented only when the retry
 consumer first reads a DLQ envelope, cannot give the required guarantees:
 
 * A record sitting behind a paused head record (a long backoff) is never

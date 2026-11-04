@@ -35,6 +35,9 @@ Written normalization (``normalize``; nothing else is rewritten):
   incarnation and the snapshot directory are random per run, so they become ``<EXECUTION_ID>``, ``<INCARNATION>`` and
   ``/app/write-timings/<EXECUTION_ID>/<INCARNATION>``. The keys exist only from 0.1.0a2; ``strip_status_env`` removes
   them, which is how a 0.1.0a2 trace is compared with the frozen 0.1.0a1 golden;
+* N8 (0.1.0a2) the image namespace: 0.1.0a2 moved the default images from ``ghcr.io/shashankshukla96`` to
+  ``ghcr.io/neburyx``. ``restore_a1_namespace`` maps exactly the prefix ``ghcr.io/neburyx/graph-loader-`` back to the
+  frozen one, which is how a 0.1.0a2 trace is compared with the frozen 0.1.0a1 golden;
 * N6 the preflight probe's random marker (``.graph-loader-preflight-<32 hex>``) and secret token (a command
   argument, replaced by ``<PROBE-TOKEN>`` as the fake records it) are masked; probe ids are a counter.
 """
@@ -299,6 +302,21 @@ def strip_status_env(record: dict) -> dict:
             return [strip(item) for item in node]
         return node
     return strip(record)
+
+
+A1_IMAGE_PREFIX = "ghcr.io/" + "shashankshukla96" + "/graph-loader-"
+A2_IMAGE_PREFIX = "ghcr.io/neburyx/graph-loader-"
+
+
+def restore_a1_namespace(record):
+    """A scenario record with the 0.1.0a2 image prefix replaced by the frozen 0.1.0a1 one (strings only, nothing else)."""
+    if isinstance(record, str):
+        return record.replace(A2_IMAGE_PREFIX, A1_IMAGE_PREFIX)
+    if isinstance(record, list):
+        return [restore_a1_namespace(item) for item in record]
+    if isinstance(record, dict):
+        return {key: restore_a1_namespace(value) for key, value in record.items()}
+    return record
 
 
 def lanes(events: list[dict]) -> dict:

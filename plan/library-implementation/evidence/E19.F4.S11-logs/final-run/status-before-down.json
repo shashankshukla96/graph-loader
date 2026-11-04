@@ -1,0 +1,94 @@
+{
+ "state": {
+  "token": "s11-20261104c",
+  "containers": {
+   "e19-s11-20261104c-dns": "3a4ced44bdf00cef426e133f33ceca476acde3b825627802beee153666688a43",
+   "e19-s11-20261104c-registry": "c3164e35e1d0ebdf0c13735fd205e16fd276a7c874acb28150957c4d0faf3e5e",
+   "e19-s11-20261104c-pypiserver": "a2c943ab00a2f8e977cbd57f2d65cb4d0aae95a947ec861a6078e2e4e6ffe3d6",
+   "e19-s11-20261104c-pypi-proxy": "519e3ac5ffcfe843d6142b48d3f53359ada2bd48eac5e229ef6f196c1ca3cfd8",
+   "e19-s11-20261104c-debian": "0960f33d6f656c9e7bb16bf3d6d865d85487bbb243b87cdef0b89992735e621a",
+   "e19-s11-20261104c-dind": "9d229f0e8cd560b6cc36cf1f9b9251f6d20253f9b1389eaf3774664ca46007a9",
+   "e19-s11-20261104c-runner": "54ee0ed0dfad4c53eb5baf408be6fab42517afbb49d446d11ec103ffec370754"
+  },
+  "networks": {
+   "e19-s11-20261104c-net": "43a699edb8d6d18bd08970802f6ee32f0e20675af4f89def1dcef34f3fde844e"
+  },
+  "volumes": [
+   "e19-s11-20261104c-registry-data",
+   "e19-s11-20261104c-dind-lib",
+   "e19-s11-20261104c-dind-sock",
+   "e19-s11-20261104c-work"
+  ],
+  "images": {
+   "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30": {
+    "id": "sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30",
+    "key": "python"
+   },
+   "docker@sha256:0b6d18a4a222e71c88be6034926b4f6cde2fc33c2218643d03ccfddc65995470": {
+    "id": "sha256:0b6d18a4a222e71c88be6034926b4f6cde2fc33c2218643d03ccfddc65995470",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "docker@sha256:0b6d18a4a222e71c88be6034926b4f6cde2fc33c2218643d03ccfddc65995470",
+    "key": "dind"
+   },
+   "registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373": {
+    "id": "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+    "key": "registry"
+   },
+   "pypiserver/pypiserver@sha256:286ce50e4a53b3fbc880d944d6a5e010ca6ccb1fe2ecad669b9f00a349107b20": {
+    "id": "sha256:286ce50e4a53b3fbc880d944d6a5e010ca6ccb1fe2ecad669b9f00a349107b20",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "pypiserver/pypiserver@sha256:286ce50e4a53b3fbc880d944d6a5e010ca6ccb1fe2ecad669b9f00a349107b20",
+    "key": "pypiserver"
+   },
+   "nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10": {
+    "id": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
+    "key": "nginx"
+   },
+   "confluentinc/cp-kafka@sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3": {
+    "id": "sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3",
+    "new": false,
+    "owned_tags": [],
+    "digest_ref": "confluentinc/cp-kafka@sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3",
+    "key": "kafka"
+   },
+   "e19-s11-20261104c/runner:1": {
+    "id": "sha256:1ffaae9edb0f4b0b72354681d41c9bac0007c3955ac0ed0a8d083ee29c4e4dad",
+    "new": true,
+    "owned_tags": [
+     "e19-s11-20261104c/runner:1"
+    ],
+    "digest_ref": null,
+    "key": "runner"
+   }
+  },
+  "created": [],
+  "anonymous_volumes": {
+   "3b34bf532e706d1921b3647256788ec59dc8a3c29e57e720595a2237ec2e45ae": "e19-s11-20261104c-pypiserver"
+  }
+ },
+ "budget": {
+  "memory_limits_mb": 5112,
+  "memory_budget_mb": 5120,
+  "cpus": 3.9,
+  "cpu_budget": 4.0,
+  "work_dir_mb": 184,
+  "owned_volumes_mb": 8290,
+  "new_images_on_shared_daemon_mb": 1391,
+  "disk_budget_mb": 10240,
+  "min_host_memory_available_mb": null,
+  "host_memory_floor_mb": 2048,
+  "ok": true
+ },
+ "memory_available_mb": 6204
+}

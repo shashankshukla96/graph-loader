@@ -25,7 +25,7 @@ Cases (all against one query-logged Neo4j 5.26 container; every measurement wind
 
 The loaders run in process (``EdgeLoader`` + ``build_edge_execution`` + an in-process ``BucketLeaseServer``,
 three replicas for the lease modes) rather than as containers, like ``tests/stress``; the end-to-end container
-runs live in ``plan/v7/slice-*/docker_proof``.  Classic runs ONE replica and asserts correctness only: it takes
+runs are covered by the Docker-mode service lanes.  Classic runs ONE replica and asserts correctness only: it takes
 APOC node locks by design and may wait (65 ms measured here), which is the documented difference to the
 zero-wait modes (stream lease, bulk lease, planned), whose waits ARE asserted to be zero.
 

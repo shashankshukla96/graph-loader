@@ -1,8 +1,7 @@
 # Release and recovery runbook (maintainers)
 
 For the person publishing `neo4j-graph-loader`. It is written to be followed
-step by step and checked against the release checklist (items R5 and U5 of
-[the checklist](PYPI_LIBRARY_CHECKLIST.md)). Users who need to recover from a
+step by step. Users who need to recover from a
 problem start with [Migration](MIGRATION.md#7-if-something-goes-wrong).
 
 Every command below names its package, version and image explicitly. The first
@@ -21,10 +20,10 @@ fresh instruction from the release owner.
 | Version | `0.1.0a1` (file authority: `src/neo4j_graph_loader/_version.py`) |
 | Files | `neo4j_graph_loader-0.1.0a1-py3-none-any.whl`, `neo4j_graph_loader-0.1.0a1.tar.gz` |
 | Indexes | TestPyPI (`https://test.pypi.org/`) for the rehearsal, PyPI (`https://pypi.org/`) for the release; separate accounts and tokens |
-| Images | `ghcr.io/shashankshukla96/graph-loader-cli:0.1.0a1`, `...-node:0.1.0a1`, `...-edge:0.1.0a1`, `...-clock:0.1.0a1` (public, anonymous pull) |
-| Release owner, index and image owner | Shashank Shukla, `shashankshukla96@gmail.com` |
+| Images | `ghcr.io/neburyx/graph-loader-cli:0.1.0a1`, `...-node:0.1.0a1`, `...-edge:0.1.0a1`, `...-clock:0.1.0a1` (public, anonymous pull) |
+| Release owner, index owner and owner of the `Neburyx` organization (images and repository) | Shashank Shukla, `shashankshukla96@gmail.com` |
 | Maintainers | a single maintainer, Shashank Shukla; there is no delegate, so only the owner can publish, yank or answer a security report |
-| Source repository | `https://github.com/shashankshukla96/graph-loader`; release tag `v0.1.0a1` on the tested commit |
+| Source repository | `https://github.com/Neburyx/graph-loader`; release tag `v0.1.0a1` on the validated public snapshot commit |
 
 Credentials: use a project-scoped API token per index, kept outside the
 repository, shell history and logs. Give `twine` the token through the
@@ -102,7 +101,7 @@ the project page and check the README rendering, links, license, Python support,
 maintainers and file hashes. A defect means a new version and repeated gates.
 
 **3.4 Push the images (after instruction): one image per architecture, then a multi-arch tag.**
-`ghcr.io/shashankshukla96/graph-loader-<component>:0.1.0a1` must be one multi-platform
+`ghcr.io/neburyx/graph-loader-<component>:0.1.0a1` must be one multi-platform
 index that lists the `linux/amd64` and `linux/arm64` images; the two images are built
 natively (3.1) and are never merged into one local image. For each component
 `<c>` in `cli`, `node`, `edge`, `clock`:
@@ -113,8 +112,8 @@ natively (3.1) and are never merged into one local image. For each component
    rebuilt for the push.
 
 ```bash
-docker tag ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-rc1-amd64 ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-amd64
-docker tag ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-rc1-arm64 ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-arm64
+docker tag ghcr.io/neburyx/graph-loader-<c>:0.1.0a1-rc1-amd64 ghcr.io/neburyx/graph-loader-<c>:0.1.0a1-amd64
+docker tag ghcr.io/neburyx/graph-loader-<c>:0.1.0a1-rc1-arm64 ghcr.io/neburyx/graph-loader-<c>:0.1.0a1-arm64
 ```
 
    Retag each architecture on the machine that holds its image (or after `docker load`).
@@ -122,20 +121,20 @@ docker tag ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-rc1-arm64 ghcr.io/s
 2. Push each architecture tag, and record the digest the registry reports for each:
 
 ```bash
-docker push ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-amd64
-docker push ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1-arm64
+docker push ghcr.io/neburyx/graph-loader-<c>:0.1.0a1-amd64
+docker push ghcr.io/neburyx/graph-loader-<c>:0.1.0a1-arm64
 ```
 
 3. Create the multi-arch tag from the two recorded digests. It is created once, only after
    both digests are recorded, and never moved afterwards:
 
 ```bash
-docker buildx imagetools create -t ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1 \
-  ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<amd64 digest> \
-  ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<arm64 digest>
+docker buildx imagetools create -t ghcr.io/neburyx/graph-loader-<c>:0.1.0a1 \
+  ghcr.io/neburyx/graph-loader-<c>@sha256:<amd64 digest> \
+  ghcr.io/neburyx/graph-loader-<c>@sha256:<arm64 digest>
 ```
 
-   Without `buildx`, `docker manifest create ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1
+   Without `buildx`, `docker manifest create ghcr.io/neburyx/graph-loader-<c>:0.1.0a1
    --amend ...@sha256:<amd64 digest> --amend ...@sha256:<arm64 digest>` followed by `docker manifest push` does
    the same.
 
@@ -143,8 +142,8 @@ docker buildx imagetools create -t ghcr.io/shashankshukla96/graph-loader-<c>:0.1
    the digest recorded in step 2:
 
 ```bash
-docker buildx imagetools inspect ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1
-docker buildx imagetools inspect --raw ghcr.io/shashankshukla96/graph-loader-<c>:0.1.0a1
+docker buildx imagetools inspect ghcr.io/neburyx/graph-loader-<c>:0.1.0a1
+docker buildx imagetools inspect --raw ghcr.io/neburyx/graph-loader-<c>:0.1.0a1
 ```
 
 Record the index digest and both platform digests for each component in the manifest, then verify an
@@ -152,9 +151,9 @@ anonymous pull by digest with an empty Docker configuration so no stored login i
 digest, then each platform digest):
 
 ```bash
-DOCKER_CONFIG="$(mktemp -d)" docker pull ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<index digest>
-DOCKER_CONFIG="$(mktemp -d)" docker pull --platform linux/amd64 ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<amd64 digest>
-DOCKER_CONFIG="$(mktemp -d)" docker pull --platform linux/arm64 ghcr.io/shashankshukla96/graph-loader-<c>@sha256:<arm64 digest>
+DOCKER_CONFIG="$(mktemp -d)" docker pull ghcr.io/neburyx/graph-loader-<c>@sha256:<index digest>
+DOCKER_CONFIG="$(mktemp -d)" docker pull --platform linux/amd64 ghcr.io/neburyx/graph-loader-<c>@sha256:<amd64 digest>
+DOCKER_CONFIG="$(mktemp -d)" docker pull --platform linux/arm64 ghcr.io/neburyx/graph-loader-<c>@sha256:<arm64 digest>
 ```
 
 Then compare each pulled image ID and labels with the local candidate of the same architecture
@@ -167,12 +166,14 @@ manifest first (3.2):
 
 ```bash
 python -m twine upload --repository pypi <dir>/dist/neo4j_graph_loader-0.1.0a1-py3-none-any.whl <dir>/dist/neo4j_graph_loader-0.1.0a1.tar.gz
-git tag -a v0.1.0a1 <tested commit> -m "neo4j-graph-loader 0.1.0a1"
+git tag -a v0.1.0a1 <public snapshot commit> -m "neo4j-graph-loader 0.1.0a1"
 git rev-parse v0.1.0a1^{commit}
 ```
 
-The tag must resolve to the tested commit. Push it only when the user authorizes
-that reference: `git push origin v0.1.0a1`.
+Run the tag command in the public repository, on the commit of the validated public
+snapshot whose product files equal the frozen wheel and sdist; a tag is never copied from
+a development repository. The tag must resolve to that commit. Push it only when the
+user authorizes that reference: `git push origin v0.1.0a1`.
 
 **3.6 Verify the public release.** In a fresh environment and unrelated directory:
 
@@ -206,7 +207,7 @@ wrong and which version fixes it. A yanked release stays downloadable for
 requirements that pin it exactly (`neo4j-graph-loader==0.1.0a1`) but is skipped by
 ordinary resolution. Then: publish the fixed version (section 3 again, with the
 new version), add the changelog entry, and open a pinned issue at
-`https://github.com/shashankshukla96/graph-loader/issues` naming the affected
+`https://github.com/Neburyx/graph-loader/issues` naming the affected
 versions and the fix. A security problem is announced after the fix is available
 (see [SECURITY.md](../SECURITY.md)).
 
@@ -244,8 +245,8 @@ blocked unless all of these pass:
 | --- | --- |
 | Lint and unit tests | `make lint` and `make test-unit` |
 | Requirements parity | `python3 scripts/sync_requirements.py --check` |
-| Installed regression lanes on the wheel | `python3 scripts/verify_installed.py --lane core --wheel <dir>/dist/neo4j_graph_loader-0.1.0a1-py3-none-any.whl --inventory plan/library-implementation/test-inventory.json --output <new dir>` and the same for lanes `safety`, `cli-runtime`, `public-contracts`, `writer-runtime`, `orchestration-runtime`, `example-contracts`, `service-helper-unit` |
-| Real-service lane on the final amd64 images | `python3 scripts/verify_installed.py --lane service-harness --wheel <wheel> --inventory plan/library-implementation/test-inventory.json --images <images.json for 0.1.0a1> --docker-host unix:///var/run/docker.sock --output <new dir> --timeout 3000` on a Linux host whose Docker you own |
+| Installed regression lanes on the wheel | `python3 scripts/verify_installed.py --lane core --wheel <dir>/dist/neo4j_graph_loader-0.1.0a1-py3-none-any.whl --inventory tests/inventory/test-inventory.json --output <new dir>` and the same for lanes `safety`, `cli-runtime`, `public-contracts`, `writer-runtime`, `orchestration-runtime`, `example-contracts`, `service-helper-unit` |
+| Real-service lane on the final amd64 images | `python3 scripts/verify_installed.py --lane service-harness --wheel <wheel> --inventory tests/inventory/test-inventory.json --images <images.json for 0.1.0a1> --docker-host unix:///var/run/docker.sock --output <new dir> --timeout 3000` on a Linux host whose Docker you own |
 | Arm64 smoke | installed `graph-loader` from the wheel plus the `0.1.0a1` arm64 images, one small real load |
 | Documentation | the guides' bash blocks run unchanged in a fresh wheel environment (`docs/QUICKSTART.md`), link check, `twine check --strict` |
 
@@ -257,7 +258,7 @@ metadata and payload with hashes frozen in `test-inventory.json`
 (README text, description, classifiers, version) or to the packaged source makes it
 refuse the wheel with `wheel metadata differs from frozen distribution contract`.
 When that is the intended candidate, refreeze deliberately with
-`python3 scripts/freeze_installed_inventory.py --inventory plan/library-implementation/test-inventory.json --collection-output <new dir> --freeze --wheel <wheel> --sdist <sdist>`,
+`python3 scripts/freeze_installed_inventory.py --inventory tests/inventory/test-inventory.json --collection-output <new dir> --freeze --wheel <wheel> --sdist <sdist>`,
 review the diff of the inventory, and commit it with the candidate, before the lanes
 run. Never edit the hashes by hand.
 
@@ -271,6 +272,6 @@ A failure blocks the release; do not weaken a test to pass it.
 | Release date | `<the date in the changelog heading, set when the candidate was frozen>` |
 | PyPI project URL | `https://pypi.org/project/neo4j-graph-loader/0.1.0a1/` |
 | Wheel and sdist SHA-256 | `<from MANIFEST.sha256>` |
-| Git commit and tag | `<commit>`, `v0.1.0a1` |
+| Public commit and tag | `<public snapshot commit>`, `v0.1.0a1` |
 | Image digests (`cli`, `node`, `edge`, `clock`) | `<sha256 from step 3.4>` |
 | Next dependency review | `<date and owner>` |

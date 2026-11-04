@@ -1,5 +1,5 @@
 # STARTING POINT, NOT AN SLO. Thresholds below are conservative defaults
-# chosen without production traffic data (P6-Q4, plan/v5-v6-orchestration.md).
+# chosen without production traffic data.
 # Tune every threshold to your own environment before treating a firing
 # alert as an incident. `for:` durations are chosen to avoid a scrape-
 # interval blip firing an alert, not to model any real SLO.

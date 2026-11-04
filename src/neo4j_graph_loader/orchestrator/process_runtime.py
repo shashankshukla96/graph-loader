@@ -4,7 +4,7 @@ This module owns launch, readiness, signalling, exit accounting, logs and the re
 time (:meth:`ProcessRuntime.spawn` returns a :class:`ProcessHandle`). The role-specific launchers that turn
 ``run_node_loader`` & co. into spawns arrive with S4.
 
-Design points (see plan/library-implementation/epics/e14.md):
+Design points:
 
 * children start as ``python -I -u -m neo4j_graph_loader._child <module> ...`` in their own session, with a
   control socketpair end passed through ``pass_fds`` and an allow-listed environment;

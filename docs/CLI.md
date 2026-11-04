@@ -28,6 +28,7 @@ Contents: [Commands](#commands) | [Logging](#logging) | [start](#start) | [stop]
 | `status` | Without options: list node-loader containers (or, with `--runtime process`, node-loader processes) and their state. With `--run`, `--json`, `--watch`, `--list` or `--execution-id`: the **run status** of an execution (state, roles, progress), from the JSON files of a run directory or from the SQL status database. |
 | `status-store` | `migrate`, `prune` and `flush` the SQL run status database ([status stores](STATUS_SQL.md)). |
 | `monitoring export` | Write the Prometheus scrape configuration, alert rules, promtool tests, Grafana dashboards and provisioning (and Kubernetes manifests) for your own Prometheus and Grafana ([MONITORING](MONITORING.md#9-bring-your-own-prometheus-and-grafana)). Needs no services. |
+| `images build` | Build the four loader images from the installed package for a registry you control, from your own mirrors or offline ([images build](#images-build)). Needs Docker with buildx. |
 | `schema-example` | Print the bundled default or social schema with `--name default\|social`, without services. |
 | `validate-schema` | Validate `--config PATH` or `--sample default\|social` without services. |
 | `replay-dlq` | Republish dead-lettered (or parked) records of one node label or relationship type to their source topic. |
@@ -321,6 +322,46 @@ overwrite existing files unless `--force`. Full guide: [MONITORING §9-§10](MON
 
 Exit 0 on success; 1 for an invalid option or values file, or a file that cannot be written.
 
+## images build
+
+The whole picture for a network without internet access (the three routes, mirrors, wheelhouse, registry login) is in [Restricted networks](RESTRICTED_NETWORKS.md).
+
+Builds the four loader images (`graph-loader-cli`, `-node`, `-edge`, `-clock`) for the **installed package version**, under a registry prefix you
+control. It is for an organization that cannot pull the released images: the build needs only your own base-image mirror, your own PyPI mirror
+(or a wheelhouse, for no index at all) and, for the CLI image's `tini`, your Debian mirror. Docker with the `buildx` plugin (BuildKit) is required
+and the command stops with a clear message without it. The images are built for the architecture of the Docker daemon (linux/amd64 or
+linux/arm64); the hashed dependency lock of that platform ships with the package.
+
+```sh
+graph-loader images build --registry registry.example.com:5000/team \
+    --base-image registry.example.com:5000/mirror/python:3.12-slim \
+    --pip-index-secret ./pip-index-url.txt --pip-ca-bundle ./ca.pem --package-wheel ./neo4j_graph_loader-<version>-py3-none-any.whl --push
+```
+
+| Option | Meaning |
+| --- | --- |
+| `--registry PREFIX` | where the images are named: `<prefix>/graph-loader-<role>:<version>`; the prefix grammar of `GRAPH_LOADER_IMAGE_REGISTRY` (default: that variable). Point `GRAPH_LOADER_IMAGE_REGISTRY` at the same prefix and `start` finds the images. |
+| `--package-version V` | must equal the installed version; anything else is refused. |
+| `--package-wheel FILE` | the wheel of this installed package. Its file hashes must equal the installed package's; with `--wheelhouse` the wheel is taken from the wheelhouse. |
+| `--base-image REF` | default `python:3.12-slim`; give your mirror's reference. It is resolved to a digest before the build and the Dockerfiles build `FROM` that digest. |
+| `--pip-index-url URL` | your PyPI mirror, **without credentials** (a URL with credentials is refused). |
+| `--pip-index-secret FILE` | a file whose only content is your PyPI mirror's URL, credentials included. It is passed to BuildKit as a secret and read by the installer inside the build; it is never on a command line, in the build context, in a layer, in a log or in the manifest. |
+| `--wheelhouse DIR` | offline build: exactly the wheels of the lock for the build platform plus the package wheel (prepared inside the base image, see [Distribution development](DISTRIBUTION_DEVELOPMENT.md#image-dependency-locks)). The directory is checked against the lock before anything starts: a missing wheel, a wheel for another architecture or a changed wheel is refused. |
+| `--pip-ca-bundle FILE` | CA bundle (PEM) for an https index with a private certificate. |
+| `--debian-mirror URL` | your Debian mirror (archive layout) for the `tini` install in the CLI image; a base image that already has `tini` 0.19.0 skips apt. |
+| `--proxy URL` | an HTTP(S) proxy for the build steps. None is passed unless you give this, whatever your environment holds. |
+| `--docker-config DIR` | the Docker config whose registry logins are used (default: yours). Only the logins for the base image's registry and the target registry are copied into the throwaway configuration the build runs with. |
+| `--push` | push the four images with `docker push` (same logins) and record each digest. |
+| `--tag-suffix S` | tag `<version>-<S>` for a local development build; it cannot be pushed. |
+| `--dry-run` | validate everything and print the plan as JSON; build and push nothing. |
+| `--output DIR` | write the build manifest `images.json` (and `image-overrides.sh`) into this new directory. |
+| `--replace` | overwrite an image tag that already exists locally; refused otherwise. |
+
+`docker` runs with a sanitized environment: a fresh `DOCKER_CONFIG` (the scoped logins), the daemon of your current Docker context (a local socket
+only), no proxy or `PIP_*` variable of yours. The Docker SDK is not used to build or push. The manifest records the package wheel and its sha256,
+the lock and every dependency artifact sha256, the Dockerfile and install-helper hashes, the resolved base image digest, the build arguments
+without secrets, the Debian package versions of the CLI image, and the image ids and references. Exit code 1 for any refusal or failed step.
+
 ## replay-dlq
 
 ```text
@@ -452,9 +493,17 @@ Docker runtime only; `--runtime process` does not read them.
 
 | Variable | Default | Read by |
 | --- | --- | --- |
-| `GRAPH_LOADER_NODE_IMAGE` | `ghcr.io/shashankshukla96/graph-loader-node:<package-version>` | CLI (node loaders) |
-| `GRAPH_LOADER_EDGE_IMAGE` | `ghcr.io/shashankshukla96/graph-loader-edge:<package-version>` | CLI (edge loaders, planned dispatcher/writers, retry consumer, lease server) |
-| `GRAPH_LOADER_CLOCK_IMAGE` | `ghcr.io/shashankshukla96/graph-loader-clock:<package-version>` | CLI (global clock, only with `--stream-clock-rotation`) |
+| `GRAPH_LOADER_IMAGE_REGISTRY` | unset: `ghcr.io/neburyx` | CLI (every default image reference: `<prefix>/graph-loader-<role>:<package-version>`, for the four roles including `cli`) |
+| `GRAPH_LOADER_NODE_IMAGE` | `ghcr.io/neburyx/graph-loader-node:<package-version>` | CLI (node loaders) |
+| `GRAPH_LOADER_EDGE_IMAGE` | `ghcr.io/neburyx/graph-loader-edge:<package-version>` | CLI (edge loaders, planned dispatcher/writers, retry consumer, lease server) |
+| `GRAPH_LOADER_CLOCK_IMAGE` | `ghcr.io/neburyx/graph-loader-clock:<package-version>` | CLI (global clock, only with `--stream-clock-rotation`) |
+
+`GRAPH_LOADER_IMAGE_REGISTRY` is a registry prefix for an organization that keeps the images in its own
+registry: `host[:port]` followed by lowercase path components, for example `registry.example.com:5000/team`. It takes no
+scheme (`https://`), no credentials (`user:password@`), no tag or digest, no spaces and no trailing slash; a value that
+breaks the grammar stops `start` before anything is launched, with a message that does not repeat the value. The three
+`GRAPH_LOADER_<ROLE>_IMAGE` variables win for their role, and a full reference with credentials in it is refused too (log in
+with `docker login` instead). Empty means unset. `--runtime process` does not read it.
 
 `make build-images CANDIDATE_SUFFIX=unique-name` builds all four local development
 candidates; export the matching `GRAPH_LOADER_*_IMAGE` tags from its manifest.

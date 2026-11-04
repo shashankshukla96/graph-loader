@@ -1,10 +1,18 @@
-.PHONY: dev dev-down dev-logs lint test-unit build-images stress-100k stress-1m requirements check-requirements
+.PHONY: dev dev-down dev-logs lint test-unit build-images stress-100k stress-1m requirements check-requirements lock check-lock
 
 requirements:
 	python3 scripts/sync_requirements.py
 
 check-requirements:
 	python3 scripts/sync_requirements.py --check
+
+# Hashed per-platform dependency locks for the loader images (developer tool; needs Docker). Each lock is resolved inside the base image on its platform.
+lock:
+	python3 scripts/lock_requirements.py generate --platform linux/amd64
+	python3 scripts/lock_requirements.py generate --platform linux/arm64
+
+check-lock: check-requirements
+	python3 scripts/lock_requirements.py check
 
 dev:
 	@bash scripts/start_dev.sh
@@ -26,8 +34,14 @@ test-unit:
 CANDIDATE_SUFFIX ?= local
 CANDIDATE_OUTPUT ?= var/candidate-images-$(CANDIDATE_SUFFIX)
 
-build-images: check-requirements
-	python3 scripts/build_candidate_images.py --suffix "$(CANDIDATE_SUFFIX)" --output "$(CANDIDATE_OUTPUT)"
+# Dependencies come from the public PyPI by default; for a build without it set CANDIDATE_WHEELHOUSE=<dir prepared for this platform> (see
+# docs/DISTRIBUTION_DEVELOPMENT.md) or CANDIDATE_INDEX=<your mirror>. Needs docker with buildx and the `build` package.
+CANDIDATE_WHEELHOUSE ?=
+CANDIDATE_INDEX ?=
+
+build-images: check-requirements check-lock
+	python3 scripts/build_candidate_images.py --suffix "$(CANDIDATE_SUFFIX)" --output "$(CANDIDATE_OUTPUT)" \
+		$(if $(CANDIDATE_WHEELHOUSE),--wheelhouse "$(CANDIDATE_WHEELHOUSE)",$(if $(CANDIDATE_INDEX),--pip-index-url "$(CANDIDATE_INDEX)"))
 
 .PHONY: monitoring-up monitoring-down monitoring-validate monitoring-bundle
 

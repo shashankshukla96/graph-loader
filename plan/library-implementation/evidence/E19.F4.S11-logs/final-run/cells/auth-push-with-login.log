@@ -1,0 +1,13 @@
+The push refers to repository [registry:5000/auth-control/push-check]
+acca7542dfc7: Waiting
+3eb771151506: Waiting
+f574edac59d9: Waiting
+6fc242d221a6: Waiting
+f574edac59d9: Waiting
+6fc242d221a6: Mounted from e19/python-tini
+acca7542dfc7: Waiting
+3eb771151506: Waiting
+acca7542dfc7: Mounted from e19/python-tini
+3eb771151506: Mounted from e19/python-tini
+f574edac59d9: Mounted from e19/python-tini
+1: digest: sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b size: 1746

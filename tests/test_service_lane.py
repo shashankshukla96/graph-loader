@@ -352,7 +352,7 @@ def test_an_added_image_with_the_owner_label_or_a_candidate_tag_is_not_tolerated
     labelled_image = snap(EXISTING + (('sha256:b', ('node:24',)),))
     ok, _, reason = tolerated(before, labelled_image, labels={'sha256:b': {LABEL: OWNER}})
     assert not ok and 'owner label' in reason
-    candidate = snap(EXISTING + (('sha256:b', ('ghcr.io/shashankshukla96/graph-loader-edge:0.1.0a1.dev0-x',)),))
+    candidate = snap(EXISTING + (('sha256:b', ('ghcr.io/neburyx/graph-loader-edge:0.1.0a1.dev0-x',)),))
     ok, _, reason = tolerated(before, candidate)
     assert not ok and 'candidate repository' in reason
     ok, _, reason = tolerated(before, labelled_image, fail=True)
@@ -411,7 +411,7 @@ def test_the_postflight_without_any_difference_is_clean_without_a_tolerance_reco
     assert result['clean'] and result['foreign_unchanged'] is True and result['foreign_difference_tolerated'] is False
 
 
-CANDIDATE = 'ghcr.io/shashankshukla96/graph-loader-edge'
+CANDIDATE = 'ghcr.io/neburyx/graph-loader-edge'
 
 
 def test_a_digest_only_image_in_a_candidate_repository_is_not_tolerated():

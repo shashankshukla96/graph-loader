@@ -7,9 +7,16 @@ see [Process runtime](PROCESS_RUNTIME.md); image options and
 container, see [Single container](SINGLE_CONTAINER.md).
 
 `graph-loader start` resolves prebuilt images and never builds from cwd. Defaults
-are `ghcr.io/shashankshukla96/graph-loader-{node,edge,clock}:<package-version>`;
+are `ghcr.io/neburyx/graph-loader-{node,edge,clock}:<package-version>`;
 the current package version is `0.1.0a1`. The CLI image follows
-the same naming policy. These are the registry identities used at release; a local
+the same naming policy.
+
+**Your own registry.** (Behind a network without internet access: [Restricted networks](RESTRICTED_NETWORKS.md).) Set `GRAPH_LOADER_IMAGE_REGISTRY=<prefix>` (for example `registry.example.com:5000/team`) and every
+default reference, `cli` included, becomes `<prefix>/graph-loader-<role>:<package-version>`; copy the four images there first.
+The prefix is `host[:port]` and lowercase path components only: a scheme, credentials, a tag or digest, spaces, an empty
+component or a trailing slash is refused before anything starts, and the message never repeats the value. The per-role
+variables still win for their role, and an image reference that carries credentials (`user:password@host/image`) is refused:
+sign in with `docker login` instead. `--runtime process` runs no images and ignores the setting. These are the registry identities used at release; a local
 candidate build does not establish publication or anonymous-pull availability.
 
 Resolution inspects the local daemon first. Only an absent reference is pulled;
@@ -36,7 +43,8 @@ provided. Each DockerService snapshots references and pins selected immutable
 local IDs for its lifetime; retagging or changing environment settings cannot
 change later replica/coordinator/retry launches in that service.
 
-Development maintainers explicitly build from the checkout:
+Development maintainers explicitly build from the checkout (Docker with buildx; the dependency lock of the daemon's platform is used, the
+dependencies come from the public PyPI unless `CANDIDATE_WHEELHOUSE=<dir>` or `CANDIDATE_INDEX=<url>` names another source):
 
 ```sh
 make build-images CANDIDATE_SUFFIX=my-fresh-candidate
@@ -44,8 +52,10 @@ make build-images CANDIDATE_SUFFIX=my-fresh-candidate
 ```
 
 The new `var/candidate-images-my-fresh-candidate/images.json` records all four
-local IDs, exact input hashes, labels/platform/entrypoints and proposed registry
-tags. Existing candidate tags/output directories are refused. The generated public
+local IDs, the package wheel and the dependency lock they were built from (file names and sha256), the Dockerfile and install-helper
+hashes, the resolved base image digest, the build arguments without secrets, the Debian package versions of the CLI image,
+labels/platform/entrypoints and proposed registry tags. To build images for your own registry from the installed package instead, see
+[`graph-loader images build`](CLI.md#images-build). Existing candidate tags/output directories are refused. The generated public
 `image-overrides.sh` exports the manifest references; source it explicitly, then run the
 installed CLI anywhere with `--skip-image-build`. The builder derives the version
 from the single file authority and checks installed metadata during Docker build.

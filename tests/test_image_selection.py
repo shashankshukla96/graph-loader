@@ -22,7 +22,7 @@ def compatible(role='node', identity=None):
 @pytest.mark.parametrize('role', ['cli','node','edge','clock'])
 def test_default_reference_matches_package_and_namespace(role, monkeypatch):
     monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
-    assert image_reference(role) == f'ghcr.io/shashankshukla96/graph-loader-{role}:{__version__}'
+    assert image_reference(role) == f'ghcr.io/neburyx/graph-loader-{role}:{__version__}'
 
 
 @pytest.mark.parametrize('role', ['node','edge','clock'])
@@ -123,3 +123,153 @@ def test_public_main_redacts_daemon_constructor_error(tmp_path,monkeypatch,caplo
     assert cli.main(['start','--mode','bulk','--skip-image-build','--run-dir',str(tmp_path/'runs')]) == 1
     assert 'cannot access Docker daemon' in caplog.text
     assert 'constructor-sensitive-marker' not in caplog.text
+
+
+# -- E19.F2.S3: GRAPH_LOADER_IMAGE_REGISTRY -------------------------------------------------------------------------------------------
+REGISTRY = 'GRAPH_LOADER_IMAGE_REGISTRY'
+
+
+@pytest.fixture
+def no_overrides(monkeypatch):
+    for role in ('cli', 'node', 'edge', 'clock'):
+        monkeypatch.delenv(f'GRAPH_LOADER_{role.upper()}_IMAGE', raising=False)
+    monkeypatch.delenv(REGISTRY, raising=False)
+
+
+@pytest.mark.parametrize('prefix', ['registry.example.com', 'registry:5000', 'registry.example.com:5000/team',
+                                    'localhost:5000/a/b_c.d-e', '192.0.2.3:443/x', 'harbor.example.com/proj/sub'])
+@pytest.mark.parametrize('role', ['cli', 'node', 'edge', 'clock'])
+def test_registry_prefix_makes_every_default_reference(prefix, role, monkeypatch, no_overrides):
+    monkeypatch.setenv(REGISTRY, prefix)
+    assert image_reference(role) == f'{prefix}/graph-loader-{role}:{__version__}'
+
+
+@pytest.mark.parametrize('value', [None, ''])
+def test_unset_or_empty_registry_keeps_the_default_namespace(value, monkeypatch, no_overrides):
+    if value is not None:
+        monkeypatch.setenv(REGISTRY, value)
+    assert image_reference('node') == f'ghcr.io/neburyx/graph-loader-node:{__version__}'
+
+
+def test_a_per_role_override_wins_over_the_registry(monkeypatch, no_overrides):
+    monkeypatch.setenv(REGISTRY, 'registry.example.com/team')
+    monkeypatch.setenv('GRAPH_LOADER_EDGE_IMAGE', 'local/edge:chosen')
+    assert image_reference('edge') == 'local/edge:chosen'
+    assert image_reference('node') == f'registry.example.com/team/graph-loader-node:{__version__}'
+    assert ImageSelection(MagicMock()).references == {
+        'cli': f'registry.example.com/team/graph-loader-cli:{__version__}', 'node': f'registry.example.com/team/graph-loader-node:{__version__}',
+        'edge': 'local/edge:chosen', 'clock': f'registry.example.com/team/graph-loader-clock:{__version__}'}
+
+
+def test_a_per_role_override_is_not_validated_against_the_prefix_grammar(monkeypatch, no_overrides):
+    """An invalid registry setting is irrelevant for a role whose own variable is set; the other roles still refuse it."""
+    monkeypatch.setenv(REGISTRY, 'https://nope')
+    monkeypatch.setenv('GRAPH_LOADER_NODE_IMAGE', 'local/node:chosen')
+    assert image_reference('node') == 'local/node:chosen'
+    with pytest.raises(ImageSelectionError):
+        image_reference('edge')
+
+
+SENTINEL = 'Zq7Xk2Sentinel'
+
+
+def credentialed(url, user, password):
+    """``url`` with credentials in it, assembled at run time so no source line holds a credentialed URL."""
+    scheme, rest = url.split('://', 1)
+    return scheme + '://' + user + ':' + password + '@' + rest
+BAD_PREFIXES = {
+    'scheme': 'https://registry.example.com', 'scheme-plain': 'http://registry.example.com:5000/team',
+    'userinfo': f'user:{SENTINEL}@registry.example.com', 'userinfo-only-user': f'{SENTINEL}@registry.example.com/team',
+    'tag': f'registry.example.com/team:{SENTINEL}', 'tag-on-host': f'registry.example.com:{SENTINEL}',
+    'digest': f'registry.example.com/team@sha256:{"a" * 64}', 'uppercase-path': f'registry.example.com/{SENTINEL}',
+    'trailing-slash': 'registry.example.com/team/', 'double-slash': 'registry.example.com//team', 'leading-slash': '/registry.example.com',
+    'empty-component-at-end': 'registry.example.com/', 'space': f'registry.example.com/team {SENTINEL}', 'tab': 'registry.example.com\t/team',
+    'newline': 'registry.example.com\n', 'only-space': ' ', 'port-too-long': 'registry.example.com:123456', 'port-letters': 'registry.example.com:port',
+    'path-edge-hyphen': 'registry.example.com/-team', 'path-triple-underscore': 'registry.example.com/a___b', 'too-long': 'r.example.com/' + 'a' * 300,
+    'query': f'registry.example.com/team?x={SENTINEL}', 'fragment': f'registry.example.com/team#{SENTINEL}',
+}
+
+
+@pytest.mark.parametrize('name', sorted(BAD_PREFIXES))
+def test_invalid_registry_prefixes_are_rejected_without_echo(name, monkeypatch, no_overrides):
+    monkeypatch.setenv(REGISTRY, BAD_PREFIXES[name])
+    with pytest.raises(ImageSelectionError, match=f'invalid {REGISTRY}') as error:
+        image_reference('node')
+    assert SENTINEL not in str(error.value)
+    assert not BAD_PREFIXES[name].strip() or BAD_PREFIXES[name] not in str(error.value)      # a blank value is a substring of any message
+
+
+def test_control_the_bad_prefix_table_really_contains_what_it_names():
+    """A guard against a vacuous table: each entry is wrong in the way its name says."""
+    assert BAD_PREFIXES['scheme'].startswith('https://') and '@' in BAD_PREFIXES['userinfo']
+    assert ':' in BAD_PREFIXES['tag'].split('/')[-1] and '@sha256:' in BAD_PREFIXES['digest']
+    assert any(c.isupper() for c in BAD_PREFIXES['uppercase-path']) and BAD_PREFIXES['trailing-slash'].endswith('/')
+    assert any(c.isspace() for c in BAD_PREFIXES['space'])
+
+
+def test_the_docker_runtime_refuses_an_invalid_registry_before_touching_the_daemon(monkeypatch, no_overrides):
+    monkeypatch.setenv(REGISTRY, f'user:{SENTINEL}@registry.example.com')
+    client = MagicMock()
+    with pytest.raises(ImageSelectionError, match=f'invalid {REGISTRY}') as error:
+        DockerService(client=client)
+    assert SENTINEL not in str(error.value)
+    client.images.get.assert_not_called()
+    client.images.pull.assert_not_called()
+
+
+def test_a_registry_prefix_decides_what_is_pulled_and_checked(monkeypatch, no_overrides):
+    monkeypatch.setenv(REGISTRY, 'registry.example.com:5000/team')
+    client = MagicMock()
+    client.images.get.side_effect = ImageNotFound('absent')
+    client.images.pull.return_value = compatible('edge')
+    assert ImageSelection(client).resolve('edge') == IMAGE_IDS['edge']
+    client.images.get.assert_called_once_with(f'registry.example.com:5000/team/graph-loader-edge:{__version__}')
+    client.images.pull.assert_called_once_with(f'registry.example.com:5000/team/graph-loader-edge:{__version__}')
+
+
+def test_the_single_container_cli_image_follows_the_registry(monkeypatch, no_overrides):
+    monkeypatch.setenv(REGISTRY, 'registry.example.com/team')
+    assert image_reference('cli') == f'registry.example.com/team/graph-loader-cli:{__version__}'
+    monkeypatch.setenv('GRAPH_LOADER_CLI_IMAGE', 'mirror.example.com/cli:pinned')
+    assert image_reference('cli') == 'mirror.example.com/cli:pinned'
+
+
+def test_the_public_main_reports_an_invalid_registry_without_echo(tmp_path, monkeypatch, caplog, no_overrides):
+    import docker
+    monkeypatch.setattr(docker, 'from_env', lambda: MagicMock())
+    monkeypatch.setenv(REGISTRY, credentialed('https://registry.example.com', 'user', SENTINEL))
+    assert cli.main(['start', '--mode', 'bulk', '--skip-image-build', '--run-dir', str(tmp_path / 'runs')]) == 1
+    assert f'invalid {REGISTRY}' in caplog.text and SENTINEL not in caplog.text and 'registry.example.com' not in caplog.text
+
+
+def test_the_process_runtime_ignores_the_registry(tmp_path, monkeypatch, no_overrides):
+    from neo4j_graph_loader import _runtime
+    from neo4j_graph_loader.orchestrator.process_service import ProcessService
+    root = tmp_path / 'attempt'
+    for name in ('rejections', 'plans', 'spill', 'timings'):
+        (root / name).mkdir(parents=True)
+    schema = root / 'runtime_schema.yaml'
+    schema.write_text('x: 1\n')
+    paths = _runtime.RunPaths(root, schema, root / 'rejections', root / 'plans', root / 'spill', root / 'timings')
+    monkeypatch.setenv(REGISTRY, 'https://not-even-a-valid-prefix')
+    service = ProcessService(paths)
+    assert service.prepare_images(['node', 'edge']) == {'node': 'role:node', 'edge': 'role:edge'}
+
+
+# per-role references: userinfo is refused (the old pattern accepted ``user:password@host/image``), digests and tags still work
+@pytest.mark.parametrize('reference', [f'user:{SENTINEL}@registry.example.com/img:1', f'{SENTINEL}@registry.example.com/img',
+                                       f'registry.example.com/img@{SENTINEL}', f'a@b@sha256:{"a" * 64}', f'registry.example.com/img@sha256:{SENTINEL}',
+                                       f'@sha256:{"a" * 64}'])
+def test_per_role_references_with_userinfo_are_rejected_without_echo(reference):
+    with pytest.raises(ImageSelectionError, match='invalid node image reference') as error:
+        ImageSelection(MagicMock()).resolve('node', reference)
+    assert SENTINEL not in str(error.value)
+
+
+@pytest.mark.parametrize('reference', ['local/operator:chosen', 'registry.example.com:5000/team/img:1.2', f'registry.example.com/img@sha256:{"b" * 64}',
+                                       f'registry.example.com/img:1@sha256:{"c" * 64}'])
+def test_per_role_tags_and_digests_still_resolve(reference):
+    client = MagicMock()
+    client.images.get.return_value = compatible()
+    assert ImageSelection(client).resolve('node', reference) == IMAGE_IDS['node']
+    client.images.get.assert_called_once_with(reference)

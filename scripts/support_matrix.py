@@ -29,7 +29,7 @@ else:
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = {'neo4j', 'neo4j-rust-ext', 'confluent-kafka', 'pydantic', 'pyyaml', 'docker', 'numpy', 'prometheus-client'}
 TOOLS = ('verify_installed.py', 'installed_dependencies.py', 'installed_guard.py', 'installed_guard_load.py', 'installed_pytest.py',
-         'service_lane.py', 'support_matrix.py', 'matrix_docker.py')
+         'service_lane.py', 'support_matrix.py', 'matrix_docker.py', 'verify_artifacts.py')
 PROBES = ('e04_imports.py', 'e04_public_example.py', 'e05_resources.py', 'e05_runtime.py', 'e08_base_probe.py')
 
 
@@ -118,8 +118,6 @@ def bundle(args, output, receipts):
         files['scripts/'+name] = sha((ROOT/'scripts'/name).read_bytes())
     for name in PROBES:
         files['tests/fixtures/'+name] = sha((ROOT/'tests/fixtures'/name).read_bytes())
-    artifact_tool = 'plan/library-implementation/tools/verify_e03_artifacts.py'
-    files[artifact_tool] = sha((ROOT/artifact_tool).read_bytes())
     for relative, digest in files.items():
         source = ROOT/relative
         if any(p.is_symlink() for p in (source, *source.parents) if p.is_relative_to(ROOT)):
@@ -212,7 +210,7 @@ def observe(args, output, receipts):
                  str(output/'base.json')], output, 'base', receipts, timeout=60)
         observed = json.loads((output/'base.json').read_text())
         verify_versions(observed['versions'], read_constraints(root/'constraints.txt')['pins'], observed['application_version'])
-        spec = importlib.util.spec_from_file_location('artifact_probe', root/'plan/library-implementation/tools/verify_e03_artifacts.py')
+        spec = importlib.util.spec_from_file_location('artifact_probe', root/'scripts/verify_artifacts.py')
         probe = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(probe)
         inventory = json.loads((root/'inventory.json').read_text())

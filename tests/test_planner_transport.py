@@ -121,7 +121,7 @@ def test_partial_progress_and_waits_recheck_absolute_deadline(monkeypatch):
 @pytest.mark.parametrize('mode',['timeout','cancel'])
 def test_real_private_fault_has_an_independent_supervisor(tmp_path,scenario,mode):
     output=tmp_path/'fault'
-    result=subprocess.run([sys.executable,str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'),
+    result=subprocess.run([sys.executable,str(ROOT/'tests/fixtures/run_fault.py'),
         scenario,'--mode',mode,'--output',str(output),'--python',sys.executable],
         cwd=ROOT,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stdout+result.stderr+(output/'client.log').read_text()

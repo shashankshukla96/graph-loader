@@ -60,9 +60,8 @@ def _metrics_port(env: Optional[Dict[str, str]] = None) -> int:
     is rejected too — it would silently ask Docker/the container to pick a
     random port while every Docker label and env var still says ``"0"``)
     value falls back to :data:`DEFAULT_METRICS_PORT` (9464 — an
-    orchestrator correction, not Prometheus's own default port 9090; see
-    `plan/v6/completion_slice-2.md`) with a logged warning (P6-S2 review
-    finding F1: a typo'd port used to be able to fail every container
+    orchestrator correction, not Prometheus's own default port 9090)
+    with a logged warning (a typo'd port used to be able to fail every container
     launch in a run).
     """
     raw = env.get("GRAPH_LOADER_METRICS_PORT") if env is not None else os.environ.get("GRAPH_LOADER_METRICS_PORT")

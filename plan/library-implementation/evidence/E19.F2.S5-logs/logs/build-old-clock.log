@@ -1,0 +1,51 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.clock
+#1 transferring dockerfile: 1.16kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 302B done
+#3 DONE 0.0s
+
+#4 [1/8] FROM docker.io/library/python:3.12-slim@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#4 resolve docker.io/library/python:3.12-slim@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 8.65kB done
+#5 DONE 0.0s
+
+#6 [3/8] COPY requirements.txt .
+#6 CACHED
+
+#7 [5/8] COPY pyproject.toml PACKAGE_README.md LICENSE MANIFEST.in ./
+#7 CACHED
+
+#8 [7/8] RUN pip install --no-cache-dir --no-deps .
+#8 CACHED
+
+#9 [4/8] RUN pip install --no-cache-dir -r requirements.txt
+#9 CACHED
+
+#10 [2/8] WORKDIR /app
+#10 CACHED
+
+#11 [6/8] COPY src/neo4j_graph_loader/ src/neo4j_graph_loader/
+#11 CACHED
+
+#12 [8/8] RUN python -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "0.1.0a1"
+#12 CACHED
+
+#13 exporting to image
+#13 exporting layers done
+#13 exporting manifest sha256:ccce21698e3a212ec3c4657068aa72582e16ac8d7bffb1b5c8318c04bf1c9d1d done
+#13 exporting config sha256:b95561ddd62564bc39e0a5f8d684ca7673acd327fab53fc9b5805fb5511624db done
+#13 naming to e19-s5-20261103T231205/old-graph-loader-clock:0.1.0a1 done
+#13 unpacking to e19-s5-20261103T231205/old-graph-loader-clock:0.1.0a1 done
+#13 DONE 0.0s
+
+View build details: docker-desktop://dashboard/build/default/default/nj1mrzwepv7byyjq7l4a53tf4

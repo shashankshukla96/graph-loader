@@ -83,7 +83,7 @@ Related docs: [CLI.md](CLI.md) (command and flag reference),
 | --- | --- |
 | Neo4j | **5 Enterprise; tested with 5.26** (block store format). The target database must already exist. The classic and lease relationship writers use Cypher's `CALL (vars) { ... }` scoped-subquery syntax, which needs 5.23 or later (5.21 rejects it); planned mode does not use it. APOC is needed only for the classic relationship modes (`apoc.lock.nodes`). |
 | Kafka | Any broker reachable from the host **and** from the loader containers (tested with Confluent 7.7 in KRaft mode). |
-| Docker | A local Docker Engine on the machine that runs `graph-loader start`; the CLI pulls or reuses the versioned images `ghcr.io/shashankshukla96/graph-loader-{node,edge,clock}:<package version>`. See [Docker execution](DOCKER_EXECUTION.md). Not needed with `--runtime process` (Linux >= 5.3 instead; see [Process runtime](PROCESS_RUNTIME.md)). |
+| Docker | A local Docker Engine on the machine that runs `graph-loader start`; the CLI pulls or reuses the versioned images `ghcr.io/neburyx/graph-loader-{node,edge,clock}:<package version>`. See [Docker execution](DOCKER_EXECUTION.md). Not needed with `--runtime process` (Linux >= 5.3 instead; see [Process runtime](PROCESS_RUNTIME.md)). |
 | Python | CPython 3.12 and `pip install neo4j-graph-loader` (the Neo4j Python driver is `>=6.0,<7`). A source checkout uses `pip install -e .`; see [Distribution development](DISTRIBUTION_DEVELOPMENT.md). |
 
 ### Local services
@@ -124,7 +124,7 @@ project `.env` without overriding exported values.
 | `LOADER_KAFKA_BOOTSTRAP_SERVERS` | containers | Kafka address inside the Docker network (default `kafka:29092`) |
 | `LOADER_NEO4J_URI` | containers | Neo4j URI inside the Docker network (default `bolt://neo4j:7687`) |
 | `LOADER_CPUSET` | containers, or the roles with `--runtime process` | CPU set for every loader, dispatcher and writer container (process runtime: each role pins itself) |
-| `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE`, `GRAPH_LOADER_CLOCK_IMAGE` | CLI | Compatible image overrides; defaults are matching package-version tags under `ghcr.io/shashankshukla96`. See [Docker execution](DOCKER_EXECUTION.md). |
+| `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE`, `GRAPH_LOADER_CLOCK_IMAGE`, `GRAPH_LOADER_IMAGE_REGISTRY` | CLI | Compatible image overrides; defaults are matching package-version tags under `ghcr.io/neburyx`, or under the registry prefix `GRAPH_LOADER_IMAGE_REGISTRY` when it is set (`host[:port]/path`, no scheme or credentials). See [Docker execution](DOCKER_EXECUTION.md). |
 | `GRAPH_LOADER_TIMING_DIR` | CLI | Explicit timing/metrics directory override (default `<attempt>/timings/`); plan and ledger default to `<attempt>/plans/` |
 | `GRAPH_LOADER_METRICS_ENABLED` | host and containers | `1`/`true` (default) to expose a Prometheus `/metrics` endpoint and write the `metrics-<kind>[-<name>][-<replica>].prom` snapshot in `GRAPH_LOADER_TIMING_DIR`; `0`/`false` (case-insensitive) disables both |
 | `GRAPH_LOADER_METRICS_PORT` | host and containers | Port for the metrics HTTP server (default `9464`; the host CLI binds `127.0.0.1` and falls back to an ephemeral free port, logged as a warning, if the configured port is taken) |

@@ -1,0 +1,26 @@
+== real installed package (clean venv, non-editable) ==
+-- missing dependency wheel
+ERROR: stage=images reason=the wheelhouse does not satisfy the lock: wheelhouse is missing numpy==2.5.4
+exit=1
+-- wrong-platform wheel
+ERROR: stage=images reason=the wheelhouse does not satisfy the lock: numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl is not a CPython 3.12 wheel for linux/arm64
+exit=1
+-- wrong-platform bytes under the right name
+ERROR: stage=images reason=the wheelhouse does not satisfy the lock: numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl does not match any hash in the lock
+exit=1
+-- substituted package wheel of the same version
+ERROR: stage=images reason=image tag already exists locally: e19-s6-20261103T233451/images/graph-loader-cli:0.1.0a1, e19-s6-20261103T233451/images/graph-loader-node:0.1.0a1, e19-s6-20261103T233451/images/graph-loader-edge:0.1.0a1, e19-s6-20261103T233451/images/graph-loader-clock:0.1.0a1; pass --replace to overwrite it
+exit=1
+-- existing tag without --replace
+ERROR: stage=images reason=image tag already exists locally: e19-s6-20261103T233451/images/graph-loader-cli:0.1.0a1, e19-s6-20261103T233451/images/graph-loader-node:0.1.0a1, e19-s6-20261103T233451/images/graph-loader-edge:0.1.0a1, e19-s6-20261103T233451/images/graph-loader-clock:0.1.0a1; pass --replace to overwrite it
+exit=1
+-- suffix with push
+ERROR: stage=images reason=a tag suffix marks a local development build; it cannot be pushed
+exit=1
+-- two dependency sources
+                                 [--output DIR] [--replace]
+graph-loader images build: error: argument --pip-index-url: not allowed with argument --wheelhouse
+exit=0
+-- substituted package wheel of the same version (one module changed)
+ERROR: stage=images reason=the package wheel is not the installed package (file hashes differ)
+exit=1

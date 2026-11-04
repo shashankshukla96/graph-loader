@@ -1476,9 +1476,7 @@ def test_handle_start_cli_metrics_binds_127_0_0_1_by_default(mock_load, monkeypa
 
 @patch("neo4j_graph_loader.cli.load_schema")
 def test_handle_start_cli_metrics_bind_addr_override_is_honored_and_logged(mock_load, monkeypatch, caplog):
-    """P6-S5, found during P6-S3 (not P6-S5's own Story 6, a separate,
-    still-open item - see plan/v6/slice-5/stories.md):
-    GRAPH_LOADER_METRICS_BIND_ADDR is an explicit, off-by-default opt-in
+    """GRAPH_LOADER_METRICS_BIND_ADDR is an explicit, off-by-default opt-in
     - unset (or "127.0.0.1") keeps today's pure loopback-only bind
     (previous test), but a non-default value is honored exactly, and
     logged at WARNING since it exposes an unauthenticated endpoint

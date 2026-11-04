@@ -1,0 +1,23 @@
+{
+  "cli": {
+    "blobs": 14,
+    "layer_files": 8405,
+    "found": []
+  },
+  "node": {
+    "blobs": 13,
+    "layer_files": 8385,
+    "found": []
+  },
+  "edge": {
+    "blobs": 13,
+    "layer_files": 8385,
+    "found": []
+  },
+  "clock": {
+    "blobs": 12,
+    "layer_files": 8384,
+    "found": []
+  },
+  "default_build_logs_contain_sentinel": false
+}

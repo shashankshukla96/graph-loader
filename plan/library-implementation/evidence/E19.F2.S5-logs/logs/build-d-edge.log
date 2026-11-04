@@ -1,0 +1,92 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 3.05kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [stage-0 1/5] FROM docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#4 resolve docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 done
+#4 DONE 0.0s
+
+#5 [stage-0 2/5] WORKDIR /app
+#5 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 657.04kB done
+#6 DONE 0.0s
+
+#7 [stage-0 3/5] RUN --mount=type=bind,source=.,target=/ctx     --mount=type=secret,id=pip_index,required=false     set -eu;     case "index-secret" in         index-secret) source="--index-secret /run/secrets/pip_index" ;;         index-url)    source="--index-url " ;;         wheelhouse)   source="--wheelhouse /ctx/wheelhouse" ;;         *) echo "DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse" >&2; exit 2 ;;     esac;     python -I /ctx/install.py --lock /ctx/lock.txt --wheel "/ctx/neo4j_graph_loader-0.1.0a1-py3-none-any.whl" --wheel-sha256 "bf59e2f2a7dd3e96910104939f748526de6cc0c6d20d72e00e970b3f363e151b"         --ca-bundle /ctx/pip-ca.pem  ${source}
+#7 0.756 pip configuration check: cert, config-file, index-url
+#7 0.756 Looking in indexes: https://***@host.docker.internal:55000/simple/
+#7 0.769 Collecting annotated-types==0.8.0 (from -r /ctx/lock.txt (line 10))
+#7 0.778   Downloading https://host.docker.internal:55000/files/annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#7 0.791 Collecting certifi==2026.10.23 (from -r /ctx/lock.txt (line 12))
+#7 0.801   Downloading https://host.docker.internal:55000/files/certifi-2026.10.23-py3-none-any.whl (135 kB)
+#7 0.811 Collecting charset-normalizer==3.5.2 (from -r /ctx/lock.txt (line 14))
+#7 0.820   Downloading https://host.docker.internal:55000/files/charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (246 kB)
+#7 0.837 Collecting confluent-kafka==2.16.1 (from -r /ctx/lock.txt (line 16))
+#7 0.846   Downloading https://host.docker.internal:55000/files/confluent_kafka-2.16.1-cp312-cp312-manylinux_2_28_aarch64.whl (5.2 MB)
+#7 0.852      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 1.4 GB/s eta 0:00:00
+#7 0.887 Collecting docker==7.2.0 (from -r /ctx/lock.txt (line 18))
+#7 0.896   Downloading https://host.docker.internal:55000/files/docker-7.2.0-py3-none-any.whl (148 kB)
+#7 0.908 Collecting idna==3.20 (from -r /ctx/lock.txt (line 20))
+#7 0.918   Downloading https://host.docker.internal:55000/files/idna-3.20-py3-none-any.whl (69 kB)
+#7 0.928 Collecting neo4j==6.4.1 (from -r /ctx/lock.txt (line 22))
+#7 0.935   Downloading https://host.docker.internal:55000/files/neo4j-6.4.1-py3-none-any.whl (390 kB)
+#7 0.947 Collecting neo4j-rust-ext==6.4.1.0 (from -r /ctx/lock.txt (line 24))
+#7 0.956   Downloading https://host.docker.internal:55000/files/neo4j_rust_ext-6.4.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (312 kB)
+#7 0.978 Collecting numpy==2.5.4 (from -r /ctx/lock.txt (line 26))
+#7 0.986   Downloading https://host.docker.internal:55000/files/numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)
+#7 1.005      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.7/15.7 MB 906.5 MB/s eta 0:00:00
+#7 1.023 Collecting prometheus-client==0.26.0 (from -r /ctx/lock.txt (line 28))
+#7 1.030   Downloading https://host.docker.internal:55000/files/prometheus_client-0.26.0-py3-none-any.whl (64 kB)
+#7 1.040 Collecting pydantic==2.14.2 (from -r /ctx/lock.txt (line 30))
+#7 1.048   Downloading https://host.docker.internal:55000/files/pydantic-2.14.2-py3-none-any.whl (490 kB)
+#7 1.062 Collecting pydantic-core==2.50.2 (from -r /ctx/lock.txt (line 32))
+#7 1.071   Downloading https://host.docker.internal:55000/files/pydantic_core-2.50.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (2.1 MB)
+#7 1.075      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 947.5 MB/s eta 0:00:00
+#7 1.088 Collecting pytz==2026.6 (from -r /ctx/lock.txt (line 34))
+#7 1.096   Downloading https://host.docker.internal:55000/files/pytz-2026.6-py2.py3-none-any.whl (506 kB)
+#7 1.109 Collecting pyyaml==6.0.3 (from -r /ctx/lock.txt (line 36))
+#7 1.118   Downloading https://host.docker.internal:55000/files/pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (775 kB)
+#7 1.119      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 775.1/775.1 kB 1.5 GB/s eta 0:00:00
+#7 1.130 Collecting requests==2.34.2 (from -r /ctx/lock.txt (line 38))
+#7 1.140   Downloading https://host.docker.internal:55000/files/requests-2.34.2-py3-none-any.whl (73 kB)
+#7 1.151 Collecting typing-extensions==4.16.0 (from -r /ctx/lock.txt (line 40))
+#7 1.160   Downloading https://host.docker.internal:55000/files/typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#7 1.170 Collecting typing-inspection==0.4.4 (from -r /ctx/lock.txt (line 42))
+#7 1.179   Downloading https://host.docker.internal:55000/files/typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#7 1.189 Collecting urllib3==2.8.0 (from -r /ctx/lock.txt (line 44))
+#7 1.197   Downloading https://host.docker.internal:55000/files/urllib3-2.8.0-py3-none-any.whl (135 kB)
+#7 1.201 Installing collected packages: pytz, urllib3, typing-inspection, typing-extensions, requests, pyyaml, pydantic-core, pydantic, prometheus-client, numpy, neo4j-rust-ext, neo4j, idna, docker, confluent-kafka, charset-normalizer, certifi, annotated-types
+#7 2.706 Successfully installed annotated-types-0.8.0 certifi-2026.10.23 charset-normalizer-3.5.2 confluent-kafka-2.16.1 docker-7.2.0 idna-3.20 neo4j-6.4.1 neo4j-rust-ext-6.4.1.0 numpy-2.5.4 prometheus-client-0.26.0 pydantic-2.14.2 pydantic-core-2.50.2 pytz-2026.6 pyyaml-6.0.3 requests-2.34.2 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0
+#7 2.864 Processing /ctx/neo4j_graph_loader-0.1.0a1-py3-none-any.whl (from -r /tmp/tmpg9ef9nap/package.txt (line 1))
+#7 2.867 Installing collected packages: neo4j-graph-loader
+#7 3.046 Successfully installed neo4j-graph-loader-0.1.0a1
+#7 3.172 No broken requirements found.
+#7 DONE 3.3s
+
+#8 [stage-0 4/5] RUN python -I -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "0.1.0a1"
+#8 DONE 0.1s
+
+#9 [stage-0 5/5] RUN mkdir -p config && python -I -c 'import importlib.resources as r, shutil; shutil.copyfile(r.files("neo4j_graph_loader").joinpath("data", "graph_schema.yaml"), "config/graph_schema.yaml")'
+#9 DONE 0.1s
+
+#10 exporting to image
+#10 exporting layers
+#10 exporting layers 1.8s done
+#10 exporting manifest sha256:6161d54281b0b907f6b94a0332b49e6388f154bf10946b6285d2ccdd4d1d0971 done
+#10 exporting config sha256:bc2aab791e5639ee9bae3e7c812d8886f888b610155a5165efa75954759aceff done
+#10 naming to e19-s5-20261103T231205/graph-loader-edge:0.1.0a1-d-edge done
+#10 unpacking to e19-s5-20261103T231205/graph-loader-edge:0.1.0a1-d-edge
+#10 unpacking to e19-s5-20261103T231205/graph-loader-edge:0.1.0a1-d-edge 0.5s done
+#10 DONE 2.3s
+
+View build details: docker-desktop://dashboard/build/default/default/4g7cwdrnnltuk20578jpn2fq2

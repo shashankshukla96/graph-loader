@@ -1,0 +1,105 @@
+{
+ "state": {
+  "token": "s9-20261104c",
+  "containers": {
+   "e19-s9-20261104c-dns": "bf2e4bf8c5ecc4a3cfb534830063f167984a493a03600018e8808567e4d75f44",
+   "e19-s9-20261104c-registry": "e028154fc90c37e04977238a12e7f836e0381fd5d116d5acc7df8b0d7805f20f",
+   "e19-s9-20261104c-pypiserver": "75ba5a6f055a158633dc876dd42c3765c0bf1885e752df73242bbb934d252b73",
+   "e19-s9-20261104c-pypi-proxy": "706fb9c0a6c7f91100d58fc0330275305022416ff44c8edd1ae960dd71d0a784",
+   "e19-s9-20261104c-debian": "e05e80acf0b36f4c3d6083e587dcac61a53dd1e2065a7dbdb3d361b7b48ce944",
+   "e19-s9-20261104c-dind": "eeb1652af6112bc071822ddbbe745907af1830f8b6d1685305e746fa98a7684a",
+   "e19-s9-20261104c-runner": "eba48f38181f293767ffa6a42839503b5b5d2daebe5f49a2360067f9cb126215"
+  },
+  "networks": {
+   "e19-s9-20261104c-net": "0c21927fcbb6713a092bcc3a07833bd14ed1a8267cfe7cdcc3d07d0978884020"
+  },
+  "volumes": [
+   "e19-s9-20261104c-registry-data",
+   "e19-s9-20261104c-dind-lib",
+   "e19-s9-20261104c-dind-sock",
+   "e19-s9-20261104c-work"
+  ],
+  "images": {
+   "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30": {
+    "id": "sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30",
+    "key": "python"
+   },
+   "docker@sha256:0b6d18a4a222e71c88be6034926b4f6cde2fc33c2218643d03ccfddc65995470": {
+    "id": "sha256:0b6d18a4a222e71c88be6034926b4f6cde2fc33c2218643d03ccfddc65995470",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "docker@sha256:0b6d18a4a222e71c88be6034926b4f6cde2fc33c2218643d03ccfddc65995470",
+    "key": "dind"
+   },
+   "registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373": {
+    "id": "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+    "key": "registry"
+   },
+   "pypiserver/pypiserver@sha256:286ce50e4a53b3fbc880d944d6a5e010ca6ccb1fe2ecad669b9f00a349107b20": {
+    "id": "sha256:286ce50e4a53b3fbc880d944d6a5e010ca6ccb1fe2ecad669b9f00a349107b20",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "pypiserver/pypiserver@sha256:286ce50e4a53b3fbc880d944d6a5e010ca6ccb1fe2ecad669b9f00a349107b20",
+    "key": "pypiserver"
+   },
+   "nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10": {
+    "id": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
+    "key": "nginx"
+   },
+   "httpd@sha256:070da7661f0be8a05430b2c125c0cde9e53176b4048c813024021969a0e3893c": {
+    "id": "sha256:070da7661f0be8a05430b2c125c0cde9e53176b4048c813024021969a0e3893c",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "httpd@sha256:070da7661f0be8a05430b2c125c0cde9e53176b4048c813024021969a0e3893c",
+    "key": "httpd"
+   },
+   "neo4j@sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15": {
+    "id": "sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15",
+    "new": true,
+    "owned_tags": [],
+    "digest_ref": "neo4j@sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15",
+    "key": "neo4j"
+   },
+   "confluentinc/cp-kafka@sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3": {
+    "id": "sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3",
+    "new": false,
+    "owned_tags": [],
+    "digest_ref": "confluentinc/cp-kafka@sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3",
+    "key": "kafka"
+   },
+   "e19-s9-20261104c/runner:1": {
+    "id": "sha256:144d2dfa72657614c6f0eed8d7e6ecdab728a08437df5f38872b3cb05281357d",
+    "new": true,
+    "owned_tags": [
+     "e19-s9-20261104c/runner:1"
+    ],
+    "digest_ref": null,
+    "key": "runner"
+   }
+  },
+  "created": []
+ },
+ "budget": {
+  "memory_limits_mb": 4752,
+  "memory_budget_mb": 5120,
+  "cpus": 3.9,
+  "cpu_budget": 4.0,
+  "work_dir_mb": 345,
+  "owned_volumes_mb": 6109,
+  "new_images_on_shared_daemon_mb": 3079,
+  "disk_budget_mb": 10240,
+  "min_host_memory_available_mb": null,
+  "host_memory_floor_mb": 2048,
+  "ok": true
+ },
+ "memory_available_mb": 5545
+}

@@ -236,7 +236,7 @@ Loading the graph (`graph-loader start --mode bulk ...`) is a separate step that
 needs Neo4j 5.26 Enterprise (the tested version; the APOC plugin is needed only for the
 classic `--edge-classic` mode), Kafka and Docker, because the
 command runs the loaders as containers from the versioned images
-`ghcr.io/shashankshukla96/graph-loader-{cli,node,edge,clock}:<package version>`
+`ghcr.io/neburyx/graph-loader-{cli,node,edge,clock}:<package version>`
 (see [Docker execution](DOCKER_EXECUTION.md)). Two environment settings choose
 where the load goes; the command does not read `.env` files:
 

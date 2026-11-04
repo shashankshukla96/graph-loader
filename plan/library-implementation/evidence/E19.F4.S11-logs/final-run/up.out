@@ -1,0 +1,22 @@
+{"t": "2026-11-04T08:47:35Z", "event": "phase", "name": "up", "public_access": false}
+{"t": "2026-11-04T08:47:35Z", "event": "network", "name": "e19-s11-20261104c-net", "id": "43a699edb8d6d18bd08970802f6ee32f0e20675af4f89def1dcef34f3fde844e", "internal": true}
+{"t": "2026-11-04T08:47:35Z", "event": "volume", "name": "e19-s11-20261104c-registry-data"}
+{"t": "2026-11-04T08:47:35Z", "event": "volume", "name": "e19-s11-20261104c-dind-lib"}
+{"t": "2026-11-04T08:47:35Z", "event": "volume", "name": "e19-s11-20261104c-dind-sock"}
+{"t": "2026-11-04T08:47:35Z", "event": "volume", "name": "e19-s11-20261104c-work"}
+{"t": "2026-11-04T08:47:35Z", "event": "container", "name": "e19-s11-20261104c-dns", "id": "3a4ced44bdf00cef426e133f33ceca476acde3b825627802beee153666688a43", "memory_mb": 48, "cpus": 0.1, "privileged": false}
+{"t": "2026-11-04T08:47:36Z", "event": "container", "name": "e19-s11-20261104c-registry", "id": "c3164e35e1d0ebdf0c13735fd205e16fd276a7c874acb28150957c4d0faf3e5e", "memory_mb": 128, "cpus": 0.3, "privileged": false}
+{"t": "2026-11-04T08:47:36Z", "event": "volume", "name": "3b34bf532e706d1921b3647256788ec59dc8a3c29e57e720595a2237ec2e45ae", "anonymous": true, "container": "e19-s11-20261104c-pypiserver"}
+{"t": "2026-11-04T08:47:36Z", "event": "container", "name": "e19-s11-20261104c-pypiserver", "id": "a2c943ab00a2f8e977cbd57f2d65cb4d0aae95a947ec861a6078e2e4e6ffe3d6", "memory_mb": 128, "cpus": 0.2, "privileged": false}
+{"t": "2026-11-04T08:47:36Z", "event": "container", "name": "e19-s11-20261104c-pypi-proxy", "id": "519e3ac5ffcfe843d6142b48d3f53359ada2bd48eac5e229ef6f196c1ca3cfd8", "memory_mb": 64, "cpus": 0.1, "privileged": false}
+{"t": "2026-11-04T08:47:36Z", "event": "container", "name": "e19-s11-20261104c-debian", "id": "0960f33d6f656c9e7bb16bf3d6d865d85487bbb243b87cdef0b89992735e621a", "memory_mb": 64, "cpus": 0.1, "privileged": false}
+{"t": "2026-11-04T08:47:37Z", "event": "container", "name": "e19-s11-20261104c-dind", "id": "9d229f0e8cd560b6cc36cf1f9b9251f6d20253f9b1389eaf3774664ca46007a9", "memory_mb": 3180, "cpus": 2.6, "privileged": true}
+{"t": "2026-11-04T08:47:54Z", "event": "inner-daemon", "info": "29.9.0 overlayfs /var/lib/docker", "dns": "172.20.0.2", "insecure_registry": "registry:5000", "published_ports": 0}
+{"t": "2026-11-04T08:47:54Z", "event": "registry-login", "ok": true}
+{"t": "2026-11-04T08:47:59Z", "event": "registry-seed", "key": "python", "source": "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30", "target": "registry:5000/e19/python:3.12-slim", "registry_digest": "sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b"}
+{"t": "2026-11-04T08:48:55Z", "event": "registry-seed", "key": "neo4j", "source": "neo4j@sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15", "target": "registry:5000/e19/neo4j:5.26-enterprise", "registry_digest": "sha256:7baa50e77eb554ada7b0f37c3c274a8e0c655ed1487530fa51c94a0dce7955c0"}
+{"t": "2026-11-04T08:49:40Z", "event": "registry-seed", "key": "kafka", "source": "confluentinc/cp-kafka@sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3", "target": "registry:5000/e19/cp-kafka:7.7.0", "registry_digest": "sha256:76288746f518b38eb30496f5b8a9f157fedb0418bcca3648af903d03fc16d2d3"}
+{"t": "2026-11-04T08:49:41Z", "event": "container", "name": "e19-s11-20261104c-runner", "id": "54ee0ed0dfad4c53eb5baf408be6fab42517afbb49d446d11ec103ffec370754", "memory_mb": 1500, "cpus": 0.5, "privileged": false}
+{"t": "2026-11-04T08:49:41Z", "event": "image", "ref": "neo4j@sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15", "action": "removed neo4j@sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15"}
+{"t": "2026-11-04T08:49:41Z", "event": "image", "ref": "httpd@sha256:070da7661f0be8a05430b2c125c0cde9e53176b4048c813024021969a0e3893c", "action": "removed httpd@sha256:070da7661f0be8a05430b2c125c0cde9e53176b4048c813024021969a0e3893c"}
+{"t": "2026-11-04T08:49:42Z", "event": "phase-end", "name": "up", "memory_available_mb": 8283, "budget": {"memory_limits_mb": 5112, "memory_budget_mb": 5120, "cpus": 3.9, "cpu_budget": 4.0, "work_dir_mb": 184, "owned_volumes_mb": 1212, "new_images_on_shared_daemon_mb": 1391, "disk_budget_mb": 10240, "min_host_memory_available_mb": 7701, "host_memory_floor_mb": 2048, "ok": true}}

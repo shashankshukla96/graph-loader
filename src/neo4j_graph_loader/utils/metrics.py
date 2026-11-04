@@ -1,8 +1,8 @@
 """Shared Prometheus metrics facade for every graph-loader process kind.
 
 This module is the single source of truth for metric names, types, and
-label shapes across the whole library (`plan/v6/slices.md`'s Phase Summary:
-"P6-S2's catalogue is the single source of truth for metric names"). Every
+label shapes across the whole library: this catalogue is the single source of
+truth for metric names. Every
 process kind (node loader, edge loader, planned writer, planned dispatcher,
 lease server, clock runner, CLI/orchestrator) imports this module rather
 than constructing its own `prometheus_client` objects.
@@ -51,18 +51,14 @@ Env vars (read once, at process start, never on the hot path):
   exit-time and periodic snapshot writes) entirely. Mirrors
   the existing `GRAPH_LOADER_EDGE_EXPLICIT_LOCKS` boolean-toggle convention
   (`os.environ.get(...) != "0"`).
-- `GRAPH_LOADER_METRICS_PORT` — default `9464`. **Orchestrator correction**
-  (binding, overrides `plan/v6/slice-2/stories.md`'s literal text, which
-  proposed `9090`): 9090 is Prometheus server's own default port, and Slice
-  3's optional observability compose profile may run a Prometheus server
+- `GRAPH_LOADER_METRICS_PORT` — default `9464`, not `9090`: 9090 is Prometheus
+  server's own default port, and the optional observability compose profile may run a Prometheus server
   container on the same `graph-loader-net` — giving every *loader*
   container's internal metrics port the identical number to the scraper's
   own default invites confusion even though the two are technically
   different containers. `9464` is used instead: it collides with neither
   the lease server (`7700`), the planned dispatcher (`7701`), nor
-  Prometheus's own `9090`. Every occurrence of `9090` in the Slice 2
-  stories document is superseded by `9464` (see
-  `plan/v6/completion_slice-2.md`).
+  Prometheus's own `9090`.
 - `GRAPH_LOADER_METRICS_SNAPSHOT_PATH` — per-replica path (Story 9), set by
   `docker_service.py`, not read by an operator directly.
 - `GRAPH_LOADER_STATUS_SNAPSHOT_DIR`, `GRAPH_LOADER_EXECUTION_ID`, `GRAPH_LOADER_INCARNATION`,
@@ -167,8 +163,7 @@ AT_LEAST_ONCE_NOTE = (
     "stays exact via idempotent MERGE (P5-Q5). Do not treat a raw counter "
     "delta as an exact retry/DLQ count."
 )
-"""Repeated verbatim as each Counter's documentation in Story 2, per
-`plan/v5-v6-orchestration.md` P5-Q5."""
+"""Repeated verbatim as each Counter's documentation."""
 
 FAILURE_CLASSES = ("malformed", "missing_endpoint", "ambiguous_endpoint")
 """Closed enum for `dlq_routed_total`'s `failure_class` label. Must match
@@ -228,9 +223,7 @@ EXPECTED_METRIC_FAMILIES = frozenset(
         "graph_loader_exporter_up",
     }
 )
-"""The slice's full catalogue: 22 series as of P6-S2 (`stories.md` Story
-2's own count of "19" undercounts its own 22-row table — corrected here;
-see `plan/v6/completion_slice-2.md`), plus one more (`graph_loader_dlq_backlog`)
+"""The full catalogue: 22 series as first defined, plus one more (`graph_loader_dlq_backlog`)
 added by P5-S4 Story 7 per the P5-Q4 follow-up ("P5-S4 owns a true DLQ
 backlog gauge"), for 23 total, plus `graph_loader_retry_stalled_seconds`
 (P5-S4 round 4, owner decision D1: the retry consumer's sustained-stall
@@ -480,11 +473,10 @@ class GraphLoaderMetrics:
         self.plan_chunks_planned = Gauge(
             "graph_loader_plan_chunks_planned",
             "DispatchState.total, set once at dispatcher start. Named "
-            "'_planned', not '_total', despite stories.md's original text: "
+            "'_planned', not '_total': "
             "Prometheus/OpenMetrics convention reserves the '_total' "
             "suffix for counters, and promtool would flag a Gauge using "
-            "it; corrected here while nothing yet depends on the name "
-            "(see plan/v6/completion_slice-2.md).",
+            "it.",
             ["kind"],
             registry=r,
         )
@@ -655,8 +647,7 @@ def initialize_zero_series(metrics: GraphLoaderMetrics, *, kind: str, name: str)
     name=<edge type>}`` series at startup (the set of types isn't known
     until the plan is read) — Story 6's own instrumentation still creates
     that series correctly once each type's first chunk write happens; it
-    simply is not guaranteed to read `0` before that first write. Documented
-    in `plan/v6/completion_slice-2.md`.
+    simply is not guaranteed to read `0` before that first write.
 
     ``parked``/``retry``/``dlq_routed`` are pre-touched only for
     ``kind in ("node", "edge")`` (P6-S2 review finding R2): the lease

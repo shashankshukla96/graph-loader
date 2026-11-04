@@ -55,7 +55,7 @@ LEASE_ADDRESS_ENV = "GRAPH_LOADER_LEASE_ADDR"
 LEASE_BUCKETS_ENV = "GRAPH_LOADER_LEASE_BUCKETS"
 LEASE_KEYED_LABELS_ENV = "GRAPH_LOADER_LEASE_KEYED_LABELS"
 DEFAULT_BUCKET_LEASE_BUCKETS = 16
-# Deprecated alias (removed one release after plan/v5/slice-1).
+# Deprecated alias (scheduled for removal in a later release).
 DEFAULT_LEASE_BUCKETS = DEFAULT_BUCKET_LEASE_BUCKETS
 _LABEL = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 # Edge outer flush override set by the orchestrator (lease mode needs large
@@ -225,8 +225,7 @@ class BucketLeaseClient:
     new generation" comparison inside this class could never fire in
     production. Where a coordinator restart is actually observed and
     logged (across pooled clients) is Story 4's job, once the pool itself
-    is restructured to survive a restart (see the module docstring's
-    pointer to ``plan/v5-v6-orchestration.md``'s P5-Q1 amendment for why:
+    is restructured to survive a restart (see the module docstring for why:
     the binding fencing guarantee is the Neo4j transaction timeout plus the
     lease server's post-restart quiet period, never a generation
     comparison or a PING). This class only exposes ``generation`` (the

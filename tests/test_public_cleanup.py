@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @pytest.mark.parametrize('scenario', ['public-many', 'public-partial', 'public-send', 'public-cold'])
 def test_explicit_process_faults_prove_peer_activation_and_cleanup(tmp_path, workers, scenario):
     output = tmp_path/'matrix'
-    result = subprocess.run([sys.executable, str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'),
+    result = subprocess.run([sys.executable, str(ROOT/'tests/fixtures/run_fault.py'),
         scenario, '--context', 'spawn', '--workers', str(workers), '--mode', 'timeout',
         '--hard-timeout', '180', '--python', sys.executable, '--output', str(output)],
         cwd=ROOT, capture_output=True, text=True, timeout=200)
@@ -46,7 +46,7 @@ def test_explicit_process_faults_prove_peer_activation_and_cleanup(tmp_path, wor
 ]+[('public-stop','timeout'),('public-source-error','timeout'),('public-startup','timeout')])
 def test_public_fault_reaps_every_child_and_releases_owned_resources(tmp_path,scenario,mode):
     output=tmp_path/'fault'
-    result=subprocess.run([sys.executable,str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'),
+    result=subprocess.run([sys.executable,str(ROOT/'tests/fixtures/run_fault.py'),
         scenario,'--mode',mode,'--python',sys.executable,'--output',str(output)],
         cwd=ROOT,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stdout+result.stderr+(output/'client.log').read_text()
@@ -198,7 +198,7 @@ def test_cleanup_action_failure_still_reaps_children_and_retains_owned_topic(tmp
 def test_observed_source_error_does_not_wait_for_blocked_peer(tmp_path,timeout):
     scenario='public-mixed-error-default' if timeout is None else 'public-mixed-error-timeout'
     output=tmp_path/'mixed'
-    result=subprocess.run([sys.executable,str(ROOT/'plan/library-implementation/tools/run_e04_fault.py'),
+    result=subprocess.run([sys.executable,str(ROOT/'tests/fixtures/run_fault.py'),
         scenario,'--mode','timeout','--python',sys.executable,'--output',str(output),'--hard-timeout','15'],
         cwd=ROOT,capture_output=True,text=True,timeout=25)
     assert result.returncode==0,result.stdout+result.stderr+(output/'client.log').read_text()

@@ -1,0 +1,28 @@
+24f09baf3ea4 graph-loader-kafka confluentinc/cp-kafka:7.7.0
+efaa56910881 graph-loader-neo4j neo4j:5-enterprise
+26fa4d14f222 graph-loader-kafka-ui provectuslabs/kafka-ui:v0.7.2
+2b7c9b78405e postgres postgres
+--nets
+21d7fc64fa41
+30882941cc45
+6aac316a074b
+8466985afc9e
+b8e948b02ecb
+--vols
+f3962be2e6730adf55c827a82ea73c2192e54073b086839d56415ca465463b8a
+fd891d7013e42bd9f7d2ed52a8c797bc541d5cba9278d72f491038f905736962
+graphloader_neo4j_data
+graphloader_neo4j_logs
+imdb-c7b4c997dfd08de3-kafka-data
+imdb-c7b4c997dfd08de3-neo-data
+imdb-c7b4c997dfd08de3-neo-logs
+--images
+sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3
+sha256:87ec5e0a167dc7d4831729f9e1d2ee7b8597dcc49ccd9e43cc5f89e808d2adae
+sha256:8f2ff02d64b0a7a2b71b6b3b3148b85f66d00ec20ad40c30bdcd415d46d31818
+sha256:c4b306c18891821fba2e1846f6662d4b09c85f6e9b096a7ae67a31e16899f96e
+--home
+Desktop Documents Downloads duckdns e11-amd64-rebuild-20261102T020113Z e13-soak e14 graph-loader-data imdb-load imdb-load-20261101T045903Z Music Pictures Public snap Templates Videos 
+Mem:           23905       16581        4885         295        3101        7323
+/dev/nvme0n1p5  295G   96G  184G  35% /
+ls: cannot access '/home/shashank/e19': No such file or directory

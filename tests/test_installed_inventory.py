@@ -237,3 +237,18 @@ def test_file_removal_needs_a_review_and_a_deleted_file(tmp_path, monkeypatch):
     data['reviewed_file_removals'] = {}
     with pytest.raises(ValueError, match='cannot remove/reorder'):
         inventory.freeze(data, collection, wheel)
+
+
+def test_a_reviewed_rename_of_an_installed_id_moves_its_mapping_and_nothing_else(tmp_path, monkeypatch):
+    """An installed ID's disposition names itself (``mapping``); a reviewed rename follows it, a real change still fails."""
+    data, collection, wheel, (old, other, new, added) = _rename_case(tmp_path, monkeypatch)
+    data['test_dispositions'][old] = {'kind': 'installed', 'lane': 'core', 'mapping': old}
+    data['lanes']['core']['current_test_files'] = [RENAME_FILE]
+    policy = {RENAME_FILE: 'core'}
+    monkeypatch.setattr(inventory, 'file_policy', lambda _: policy)
+    data['test_dispositions'][other] = {'kind': 'installed', 'lane': 'core', 'mapping': other}
+    frozen = inventory.freeze(data, collection, wheel)
+    assert frozen['test_dispositions'][new] == {'kind': 'installed', 'lane': 'core', 'mapping': new}
+    data['test_dispositions'][old] = {'kind': 'installed', 'lane': 'safety', 'mapping': old}
+    with pytest.raises(ValueError, match='cannot silently change'):
+        inventory.freeze(data, collection, wheel)

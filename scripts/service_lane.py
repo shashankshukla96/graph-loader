@@ -39,7 +39,7 @@ def snapshot(client):
 
 
 # Repositories the E09 candidate images are tagged in: an added image there is never "someone else's".
-CANDIDATE_REPOSITORIES = ('ghcr.io/shashankshukla96/graph-loader-',)
+CANDIDATE_REPOSITORIES = ('ghcr.io/neburyx/graph-loader-',)
 
 
 def tolerated_foreign_images(client, before, after, diff):

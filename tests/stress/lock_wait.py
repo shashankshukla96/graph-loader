@@ -7,8 +7,7 @@ deadlocks" claim is proven by letting a real exception propagate unmodified
 through :func:`assert_no_unhandled_deadlock`, plus counting the writer's own
 retry log lines.
 
-Config-key correction (see ``plan/v6/slice-4/impl_plan_story_2.md`` for the
-empirical evidence): Neo4j 5.21+'s query log (5.26 is the shared pin) already defaults to
+Config-key correction (verified empirically): Neo4j 5.21+'s query log (5.26 is the shared pin) already defaults to
 ``db.logs.query.enabled=VERBOSE`` and ``db.logs.query.threshold=0s``; the one
 setting that is *not* already this way is
 ``db.logs.query.parameter_logging_enabled`` (default ``true``), which this
@@ -221,9 +220,7 @@ def hard_timeout(seconds: float) -> Iterator[None]:
     genuine hang, not a performance assertion: `requirements.txt`/
     `requirements-dev.txt` were checked first and neither lists
     `pytest-timeout` -- adding it just for this would be a
-    `requirements*.txt` edit this slice must not make (flagged instead in
-    `plan/v6/completion_slice-4.md` as a candidate dependency for a future
-    slice). A slow-but-completing run is unaffected; only a real hang past
+    `requirements*.txt` edit (a candidate dependency for the future). A slow-but-completing run is unaffected; only a real hang past
     the ceiling triggers `faulthandler.dump_traceback_later(..., exit=True)`,
     which calls ``os._exit(1)`` after printing every thread's traceback --
     this fails the test process loudly instead of the whole CI job timing

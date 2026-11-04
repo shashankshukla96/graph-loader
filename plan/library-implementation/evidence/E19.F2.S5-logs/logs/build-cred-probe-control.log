@@ -1,0 +1,104 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.74kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [stage-0 1/4] FROM docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#4 resolve docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 done
+#4 DONE 0.0s
+
+#5 [stage-0 2/4] WORKDIR /app
+#5 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 656.73kB done
+#6 DONE 0.0s
+
+#7 [stage-0 3/4] RUN --mount=type=bind,source=.,target=/ctx     --mount=type=secret,id=pip_index,required=false     set -eu;     case "index-url" in         index-secret) source="--index-secret /run/secrets/pip_index" ;;         index-url)    source="--index-url https://ci-user:SENTINEL-REDACTED@host.docker.internal:55253/simple/" ;;         wheelhouse)   source="--wheelhouse /ctx/wheelhouse" ;;         *) echo "DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse" >&2; exit 2 ;;     esac;     python -I /ctx/install.py --lock /ctx/lock.txt --wheel "/ctx/neo4j_graph_loader-0.1.0a1-py3-none-any.whl" --wheel-sha256 "bf59e2f2a7dd3e96910104939f748526de6cc0c6d20d72e00e970b3f363e151b"         --ca-bundle /ctx/pip-ca.pem --probe-cmdline ${source}
+#7 0.858 pip configuration check: cert, config-file, index-url
+#7 0.858 Looking in indexes: https://***@host.docker.internal:55253/simple/
+#7 0.870 Collecting annotated-types==0.8.0 (from -r /ctx/lock.txt (line 10))
+#7 0.879   Downloading https://host.docker.internal:55253/files/annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#7 0.890 Collecting certifi==2026.10.23 (from -r /ctx/lock.txt (line 12))
+#7 0.903   Downloading https://host.docker.internal:55253/files/certifi-2026.10.23-py3-none-any.whl (135 kB)
+#7 0.914 Collecting charset-normalizer==3.5.2 (from -r /ctx/lock.txt (line 14))
+#7 0.923   Downloading https://host.docker.internal:55253/files/charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (246 kB)
+#7 0.940 Collecting confluent-kafka==2.16.1 (from -r /ctx/lock.txt (line 16))
+#7 0.949   Downloading https://host.docker.internal:55253/files/confluent_kafka-2.16.1-cp312-cp312-manylinux_2_28_aarch64.whl (5.2 MB)
+#7 0.957      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 853.6 MB/s eta 0:00:00
+#7 0.992 Collecting docker==7.2.0 (from -r /ctx/lock.txt (line 18))
+#7 1.000   Downloading https://host.docker.internal:55253/files/docker-7.2.0-py3-none-any.whl (148 kB)
+#7 1.011 Collecting idna==3.20 (from -r /ctx/lock.txt (line 20))
+#7 1.020   Downloading https://host.docker.internal:55253/files/idna-3.20-py3-none-any.whl (69 kB)
+#7 1.033 Collecting neo4j==6.4.1 (from -r /ctx/lock.txt (line 22))
+#7 1.041   Downloading https://host.docker.internal:55253/files/neo4j-6.4.1-py3-none-any.whl (390 kB)
+#7 1.054 Collecting neo4j-rust-ext==6.4.1.0 (from -r /ctx/lock.txt (line 24))
+#7 1.062   Downloading https://host.docker.internal:55253/files/neo4j_rust_ext-6.4.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (312 kB)
+#7 1.082 Collecting numpy==2.5.4 (from -r /ctx/lock.txt (line 26))
+#7 1.089   Downloading https://host.docker.internal:55253/files/numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)
+#7 1.101      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.7/15.7 MB 1.5 GB/s eta 0:00:00
+#7 1.117 Collecting prometheus-client==0.26.0 (from -r /ctx/lock.txt (line 28))
+#7 1.123   Downloading https://host.docker.internal:55253/files/prometheus_client-0.26.0-py3-none-any.whl (64 kB)
+#7 1.131 Collecting pydantic==2.14.2 (from -r /ctx/lock.txt (line 30))
+#7 1.137   Downloading https://host.docker.internal:55253/files/pydantic-2.14.2-py3-none-any.whl (490 kB)
+#7 1.150 Collecting pydantic-core==2.50.2 (from -r /ctx/lock.txt (line 32))
+#7 1.157   Downloading https://host.docker.internal:55253/files/pydantic_core-2.50.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (2.1 MB)
+#7 1.160      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 1.6 GB/s eta 0:00:00
+#7 1.169 Collecting pytz==2026.6 (from -r /ctx/lock.txt (line 34))
+#7 1.176   Downloading https://host.docker.internal:55253/files/pytz-2026.6-py2.py3-none-any.whl (506 kB)
+#7 1.188 Collecting pyyaml==6.0.3 (from -r /ctx/lock.txt (line 36))
+#7 1.195   Downloading https://host.docker.internal:55253/files/pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (775 kB)
+#7 1.197      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 775.1/775.1 kB 1.1 GB/s eta 0:00:00
+#7 1.207 Collecting requests==2.34.2 (from -r /ctx/lock.txt (line 38))
+#7 1.214   Downloading https://host.docker.internal:55253/files/requests-2.34.2-py3-none-any.whl (73 kB)
+#7 1.224 Collecting typing-extensions==4.16.0 (from -r /ctx/lock.txt (line 40))
+#7 1.231   Downloading https://host.docker.internal:55253/files/typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#7 1.240 Collecting typing-inspection==0.4.4 (from -r /ctx/lock.txt (line 42))
+#7 1.248   Downloading https://host.docker.internal:55253/files/typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#7 1.257 Collecting urllib3==2.8.0 (from -r /ctx/lock.txt (line 44))
+#7 1.264   Downloading https://host.docker.internal:55253/files/urllib3-2.8.0-py3-none-any.whl (135 kB)
+#7 1.268 Installing collected packages: pytz, urllib3, typing-inspection, typing-extensions, requests, pyyaml, pydantic-core, pydantic, prometheus-client, numpy, neo4j-rust-ext, neo4j, idna, docker, confluent-kafka, charset-normalizer, certifi, annotated-types
+#7 2.822 Successfully installed annotated-types-0.8.0 certifi-2026.10.23 charset-normalizer-3.5.2 confluent-kafka-2.16.1 docker-7.2.0 idna-3.20 neo4j-6.4.1 neo4j-rust-ext-6.4.1.0 numpy-2.5.4 prometheus-client-0.26.0 pydantic-2.14.2 pydantic-core-2.50.2 pytz-2026.6 pyyaml-6.0.3 requests-2.34.2 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0
+#7 2.871 install failed: the index URL was visible in a process command line
+#7 2.871 probe: scanned the process list 112 times during the install
+#7 ERROR: process "/bin/sh -c set -eu;     case \"${DEPENDENCY_SOURCE}\" in         index-secret) source=\"--index-secret /run/secrets/pip_index\" ;;         index-url)    source=\"--index-url ${INDEX_URL}\" ;;         wheelhouse)   source=\"--wheelhouse /ctx/wheelhouse\" ;;         *) echo \"DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse\" >&2; exit 2 ;;     esac;     python -I /ctx/install.py --lock /ctx/lock.txt --wheel \"/ctx/${PACKAGE_WHEEL}\" --wheel-sha256 \"${PACKAGE_WHEEL_SHA256}\"         --ca-bundle /ctx/pip-ca.pem ${INSTALL_FLAGS} ${source}" did not complete successfully: exit code: 3
+------
+ > [stage-0 3/4] RUN --mount=type=bind,source=.,target=/ctx     --mount=type=secret,id=pip_index,required=false     set -eu;     case "index-url" in         index-secret) source="--index-secret /run/secrets/pip_index" ;;         index-url)    source="--index-url https://ci-user:SENTINEL-REDACTED@host.docker.internal:55253/simple/" ;;         wheelhouse)   source="--wheelhouse /ctx/wheelhouse" ;;         *) echo "DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse" >&2; exit 2 ;;     esac;     python -I /ctx/install.py --lock /ctx/lock.txt --wheel "/ctx/neo4j_graph_loader-0.1.0a1-py3-none-any.whl" --wheel-sha256 "bf59e2f2a7dd3e96910104939f748526de6cc0c6d20d72e00e970b3f363e151b"         --ca-bundle /ctx/pip-ca.pem --probe-cmdline ${source}:
+1.224 Collecting typing-extensions==4.16.0 (from -r /ctx/lock.txt (line 40))
+1.231   Downloading https://host.docker.internal:55253/files/typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+1.240 Collecting typing-inspection==0.4.4 (from -r /ctx/lock.txt (line 42))
+1.248   Downloading https://host.docker.internal:55253/files/typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+1.257 Collecting urllib3==2.8.0 (from -r /ctx/lock.txt (line 44))
+1.264   Downloading https://host.docker.internal:55253/files/urllib3-2.8.0-py3-none-any.whl (135 kB)
+1.268 Installing collected packages: pytz, urllib3, typing-inspection, typing-extensions, requests, pyyaml, pydantic-core, pydantic, prometheus-client, numpy, neo4j-rust-ext, neo4j, idna, docker, confluent-kafka, charset-normalizer, certifi, annotated-types
+2.822 Successfully installed annotated-types-0.8.0 certifi-2026.10.23 charset-normalizer-3.5.2 confluent-kafka-2.16.1 docker-7.2.0 idna-3.20 neo4j-6.4.1 neo4j-rust-ext-6.4.1.0 numpy-2.5.4 prometheus-client-0.26.0 pydantic-2.14.2 pydantic-core-2.50.2 pytz-2026.6 pyyaml-6.0.3 requests-2.34.2 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0
+2.871 install failed: the index URL was visible in a process command line
+2.871 probe: scanned the process list 112 times during the install
+------
+Dockerfile:30
+--------------------
+  29 |     ARG INSTALL_FLAGS=
+  30 | >>> RUN --mount=type=bind,source=.,target=/ctx \
+  31 | >>>     --mount=type=secret,id=pip_index,required=false \
+  32 | >>>     set -eu; \
+  33 | >>>     case "${DEPENDENCY_SOURCE}" in \
+  34 | >>>         index-secret) source="--index-secret /run/secrets/pip_index" ;; \
+  35 | >>>         index-url)    source="--index-url ${INDEX_URL}" ;; \
+  36 | >>>         wheelhouse)   source="--wheelhouse /ctx/wheelhouse" ;; \
+  37 | >>>         *) echo "DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse" >&2; exit 2 ;; \
+  38 | >>>     esac; \
+  39 | >>>     python -I /ctx/install.py --lock /ctx/lock.txt --wheel "/ctx/${PACKAGE_WHEEL}" --wheel-sha256 "${PACKAGE_WHEEL_SHA256}" \
+  40 | >>>         --ca-bundle /ctx/pip-ca.pem ${INSTALL_FLAGS} ${source}
+  41 |     RUN python -I -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "$GRAPH_LOADER_VERSION"
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c set -eu;     case \"${DEPENDENCY_SOURCE}\" in         index-secret) source=\"--index-secret /run/secrets/pip_index\" ;;         index-url)    source=\"--index-url ${INDEX_URL}\" ;;         wheelhouse)   source=\"--wheelhouse /ctx/wheelhouse\" ;;         *) echo \"DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse\" >&2; exit 2 ;;     esac;     python -I /ctx/install.py --lock /ctx/lock.txt --wheel \"/ctx/${PACKAGE_WHEEL}\" --wheel-sha256 \"${PACKAGE_WHEEL_SHA256}\"         --ca-bundle /ctx/pip-ca.pem ${INSTALL_FLAGS} ${source}" did not complete successfully: exit code: 3
+
+View build details: docker-desktop://dashboard/build/default/default/l6gtelrmcrl6focxjc00ssmwb

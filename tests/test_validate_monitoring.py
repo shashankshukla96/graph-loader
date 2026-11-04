@@ -1,9 +1,6 @@
-"""Tests for scripts/validate_monitoring.py (P6-S3 Story 5).
+"""Tests for scripts/validate_monitoring.py.
 
-Permitted exception to this slice's "no tests/ edits" scope confinement
-(plan/v6/slice-3/stories.md's own text: "tests/test_validate_monitoring.py"
-is explicitly carved out) because it tests this slice's own new,
-dependency-free script, not any src/ production code.
+It tests the dependency-free validator script, not any src/ production code.
 
 Uses importlib to load scripts/validate_monitoring.py by file path rather
 than a package import, since scripts/ has no __init__.py and is not meant

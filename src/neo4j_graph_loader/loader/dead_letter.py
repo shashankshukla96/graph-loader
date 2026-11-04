@@ -1122,9 +1122,8 @@ class DeadLetterRecordSink:
         ``{"source": {source_key_property: ...}, "target": {target_key_property:
         ...}, "properties": {...}}`` -- rather than the flatter
         ``{"source_key", "target_key", "properties"}`` shape
-        ``plan/v5/slice-3/stories.md``'s Decisions point 3 originally sketched.
-        This is a deliberate deviation from that sketch (recorded in this
-        slice's completion doc): the flatter shape cannot be fed back through
+        an earlier sketch proposed. This is a deliberate deviation from that
+        sketch: the flatter shape cannot be fed back through
         ``normalize_edge_record``/``dead_letter_replay.py`` (a bare
         ``"source_key"`` field is not a declared section and would itself be
         rejected as malformed), which is exactly the manual-replay path this

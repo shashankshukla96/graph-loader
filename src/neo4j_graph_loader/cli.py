@@ -61,7 +61,7 @@ DEFAULT_BUCKET_LEASE_OUTER_BATCH_SIZE = 32_000
 # 'Comedy' then never block each other merely by hashing together.
 DEFAULT_BUCKET_LEASE_KEYED_MAX_NODES = 1_000
 _LEASE_SERVER_STOP_TIMEOUT_SECONDS = 10
-# Deprecated aliases (removed one release after plan/v5/slice-1): every
+# Deprecated aliases (scheduled for removal in a later release): every
 # external importer of the old names keeps working unchanged.
 DEFAULT_LEASE_BUCKETS = DEFAULT_BUCKET_LEASE_BUCKETS
 DEFAULT_LEASE_OUTER_BATCH_SIZE = DEFAULT_BUCKET_LEASE_OUTER_BATCH_SIZE
@@ -2598,11 +2598,10 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
         return 1
     logger.info(f"Starting pipeline in {args.mode} mode with config {args.config}")
 
-    # P6-S2 Story 8: one metrics server for the whole CLI process lifetime,
-    # covering bulk, fleet-wide stream, and the isolated stream phase
+    # One metrics server for the whole CLI process lifetime, covering bulk,
+    # fleet-wide stream, and the isolated stream phase
     # (_run_isolated_relationship_stream_phase) alike, since they all run
-    # inside this one _handle_start() call - see plan/v6/completion_slice-2.md
-    # for why this differs from stories.md's assumption of two separate
+    # inside this one _handle_start() call rather than in two separate
     # main() branches. Falls back to an ephemeral port if 9464 is taken
     # (the CLI is not guaranteed exclusive use of any port the way a
     # container is). The cleanup is registered in the same statement pair
@@ -3620,6 +3619,34 @@ def handle_monitoring_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_images_build(args: argparse.Namespace) -> int:
+    from neo4j_graph_loader.image_build import builder
+    registry = args.registry or os.environ.get("GRAPH_LOADER_IMAGE_REGISTRY") or ""
+    if not registry:
+        logger.error("stage=images reason=give --registry (or set GRAPH_LOADER_IMAGE_REGISTRY): the registry prefix the images are named under, "
+                     "for example registry.example.com:5000/team", extra=structured("images", reason="no registry"))
+        return 1
+    settings = builder.Settings(
+        registry=registry, version=args.package_version or builder.__version__, package_wheel=args.package_wheel, base_image=args.base_image,
+        index_url=args.pip_index_url, index_secret=args.pip_index_secret, wheelhouse=args.wheelhouse, ca_bundle=args.pip_ca_bundle, proxy=args.proxy,
+        docker_config=args.docker_config, debian_mirror=args.debian_mirror, tag_suffix=args.tag_suffix, push=args.push, dry_run=args.dry_run,
+        output=args.output, replace=args.replace)
+    try:
+        result = builder.build(settings)
+    except builder.BuildError as exc:
+        logger.error("stage=images reason=%s", exc, extra=structured("images", reason=str(exc)))
+        return 1
+    if args.dry_run:
+        print(json.dumps(result, indent=2))
+        logger.info("stage=images reason=dry run: nothing was built", extra=structured("images", dry_run=True))
+        return 0
+    for row in result["images"]:
+        print(f"{row['component']} {row['local_tag']} {row['id']}" + (f" {row['registry_digest']}" if row.get("registry_digest") else ""))
+    logger.info("stage=images reason=built %s image(s) for %s on %s", len(result["images"]), result["version"], result["platform"],
+                extra=structured("images", images=len(result["images"]), version=result["version"], platform=result["platform"]))
+    return 0
+
+
 def handle_status_store(args: argparse.Namespace) -> int:
     sql_store, store = _status_store_for_command(args)
     if store is None:
@@ -3763,6 +3790,38 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--values", default=None, metavar="FILE", help="YAML file: job_name, labels, per-alert threshold/for/severity, disable")
     export.add_argument("--force", action="store_true", help="overwrite files that already exist in --out")
     export.set_defaults(func=handle_monitoring_export)
+
+    images = subparsers.add_parser("images", help="Build the loader images from this installed package, for a registry you control")
+    images_commands = images.add_subparsers(dest="images_command", required=True)
+    build = images_commands.add_parser(
+        "build", help="Build the four images (cli, node, edge, clock) for this package version with docker buildx, from your own mirrors or offline",
+        description="Builds graph-loader-{cli,node,edge,clock}:<version> under --registry from this installed package. Needs docker with buildx (BuildKit). "
+                    "The dependencies come from your PyPI mirror (--pip-index-url, or --pip-index-secret for a URL with credentials) or from a wheelhouse "
+                    "prepared for the build platform (--wheelhouse); nothing is fetched from a public index otherwise. The base image should be in your registry.")
+    build.add_argument("--registry", default=None, metavar="PREFIX",
+                       help="registry prefix the images are named under: host[:port]/path (default: env GRAPH_LOADER_IMAGE_REGISTRY); no scheme or credentials")
+    build.add_argument("--package-version", default=None, metavar="VERSION", help="must equal the installed package version (the default); anything else is refused")
+    build.add_argument("--package-wheel", type=Path, default=None, metavar="FILE",
+                       help="the wheel of this installed package (required with an index; with --wheelhouse it is taken from the wheelhouse)")
+    build.add_argument("--base-image", default="python:3.12-slim", metavar="REF",
+                       help="base image, CPython 3.12 on Debian (default python:3.12-slim); give your mirror's reference, it is resolved to a digest first")
+    dependencies = build.add_mutually_exclusive_group(required=True)
+    dependencies.add_argument("--pip-index-url", default=None, metavar="URL", help="your PyPI mirror, without credentials")
+    dependencies.add_argument("--pip-index-secret", type=Path, default=None, metavar="FILE",
+                              help="a file whose only content is your PyPI mirror's URL, credentials included; passed as a BuildKit secret, never on a command line")
+    dependencies.add_argument("--wheelhouse", type=Path, default=None, metavar="DIR",
+                              help="offline build: a directory with exactly the locked wheels for the build platform plus the package wheel")
+    build.add_argument("--pip-ca-bundle", type=Path, default=None, metavar="FILE", help="CA bundle (PEM) for an https index with a private certificate")
+    build.add_argument("--debian-mirror", default=None, metavar="URL", help="your Debian mirror (archive layout) for the tini install in the CLI image")
+    build.add_argument("--proxy", default=None, metavar="URL", help="HTTP(S) proxy for the build steps; none is passed unless you give this")
+    build.add_argument("--docker-config", type=Path, default=None, metavar="DIR",
+                       help="Docker config directory whose registry logins for the base image and the target registry are used (default: your own)")
+    build.add_argument("--tag-suffix", default=None, metavar="SUFFIX", help="development builds: tag <version>-<suffix>; cannot be pushed")
+    build.add_argument("--push", action="store_true", help="push the images with docker push after building (uses the same scoped logins)")
+    build.add_argument("--dry-run", action="store_true", help="validate everything and print the plan as JSON; build and push nothing")
+    build.add_argument("--output", type=Path, default=None, metavar="DIR", help="write the build manifest (images.json) into this new directory")
+    build.add_argument("--replace", action="store_true", help="overwrite an image tag that already exists locally (refused otherwise)")
+    build.set_defaults(func=handle_images_build)
     example = subparsers.add_parser("schema-example", help="Print a bundled schema YAML")
     example.add_argument("--name", dest="sample", choices=("default", "social"), default="default")
     example.set_defaults(func=handle_schema_example, config=None)

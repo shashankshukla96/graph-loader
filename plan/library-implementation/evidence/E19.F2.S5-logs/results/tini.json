@@ -1,0 +1,43 @@
+{
+  "skip": {
+    "ok": true,
+    "says_apt_skipped": true,
+    "apt_get_ran": false,
+    "dead_mirror_requests": 0
+  },
+  "apt": {
+    "ok": true,
+    "mirror_requests": 5,
+    "mirror_paths": [
+      "debian/dists/trixie",
+      "debian/dists/trixie-updates",
+      "debian/pool/main"
+    ],
+    "tini_deb_fetched": true,
+    "apt_skipped": false,
+    "entrypoint": [
+      "tini",
+      "--",
+      "python",
+      "-m",
+      "neo4j_graph_loader.cli"
+    ],
+    "tini_version": "tini version 0.19.0",
+    "debian_packages": [
+      "base-files=13.8+deb13u7",
+      "tini=0.19.0-3+b8"
+    ],
+    "sources_file": [
+      "Types: deb",
+      "URIs: http://host.docker.internal:56522/debian",
+      "Suites: trixie trixie-updates",
+      "Components: main",
+      "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg"
+    ]
+  },
+  "dead_mirror": {
+    "build_ok": false,
+    "requests_to_dead_mirror": 4,
+    "fails_in_apt": true
+  }
+}

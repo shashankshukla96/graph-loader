@@ -56,12 +56,11 @@ python3 scripts/sync_requirements.py --check  # non-mutating drift check
 ```
 
 `make requirements` and `make check-requirements` provide the same operations.
-`make build-images` checks parity before invoking Docker. All four Dockerfiles
-consume generated `requirements.txt`, copy reviewed build inputs and runtime
-source, then install the package with isolated setuptools and `--no-deps`.
-The literal file version needs no SCM fallback. Images resolve application code
-from site-packages without PYTHONPATH. See the candidate builder for exact compatible labels and fresh local tags. Before any
-direct `docker build`, run the parity check explicitly. No new workflow exists.
+`make build-images` checks parity before invoking Docker. The four Dockerfiles no longer copy the checkout: each one is built from a
+**generated build context** (see "Image build files" below) that holds the package wheel and a hashed dependency lock, so a plain
+`docker build .` in a checkout does not work. The literal file version needs no SCM fallback. Images resolve application code from
+site-packages without PYTHONPATH. See the candidate builder (`scripts/build_candidate_images.py`) for exact compatible labels and fresh local tags: it builds the candidate wheel
+and drives the same code as `graph-loader images build`, so a candidate image and a user-built image come from one path. No new workflow exists.
 
 ## Build and inspect locally
 
@@ -108,3 +107,66 @@ Candidate labels derive from the same literal file version; each service pins
 immutable local IDs. An override is not provenance authentication. The release process binds
 actual metadata/CLI/metrics/image versions and immutable bytes. Registry digests
 exist only after separately authorized push/re-pull/public-pull checks.
+
+## Image dependency locks
+
+The loader images install a **locked, hashed** dependency set instead of the ranges in `requirements.txt`. There is one lock per
+supported target, CPython 3.12 on glibc Linux:
+`src/neo4j_graph_loader/image_build/locks/py312-linux-amd64.txt` and `py312-linux-arm64.txt` (package data). Each is a pip requirements file
+(`name==version` plus one `--hash=sha256:` for the wheel pip picks on that platform) with a comment header that records the platform,
+the base image it was resolved in, the sha256 of `requirements.txt` and a digest of its own body, so a hand edit is detected offline.
+`requirements.txt` stays the generated list of direct ranges for developers; the package's own metadata ranges are unchanged.
+
+```sh
+make lock          # regenerate both locks; needs Docker (the other architecture runs under emulation)
+make check-lock    # offline: parse, digest, requirements.txt hash, every direct dependency pinned inside its range
+```
+
+`make lock` runs `scripts/lock_requirements.py generate` once per platform. Inside a throwaway container of the pinned base image
+(`python:3.12-slim` by digest, on `--platform linux/<arch>`) it installs `pip-tools`, resolves `requirements.txt` with
+`--only-binary=:all:` and `--generate-hashes`, downloads the resolved wheels, and keeps for each pin only the hash of the wheel actually chosen
+on that platform (after checking it is one of the hashes the index publishes for that release). **`pip-tools` exists only inside that
+container**; it is not in `pyproject.toml`, in any requirements file or in an image, and the package gains no dependency. Containers are created,
+started and removed by their recorded id; nothing is forced or pruned. A new release of a dependency changes a lock only when you run
+`make lock`; commit the two files together, review the diff, and never lower a pin to make an install work.
+
+**Preparing a wheelhouse** (for building images without any index, see the [restricted-network guide](RESTRICTED_NETWORKS.md#route-3-build-the-images-with-graph-loader-images-build)) runs inside the target base image on the
+matching platform, so pip chooses the same wheels the build will install:
+
+```sh
+docker run --rm --platform linux/arm64 -v "$PWD/src/neo4j_graph_loader/image_build/locks/py312-linux-arm64.txt:/lock.txt:ro" \
+    -v "$PWD/wheelhouse:/wheelhouse" --user "$(id -u):$(id -g)" -e HOME=/tmp python:3.12-slim \
+    pip download --no-deps --only-binary=:all: --require-hashes -r /lock.txt -d /wheelhouse
+```
+
+then copy the package wheel next to them. Do not use `pip download --platform manylinux2014_<arch>` from another machine: current
+`confluent-kafka` and NumPy wheels are `manylinux_2_27`/`_2_28` and are rejected under the `manylinux2014` tag. `python3
+scripts/lock_requirements.py wheelhouse --platform linux/arm64 --package-wheel <wheel> --output <new dir>` runs the same command and then verifies
+the directory against the lock: every pin has exactly one wheel with its hash, each wheel fits the platform, and nothing else (no sdist, no other
+wheel, no symlink) is present. A wheel for the other architecture, a missing wheel and a changed wheel are all refused.
+
+## Image build files
+
+Each image is built from a context directory that holds: the Dockerfile of the role (as `Dockerfile`), `install.py`
+(`neo4j_graph_loader/image_build/install.py`), `lock.txt` (the lock for the build platform), the package wheel under its own file name, `pip-ca.pem`
+(a private CA bundle, or an empty file) and, for an offline build, `wheelhouse/`. The Dockerfiles use BuildKit (`docker buildx build`, which can pass
+secrets) and need no registry other than the one holding the base image:
+
+```sh
+docker buildx build --load -t my-registry.example.com/team/graph-loader-node:0.1.0a1 \
+    --build-arg BASE_IMAGE=my-registry.example.com/mirror/python@sha256:<digest> \
+    --build-arg GRAPH_LOADER_VERSION=0.1.0a1 \
+    --build-arg PACKAGE_WHEEL=neo4j_graph_loader-0.1.0a1-py3-none-any.whl --build-arg PACKAGE_WHEEL_SHA256=<sha256 of the wheel> \
+    --build-arg DEPENDENCY_SOURCE=index-secret --secret id=pip_index,src=pip-index-url.txt <context>
+```
+
+`DEPENDENCY_SOURCE` is `index-secret` (the file `pip-index-url.txt` holds the index URL, credentials included, and nothing else), `index-url`
+(`--build-arg INDEX_URL=...`, only for an index without credentials, since a build argument is visible in the image history) or `wheelhouse`
+(offline). **No credential is ever a build argument.** `DEBIAN_MIRROR` (CLI image only) replaces the Debian sources for the `tini` install, which
+a base image that already carries `tini` 0.19.0 skips.
+
+`install.py` starts pip in a fresh environment (only `PATH`, `PIP_CONFIG_FILE=/dev/null`, the index URL and the CA bundle, so no pip
+configuration file and no `PIP_*` or proxy variable of the build can matter), checks with `pip config list` that pip sees exactly those keys,
+installs the lock with `--require-hashes --only-binary=:all: --no-deps`, then installs the package wheel by its digest, never from an index.
+The URL is read from the secret file by `install.py` itself, so it is in no argument list, layer or log (pip's own output is redacted). The base
+image is whatever `BASE_IMAGE` names: give a digest of your own mirror.

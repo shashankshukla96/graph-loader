@@ -7,9 +7,9 @@
 # never launches Prometheus and never reads this file.
 #
 # See docs/MONITORING.md for the full discovery/dashboard/alerting story,
-# including the two corrections to plan/v6/slices.md's original Slice 3
-# text: no Pushgateway, and the metrics port is 9464 (not 9090 — 9090 is
-# Prometheus's own default port, used for its self-scrape job below).
+# including two design choices: no Pushgateway, and the metrics port is
+# 9464 (not 9090 — 9090 is Prometheus's own default port, used for its
+# self-scrape job below).
 
 global:
   # Short enough to catch a ~60s bulk run's short-lived containers at

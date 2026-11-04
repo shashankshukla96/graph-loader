@@ -7,8 +7,7 @@ those two, and returns the same completion proof the CLI's own
 Every star-topology and correctness test in this slice that exercises
 planned mode shares this one harness, so a bug in the wiring is fixed once.
 
-Correction vs. the Cartographer's sketch (`plan/v6/slice-4/stories.md`
-Story 3): writers are NOT built through
+Design note: writers are NOT built through
 `neo4j_graph_loader.loader.edge_execution.build_edge_execution` -- traced
 `src/neo4j_graph_loader/loader/planned_writer.py::main()` (the real planned-writer process
 entry point), which builds them directly as ``ApocLockedEdgeWriter(driver,

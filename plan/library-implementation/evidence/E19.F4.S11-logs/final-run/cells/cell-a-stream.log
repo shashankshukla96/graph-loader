@@ -1,0 +1,13 @@
+INFO: stage=runtime directory=/work/runs/cell-a-stream/graph-loader-iodagudl
+INFO: Starting pipeline in stream mode with config /work/runs/cell-a-stream/graph-loader-iodagudl/runtime_schema.yaml
+INFO: stage=metrics-ready kind=cli name=- addr=127.0.0.1 port=9464
+INFO: stage=image component=node version=0.1.0a1 id=sha256:f6f71ba2250d34e57d05a67077b191c750289891a0df1779772de04f9560058d
+INFO: stage=image component=edge version=0.1.0a1 id=sha256:fb95caaa8ee975f6c4143170125894286d89a33fa99e848964b7ed13432e4f50
+INFO: stage=docker-preflight mounts=verified container_services=reachable metadata=reachable
+INFO: Successfully connected to Neo4j.
+INFO: All constraints and indexes are ONLINE.
+INFO: Schema initialization complete. Ready for ingestion.
+INFO: stage=consumer-groups group=cell-a-LIVES_IN resume=stable-group reason=no_committed_offsets detail=no --run-id, so no run-scoped group of an earlier release is migrated; the group starts from auto.offset.reset=earliest
+INFO: Started node loader for Person
+INFO: Started node loader for City
+INFO: stage=lease-server-stats generation=27cd053daec442699c9b8468c1e64b5e connections=10 grants=52 extensions=115 waited_grants=2 denials=0 wait_timeouts=0 releases=52 disconnect_releases=0 active=0 max_concurrent=8 max_waiters=2 total_wait_ms=123.5

@@ -140,6 +140,8 @@ explicit upload instruction).
   public repo with fresh history and no plan documents. Development stays in this private repo, and clean snapshots are
   published. Restricted-network images are in the first release. The plan was approved with changes (all folded in),
   and the user approved it on 2026-11-03, including the D19-8 proof environment.
+- E19 is complete (2026-11-04, branch `e19-neburyx`; close report `evidence/E19.close.md`). Its freeze list feeds the
+  `0.1.0a2` freeze. One open item: 1.3 GB of BuildKit cache that E19 left on the host, for the user to decide.
 - **Release order:**
   1. merge E14 and E15 into `main`;
   2. E19;

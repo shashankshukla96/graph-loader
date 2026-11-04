@@ -1,0 +1,4 @@
+{"t": 1793765965.018, "method": "GET", "path": "http://host.docker.internal:56162/simple/", "auth": "n/a"}
+{"t": 1793765965.021, "method": "GET", "path": "http://host.docker.internal:56162/simple/idna/", "auth": "n/a"}
+{"t": 1793765965.03, "method": "GET", "path": "http://host.docker.internal:56162/simple/", "auth": "n/a"}
+{"t": 1793765965.033, "method": "GET", "path": "http://host.docker.internal:56162/simple/pip/", "auth": "n/a"}

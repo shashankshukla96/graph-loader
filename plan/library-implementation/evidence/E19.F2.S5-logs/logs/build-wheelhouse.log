@@ -1,0 +1,67 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.74kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [stage-0 1/4] FROM docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#4 resolve docker.io/library/python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 done
+#4 DONE 0.0s
+
+#5 [stage-0 2/4] WORKDIR /app
+#5 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 27.05MB 0.2s done
+#6 DONE 0.2s
+
+#7 [stage-0 3/4] RUN --mount=type=bind,source=.,target=/ctx     --mount=type=secret,id=pip_index,required=false     set -eu;     case "wheelhouse" in         index-secret) source="--index-secret /run/secrets/pip_index" ;;         index-url)    source="--index-url " ;;         wheelhouse)   source="--wheelhouse /ctx/wheelhouse" ;;         *) echo "DEPENDENCY_SOURCE must be index-secret, index-url or wheelhouse" >&2; exit 2 ;;     esac;     python -I /ctx/install.py --lock /ctx/lock.txt --wheel "/ctx/neo4j_graph_loader-0.1.0a1-py3-none-any.whl" --wheel-sha256 "bf59e2f2a7dd3e96910104939f748526de6cc0c6d20d72e00e970b3f363e151b"         --ca-bundle /ctx/pip-ca.pem  ${source}
+#7 0.782 pip configuration check: cert, config-file
+#7 0.782 Looking in links: /ctx/wheelhouse
+#7 0.784 Processing /ctx/wheelhouse/annotated_types-0.8.0-py3-none-any.whl (from -r /ctx/lock.txt (line 10))
+#7 0.786 Processing /ctx/wheelhouse/certifi-2026.10.23-py3-none-any.whl (from -r /ctx/lock.txt (line 12))
+#7 0.787 Processing /ctx/wheelhouse/charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (from -r /ctx/lock.txt (line 14))
+#7 0.789 Processing /ctx/wheelhouse/confluent_kafka-2.16.1-cp312-cp312-manylinux_2_28_aarch64.whl (from -r /ctx/lock.txt (line 16))
+#7 0.818 Processing /ctx/wheelhouse/docker-7.2.0-py3-none-any.whl (from -r /ctx/lock.txt (line 18))
+#7 0.820 Processing /ctx/wheelhouse/idna-3.20-py3-none-any.whl (from -r /ctx/lock.txt (line 20))
+#7 0.821 Processing /ctx/wheelhouse/neo4j-6.4.1-py3-none-any.whl (from -r /ctx/lock.txt (line 22))
+#7 0.823 Processing /ctx/wheelhouse/neo4j_rust_ext-6.4.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (from -r /ctx/lock.txt (line 24))
+#7 0.824 Processing /ctx/wheelhouse/numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (from -r /ctx/lock.txt (line 26))
+#7 0.840 Processing /ctx/wheelhouse/prometheus_client-0.26.0-py3-none-any.whl (from -r /ctx/lock.txt (line 28))
+#7 0.841 Processing /ctx/wheelhouse/pydantic-2.14.2-py3-none-any.whl (from -r /ctx/lock.txt (line 30))
+#7 0.844 Processing /ctx/wheelhouse/pydantic_core-2.50.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (from -r /ctx/lock.txt (line 32))
+#7 0.848 Processing /ctx/wheelhouse/pytz-2026.6-py2.py3-none-any.whl (from -r /ctx/lock.txt (line 34))
+#7 0.851 Processing /ctx/wheelhouse/pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (from -r /ctx/lock.txt (line 36))
+#7 0.852 Processing /ctx/wheelhouse/requests-2.34.2-py3-none-any.whl (from -r /ctx/lock.txt (line 38))
+#7 0.853 Processing /ctx/wheelhouse/typing_extensions-4.16.0-py3-none-any.whl (from -r /ctx/lock.txt (line 40))
+#7 0.854 Processing /ctx/wheelhouse/typing_inspection-0.4.4-py3-none-any.whl (from -r /ctx/lock.txt (line 42))
+#7 0.855 Processing /ctx/wheelhouse/urllib3-2.8.0-py3-none-any.whl (from -r /ctx/lock.txt (line 44))
+#7 0.859 Installing collected packages: pytz, urllib3, typing-inspection, typing-extensions, requests, pyyaml, pydantic-core, pydantic, prometheus-client, numpy, neo4j-rust-ext, neo4j, idna, docker, confluent-kafka, charset-normalizer, certifi, annotated-types
+#7 2.499 Successfully installed annotated-types-0.8.0 certifi-2026.10.23 charset-normalizer-3.5.2 confluent-kafka-2.16.1 docker-7.2.0 idna-3.20 neo4j-6.4.1 neo4j-rust-ext-6.4.1.0 numpy-2.5.4 prometheus-client-0.26.0 pydantic-2.14.2 pydantic-core-2.50.2 pytz-2026.6 pyyaml-6.0.3 requests-2.34.2 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0
+#7 2.672 Processing /ctx/neo4j_graph_loader-0.1.0a1-py3-none-any.whl (from -r /tmp/tmpfj6yijzi/package.txt (line 1))
+#7 2.676 Installing collected packages: neo4j-graph-loader
+#7 2.892 Successfully installed neo4j-graph-loader-0.1.0a1
+#7 3.032 No broken requirements found.
+#7 DONE 3.1s
+
+#8 [stage-0 4/4] RUN python -I -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "0.1.0a1"
+#8 DONE 0.1s
+
+#9 exporting to image
+#9 exporting layers
+#9 exporting layers 1.9s done
+#9 exporting manifest sha256:ed61d181184e9fc53d256c091343a0aa7a115015134297c4e1641fcb4cea5e05 done
+#9 exporting config sha256:48791bef6fda6622031e91a2d3a35980927ee7168f569216ae980a5540ea7927 done
+#9 naming to e19-s5-20261103T231205/graph-loader-clock:0.1.0a1-wheelhouse done
+#9 unpacking to e19-s5-20261103T231205/graph-loader-clock:0.1.0a1-wheelhouse
+#9 unpacking to e19-s5-20261103T231205/graph-loader-clock:0.1.0a1-wheelhouse 0.4s done
+#9 DONE 2.4s
+
+View build details: docker-desktop://dashboard/build/default/default/8di56g0ojfblpgfj1o1zoqxgn

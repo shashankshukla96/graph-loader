@@ -237,7 +237,7 @@ Everything in planned mode (writers, buckets, chunk size, planner processes and
 memory) is derived automatically from the schema, the data volume and the Neo4j
 server; flags override each value (see [CLI](docs/CLI.md#planned-mode-tuning---edge-plan-also-the-bulk-default)
 and [USAGE section 6](docs/USAGE.md#6-planned-mode-in-depth)). Loader images
-default to matching package-version tags under `ghcr.io/shashankshukla96`.
+default to matching package-version tags under `ghcr.io/neburyx` (or under your own registry with `GRAPH_LOADER_IMAGE_REGISTRY=<prefix>`; behind a network that cannot reach the public registries, see [Restricted networks](docs/RESTRICTED_NETWORKS.md)).
 `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE` and `GRAPH_LOADER_CLOCK_IMAGE`
 select explicitly compatible overrides. `start` uses local images first and pulls
 only missing images; `--skip-image-build` requires local images and never pulls.

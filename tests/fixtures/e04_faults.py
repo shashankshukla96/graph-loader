@@ -1,4 +1,4 @@
-"""Real E04 fault clients. The separate run_e04_fault supervisor owns emergency cleanup."""
+"""Real E04 fault clients. The separate run_fault supervisor owns emergency cleanup."""
 import json
 import multiprocessing as mp
 import os
@@ -36,7 +36,7 @@ def reap_resource_tracker(timeout=5.):
 
     The spawn context starts one tracker child in the client's session. Some CPython releases (the host's 3.12.3; 3.12.14 stops it in ResourceTracker.__del__) never wait
     for it at exit: it noticed EOF on its pipe only after the client had died, so
-    the supervisor's group probe (run_e04_fault.py, right after client.wait()) still found it and
+    the supervisor's group probe (run_fault.py, right after client.wait()) still found it and
     reported emergency_group_cleanup. Closing its pipe and reaping it here is deterministic. All
     fault children are already reaped, so no other process holds the pipe; the wait is bounded.
     """

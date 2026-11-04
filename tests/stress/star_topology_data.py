@@ -230,7 +230,7 @@ def ensure_constraints(driver, schema) -> None:
 def seed_nodes(driver, dataset: Dataset, schema, *, batch_size: int = 20_000) -> None:
     """Ensure constraints, then seed every node with one bounded ``UNWIND ... MERGE`` per label per batch.
 
-    Decision 5 (``plan/v6/slice-4/stories.md``): node-loading correctness is
+    Node-loading correctness is
     already covered by ``test_node_loader_integration.py``, so the
     star-topology tests bypass ``NodeLoader``/Kafka entirely for their
     (small, bounded) node set. This keeps setup time out of every stress
@@ -401,8 +401,7 @@ def compare(expected: tuple[dict, dict], actual: tuple[dict, dict, dict]) -> lis
 def publish(dataset: Dataset, bootstrap: str, schema, *, partitions: int = 4, create: bool = True) -> dict[str, int]:
     """Publish every edge record of ``dataset`` to its schema-declared topic.
 
-    Node seeding is deliberately *not* done here (Decision 5 in
-    ``plan/v6/slice-4/stories.md``: the star-topology tests seed their small,
+    Node seeding is deliberately *not* done here (the star-topology tests seed their small,
     bounded node set with one direct ``UNWIND ... MERGE`` Cypher statement,
     not through Kafka/NodeLoader). ``schema`` is a loaded ``GraphSchema``
     (``neo4j_graph_loader.utils.schema_loader.load_schema``-compatible): topics and key

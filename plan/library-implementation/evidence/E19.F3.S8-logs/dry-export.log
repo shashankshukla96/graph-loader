@@ -1,0 +1,5 @@
+proposed: refs/heads/main -> 148dfe6967435b921e24a6d2612fdc76706b3ae5  (parent none)
+files in the public tree: 483; against the last snapshot: {'A': 483, 'M': 0, 'D': 0}
+file list: <scratch>/s8/q/export-7vkono9y/report/files.txt
+diff:      <scratch>/s8/q/export-7vkono9y/report/diff.patch
+quarantine clone: <scratch>/s8/q/export-7vkono9y/clone (nothing is pushed; discard it when done)

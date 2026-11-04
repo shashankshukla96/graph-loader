@@ -1,0 +1,42 @@
+{
+  "blobs": 10,
+  "layer_files": 4444,
+  "found": [
+    [
+      "blobs/sha256/8d0171be7c617b76ba49992eca462b9bc38fa1e4bb3a0bf64d2aa89d0ea96798!etc/pip.conf",
+      "layer file"
+    ],
+    [
+      "blobs/sha256/8d0171be7c617b76ba49992eca462b9bc38fa1e4bb3a0bf64d2aa89d0ea96798!root/.config/pip/pip.conf",
+      "layer file"
+    ],
+    [
+      "blobs/sha256/8d0171be7c617b76ba49992eca462b9bc38fa1e4bb3a0bf64d2aa89d0ea96798!root/.pip/pip.conf",
+      "layer file"
+    ],
+    [
+      "blobs/sha256/8d0171be7c617b76ba49992eca462b9bc38fa1e4bb3a0bf64d2aa89d0ea96798!usr/local/pip.conf",
+      "layer file"
+    ],
+    [
+      "blobs/sha256/c4d10b35f0ce993adf012e1ee359017f1aab5f09a5d8261c13388f29cbccf71c",
+      "raw"
+    ],
+    [
+      "blobs/sha256/c4d10b35f0ce993adf012e1ee359017f1aab5f09a5d8261c13388f29cbccf71c",
+      "raw"
+    ],
+    [
+      "image history",
+      "ext\u2026"
+    ],
+    [
+      "image inspect (configuration)",
+      "PIP\u2026"
+    ],
+    [
+      "image history",
+      "PIP\u2026"
+    ]
+  ]
+}

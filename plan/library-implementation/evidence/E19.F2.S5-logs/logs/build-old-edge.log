@@ -1,0 +1,54 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.edge_loader
+#1 transferring dockerfile: 1.17kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 302B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 9.15kB done
+#4 DONE 0.0s
+
+#5 [1/9] FROM docker.io/library/python:3.12-slim@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+#5 resolve docker.io/library/python:3.12-slim@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 done
+#5 DONE 0.0s
+
+#6 [6/9] COPY src/neo4j_graph_loader/ src/neo4j_graph_loader/
+#6 CACHED
+
+#7 [3/9] COPY requirements.txt .
+#7 CACHED
+
+#8 [8/9] RUN python -c 'import importlib.metadata as m, sys; assert not sys.argv[1] or m.version("neo4j-graph-loader") == sys.argv[1], "image/package version mismatch"' "0.1.0a1"
+#8 CACHED
+
+#9 [2/9] WORKDIR /app
+#9 CACHED
+
+#10 [4/9] RUN pip install --no-cache-dir -r requirements.txt
+#10 CACHED
+
+#11 [5/9] COPY pyproject.toml PACKAGE_README.md LICENSE MANIFEST.in ./
+#11 CACHED
+
+#12 [7/9] RUN pip install --no-cache-dir --no-deps .
+#12 CACHED
+
+#13 [9/9] COPY config/ config/
+#13 CACHED
+
+#14 exporting to image
+#14 exporting layers done
+#14 exporting manifest sha256:1f721b5358e10afea712d831c642ddb301454191a66de5317bc23a835672a366 done
+#14 exporting config sha256:d087b47c7af062aaed3a920c36d398fa5ce86e08cb00bdc5ede1e721e115536b done
+#14 naming to e19-s5-20261103T231205/old-graph-loader-edge:0.1.0a1 done
+#14 unpacking to e19-s5-20261103T231205/old-graph-loader-edge:0.1.0a1 done
+#14 DONE 0.0s
+
+View build details: docker-desktop://dashboard/build/default/default/omktb8rk6l70zmrj4n1n7l2lw

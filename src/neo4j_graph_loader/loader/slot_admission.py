@@ -2,7 +2,7 @@
 
 P5-S1 Story 6: retired from ``--mode stream``'s *default* dispatch path.
 Reachable only via the deprecated ``--stream-clock-rotation`` flag,
-scheduled for removal one release after ``plan/v5/slice-1``. Not used by
+scheduled for removal in a later release. Not used by
 bulk mode.
 """
 from __future__ import annotations

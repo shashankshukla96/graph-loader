@@ -10,14 +10,11 @@ metric-name catalogue below is a **hardcoded copy** of
 Prometheus metric *type*, needed to know which suffixed name(s) are
 actually queryable — see ``FAMILY_TYPES`` below) — the same reasoning that
 module gives for duplicating (rather than importing)
-``neo4j_graph_loader.loader.dead_letter.FAILURE_CLASSES``. If P6-S2 renames, retypes or
-adds a metric, update this copy in the same pass that updates the
-monitoring config files that reference it (plan/v6/slice-3/stories.md's
-cross-cutting note: "do not merge this slice's Stories 1/2/4 against a
-stale reading of the catalogue"). ``tests/test_validate_monitoring.py``
-compares this copy against the real module whenever it is importable, so
-drift is caught automatically once P6-S2 merges (it skips cleanly today,
-since ``src/neo4j_graph_loader/utils/metrics.py`` does not exist yet on this branch).
+``neo4j_graph_loader.loader.dead_letter.FAILURE_CLASSES``. If a metric is renamed, retyped or
+added, update this copy in the same pass that updates the monitoring config files that
+reference it, so the validator never reads a stale catalogue.
+``tests/test_validate_monitoring.py`` compares this copy against the real module whenever it
+is importable, so drift is caught automatically.
 
 Checks:
   1. Every ``*.json`` under ``monitoring/grafana/dashboards/`` is valid

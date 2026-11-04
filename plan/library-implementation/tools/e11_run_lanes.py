@@ -20,7 +20,7 @@ def main():
     extra = argv[argv.index('--') + 1:] if '--' in argv else []
     argv = argv[:argv.index('--')] if '--' in argv else argv
     root, wheel, outdir, lanes = Path(argv[0]).resolve(), Path(argv[1]).resolve(), Path(argv[2]).resolve(), argv[3:]
-    inventory = root / 'plan/library-implementation/test-inventory.json'
+    inventory = root / 'tests/inventory/test-inventory.json'
     outdir.mkdir(parents=True, exist_ok=False)
     summary = {}
     for lane in lanes:

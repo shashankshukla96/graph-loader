@@ -20,10 +20,8 @@ Contents: [What it is](#1-what-it-is-and-when-to-use-it) | [The image](#2-the-im
 [Kubernetes](#7-kubernetes-untested) | [Limits](#8-limits)
 
 > **Verification status of this page.** The container shape was run live on a
-> Linux host (Ubuntu, kernel 7.0, Docker, cgroup v2, amd64) in story
-> **E14.F3.S8**: the cells and their results are in
-> `plan/library-implementation/evidence/E14.F3.S8.md`. Statements that were
-> observed there say so. Statements marked **untested** below were not covered by
+> Linux host (Ubuntu, kernel 7.0, Docker, cgroup v2, amd64) before release.
+> Statements that were observed there say so. Statements marked **untested** below were not covered by
 > a cell (the arm64 image, Compose, restart policies other than `on-failure`,
 > `docker stop` with the default 10 s grace, `--cpus`/`LOADER_CPUSET`, a shared
 > PID namespace, Kubernetes, cgroup v1); read those as "designed and derived from
@@ -67,8 +65,8 @@ systemd.
 
 ## 2. The image
 
-The CLI image is built from the repository's `Dockerfile`
-(`io.graph-loader.component="cli"`). Its entry point is now
+The CLI image is built from the package's own `Dockerfile` (`io.graph-loader.component="cli"`; it ships in the wheel as
+package data and is built through a generated context, not from a checkout). Its entry point is now
 
 ```text
 ENTRYPOINT ["tini", "--", "python", "-m", "neo4j_graph_loader.cli"]
@@ -88,8 +86,9 @@ no `USER`, no `CMD`. Docker mode never creates a container from this image, so
 it is unaffected.
 
 **Which image to use.** The image naming policy is
-`ghcr.io/shashankshukla96/graph-loader-cli:<package version>`
-([Docker execution](DOCKER_EXECUTION.md)). The `0.1.0a1` release images were
+`ghcr.io/neburyx/graph-loader-cli:<package version>`
+([Docker execution](DOCKER_EXECUTION.md)), or `<prefix>/graph-loader-cli:<package version>` under your own
+`GRAPH_LOADER_IMAGE_REGISTRY` prefix. The `0.1.0a1` release images were
 frozen before `tini` was added to the CLI image (the change alters the image
 bytes), so **do not assume that a published `graph-loader-cli` tag contains
 `tini`**; check any image first:
@@ -98,19 +97,18 @@ bytes), so **do not assume that a published `graph-loader-cli` tag contains
 docker run --rm --entrypoint tini <image> --version         # prints "tini version 0.19.0"
 ```
 
-Until a release that includes it is published, build the image from a checkout
-of the repository (the build needs the repository files, not the wheel):
+Until a release that includes it is published, build the images yourself from the installed package, under your own registry name
+(Docker with buildx is needed; the dependencies come from your PyPI mirror or an offline wheelhouse, see
+[`graph-loader images build`](CLI.md#images-build)):
 
 ```bash
-docker build --build-arg GRAPH_LOADER_VERSION=0.1.0a1 -t graph-loader-cli:local .
+graph-loader images build --registry registry.example.com/team --wheelhouse ./wheelhouse
 ```
 
-`scripts/build_candidate_images.py --output <new dir> --suffix <suffix>` builds
-all four images locally with the tag `ghcr.io/shashankshukla96/graph-loader-cli:<version>-<suffix>`
-and records a manifest; it never pushes. Use your own registry name when you
-push a build you made yourself. For the other architecture build with
-`docker buildx build --platform linux/arm64 --load .` (or `linux/amd64`); the
-Debian `tini` package makes the install identical for both. **Untested:**
+From a checkout, `scripts/build_candidate_images.py --output <new dir> --suffix <suffix>` builds all four images locally with the tag
+`ghcr.io/neburyx/graph-loader-cli:<version>-<suffix>` through the same code and records a manifest; it never pushes. The build is for the
+architecture of the Docker daemon; build on the other architecture (or with an emulated daemon) for the other one, each with its own
+wheelhouse. The Debian `tini` package makes the install identical for both. **Untested:**
 the arm64 image has not been run. The S8 host is x86_64 without `qemu-aarch64`
 emulation, so the smoke was skipped; only the amd64 image was run.
 
