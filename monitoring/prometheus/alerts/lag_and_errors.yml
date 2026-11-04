@@ -58,9 +58,9 @@ groups:
             is reachable from this Prometheus — not true by default on
             this slice's compose profile (see the group-level note above).
       - alert: GraphLoaderRetryRateHigh
-        expr: sum by (kind, name, run_id) (rate(graph_loader_retry_total[5m])) > 1
+        expr: sum by (kind, name, execution_id) (rate(graph_loader_retry_total[5m])) > 1
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "{{ $labels.kind }}/{{ $labels.name }} (run_id={{ $labels.run_id }}) is retrying more than 1/s over 5m (reason breakdown in graph_loader_retry_total)."
+          summary: "{{ $labels.kind }}/{{ $labels.name }} (execution {{ $labels.execution_id }}) is retrying more than 1/s over 5m (reason breakdown in graph_loader_retry_total)."

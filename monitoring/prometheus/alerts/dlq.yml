@@ -20,9 +20,10 @@ groups:
       - alert: GraphLoaderDlqBacklogHigh
         # Example threshold only (100 records for 15m) -- tune per
         # environment. max by (kind, name) collapses retry-consumer
-        # replicas, which each report the same group-wide value. Clears
-        # once the retries drain.
-        expr: max by (kind, name) (graph_loader_dlq_backlog{queue="dlq"}) > 100
+        # replicas, which each report the same group-wide value; execution_id
+        # keeps two executions (even with the same reusable run_id) apart.
+        # Clears once the retries drain.
+        expr: max by (kind, name, execution_id) (graph_loader_dlq_backlog{queue="dlq"}) > 100
         for: 15m
         labels:
           severity: warning
@@ -91,14 +92,21 @@ groups:
         # loaders of that type are up" keeps it silent for bulk runs (no
         # retry consumer, no gauge ever) and after a clean stop (the edge
         # loaders' process_up goes away with them). Example threshold only.
+        # E15: the join key is (name, execution_id), a METRIC label on both
+        # sides, not (name, run_id): run_id is reusable (a stream restarted
+        # with the same --run-id is a new execution, and an old execution's
+        # stale gauge must not be matched with the new one's loaders), and
+        # the exporter that carried the gauge is unique per incarnation, so
+        # the rule never keys on it (a restarted retry consumer is a new
+        # exporter of the same execution and keeps the gauge present).
         expr: >
           (
-            max by (name, run_id) (max_over_time(graph_loader_dlq_backlog{kind="edge",queue="dlq"}[6h]))
-            unless on (name, run_id)
-            max by (name, run_id) (graph_loader_dlq_backlog{kind="edge",queue="dlq"})
+            max by (name, execution_id) (max_over_time(graph_loader_dlq_backlog{kind="edge",queue="dlq"}[6h]))
+            unless on (name, execution_id)
+            max by (name, execution_id) (graph_loader_dlq_backlog{kind="edge",queue="dlq"})
           )
-          and on (name, run_id)
-          max by (name, run_id) (graph_loader_process_up{kind="edge"} == 1)
+          and on (name, execution_id)
+          max by (name, execution_id) (graph_loader_process_up{kind="edge"} == 1)
         for: 5m
         labels:
           severity: critical
@@ -117,7 +125,7 @@ groups:
         # wait, and graph_loader_retry_stalled_seconds (seconds the type's
         # writes have failed with nothing written) is the signal. Example
         # threshold only (10 minutes).
-        expr: max by (kind, name, run_id) (graph_loader_retry_stalled_seconds) > 600
+        expr: max by (kind, name, execution_id) (graph_loader_retry_stalled_seconds) > 600
         for: 1m
         labels:
           severity: warning

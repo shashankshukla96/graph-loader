@@ -8,6 +8,17 @@
 #   docker run --rm --entrypoint promtool \
 #     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
 #     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/dlq_test.yml
+#
+# E15 label mapping: `instance` and `run_id` TARGET labels -> the METRIC labels exporter (unique per incarnation),
+# execution_id (one per `graph-loader start`), run_id and runtime, present on every series. Rules that grouped or
+# joined on run_id (DlqBacklogAbsent, RetryStalled) now use execution_id; DlqBacklogHigh now keeps executions apart
+# with `max by (kind, name, execution_id)`. Outcomes unchanged, test by test: routing first sample fires / flat
+# series silent (tests 1-2); backlog high fires for WORKS_AT only, not 100, not parked-only, not a drained spike
+# (test 3); backlog absent fires for WORKS_AT only at 17m (test 4); retry stalled fires for WORKS_AT only (test 5).
+# New controls: 6 DlqBacklogHigh keeps two executions sharing one run_id apart and its boundary (100 silent, 101
+# fires); 7 a restarted retry consumer is a new exporter of the SAME execution and does not trip DlqBacklogAbsent;
+# 8 an old execution's stale gauge never matches a new execution that reuses its run_id; 9 a short-lived run that
+# exits before the `for:` never fires; 10 missing series (edge loaders but no retry consumer ever) never fires.
 rule_files:
   - ../alerts/dlq.yml
 
@@ -21,7 +32,7 @@ tests:
   # 15m in the past.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_dlq_routed_total{kind="edge",name="WORKS_AT",failure_class="missing_endpoint"}'
+      - series: 'graph_loader_dlq_routed_total{kind="edge",name="WORKS_AT",failure_class="missing_endpoint",execution_id="x1",exporter="edge-WORKS_AT-r0-a1a1a1a1",run_id="r1",runtime="process"}'
         values: "5x3"
     alert_rule_test:
       - eval_time: 2m
@@ -31,6 +42,10 @@ tests:
               kind: edge
               name: WORKS_AT
               failure_class: missing_endpoint
+              execution_id: x1
+              exporter: edge-WORKS_AT-r0-a1a1a1a1
+              run_id: r1
+              runtime: process
               severity: info
             exp_annotations:
               summary: "edge/WORKS_AT routed record(s) to its DLQ in the last 15m (failure_class=missing_endpoint)."
@@ -41,7 +56,7 @@ tests:
   # appeared" clause should fire, since nothing has actually changed.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_dlq_routed_total{kind="edge",name="WORKS_AT",failure_class="missing_endpoint"}'
+      - series: 'graph_loader_dlq_routed_total{kind="edge",name="WORKS_AT",failure_class="missing_endpoint",execution_id="x1",exporter="edge-WORKS_AT-r0-a1a1a1a1",run_id="r1",runtime="process"}'
         values: "5x17"
     alert_rule_test:
       - eval_time: 16m
@@ -54,17 +69,17 @@ tests:
   # queue="dlq" (terminal parked records) does NOT fire.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",instance="a"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",execution_id="x1",exporter="retry-consumer-WORKS_AT-r0-aaaaaaaa",run_id="r1",runtime="process"}'
         values: "150x20"
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",instance="b"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",execution_id="x1",exporter="retry-consumer-WORKS_AT-r1-bbbbbbbb",run_id="r1",runtime="process"}'
         values: "150x20"
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="KNOWS",queue="dlq"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="KNOWS",queue="dlq",execution_id="x1",exporter="retry-consumer-KNOWS-r0-cccccccc",run_id="r1",runtime="process"}'
         values: "150x5 0x15"
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="LIKES",queue="dlq"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="LIKES",queue="dlq",execution_id="x1",exporter="retry-consumer-LIKES-r0-cccccccc",run_id="r1",runtime="process"}'
         values: "100x20"
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="PARKED_ONLY",queue="dlq"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="PARKED_ONLY",queue="dlq",execution_id="x1",exporter="retry-consumer-PARKED_ONLY-r0-dddddddd",run_id="r1",runtime="process"}'
         values: "0x20"
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="PARKED_ONLY",queue="parked"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="PARKED_ONLY",queue="parked",execution_id="x1",exporter="retry-consumer-PARKED_ONLY-r0-dddddddd",run_id="r1",runtime="process"}'
         values: "5000x20"
     alert_rule_test:
       - eval_time: 20m
@@ -73,6 +88,7 @@ tests:
           - exp_labels:
               kind: edge
               name: WORKS_AT
+              execution_id: x1
               severity: warning
             exp_annotations:
               summary: "edge/WORKS_AT DLQ retry backlog is 150 record(s) (retry consumer not draining)."
@@ -89,21 +105,21 @@ tests:
   # never fires.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",run_id="r1"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="dlq",execution_id="x1",exporter="retry-consumer-WORKS_AT-r0-rc111111",run_id="r1",runtime="process"}'
         values: "5x10 stale"
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="parked",run_id="r1"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="WORKS_AT",queue="parked",execution_id="x1",exporter="retry-consumer-WORKS_AT-r0-rc111111",run_id="r1",runtime="process"}'
         values: "0x10 stale"
-      - series: 'graph_loader_process_up{kind="edge",name="WORKS_AT",run_id="r1",instance="e0"}'
+      - series: 'graph_loader_process_up{kind="edge",name="WORKS_AT",execution_id="x1",exporter="edge-WORKS_AT-r0-e0e0e0e0",run_id="r1",runtime="process"}'
         values: "1x30"
-      - series: 'graph_loader_process_up{kind="edge",name="KNOWS",run_id="r1",instance="e1"}'
+      - series: 'graph_loader_process_up{kind="edge",name="KNOWS",execution_id="x1",exporter="edge-KNOWS-r0-e1e1e1e1",run_id="r1",runtime="process"}'
         values: "1x30"
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="LIKES",queue="dlq",run_id="r1"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="LIKES",queue="dlq",execution_id="x1",exporter="retry-consumer-LIKES-r0-rc222222",run_id="r1",runtime="process"}'
         values: "3x10 stale"
-      - series: 'graph_loader_process_up{kind="edge",name="LIKES",run_id="r1",instance="e2"}'
+      - series: 'graph_loader_process_up{kind="edge",name="LIKES",execution_id="x1",exporter="edge-LIKES-r0-e2e2e2e2",run_id="r1",runtime="process"}'
         values: "1x10 stale"
-      - series: 'graph_loader_dlq_backlog{kind="edge",name="BOUGHT",queue="dlq",run_id="r1"}'
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="BOUGHT",queue="dlq",execution_id="x1",exporter="retry-consumer-BOUGHT-r0-rc333333",run_id="r1",runtime="process"}'
         values: "0x30"
-      - series: 'graph_loader_process_up{kind="edge",name="BOUGHT",run_id="r1",instance="e3"}'
+      - series: 'graph_loader_process_up{kind="edge",name="BOUGHT",execution_id="x1",exporter="edge-BOUGHT-r0-e3e3e3e3",run_id="r1",runtime="process"}'
         values: "1x30"
     alert_rule_test:
       - eval_time: 10m
@@ -117,7 +133,7 @@ tests:
         exp_alerts:
           - exp_labels:
               name: WORKS_AT
-              run_id: r1
+              execution_id: x1
               severity: critical
             exp_annotations:
               summary: "edge/WORKS_AT DLQ backlog gauge is absent while its edge loaders run (retry consumer down?)."
@@ -128,9 +144,9 @@ tests:
   # KNOWS stalls for 5m and recovers (back to 0): never fires.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_retry_stalled_seconds{kind="edge",name="WORKS_AT",run_id="r1",instance="r"}'
+      - series: 'graph_loader_retry_stalled_seconds{kind="edge",name="WORKS_AT",execution_id="x1",exporter="retry-consumer-WORKS_AT-r0-rs111111",run_id="r1",runtime="process"}'
         values: "0+60x15"
-      - series: 'graph_loader_retry_stalled_seconds{kind="edge",name="KNOWS",run_id="r1",instance="r"}'
+      - series: 'graph_loader_retry_stalled_seconds{kind="edge",name="KNOWS",execution_id="x1",exporter="retry-consumer-KNOWS-r0-rs222222",run_id="r1",runtime="process"}'
         values: "0+60x5 0x10"
     alert_rule_test:
       - eval_time: 10m
@@ -142,8 +158,83 @@ tests:
           - exp_labels:
               kind: edge
               name: WORKS_AT
-              run_id: r1
+              execution_id: x1
               severity: warning
             exp_annotations:
               summary: "edge/WORKS_AT retry writes have failed with nothing written for 13m 0s."
               description: "The retry consumer's writes of this edge type keep failing and no row of the type has been written (a read-only or unavailable database, an unrecognised server-side error, or a lone row whose error is not known to be row-specific). Rows are not counted or parked for it; they wait. Check the retry consumer's reason=retry_stalled ERROR lines for the error class.\n"
+
+  # 6. DlqBacklogHigh: two executions REUSE run_id "same"; only the one above the threshold
+  # fires, with its own execution_id; 101 fires, exactly 100 does not.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="T",queue="dlq",execution_id="big",exporter="retry-consumer-T-r0-b1b1b1b1",run_id="same",runtime="process"}'
+        values: "101x20"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="T",queue="dlq",execution_id="edge100",exporter="retry-consumer-T-r0-b2b2b2b2",run_id="same",runtime="process"}'
+        values: "100x20"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="T",queue="dlq",execution_id="calm",exporter="retry-consumer-T-r0-b3b3b3b3",run_id="same",runtime="process"}'
+        values: "0x20"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: GraphLoaderDlqBacklogHigh
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: T
+              execution_id: big
+              severity: warning
+            exp_annotations:
+              summary: "edge/T DLQ retry backlog is 101 record(s) (retry consumer not draining)."
+              description: "DLQ high watermark minus the retry consumer's committed offset. A sustained high value means the retry consumer is not draining (missing endpoints not arriving, consumer down or lagging). Parked records are not counted here (queue=\"parked\"). The gauge is refreshed periodically, so it can lag reality by one backlog_check_interval_ms.\n"
+
+  # 7. The retry consumer is restarted at 10m (a NEW exporter, the same execution): the gauge
+  # is continuous for the rule, so DlqBacklogAbsent never fires.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="W",queue="dlq",execution_id="x1",exporter="retry-consumer-W-r0-old00000",run_id="r1",runtime="process"}'
+        values: "5x9 stale"
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="W",queue="dlq",execution_id="x1",exporter="retry-consumer-W-r0-new00000",run_id="r1",runtime="process"}'
+        values: "_x10 5x20"
+      - series: 'graph_loader_process_up{kind="edge",name="W",execution_id="x1",exporter="edge-W-r0-e0e0e0e0",run_id="r1",runtime="process"}'
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: 17m
+        alertname: GraphLoaderDlqBacklogAbsent
+        exp_alerts: []
+      - eval_time: 29m
+        alertname: GraphLoaderDlqBacklogAbsent
+        exp_alerts: []
+
+  # 8. History is per execution: an old execution (run_id "same") had a backlog gauge that is
+  # now gone together with its loaders; a NEW execution with the same run_id runs edge loaders
+  # and never had a retry consumer (a bulk run). A rule keyed on run_id would fire (a gauge
+  # "was present", none now, loaders of that run_id up); keyed on execution_id it must not.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="W",queue="dlq",execution_id="old",exporter="retry-consumer-W-r0-o1o1o1o1",run_id="same",runtime="process"}'
+        values: "5x5 stale"
+      - series: 'graph_loader_process_up{kind="edge",name="W",execution_id="old",exporter="edge-W-r0-o2o2o2o2",run_id="same",runtime="process"}'
+        values: "1x5 stale"
+      - series: 'graph_loader_process_up{kind="edge",name="W",execution_id="new",exporter="edge-W-r0-n2n2n2n2",run_id="same",runtime="process"}'
+        values: "_x6 1x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: GraphLoaderDlqBacklogAbsent
+        exp_alerts: []
+
+  # 9. Short-lived run: the backlog is above 100 for 9 minutes, then the run ends (series stale)
+  # before the 15m `for:`: never fires. 10. Missing series: edge loaders with no gauge at all
+  # (a bulk run) never fire DlqBacklogAbsent.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_dlq_backlog{kind="edge",name="S",queue="dlq",execution_id="x9",exporter="retry-consumer-S-r0-s1s1s1s1",run_id="r9",runtime="process"}'
+        values: "500x9 stale"
+      - series: 'graph_loader_process_up{kind="edge",name="B",execution_id="x10",exporter="edge-B-r0-b1b1b1b1",run_id="r10",runtime="process"}'
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: GraphLoaderDlqBacklogHigh
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: GraphLoaderDlqBacklogAbsent
+        exp_alerts: []

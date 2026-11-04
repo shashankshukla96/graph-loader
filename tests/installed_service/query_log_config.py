@@ -17,7 +17,7 @@ def make_config(template, marker):
     # Mutations, alternate encodings, filters and async routes require review.
     if hashlib.sha256(template).hexdigest() != TEMPLATE_SHA256:
         raise ValueError('query-log template differs from its reviewed hash')
-    if not isinstance(marker, str) or re.fullmatch(r'e09[0-9a-f]{32}', marker) is None:
+    if not isinstance(marker, str) or re.fullmatch(r'(e09|e14)[0-9a-f]{32}', marker) is None:
         raise ValueError('unique E09 marker required')
     root = ElementTree.fromstring(template)
     if root.tag != 'Configuration':

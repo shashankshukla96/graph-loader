@@ -11,10 +11,11 @@ from typing import Callable, Mapping
 
 from confluent_kafka import Consumer, ConsumerGroupTopicPartitions, TopicPartition
 from confluent_kafka.admin import AdminClient
-from docker.errors import NotFound
 
 from neo4j_graph_loader.loader.control import CONTROL_TOPIC
 from neo4j_graph_loader.models.schema import GraphSchema
+from neo4j_graph_loader.orchestrator import heartbeat
+from neo4j_graph_loader.orchestrator.runtime import HandleGone
 
 
 logger = logging.getLogger(__name__)
@@ -216,7 +217,7 @@ class BulkMonitor:
                 state = getattr(container, "attrs", {}).get("State", {})
                 status = state.get("Status", getattr(container, "status", "running"))
                 exit_code = state.get("ExitCode")
-            except NotFound as exc:
+            except HandleGone as exc:
                 # Docker ``remove=True`` can erase a container immediately after
                 # its loader flushed a durable DRAIN_COMPLETE record. During the
                 # drain phase, let the bounded control loop observe that record.
@@ -402,6 +403,7 @@ class BulkMonitor:
         self._operation_deadline = deadline
         try:
             while True:
+                heartbeat.beat()
                 if self._abort_requested is not None and self._abort_requested():
                     raise BulkShutdownRequested(f"shutdown requested while waiting for {stage}")
                 if self._clock() >= deadline:
@@ -411,7 +413,7 @@ class BulkMonitor:
                 # A graceful Docker stop can remove the exact container before
                 # the next control poll. During drain, poll acknowledgements
                 # first so an already durable record is not misclassified as a
-                # NotFound crash.
+                # HandleGone crash.
                 if allow_drained_exit:
                     self._poll_control()
                     self._check_container_health(allow_drained_exit=True)
@@ -758,6 +760,7 @@ class BulkMonitor:
         succeeded = False
         try:
             while running or stopping or draining:
+                heartbeat.beat()           # the node phase of a bulk run can last long with no relationship monitor beating (/healthz)
                 if should_abort is not None and should_abort():
                     raise BulkMonitorError("node label readiness aborted (dependent stage failure or shutdown request)")
                 now = self._clock()

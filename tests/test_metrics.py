@@ -97,6 +97,12 @@ EXPECTED_CATALOGUE: dict[str, tuple[str, tuple[str, ...]]] = {
     "graph_loader_lease_wait_seconds": ("histogram", ("kind", "name")),
     "graph_loader_lease_grants": ("counter", ("kind",)),
     "graph_loader_lease_denials": ("counter", ("kind",)),
+    "graph_loader_consumer_lag_observed_at_seconds": ("gauge", ("kind", "name", "topic")),
+    "graph_loader_dlq_backlog_observed_at_seconds": ("gauge", ("kind", "name", "queue")),
+    "graph_loader_rejected": ("counter", ("kind", "name")),
+    "graph_loader_retry_outcome": ("counter", ("kind", "name", "outcome")),
+    "graph_loader_status_store_errors": ("counter", ("kind", "reason")),
+    "graph_loader_exporter_up": ("gauge", ("exporter",)),
     "graph_loader_lease_wait_timeouts": ("counter", ("kind",)),
     "graph_loader_lease_held_resources": ("gauge", ("kind",)),
     "graph_loader_lease_waiters": ("gauge", ("kind",)),
@@ -140,6 +146,12 @@ def test_catalogue_labelnames_match_exactly_when_probed():
         "graph_loader_parked_pair_index_wait_seconds": m.parked_pair_index_wait,
         "graph_loader_write_outage_seconds": m.write_outage,
         "graph_loader_consumer_lag_records": m.consumer_lag,
+        "graph_loader_consumer_lag_observed_at_seconds": m.consumer_lag_observed_at,
+        "graph_loader_dlq_backlog_observed_at_seconds": m.dlq_backlog_observed_at,
+        "graph_loader_rejected": m.rejected,
+        "graph_loader_retry_outcome": m.retry_outcome,
+        "graph_loader_status_store_errors": m.status_store_errors,
+        "graph_loader_exporter_up": m.exporter_up,
         "graph_loader_lease_wait_seconds": m.lease_wait,
         "graph_loader_lease_grants": m.lease_grants,
         "graph_loader_lease_denials": m.lease_denials,
@@ -229,6 +241,7 @@ def test_kind_only_series_read_real_zero_once_touched(kind, expect_metric):
 _ALLOWED_BARE_LABEL_NAMES = {
     "kind", "name", "failure_class", "reason", "stage", "topic",
     "edge_type", "label_or_type", "node_label", "queue",  # queue: closed dict keys dlq|parked
+    "outcome",  # retry_outcome_total: the closed RETRY_OUTCOMES (written|re_dlq|parked)
 }
 _ALLOWED_ATTRIBUTE_LEAVES = {"label", "type", "_kind", "_edge_type", "edge_type"}
 # `_kind`/`_edge_type` are private instance attributes set once, at

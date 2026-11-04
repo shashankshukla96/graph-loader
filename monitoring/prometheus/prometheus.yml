@@ -96,11 +96,16 @@ scrape_configs:
         regex: "graph-loader-net"
         action: keep
       # 4. Promote Docker labels to series labels an operator queries by.
-      #    run_id is a *target* label here (Docker SD relabel), never a
-      #    *metric* label — see docs/MONITORING.md's cardinality budget
-      #    section for why this is safe on this disposable, short-
-      #    retention local stack but would not be on a long-lived,
-      #    multi-tenant Prometheus server.
+      #    Since E15 every sample also carries run_id, execution_id,
+      #    exporter and runtime as METRIC labels, and the dashboards and
+      #    alert rules query ONLY those (plus kind and name): the target
+      #    labels below remain for the Docker target list and for `up`
+      #    (which has no metric labels of its own), and honor_labels: true
+      #    keeps the scraped value authoritative where both exist. The
+      #    exporter (unique per incarnation) cannot be derived from
+      #    Docker labels, so `up` here is identified by container_name /
+      #    instance; the roles Docker never gave a run id export an empty
+      #    run_id, so nothing keys on run_id alone (see docs/MONITORING.md).
       - source_labels: [__meta_docker_container_label_graph_loader_kind]
         target_label: kind
       - source_labels: [__meta_docker_container_label_run_id]
@@ -167,6 +172,9 @@ scrape_configs:
   # own environment.
   - job_name: graph-loader-cli
     scrape_interval: 3s
+    # E15: every sample carries its own identity (run_id, execution_id, exporter,
+    # runtime) as metric labels; the scraped values stay authoritative.
+    honor_labels: true
     static_configs:
       - targets: ["host.docker.internal:9464"]
         labels:

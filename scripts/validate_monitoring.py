@@ -37,7 +37,14 @@ Checks:
      ``graph_loader_records_consumed`` (a Counter, never exposed without
      ``_total``) or ``graph_loader_process_up_total`` (a Gauge has no
      ``_total``).
-  3. Exits nonzero with a clear message on any failure; exits 0 and
+  3. E15 label policy: no dashboard or alert expression selects, groups or
+     joins on a target-only label (``instance``, ``node_label``, ``edge_type``,
+     ``writer_id``, ``replica_id``, ``container_name``) or joins with
+     ``group_left``/``group_right``; no dashboard pins a datasource uid (every
+     datasource reference is a ``$variable``); every ``alert_tests/*_test.yml``
+     is run by ``make monitoring-validate``; every graph-loader scrape job of
+     ``prometheus.yml`` sets ``honor_labels: true``.
+  4. Exits nonzero with a clear message on any failure; exits 0 and
      prints a one-line summary otherwise.
 
 Usage:
@@ -54,10 +61,16 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DASHBOARDS_DIR = REPO_ROOT / "monitoring" / "grafana" / "dashboards"
 ALERTS_GLOB = str(REPO_ROOT / "monitoring" / "prometheus" / "alerts" / "*.yml")
+ALERT_TESTS_GLOB = str(REPO_ROOT / "monitoring" / "prometheus" / "alert_tests" / "*_test.yml")
+PROMETHEUS_CONFIG = REPO_ROOT / "monitoring" / "prometheus" / "prometheus.yml"
+MAKEFILE = REPO_ROOT / "Makefile"
+# Labels that exist only on a Docker/file_sd TARGET (relabelling), never on a sample: since E15 every
+# dashboard query and alert rule uses the metric labels (kind, name, run_id, execution_id, exporter, runtime ...) only.
+TARGET_ONLY_LABELS = ("instance", "node_label", "edge_type", "writer_id", "replica_id", "container_name")
 
 # Hardcoded copy of feat/p6-s2-metrics:src/neo4j_graph_loader/utils/metrics.py's
 # EXPECTED_METRIC_FAMILIES (22 series as of P6-S2, 23 after P5-S4 Story 7
-# adds graph_loader_dlq_backlog per the P5-Q4 follow-up, 24 with P5-S4 round (25 with v7-S4 graph_loader_parked_pair_index_wait_seconds, 26 with the stream outage gauge graph_loader_write_outage_seconds)
+# adds graph_loader_dlq_backlog per the P5-Q4 follow-up, 24 with P5-S4 round (25 with v7-S4 graph_loader_parked_pair_index_wait_seconds, 26 with the stream outage gauge graph_loader_write_outage_seconds, 30 with the E15 run-status families, 31 with the status-store error counter, 32 with graph_loader_exporter_up)
 # 4's graph_loader_retry_stalled_seconds), paired with each
 # family's Prometheus metric type as constructed in that module (Counter/
 # Gauge/Histogram/Info). The type determines which suffixed name(s) are
@@ -75,6 +88,12 @@ FAMILY_TYPES: dict[str, str] = {
     "graph_loader_parked_pair_index_wait_seconds": "gauge",
     "graph_loader_write_outage_seconds": "gauge",
     "graph_loader_consumer_lag_records": "gauge",
+    "graph_loader_consumer_lag_observed_at_seconds": "gauge",
+    "graph_loader_dlq_backlog_observed_at_seconds": "gauge",
+    "graph_loader_rejected": "counter",
+    "graph_loader_retry_outcome": "counter",
+    "graph_loader_status_store_errors": "counter",
+    "graph_loader_exporter_up": "gauge",
     "graph_loader_lease_wait_seconds": "histogram",
     "graph_loader_lease_grants": "counter",
     "graph_loader_lease_denials": "counter",
@@ -93,7 +112,7 @@ FAMILY_TYPES: dict[str, str] = {
 }
 
 EXPECTED_METRIC_FAMILIES = frozenset(FAMILY_TYPES)
-assert len(EXPECTED_METRIC_FAMILIES) == 26, "catalogue drifted from its own 26-series count"
+assert len(EXPECTED_METRIC_FAMILIES) == 32, "catalogue drifted from its own 32-series count"
 
 
 def _queryable_names_for(family: str, metric_type: str) -> frozenset[str]:
@@ -289,10 +308,79 @@ def _validate_alerts() -> list[tuple[str, str]]:
     return exprs
 
 
+_TARGET_ONLY_SELECTOR_RE = re.compile(r"\b(" + "|".join(TARGET_ONLY_LABELS) + r")\s*(=~|!~|!=|=)(?!=)")
+_GROUPING_RE = re.compile(r"\b(?:by|on|ignoring|without)\s*\(([^)]*)\)")
+
+
+def _check_label_policy(exprs: list[tuple[str, str]]) -> None:
+    for source, expr in exprs:
+        if not isinstance(expr, str):
+            continue
+        match = _TARGET_ONLY_SELECTOR_RE.search(expr)
+        if match:
+            raise ValidationError(f"{source}: selects the target-only label {match.group(1)!r}; use a metric label (exporter, execution_id, ...): {expr!r}")
+        for clause in _GROUPING_RE.findall(expr):
+            for label in (part.strip() for part in clause.split(",")):
+                if label in TARGET_ONLY_LABELS:
+                    raise ValidationError(f"{source}: groups or joins on the target-only label {label!r}; use a metric label: {expr!r}")
+        if re.search(r"\bgroup_(left|right)\b", expr):
+            raise ValidationError(f"{source}: uses group_left/group_right (identity is on every sample, no joins): {expr!r}")
+
+
+def _check_datasources_not_pinned() -> None:
+    for path in sorted(DASHBOARDS_DIR.glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+
+        def walk(node, where):
+            if isinstance(node, dict):
+                datasource = node.get("datasource")
+                if isinstance(datasource, dict) and "uid" in datasource and not str(datasource["uid"]).startswith("$"):
+                    raise ValidationError(f"{path.name}: {where} pins the datasource uid {datasource['uid']!r}; reference the $datasource variable")
+                if isinstance(datasource, str) and datasource and not datasource.startswith("$"):
+                    raise ValidationError(f"{path.name}: {where} pins the datasource {datasource!r}; reference the $datasource variable")
+                for key, value in node.items():
+                    walk(value, f"{where}/{key}")
+            elif isinstance(node, list):
+                for index, value in enumerate(node):
+                    walk(value, f"{where}[{index}]")
+        walk(data, "$")
+
+
+def _check_promtool_tests_are_run() -> None:
+    makefile = MAKEFILE.read_text(encoding="utf-8") if MAKEFILE.is_file() else ""
+    for path_str in sorted(glob.glob(ALERT_TESTS_GLOB)):
+        name = Path(path_str).name
+        if f"alert_tests/{name}" not in makefile:
+            raise ValidationError(f"{name} is not run by `make monitoring-validate` (add it to the promtool test rules line of the Makefile)")
+
+
+def _check_honor_labels() -> None:
+    if not PROMETHEUS_CONFIG.is_file():
+        return
+    jobs: dict[str, list[str]] = {}
+    current = None
+    for line in PROMETHEUS_CONFIG.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"\s*-\s*job_name:\s*(\S+)", line)
+        if match:
+            current = match.group(1)
+            jobs[current] = []
+        elif current is not None:
+            jobs[current].append(line)
+    for name, lines in jobs.items():
+        if name == "prometheus":              # Prometheus's own self-scrape: not a graph-loader exporter
+            continue
+        if not any(re.match(r"\s*honor_labels:\s*true\s*(#.*)?$", line) for line in lines):
+            raise ValidationError(f"prometheus.yml job {name!r} does not set honor_labels: true (the exporter's own identity labels must win)")
+
+
 def main() -> int:
     try:
         dashboard_count, panel_count, dashboard_exprs = _validate_dashboards()
         alert_exprs = _validate_alerts()
+        _check_label_policy(dashboard_exprs + alert_exprs)
+        _check_datasources_not_pinned()
+        _check_promtool_tests_are_run()
+        _check_honor_labels()
         all_names = _check_metric_names(dashboard_exprs + alert_exprs)
     except ValidationError as exc:
         print(f"validate_monitoring: FAIL: {exc}", file=sys.stderr)

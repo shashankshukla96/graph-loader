@@ -42,12 +42,35 @@ def sha(content):
     return hashlib.sha256(content).hexdigest()
 
 
+# E15.F2.S10/S11: the finite, explicit non-Python application payload besides the .yaml schemas: the monitoring bundle. A test
+# (tests/test_artifact_contract.py) keeps this list equal to RESOURCE_FILES of the strict artifact verifier.
+MONITORING_RESOURCES = frozenset({
+    'neo4j_graph_loader/monitoring/grafana/dashboards-sql/graph-loader-run-history.json',
+    'neo4j_graph_loader/monitoring/grafana/dashboards/graph-loader-overview.json',
+    'neo4j_graph_loader/monitoring/grafana/provisioning/dashboards/graph-loader.yml',
+    'neo4j_graph_loader/monitoring/grafana/provisioning/datasources/prometheus.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alert_tests/concurrency_test.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alert_tests/dlq_test.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alert_tests/health_test.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alert_tests/lag_errors_test.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alert_tests/progress_test.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alert_tests/write_outage_test.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alerts/concurrency.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alerts/dlq.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alerts/health.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alerts/lag_and_errors.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alerts/progress.yml',
+    'neo4j_graph_loader/monitoring/prometheus/alerts/write_outage.yml',
+    'neo4j_graph_loader/monitoring/prometheus/prometheus.yml',
+})
+
+
 def safe_relative(value, *, payload=False, references=()):
     path = PurePosixPath(value)
     if path.is_absolute() or str(path) != value or any(p in {'..', '.', '.git', '__pycache__', 'src', 'datasets', 'reports', 'logs'} or p.startswith('.env') for p in path.parts):
         raise ValueError('unsafe staged path: ' + value)
     if payload:
-        if not value.startswith('neo4j_graph_loader/') or path.suffix not in {'.py', '.yaml'}:
+        if not value.startswith('neo4j_graph_loader/') or (path.suffix not in {'.py', '.yaml'} and value not in MONITORING_RESOURCES):
             raise ValueError('unexpected application payload: ' + value)
     elif value in references:
         if path.suffix not in {'.py', '.yaml', '.yml', '.json', '.csv', '.md'}:
@@ -343,6 +366,10 @@ def run(command, *, cwd, env, log, timeout, receipts, provenance=None, stderr_lo
         raise RuntimeError('command failed; retained output: ' + str(log))
 
 
+# E15 D15-4 (decision D05 as amended): the finite, explicit set of approved extras; any other Provides-Extra fails the wheel check.
+APPROVED_EXTRAS = ('postgres', 'sql')
+
+
 def validate_wheel(wheel, data):
     """Require the same frozen application/distribution contract in every lane."""
     if wheel.suffix != '.whl':
@@ -359,7 +386,8 @@ def validate_wheel(wheel, data):
         if set(names) != allowed:
             raise ValueError('wheel contains missing or unexpected archive members')
         metadata = BytesParser().parsebytes(archive.read(f'{dist}/METADATA'))
-        if metadata['Name'] != 'neo4j-graph-loader' or metadata['Version'] != version or metadata.get_all('Provides-Extra'):
+        if (metadata['Name'] != 'neo4j-graph-loader' or metadata['Version'] != version
+                or sorted(metadata.get_all('Provides-Extra') or []) != sorted(APPROVED_EXTRAS)):
             raise ValueError('unexpected wheel identity or extras')
         distribution={n:sha(archive.read(n)) for n in names if n.startswith(dist+'/')}
         if distribution != data.get('distribution_files'):

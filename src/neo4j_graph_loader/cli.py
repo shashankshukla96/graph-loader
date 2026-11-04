@@ -20,10 +20,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from threading import Condition, Event, Lock, Thread
 
-from docker.errors import NotFound
 
 from neo4j_graph_loader.utils.schema_loader import load_schema, SchemaLoadError
 from neo4j_graph_loader._runtime import prepare_run, timing_directory, timing_kwargs
+from neo4j_graph_loader.utils.logging_config import configure_logging, set_log_context, strip_log_format, structured
+from neo4j_graph_loader.status import StatusTracker, model as status_model
+from neo4j_graph_loader.status.telemetry import TelemetryPoller
 from neo4j_graph_loader.orchestrator.schema_initializer import (
     get_neo4j_driver,
     apply_schema,
@@ -116,15 +118,20 @@ def get_neo4j_credentials() -> tuple[str, str, str]:
     )
 
 
-from neo4j_graph_loader.orchestrator.docker_service import DockerService, wait_until_stop_signal_ready
+from neo4j_graph_loader.orchestrator.docker_service import DockerService
+from neo4j_graph_loader.orchestrator.runtime import (
+    DEFAULT_RUNTIME_BACKEND, REJECTION_DIR, RUNTIME_BACKENDS, RUNTIME_ENV, HandleGone, Runtime,
+    wait_until_stop_signal_ready,
+)
 from neo4j_graph_loader.orchestrator.bulk_monitor import BulkMonitor, BulkShutdownRequested
+from neo4j_graph_loader.orchestrator.heartbeat import beat as _beat
 from neo4j_graph_loader.orchestrator.dependency_manager import (
     build_conflict_families,
     build_relationship_conflict_plan,
 )
 from neo4j_graph_loader.orchestrator.fleet_contract import select_fleet_edges
 from neo4j_graph_loader.orchestrator.rotation import build_rotation_plan
-from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor
+from neo4j_graph_loader.orchestrator.relationship_bulk_monitor import RelationshipBulkMonitor, set_lag_listener
 from neo4j_graph_loader.loader.dead_letter import ensure_dead_letter_topic, ensure_parked_pair_index_topic
 from neo4j_graph_loader.models.schema import (
     EdgeConfig, dead_letter_topic_name, edge_dead_letter_topic_name, edge_parked_pair_index_topic_name,
@@ -140,7 +147,6 @@ from neo4j_graph_loader.orchestrator.planned_edges import (
     replace_stale_chunk_topic, run_planned_edge_phase, start_kafka_edge_planner,
 )
 from neo4j_graph_loader.orchestrator import auto_settings
-from neo4j_graph_loader.orchestrator.docker_service import REJECTION_DIR
 
 # ``--edge-plan`` without a file: the library plans from the schema's edge topics.
 AUTO_EDGE_PLAN = "auto"
@@ -153,6 +159,7 @@ AUTO_EDGE_PLAN = "auto"
 # signal that arrived before its own handler was installed.  One ``start``
 # per process; ``_handle_start`` clears it on exit.
 _cli_shutdown: Event | None = None
+_cli_execution: "StatusTracker | None" = None      # the run's status tracker while the shutdown handlers are installed
 
 
 def _shutdown_event() -> Event:
@@ -164,7 +171,15 @@ def _shutdown_requested() -> bool:
     return _cli_shutdown is not None and _cli_shutdown.is_set()
 
 
-def _install_shutdown_handlers(cleanups: list) -> Event:
+def _stop_handler(shutdown: Event, execution: StatusTracker | None):
+    def handler(*_args) -> None:
+        shutdown.set()
+        if execution is not None:
+            execution.request_stop()          # a flag only: no lock is taken inside a signal handler
+    return handler
+
+
+def _install_shutdown_handlers(cleanups: list, execution: StatusTracker | None = None) -> Event:
     """Route SIGINT/SIGTERM to one Event; restore the prior handlers as a cleanup.
 
     The handler only sets the Event (idempotent, re-entrancy safe: a second
@@ -172,22 +187,24 @@ def _install_shutdown_handlers(cleanups: list) -> Event:
     container stop).  Off the main thread ``signal.signal`` is unavailable;
     the Event still exists, it is just never set by a signal.
     """
-    global _cli_shutdown
+    global _cli_shutdown, _cli_execution
     shutdown = Event()
     _cli_shutdown = shutdown
+    _cli_execution = execution
     installed: list[tuple[int, object]] = []
     try:
         for signum in (signal.SIGINT, signal.SIGTERM):
-            installed.append((signum, signal.signal(signum, lambda *_args: shutdown.set())))
+            installed.append((signum, signal.signal(signum, _stop_handler(shutdown, execution))))
     except ValueError:  # not the main thread
         pass
 
     def restore() -> None:
-        global _cli_shutdown
+        global _cli_shutdown, _cli_execution
         for signum, previous in reversed(installed):
             signal.signal(signum, previous)
         if _cli_shutdown is shutdown:
             _cli_shutdown = None
+            _cli_execution = None
 
     cleanups.append(restore)
     return shutdown
@@ -197,7 +214,7 @@ def _is_running(container: object) -> bool:
     """Return whether an exact tracked Docker container still needs a stop attempt."""
     try:
         container.reload()
-    except NotFound:
+    except HandleGone:
         return False
     except Exception:
         return True
@@ -332,10 +349,12 @@ class _NodeLoaderWatcher:
     one has no exit code or log left to read.
     """
 
-    def __init__(self, containers: Iterable[object], shutdown: Event, *, interval: float = 1.0) -> None:
+    def __init__(self, containers: Iterable[object], shutdown: Event, *, interval: float = 1.0,
+                 on_exit: Callable[[object], None] | None = None) -> None:
         self._containers = tuple(containers)
         self._shutdown = shutdown
         self._interval = interval
+        self._on_exit = on_exit             # E15: told which container died, so the run status can name the failed role
         self._done = Event()
         self.failed = False
         self._thread = Thread(target=self._run, name="node-loader-watch", daemon=True)
@@ -365,8 +384,56 @@ class _NodeLoaderWatcher:
                         "run was active; stopping the run (rc 1)", name,
                     )
                     self.failed = True
+                    if self._on_exit is not None:
+                        try:
+                            self._on_exit(container)
+                        except Exception:                              # noqa: BLE001 - status never changes a stop
+                            pass
                     self._shutdown.set()
                     return
+
+
+def _container_exit_recorder(args) -> Callable[[object], None] | None:
+    """For the Docker runtime: record in the run status that a supervised container is gone (its exit code is not available, the
+    stream's node loaders are auto-removed), so the role shows ``failed`` and the execution says why. ``None`` when nothing records."""
+    execution = _execution_of(args)
+    if execution is None or _runtime_backend(args) != "docker":
+        return None
+
+    def record(container: object) -> None:
+        service = getattr(args, "_docker_service", None)
+        for incarnation, handle in (service.status_handles() if service is not None else {}).items():
+            if handle is container or (getattr(handle, "id", None) is not None and getattr(handle, "id", None) == getattr(container, "id", None)):
+                execution.role_exited(incarnation, None, "exited while the run was active",
+                                      error={"type": "RoleExit", "message": "the container is gone (auto-removed), so its exit code is unavailable"})
+                return
+    return record
+
+
+def _supervise_node_loaders_only(containers: Iterable[object], shutdown: Event, cleanups: list, *, interval: float = 1.0,
+                                 on_exit: Callable[[object], None] | None = None) -> int:
+    """A stream schema without relationship types, ``--runtime process`` (decision D14-5).
+
+    Docker mode launches the node loaders and returns, leaving the containers running. Process-mode children are tied to the
+    command (control-socket lifeline), so returning would end them silently with exit 0. Instead the command stays up as their
+    supervisor, like every other stream shape: a stop request (SIGTERM, SIGINT, ``stop``) ends them in order and exits 0;
+    a node loader that dies makes it stop the rest and exit 1.
+    """
+    from neo4j_graph_loader.orchestrator import heartbeat
+
+    started = tuple(containers)
+    cleanups.append(lambda: (
+        _stop_exact_containers(started, stop_timeout=_NODE_STOP_TIMEOUT_SECONDS),
+        _remove_exact_containers(started),
+    ))
+    watcher = _NodeLoaderWatcher(started, shutdown, on_exit=on_exit).start()
+    logger.info("stage=supervise reason=stream schema without relationship types: supervising %s node loader(s) until stopped", len(started))
+    try:
+        while not shutdown.wait(interval):
+            heartbeat.beat()
+    finally:
+        watcher.stop()
+    return 1 if watcher.failed else 0
 
 
 def _lease_launch_kwargs(args: argparse.Namespace) -> dict:
@@ -509,7 +576,7 @@ def _remove_exact_containers(containers: Iterable[object]) -> None:
     for container in containers:
         try:
             container.remove(force=True)
-        except NotFound:
+        except HandleGone:
             pass
         except Exception as exc:
             if _removal_already_in_progress(exc):
@@ -519,7 +586,7 @@ def _remove_exact_containers(containers: Iterable[object]) -> None:
             logger.error("stage=shutdown container cleanup failed: %s", exc)
 
 
-def _run_relationship_bulk_stages(schema, docker_service: DockerService, args: argparse.Namespace) -> int:
+def _run_relationship_bulk_stages(schema, docker_service: Runtime, args: argparse.Namespace) -> int:
     """Run deterministic, exact-container relationship bulk stages."""
     edges = tuple(getattr(schema, "edges", ()))
     plan = build_relationship_conflict_plan(edges)
@@ -613,7 +680,7 @@ def _refuse_multi_pair(edges, path: str) -> None:
 
 def _run_bulk_relationship_edge(
     edge: EdgeConfig,
-    docker_service: DockerService,
+    docker_service: Runtime,
     args: argparse.Namespace,
     *,
     run_id: str,
@@ -868,7 +935,7 @@ def _assert_finished_topics_unchanged(
 
 def _run_precedence_substages(
     edge: EdgeConfig,
-    docker_service: DockerService,
+    docker_service: Runtime,
     args: argparse.Namespace,
     *,
     run_id: str,
@@ -896,25 +963,28 @@ def _run_precedence_substages(
         snapshot = _topic_watermarks([topic for _, topic, _, _ in plan])
         _check_precedence_rerun(edge, plan, snapshot, consumer_group_prefix)
     except Exception as exc:
-        logger.error("stage=bulk-substage edge=%s failed before the first sub-stage: %s", edge.type, exc)
+        logger.error("stage=bulk-substage edge=%s failed before the first sub-stage: %s", edge.type, exc,
+                     extra=structured("bulk-substage", edge=edge.type, state="failed-before-first"))
         return 1
     finished: list[str] = []
-    for rank, topic, sub_run_id, sub_edge in plan:
+    for topic_index, (rank, topic, sub_run_id, sub_edge) in enumerate(plan):
         if cancelled is not None and cancelled.is_set():
             return 1
         if _shutdown_requested():
-            logger.warning("stage=bulk-substage edge=%s stopped by operator before topic=%s", edge.type, topic)
+            logger.warning("stage=bulk-substage edge=%s stopped by operator before topic=%s", edge.type, topic,
+                           extra=structured("bulk-substage", edge=edge.type, topic=topic, state="stopped-before"))
             return 1
         started = time.monotonic()
         started_utc = datetime.now(timezone.utc).isoformat()
-        logger.info("stage=bulk-substage edge=%s topic=%s rank=%s run_id=%s start", edge.type, topic, rank, sub_run_id)
+        logger.info("stage=bulk-substage edge=%s topic=%s rank=%s run_id=%s start", edge.type, topic, rank, sub_run_id,
+                    extra=structured("bulk-substage", edge=edge.type, topic=topic, rank=rank, sub_run_id=sub_run_id, state="start"))
         boundary: dict = {}
-        result = _run_bulk_relationship_edge(
+        result = _record_phase(args, sub_run_id, "topic", topic_index, edge.type, lambda: _run_bulk_relationship_edge(
             sub_edge, docker_service, args, run_id=sub_run_id, consumer_group_prefix=consumer_group_prefix,
             phase_index=phase_index, cancelled=cancelled, on_launch=on_launch,
             self_reference_co_scheduled=self_reference_co_scheduled,
             timing_tag=f"t{rank}", boundary_out=boundary, parent_edge=edge,
-        )
+        ))
         if result == 0:
             try:
                 captured = {(t, p): high for (_type, t, p), high in boundary.items()}
@@ -926,13 +996,16 @@ def _run_precedence_substages(
                     )
                 _assert_finished_topics_unchanged(edge.type, [*finished, topic], snapshot)
             except Exception as exc:
-                logger.error("stage=bulk-substage edge=%s topic=%s failed: %s", edge.type, topic, exc)
+                logger.error("stage=bulk-substage edge=%s topic=%s failed: %s", edge.type, topic, exc,
+                             extra=structured("bulk-substage", edge=edge.type, topic=topic, state="failed"))
                 result = 1
         finished.append(topic)
         elapsed = time.monotonic() - started
         logger.info(
             "stage=bulk-substage-complete edge=%s topic=%s rank=%s elapsed_s=%.3f outcome=%s",
             edge.type, topic, rank, elapsed, "succeeded" if result == 0 else "failed",
+            extra=structured("bulk-substage-complete", edge=edge.type, topic=topic, rank=rank, elapsed_s=round(elapsed, 3),
+                             outcome="succeeded" if result == 0 else "failed"),
         )
         _record_bulk_edge_stage_timing(
             edge.type, started_utc, datetime.now(timezone.utc).isoformat(), elapsed, result == 0,
@@ -940,16 +1013,18 @@ def _run_precedence_substages(
         )
         if result:
             if _shutdown_requested():
-                logger.warning("stage=bulk-substage edge=%s topic=%s stopped by operator", edge.type, topic)
+                logger.warning("stage=bulk-substage edge=%s topic=%s stopped by operator", edge.type, topic,
+                               extra=structured("bulk-substage", edge=edge.type, topic=topic, state="stopped"))
             else:
-                logger.error("stage=bulk-substage edge=%s topic=%s failed; later topics are not started", edge.type, topic)
+                logger.error("stage=bulk-substage edge=%s topic=%s failed; later topics are not started", edge.type, topic,
+                             extra=structured("bulk-substage", edge=edge.type, topic=topic, state="failed-later-topics-not-started"))
             return result
     return 0
 
 
 def _run_isolated_relationship_bulk_phase(
     edge: EdgeConfig,
-    docker_service: DockerService,
+    docker_service: Runtime,
     args: argparse.Namespace,
     *,
     run_id: str,
@@ -1033,7 +1108,7 @@ def _record_bulk_edge_stage_timing(
 
 
 def _run_completion_driven_bulk_edges(
-    edges: tuple[EdgeConfig, ...], docker_service: DockerService,
+    edges: tuple[EdgeConfig, ...], docker_service: Runtime,
     args: argparse.Namespace, *, parent_run_id: str, consumer_group_prefix: str,
     ready_labels: set[str] | None = None,
     ready_condition: Condition | None = None,
@@ -1080,6 +1155,7 @@ def _run_completion_driven_bulk_edges(
     pending = set(by_type)
     active: dict[object, str] = {}
     started: dict[object, tuple[float, str]] = {}
+    phase_ids: dict[object, str] = {}
     launched: dict[str, tuple[object, ...]] = {}
     launch_lock = Lock()
     cancelled = cancelled or Event()
@@ -1097,6 +1173,7 @@ def _run_completion_driven_bulk_edges(
     order = sorted(by_type, key=lambda edge_type: (-weights.get(edge_type, 0), edge_type))
     with ThreadPoolExecutor(max_workers=len(edges), thread_name_prefix="bulk-edge") as executor:
         while pending or active:
+            _beat()                          # the scheduler's own wait can outlast /healthz's stale limit with no monitor beating
             if cancelled.is_set():
                 with launch_lock:
                     running = tuple(container for edge_type in active.values() for container in launched.get(edge_type, ()))
@@ -1125,6 +1202,8 @@ def _run_completion_driven_bulk_edges(
                     edge_type, run_id, overlap, len(active) + 1,
                 )
                 started_at = (time.monotonic(), datetime.now(timezone.utc).isoformat())
+                if _execution_of(args) is not None:
+                    _execution_of(args).phase_started(run_id, "bulk", 0, edge_type)
                 future = executor.submit(
                     _run_bulk_relationship_edge, by_type[edge_type], docker_service, args,
                     run_id=run_id, consumer_group_prefix=consumer_group_prefix,
@@ -1133,6 +1212,7 @@ def _run_completion_driven_bulk_edges(
                 )
                 active[future] = edge_type
                 started[future] = started_at
+                phase_ids[future] = run_id
                 pending.remove(edge_type)
                 occupied.add(edge_type)
             if not active:
@@ -1153,6 +1233,10 @@ def _run_completion_driven_bulk_edges(
                     logger.error("stage=bulk-scheduler edge=%s failed: %s", edge_type, exc)
                 if not succeeded:
                     failures.append(edge_type)
+                if _execution_of(args) is not None:
+                    _execution_of(args).phase_finished(
+                        phase_ids.pop(future), status_model.SUCCEEDED if succeeded else status_model.FAILED,
+                    )
                 elapsed_seconds = time.monotonic() - started_monotonic
                 completed_utc = datetime.now(timezone.utc).isoformat()
                 logger.info(
@@ -1203,7 +1287,7 @@ def _derive_relationship_phase_run_id(
 
 def _run_isolated_relationship_stream_phase(
     edge: EdgeConfig,
-    docker_service: DockerService,
+    docker_service: Runtime,
     args: argparse.Namespace,
     *,
     run_id: str,
@@ -1246,8 +1330,8 @@ def _run_isolated_relationship_stream_phase(
             consumer_group_prefix=consumer_group_prefix, mode="stream",
         )
         shutdown = _shutdown_event()
-        previous_int = signal.signal(signal.SIGINT, lambda *_args: shutdown.set())
-        previous_term = signal.signal(signal.SIGTERM, lambda *_args: shutdown.set())
+        previous_int = signal.signal(signal.SIGINT, _stop_handler(shutdown, _cli_execution))
+        previous_term = signal.signal(signal.SIGTERM, _stop_handler(shutdown, _cli_execution))
         try:
             monitor.supervise_stream(shutdown)
         finally:
@@ -1281,7 +1365,7 @@ def _run_isolated_relationship_stream_phase(
 
 
 def _run_relationship_orchestration(
-    schema, docker_service: DockerService, args: argparse.Namespace, *, parent_run_id: str,
+    schema, docker_service: Runtime, args: argparse.Namespace, *, parent_run_id: str,
     shared_already_loaded: bool = False,
     self_references_already_loaded: frozenset[str] = frozenset(),
 ) -> int:
@@ -1314,20 +1398,20 @@ def _run_relationship_orchestration(
             phase_run_id = _derive_relationship_phase_run_id(
                 parent_run_id, phase_kind="isolated", phase_index=phase.index, edge_type=phase.edge_type,
             )
-            result = _run_isolated_relationship_stream_phase(
+            result = _record_phase(args, phase_run_id, "isolated", phase.index, phase.edge_type, lambda: _run_isolated_relationship_stream_phase(
                 edges_by_type[phase.edge_type], docker_service, args, run_id=phase_run_id,
                 phase_index=phase.index, consumer_group_prefix=schema.loading.consumer_group_id,
                 parent_run_id=parent_run_id,
-            )
+            ))
             if result:
                 logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=%s edge=%s failed", parent_run_id, phase_run_id, phase.index, phase.edge_type)
             return result
         if not shared_edges:
             return 0
         phase_run_id = _derive_relationship_phase_run_id(parent_run_id, phase_kind="shared", phase_index=0, edge_type="shared")
-        result = _run_rotating_relationship_fleet(
+        result = _record_phase(args, phase_run_id, "shared", 0, None, lambda: _run_rotating_relationship_fleet(
             schema, docker_service, args, selected_edges=shared_edges, phase_run_id=phase_run_id,
-        )
+        ))
         if result:
             logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=0 edge=shared failed", parent_run_id, phase_run_id)
         return result
@@ -1353,10 +1437,10 @@ def _run_relationship_orchestration(
         phase_run_id = _derive_relationship_phase_run_id(
             parent_run_id, phase_kind="isolated", phase_index=phase.index, edge_type=phase.edge_type,
         )
-        result = _run_isolated_relationship_bulk_phase(
+        result = _record_phase(args, phase_run_id, "isolated", phase.index, phase.edge_type, lambda: _run_isolated_relationship_bulk_phase(
             edges_by_type[phase.edge_type], docker_service, args, run_id=phase_run_id,
             phase_index=phase.index, consumer_group_prefix=schema.loading.consumer_group_id,
-        )
+        ))
         if result:
             logger.error("stage=isolation parent_run_id=%s phase_run_id=%s phase=%s edge=%s failed", parent_run_id, phase_run_id, phase.index, phase.edge_type)
             return result
@@ -1364,7 +1448,7 @@ def _run_relationship_orchestration(
 
 
 def _run_rotating_relationship_fleet(
-    schema, docker_service: DockerService, args: argparse.Namespace, *,
+    schema, docker_service: Runtime, args: argparse.Namespace, *,
     selected_edges: tuple[EdgeConfig, ...] | None = None, phase_run_id: str | None = None,
 ) -> int:
     """Run one exact eligible-edge fleet under a single run-scoped clock.
@@ -1479,8 +1563,8 @@ def _run_rotating_relationship_fleet(
         )
         if mode == "stream":
             shutdown = _shutdown_event()
-            previous_int = signal.signal(signal.SIGINT, lambda *_args: shutdown.set())
-            previous_term = signal.signal(signal.SIGTERM, lambda *_args: shutdown.set())
+            previous_int = signal.signal(signal.SIGINT, _stop_handler(shutdown, _cli_execution))
+            previous_term = signal.signal(signal.SIGTERM, _stop_handler(shutdown, _cli_execution))
             try:
                 initial_timeout = max(
                     schema.loading.coordination.lease_timeout_ms / 1000,
@@ -1565,14 +1649,14 @@ def _run_rotating_relationship_fleet(
         _remove_exact_containers(edge_containers)
 
 
-def _sweep_orphaned_lease_containers(docker_service: DockerService, run_id: str) -> None:
+def _sweep_orphaned_lease_containers(docker_service: Runtime, run_id: str) -> None:
     """Review finding M5-1 backstop: a lease-server relaunch whose
     ``containers.run()`` call raised *after* Docker already created the
     container leaves the monitor with no object to stop. Sweep by label
     so this run's lease server is never left running regardless."""
     try:
-        containers = docker_service.client.containers.list(
-            all=True, filters={"label": [f"run_id={run_id}", "component=bucket-lease-server"]},
+        containers = docker_service.list_run_containers(
+            label_filters=(f"run_id={run_id}", "component=bucket-lease-server"),
         )
     except Exception as exc:
         logger.warning("stage=shutdown run_id=%s lease-server label sweep failed: %s", run_id, exc)
@@ -1588,7 +1672,7 @@ def _sweep_orphaned_lease_containers(docker_service: DockerService, run_id: str)
             pass
 
 
-def _launch_stream_lease_server(docker_service: DockerService, schema, args: argparse.Namespace, *, run_id: str):
+def _launch_stream_lease_server(docker_service: Runtime, schema, args: argparse.Namespace, *, run_id: str):
     """Select keyed labels and launch the run's long-lived lease coordinator."""
     args.lease_keyed_labels = _select_keyed_lease_labels(schema, args)
     try:
@@ -1604,7 +1688,7 @@ def _launch_stream_lease_server(docker_service: DockerService, schema, args: arg
     return container
 
 
-def _start_stream_lease_for_nodes(schema, docker_service: DockerService, args: argparse.Namespace, *, run_id: str):
+def _start_stream_lease_for_nodes(schema, docker_service: Runtime, args: argparse.Namespace, *, run_id: str):
     """Start the stream lease server BEFORE the node loaders (they lease too).
 
     Returns ``(container, node_launch_kwargs)``; the kwargs carry the lease
@@ -1709,7 +1793,7 @@ def _prepare_stream_consumer_groups(schema, args: argparse.Namespace, *, explici
 
 
 def _run_lease_relationship_fleet(
-    schema, docker_service: DockerService, args: argparse.Namespace, *, parent_run_id: str,
+    schema, docker_service: Runtime, args: argparse.Namespace, *, parent_run_id: str,
     prestarted_lease_container: object | None = None, node_containers: Iterable[object] = (),
 ) -> int:
     """Run every relationship type concurrently under one long-lived
@@ -1820,8 +1904,8 @@ def _run_lease_relationship_fleet(
             tracked_retry_consumers=retry_containers, mode="stream",
         )
         shutdown = _shutdown_event()
-        previous_int = signal.signal(signal.SIGINT, lambda *_args: shutdown.set())
-        previous_term = signal.signal(signal.SIGTERM, lambda *_args: shutdown.set())
+        previous_int = signal.signal(signal.SIGINT, _stop_handler(shutdown, _cli_execution))
+        previous_term = signal.signal(signal.SIGTERM, _stop_handler(shutdown, _cli_execution))
         try:
             monitor.wait_for_lease_server_ready(30.0, shutdown_requested=shutdown)
             monitor.supervise_stream(shutdown)
@@ -2505,7 +2589,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
     # run, bulk and stream alike (bulk used to have none, so SIGTERM killed
     # the CLI outright and orphaned every launched container).  Registered
     # first, so it is restored last, after every container/metrics cleanup.
-    shutdown = _install_shutdown_handlers(cleanups)
+    shutdown = _install_shutdown_handlers(cleanups, _execution_of(args))
     try:
         if getattr(args, "runtime", None) is None:
             _merge_deprecated_lease_flags(args)
@@ -2649,6 +2733,16 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
     # Resolve and pin every required component before service-side changes.
     try:
         docker_service = _docker_service_for_run(args)
+        if _runtime_backend(args) == "process":
+            docker_service.register_cli()
+            cleanups.append(docker_service.close)        # registered first, so it runs last (after planner and node cleanups)
+            docker_service.set_stopping_check(shutdown.is_set)
+            docker_service.set_cli_metrics(cli_metrics_server)
+            if getattr(args, "metrics_port", None) is not None:
+                if not _start_aggregated_metrics(args, docker_service, cli_process_metrics, cleanups):
+                    return 1
+            if getattr(args, "health_addr", None):
+                docker_service.start_health(args.health_addr)
         if getattr(args, "skip_image_build", False):
             roles = ["node"] + (["edge"] if edge_configs else [])
             if edge_configs and args.mode == "stream" and getattr(args, "stream_clock_rotation", False):
@@ -2671,6 +2765,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
         except Exception as exc:
             logger.error("stage=docker-preflight reason=%s", exc)
             return 1
+    _start_status_telemetry(args, schema, docker_service, cleanups)
 
     # 2. Get DB config
     uri, user, password = get_neo4j_credentials()
@@ -2711,6 +2806,13 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                         neo4j_cores or f"unknown, assumed {auto_settings.DEFAULT_NEO4J_CORES}")
         if args.edge_plan == AUTO_EDGE_PLAN:
             # Plan from the edge topics while images build and nodes load.
+            if _runtime_backend(args) == "process":
+                from neo4j_graph_loader.orchestrator.cgroup_budget import SizingError
+                try:
+                    docker_service.apply_plan_budget(args, schema)
+                except SizingError as exc:
+                    logger.error("stage=sizing reason=%s", exc)
+                    return 1
             try:
                 if getattr(args, "replace_stale_plan_topic", False) and explicit_run_id is not None \
                         and not getattr(args, "plan_topic", None):
@@ -2722,12 +2824,21 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                     schema, args, run_id=parent_run_id, writers=args.plan_writers,
                     bootstrap_servers=os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
                     stop_requested=_shutdown_requested,
+                    **({"supervision": docker_service.planner_supervision()} if _runtime_backend(args) == "process" else {}),
                 )
             except Exception as exc:
                 logger.error("stage=edge-plan reason=planner could not start: %s", exc)
                 return 1
             keep = bool(getattr(args, "keep_plan_topic", False))
             cleanups.append(lambda: planner.close(delete_topic=not keep))
+            if getattr(args, "_status_poller", None) is not None:
+                # Exact once planning has finished (0 before that is "not known", so it is reported as null).
+                args._status_poller.add_source(lambda tracker, now: tracker.update_totals(rejected=(
+                    status_model.observed(planner.rejected, status_model.timestamp(now), "planner")
+                    if getattr(planner, "result", None) is not None else None)))
+            if _runtime_backend(args) == "process":
+                # An ordered planner stop comes before any process-group signal the runtime sends.
+                docker_service.add_pre_signal_hook(lambda: planner.close(delete_topic=not keep))
     elif getattr(args, "edge_plan", None) == AUTO_EDGE_PLAN:
         args.edge_plan = None
 
@@ -2753,6 +2864,15 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
             return 1
     # Planned mode: one dispatcher-driven writer pool loads every edge type.
     run_id = parent_run_id if is_bulk or explicit_run_id is not None else None
+    if run_id is None and edge_configs and not is_bulk:
+        # E15.F2.S12: a stream with a relationship fleet and no --run-id used to let the fleet generate its own id, so the edge loaders, the
+        # lease server and the retry consumer carried one that the status document and the other roles did not. The id the product would
+        # generate anyway is adopted once, here, as the execution's run id (the fleet picks it up through args.run_id).
+        args.run_id = parent_run_id
+        run_id = parent_run_id
+    if run_id is not None and _execution_of(args) is not None:
+        _execution_of(args).set_run_id(run_id)
+        set_log_context(run_id=run_id)
     _ensure_control_topic(kafka_bootstrap_servers)
     node_replicas = _resolve_node_replicas(schema, args)
     started_containers = []
@@ -2838,7 +2958,9 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
 
     if not is_bulk:
         if not edge_configs:
-            return 0
+            if _runtime_backend(args) == "process":
+                return _supervise_node_loaders_only(started_containers, shutdown, cleanups, on_exit=_container_exit_recorder(args))
+            return 0                  # Docker mode: the containers keep running after the command returns (documented)
         # Every exit from here on - graceful stop (result 0), failure, an
         # isolation-policy rejection or an escaping exception - stops
         # exactly the node loaders this run started.  Neither relationship
@@ -2853,7 +2975,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
         # unchanged (this is the *only* call-site change touching that
         # path -- _run_relationship_orchestration and everything it calls
         # are not otherwise edited by this story).
-        node_watcher = _NodeLoaderWatcher(started_containers, shutdown).start()
+        node_watcher = _NodeLoaderWatcher(started_containers, shutdown, on_exit=_container_exit_recorder(args)).start()
         try:
             if getattr(args, "stream_clock_rotation", False):
                 logger.warning(
@@ -2948,7 +3070,11 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                     logger.info(
                         "stage=node-label-ready label=%s elapsed_s=%.3f",
                         label, time.monotonic() - readiness_started,
+                        extra=structured("node-label-ready", label=label, elapsed_s=round(time.monotonic() - readiness_started, 3)),
                     )
+                    if _execution_of(args) is not None:
+                        _execution_of(args).update_type("node", label, ready=status_model.observed(
+                            True, status_model.timestamp(time.time()), "node-monitor"))
                     with ready_condition:
                         ready_labels.add(label)
                         ready_condition.notify_all()
@@ -2987,6 +3113,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                             edge_result = edge_future.result(timeout=0.25)
                             break
                         except FuturesTimeoutError:
+                            _beat()          # nodes done, waiting for the dependent phase: still supervising
                             if shutdown.is_set():
                                 scheduler_cancelled.set()
                                 with ready_condition:
@@ -3009,6 +3136,7 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
                     logger.warning(
                         "stage=outcome rejected=%s malformed relationship record(s) were skipped; "
                         "see %s/%s-planner-*.jsonl", rejected, (args.runtime.rejections if getattr(args, "runtime", None) is not None else REJECTION_DIR), parent_run_id,
+                        extra=structured("outcome", rejected=rejected, rejections_dir=str(args.runtime.rejections if getattr(args, "runtime", None) is not None else REJECTION_DIR)),
                     )
                 return 0
             return _run_relationship_orchestration(
@@ -3049,28 +3177,109 @@ def _handle_start(args: argparse.Namespace, cleanups: list) -> int:
         _remove_exact_containers(started_containers)
 
 
-def _docker_service_for_run(args):
-    runtime = getattr(args, "runtime", None)
+def _default_run_dir() -> str:
+    import tempfile
+    return tempfile.gettempdir()
+
+
+def _runtime_backend(args) -> str:
+    return getattr(args, "runtime_backend", None) or DEFAULT_RUNTIME_BACKEND
+
+
+def _build_runtime(backend: str, paths, args=None) -> Runtime:
+    if backend == "docker":
+        return DockerService(runtime=paths) if paths is not None else DockerService()
+    if backend == "process":
+        from neo4j_graph_loader.orchestrator.process_service import ProcessService
+        return ProcessService(paths, metrics_addr=getattr(args, "metrics_addr", None) or "127.0.0.1",
+                              child_logs=getattr(args, "child_logs", None) or "relay",
+                              health_stale_after=getattr(args, "health_stale_after", None) or 30.0)
+    raise RuntimeError(f"unknown runtime backend {backend!r}")
+
+
+def _start_aggregated_metrics(args, service, cli_metrics, cleanups: list) -> bool:
+    """``--metrics-port``: the one merged endpoint (CLI registry plus a scrape of every role); False after an error line."""
+    from prometheus_client import generate_latest
+    from neo4j_graph_loader.orchestrator.aggregated_metrics import AggregatedMetrics
+    port = args.metrics_port
+    if not 0 <= port <= 65535:
+        logger.error("stage=runtime reason=--metrics-port must be between 0 and 65535, got %s", port,
+                     extra=structured("runtime", reason="invalid --metrics-port", value=str(port)))
+        return False
+    host = service.metrics_host or "127.0.0.1"
+    aggregate = AggregatedMetrics(host, port, own=lambda: generate_latest(cli_metrics.exposition_registry()),
+                                  targets=service.lifecycle.build_targets)
+    try:
+        bound = aggregate.start()
+    except OSError as exc:
+        logger.error("stage=runtime reason=cannot bind the aggregated metrics endpoint %s:%s: %s", host, port, exc,
+                     extra=structured("runtime", reason="aggregated metrics endpoint cannot bind", host=host, port=port))
+        return False
+    cleanups.append(aggregate.close)
+    logger.info("stage=metrics-aggregate reason=ready url=http://%s:%s/metrics", host, bound,
+                extra=structured("metrics-aggregate", host=host, port=bound, url=f"http://{host}:{bound}/metrics"))
+    return True
+
+
+def _docker_service_for_run(args) -> Runtime:
+    """The run's runtime (backend chosen by ``--runtime``), built once per run."""
+    paths = getattr(args, "runtime", None)
     service = getattr(args, "_docker_service", None)
     if service is None:
-        service = DockerService(runtime=runtime) if runtime is not None else DockerService()
+        service = _build_runtime(_runtime_backend(args), paths, args)
+        if _execution_of(args) is not None:
+            service.status = _execution_of(args)
+            if hasattr(service, "lifecycle"):
+                tracker = _execution_of(args)
+                service.lifecycle.identity_provider = lambda: {"execution_id": tracker.execution_id, "run_id": tracker.run_id or ""}
         args._docker_service = service
     return service
 
 
-def _docker_service_or_none() -> DockerService | None:
-    """A ``DockerService``, or None (after a clear error) when Docker is unreachable."""
+def _docker_service_or_none(args=None) -> Runtime | None:
+    """The selected runtime, or None (after a clear error) when it is unreachable."""
     try:
-        return DockerService()
+        return _build_runtime(_runtime_backend(args), None)
     except Exception as exc:
         logger.error("stage=docker reason=unreachable detail=%s", exc)
         return None
 
 
+def _second_shell_registry_error(exc: Exception) -> int:
+    logger.error("stage=runtime reason=%s", exc, extra=structured("runtime", reason=str(exc)))
+    return 1
+
+
 def handle_stop(args: argparse.Namespace) -> int:
     loader = args.loader
     logger.info("Stopping loader(s)...")
-    docker_service = _docker_service_or_none()
+    if _runtime_backend(args) == "process" and getattr(args, "recover", False):
+        from neo4j_graph_loader.orchestrator.process_service import recover_registered
+        from neo4j_graph_loader.orchestrator.run_registry import RegistryError
+        try:
+            report = recover_registered(getattr(args, "run_dir", None) or _default_run_dir())
+        except (RegistryError, OSError) as exc:
+            return _second_shell_registry_error(exc)
+        logger.info("stage=recover targets_cleared=%s (metrics/targets.json emptied so Prometheus file_sd drops the dead endpoints)", report["targets_cleared"])
+        logger.info("stage=recover attempt=%s signalled=%s killed=%s remaining=%s", report["attempt_dir"], report["signalled"],
+                    report["killed"], report["remaining"])
+        retained = report["retained"]
+        shown = ", ".join(retained[:50]) + (f", ... and {len(retained) - 50} more" if len(retained) > 50 else "")
+        logger.info("stage=recover retained (never deleted) files=%s: %s", len(retained), shown or "nothing beyond the registry and logs")
+        return 1 if report["remaining"] else 0
+    if _runtime_backend(args) == "process":
+        from neo4j_graph_loader.orchestrator.process_service import stop_registered
+        from neo4j_graph_loader.orchestrator.run_registry import RegistryError
+        try:
+            stopped = stop_registered(getattr(args, "run_dir", None) or _default_run_dir(), loader)
+        except (RegistryError, OSError) as exc:
+            return _second_shell_registry_error(exc)
+        if not stopped:
+            logger.info("No matching loaders running.")
+        for item in stopped:
+            logger.info("Stop requested: %s", item)
+        return 0
+    docker_service = _docker_service_or_none(args)
     if docker_service is None:
         return 1
     docker_service.stop_node_loaders(node_label=loader)
@@ -3078,12 +3287,102 @@ def handle_stop(args: argparse.Namespace) -> int:
     return 0
 
 
+def _wants_run_status(args: argparse.Namespace) -> bool:
+    """Run status (the new view) only when one of its options asks for it. Everything else, ``--run-dir`` alone
+    included, is the container listing exactly as before (E14 documents ``status --run-dir`` as the registry listing)."""
+    return any(getattr(args, name, None) for name in ("run", "execution_id", "json", "watch", "refresh_lag", "list"))
+
+
+def _load_status(args: argparse.Namespace) -> tuple[dict, Path | None]:
+    from neo4j_graph_loader.status import reader
+    if getattr(args, "status_store", "json") == "sql" and not getattr(args, "run_dir", None) and args.execution_id:
+        from neo4j_graph_loader.status import sql_store
+        database = sql_store.SqlStatusStore()
+        try:
+            return database.read_status(args.execution_id), None
+        except LookupError as exc:
+            raise reader.StatusNotFound(str(exc)) from None
+        finally:
+            database.close()
+    directory, _locator = reader.resolve(getattr(args, "run_dir", None), execution_id=args.execution_id)
+    return reader.read_status(directory), directory
+
+
+def handle_run_status(args: argparse.Namespace) -> int:
+    """``graph-loader status`` for run status: one execution, a list, or a live view. See ``status/view.py`` for the
+    exit codes (0 running or succeeded, 1 failed, 2 stale/dead/unknown, 3 stopped)."""
+    from neo4j_graph_loader.status import lag as status_lag, listing, reader, view
+    try:
+        if args.list:
+            rows = listing.list_runs(store=args.status_store, base=getattr(args, "run_dir", None), active=args.active,
+                                     stale_after=args.stale_after)
+            if args.json:
+                sys.stdout.write(json.dumps(rows) + "\n")
+            else:
+                sys.stdout.write("".join(view.list_line(row) + "\n" for row in rows) or "no runs found\n")
+            return 0
+        previous = None
+        while True:
+            status, attempt = _load_status(args)
+            extra_lines: list[str] = []
+            extra: dict = {}
+            if args.refresh_lag and attempt is not None:
+                try:
+                    refreshed = status_lag.refresh_lag(attempt, status, bootstrap_servers=os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+                                                       timeout=args.refresh_timeout)
+                    status = status_lag.overlay(status, refreshed)
+                    extra["lag_refreshed"] = True
+                except status_lag.LagRefreshError as exc:
+                    extra.update(lag_refreshed=False, lag_refresh_error=str(exc))
+                    extra_lines.append(f"lag       not refreshed: {exc}")
+            assessment = view.assess(status, stale_after=args.stale_after, attempt=attempt)
+            document = view.with_reader(status, assessment, extra)
+            if args.json:
+                from neo4j_graph_loader.status import schemas
+                from neo4j_graph_loader.status.validate import validate as validate_document
+                validate_document(document, schemas.STATUS_SCHEMA)
+            frame = json.dumps(document, separators=(",", ":")) + "\n" if args.json else view.render_text(status, assessment, extra_lines=extra_lines)
+            if frame != previous:
+                sys.stdout.write(frame if args.json or not args.watch or previous is None else "\n" + frame)
+                sys.stdout.flush()
+                previous = frame
+            if not args.watch or status["state"] in ("succeeded", "failed", "stopped") or assessment["stale"]:
+                return assessment["exit_code"]
+            time.sleep(max(0.05, args.interval))
+    except KeyboardInterrupt:
+        return 130
+    except reader.StatusNotFound as exc:
+        logger.error("stage=status reason=%s", exc)
+        return 2
+    except Exception as exc:  # noqa: BLE001 - StatusDataError, StatusStoreError, database errors: unknown, not a crash
+        logger.error("stage=status reason=%s", exc)
+        return 2
+
+
 def handle_status(args: argparse.Namespace) -> int:
+    if _wants_run_status(args):
+        code = handle_run_status(args)
+        if not getattr(args, "containers", False):
+            return code
+        legacy = _handle_container_status(args)
+        return code or legacy
+    return _handle_container_status(args)
+
+
+def _handle_container_status(args: argparse.Namespace) -> int:
     logger.info(f"Checking status for config: {args.config}")
-    docker_service = _docker_service_or_none()
-    if docker_service is None:
-        return 1
-    containers = docker_service.list_node_loaders()
+    if _runtime_backend(args) == "process":
+        from neo4j_graph_loader.orchestrator.process_service import describe_registered
+        from neo4j_graph_loader.orchestrator.run_registry import RegistryError
+        try:
+            containers = describe_registered(getattr(args, "run_dir", None) or _default_run_dir())
+        except (RegistryError, OSError) as exc:
+            return _second_shell_registry_error(exc)
+    else:
+        docker_service = _docker_service_or_none(args)
+        if docker_service is None:
+            return 1
+        containers = docker_service.list_node_loaders()
     if not containers:
         logger.info("No loaders running.")
     for c in containers:
@@ -3274,6 +3573,104 @@ def handle_replay_dlq(args: argparse.Namespace) -> int:
     return 0
 
 
+def _status_store_for_command(args: argparse.Namespace):
+    """The SQL status store of the ``status-store`` commands (URL from the environment only: a password on a
+    command line is visible to every process on the host)."""
+    try:
+        from neo4j_graph_loader.status import sql_store
+    except ImportError as exc:
+        logger.error("stage=status-store reason=this command needs the optional SQL support (install "
+                     "neo4j-graph-loader[sql], and [postgres] for PostgreSQL): %s", exc)
+        return None, None
+    try:
+        return sql_store, sql_store.SqlStatusStore(schema=getattr(args, "schema", None))
+    except sql_store.StatusDatabaseError as exc:
+        logger.error("stage=status-store reason=%s", exc)
+        return None, None
+
+
+def locator_module_errors():
+    from neo4j_graph_loader.status.locator import LocatorError
+    return (LocatorError, ValueError)
+
+
+def handle_monitoring_export(args: argparse.Namespace) -> int:
+    from neo4j_graph_loader.monitoring import export
+    try:
+        written = export.write_bundle(export.ExportOptions(
+            out=Path(args.out), discovery=args.discovery, scrape_interval=args.scrape_interval, job_name=args.job_name,
+            extra_labels=export.parse_extra_labels(args.extra_labels), metrics_port=args.metrics_port,
+            targets=tuple(item for item in (args.targets or "").split(",") if item.strip()), targets_file=args.targets_file,
+            docker_network=args.docker_network, namespace=args.namespace, service_name=args.service_name,
+            prometheus_url=args.prometheus_url, datasource_uid=args.datasource_uid, values=args.values, force=args.force))
+    except export.ExportError as exc:
+        logger.error("stage=monitoring reason=%s", exc, extra=structured("monitoring", reason=str(exc)))
+        return 1
+    except OSError as exc:
+        logger.error("stage=monitoring reason=could not write %s: %s", args.out, exc, extra=structured("monitoring", reason=str(exc)))
+        return 1
+    for name in written:
+        print(name)
+    if args.datasource_uid is None:
+        logger.info("stage=monitoring reason=grafana/dashboards/ leaves the datasource variable unset (Grafana uses its default Prometheus "
+                    "datasource); pass --datasource-uid when Grafana has several Prometheus datasources",
+                    extra=structured("monitoring", datasource_uid=None))
+    logger.info("stage=monitoring reason=wrote %s file(s) to %s", len(written), args.out,
+                extra=structured("monitoring", files=len(written), out=str(args.out), discovery=args.discovery))
+    return 0
+
+
+def handle_status_store(args: argparse.Namespace) -> int:
+    sql_store, store = _status_store_for_command(args)
+    if store is None:
+        return 1
+    try:
+        if args.status_store_command == "migrate":
+            version = store.migrate()
+            sys.stdout.write(f"status schema is at version {version} in {store.describe()}"
+                             f"{'' if store.schema is None else ' (schema ' + store.schema + ')'}\n")
+            return 0
+        if args.status_store_command == "flush":
+            from neo4j_graph_loader.status import outbox
+            location = Path(args.run_dir)
+            attempts = [location] if (location / "status-locator.json").exists() else outbox.pending_attempts(location)
+            if not attempts:
+                sys.stdout.write("nothing to deliver\n")
+                return 0
+            code = 0
+            for attempt in attempts:
+                try:
+                    result = outbox.recover_attempt(attempt, lock_timeout=args.wait)
+                    sys.stdout.write(f"{attempt}: delivered {result['events']} event(s)"
+                                     f"{', the latest snapshot' if result['snapshot'] else ''}"
+                                     f"{'; history flagged incomplete' if result['history_incomplete'] else ''}\n")
+                except outbox.OutboxLocked as exc:
+                    logger.error("stage=status-store reason=%s", exc)
+                    code = 1
+                except (sql_store.StatusDatabaseError, *locator_module_errors()) as exc:
+                    logger.error("stage=status-store reason=%s", exc)
+                    code = 1
+            return code
+        if args.status_store_command == "prune":
+            try:
+                older = sql_store.parse_duration(args.older_than)
+            except ValueError as exc:
+                logger.error("stage=status-store reason=%s", exc)
+                return 1
+            store.check_schema()
+            counts = store.prune(older)
+            sys.stdout.write(f"pruned {counts['executions']} finished execution(s) older than {args.older_than} "
+                             f"and {counts['events']} event(s)\n")
+            return 0
+        logger.error("stage=status-store reason=unknown command %s", args.status_store_command)
+        return 1
+    except sql_store.StatusDatabaseError as exc:
+        logger.error("stage=status-store reason=%s", exc)
+        return 1
+    finally:
+        store.close()
+
+
 def handle_schema_example(args: argparse.Namespace) -> int:
     try:
         content = Path(args.config).read_text(encoding="utf-8")
@@ -3296,13 +3693,76 @@ def handle_validate_schema(args: argparse.Namespace) -> int:
     return 0
 
 
+class _ExplicitStore(argparse.Action):
+    """``store`` that also records the option was given (``args._explicit_<dest>``), whatever its value."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values)
+        setattr(namespace, f"_explicit_{self.dest}", True)
+
+
+def _add_runtime_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--runtime", dest="runtime_backend", choices=RUNTIME_BACKENDS,
+        default=os.environ.get(RUNTIME_ENV) or DEFAULT_RUNTIME_BACKEND,
+        help="How roles are run: 'docker' (one container per role, default; env %s) or 'process' "
+        "(child processes of this command, Linux only; no Docker daemon, network or images)" % RUNTIME_ENV,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     from neo4j_graph_loader._version import __version__
 
     parser = argparse.ArgumentParser(prog="graph-loader", description="Neo4j Graph Loader CLI")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument("--log-format", dest="log_format", choices=("text", "json"), default=os.environ.get("GRAPH_LOADER_LOG_FORMAT") or "text",
+                        help="how this command and its roles log: 'text' (default) or 'json' (one JSON object per line on stderr; "
+                             "env GRAPH_LOADER_LOG_FORMAT). Accepted anywhere on the command line; command output (YAML, status --json) is never affected")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    status_store = subparsers.add_parser(
+        "status-store", help="Maintain the SQL run status database (URL from GRAPH_LOADER_STATUS_DB_URL, never on the command line)")
+    status_store_commands = status_store.add_subparsers(dest="status_store_command", required=True)
+    migrate = status_store_commands.add_parser("migrate", help="Create or upgrade the status schema (idempotent)")
+    prune = status_store_commands.add_parser("prune", help="Delete FINISHED executions older than a duration (never running ones)")
+    prune.add_argument("--older-than", required=True, metavar="DURATION", help="for example 30d, 12h, 90m")
+    flush = status_store_commands.add_parser(
+        "flush", help="Deliver the events a run left in its local outbox (a killed run, or a database that was down)")
+    flush.add_argument("--run-dir", required=True, metavar="DIR", help="the run's attempt directory (or the base holding several)")
+    flush.add_argument("--wait", type=float, default=30.0, metavar="SECONDS",
+                       help="how long to wait for a live process that owns the outbox (default 30)")
+    for sub in (migrate, prune, flush):
+        sub.add_argument("--schema", default=None, help="PostgreSQL schema (env GRAPH_LOADER_STATUS_SCHEMA, default graph_loader)")
+    status_store.set_defaults(func=handle_status_store)
+
+    monitoring = subparsers.add_parser(
+        "monitoring", help="Monitoring assets for your own Prometheus and Grafana (alert rules, dashboards, scrape configuration)")
+    monitoring_commands = monitoring.add_subparsers(dest="monitoring_command", required=True)
+    export = monitoring_commands.add_parser(
+        "export", help="Write the monitoring bundle (scrape config, alert rules and promtool tests, dashboards, provisioning, "
+        "Kubernetes manifests) for one discovery mode")
+    export.add_argument("--out", required=True, metavar="DIR", help="directory to write the bundle into (created; existing files are not overwritten without --force)")
+    export.add_argument("--discovery", required=True, choices=("docker", "file", "kubernetes", "static"),
+                        help="how Prometheus finds the exporters: docker (Docker service discovery), file (the process runtime's "
+                        "metrics/targets.json), static or kubernetes (the aggregated --metrics-port endpoint of the process runtime)")
+    export.add_argument("--scrape-interval", default="15s", metavar="DURATION", help="Prometheus scrape interval (default 15s)")
+    export.add_argument("--job-name", default="graph-loader", help="Prometheus job name (default graph-loader)")
+    export.add_argument("--extra-labels", default=None, metavar="K=V[,K=V...]",
+                        help="labels added to every target and alert; run_id, execution_id, exporter and runtime are reserved and refused")
+    export.add_argument("--metrics-port", type=int, default=None, metavar="PORT",
+                        help="the aggregated endpoint port (`start --runtime process --metrics-port`); required for static and kubernetes")
+    export.add_argument("--targets", default=None, metavar="HOST:PORT[,...]", help="static discovery: scrape these instead of localhost:--metrics-port")
+    export.add_argument("--targets-file", default=None, metavar="PATH", help="file discovery: the targets.json Prometheus reads")
+    export.add_argument("--docker-network", default="graph-loader-net", help="docker discovery: the network the roles run on")
+    export.add_argument("--namespace", default="default", help="kubernetes discovery: namespace of the Service")
+    export.add_argument("--service-name", default="graph-loader", help="kubernetes discovery: Service (and selector) name")
+    export.add_argument("--prometheus-url", default="http://prometheus:9090", help="Grafana datasource URL written to the provisioning file")
+    export.add_argument("--datasource-uid", default=None,
+                        help="Grafana Prometheus datasource uid: written to the provisioning file (default prometheus) and set as the "
+                             "dashboard's datasource variable in grafana/dashboards/; give it when Grafana has several Prometheus datasources")
+    export.add_argument("--values", default=None, metavar="FILE", help="YAML file: job_name, labels, per-alert threshold/for/severity, disable")
+    export.add_argument("--force", action="store_true", help="overwrite files that already exist in --out")
+    export.set_defaults(func=handle_monitoring_export)
     example = subparsers.add_parser("schema-example", help="Print a bundled schema YAML")
     example.add_argument("--name", dest="sample", choices=("default", "social"), default="default")
     example.set_defaults(func=handle_schema_example, config=None)
@@ -3317,7 +3777,31 @@ def build_parser() -> argparse.ArgumentParser:
     parser_start.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
     parser_start.add_argument("--run-dir", metavar="BASE", help="Create a private persistent attempt under BASE (default: OS temporary directory)")
     parser_start.add_argument("--mode", choices=["bulk", "stream"], required=True, help="Ingestion mode")
-    parser_start.add_argument("--network", default="graph-loader-net", help="Docker network for containers")
+    parser_start.add_argument(
+        "--status-store-auto-migrate", dest="status_store_auto_migrate", action="store_true",
+        default=os.environ.get("GRAPH_LOADER_STATUS_AUTO_MIGRATE", "").strip().lower() in ("1", "true", "yes"),
+        help="With --status-store sql: create or upgrade the status schema at start instead of refusing an older one "
+             "(env GRAPH_LOADER_STATUS_AUTO_MIGRATE=1)")
+    parser_start.add_argument(
+        "--status-store", dest="status_store", default=os.environ.get(STATUS_STORE_ENV) or "json",
+        help="Where this run's status and event history are kept: 'json' (status.json and events.*.jsonl in the run "
+             "directory, default) or 'sql' (a database; env %s). Env %s." % ("GRAPH_LOADER_STATUS_DB_URL", STATUS_STORE_ENV))
+    parser_start.add_argument("--network", default="graph-loader-net", action=_ExplicitStore, help="Docker network for containers")
+    _add_runtime_option(parser_start)
+    parser_start.add_argument("--metrics-addr", default=None, metavar="HOST[:PORT]",
+                              help="process runtime: where every role binds its metrics endpoint (default 127.0.0.1, an OS-assigned "
+                              "port per role, listed in <run dir>/metrics/targets.json); use 0.0.0.0 inside a pod")
+    parser_start.add_argument("--metrics-port", type=int, default=None, metavar="PORT",
+                              help="process runtime: serve ONE aggregated /metrics on --metrics-addr's host at this port, merging this command's "
+                              "metrics and every role's (one stable scrape target; scrape it OR the per-role file_sd targets, not both)")
+    parser_start.add_argument("--health-addr", default=None, metavar="HOST:PORT",
+                              help="process runtime: serve /healthz and /readyz here (off by default)")
+    parser_start.add_argument("--health-stale-after", type=float, default=None, metavar="SECONDS",
+                              help="process runtime: /healthz turns unhealthy when the supervision loop has not ticked for "
+                              "this long (default 30)")
+    parser_start.add_argument("--child-logs", choices=("relay", "files"), default=None,
+                              help="process runtime: 'relay' (default) also prints each role's output to this command's stdout "
+                              "with a [name] prefix; 'files' keeps it in <run dir>/logs only")
     parser_start.add_argument(
         "--skip-image-build",
         action="store_true",
@@ -3535,11 +4019,36 @@ def build_parser() -> argparse.ArgumentParser:
     # Stop command
     parser_stop = subparsers.add_parser("stop", help="Stop running ingestion containers")
     parser_stop.add_argument("--loader", help="Specific loader name to stop")
+    _add_runtime_option(parser_stop)
+    parser_stop.add_argument("--run-dir", metavar="DIR", help="process runtime: the run's attempt directory, or the base given to start "
+                             "(default: the OS temporary directory)")
+    parser_stop.add_argument("--recover", action="store_true",
+                             help="process runtime: after the command died abruptly, stop what it left behind and report what is "
+                             "retained (refused while it is alive)")
     parser_stop.set_defaults(func=handle_stop)
 
     # Status command
     parser_status = subparsers.add_parser("status", help="Check pipeline status and lags")
     parser_status.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
+    _add_runtime_option(parser_status)
+    parser_status.add_argument("--run-dir", metavar="DIR", help="process runtime: the run's attempt directory, or the base given to start "
+                               "(default: the OS temporary directory)")
+    parser_status.add_argument("--run", action="store_true", help="show the run status of the newest run (or of --execution-id) found under "
+                               "--run-dir or in the OS temporary directory, instead of the container listing")
+    parser_status.add_argument("--execution-id", default=None, metavar="ID", help="show this execution (default: the newest one found under --run-dir, or in the OS temporary directory; --run-dir may be either runtime's attempt directory)")
+    parser_status.add_argument("--json", action="store_true", help="print the run status document as JSON (plus a `reader` member)")
+    parser_status.add_argument("--watch", action="store_true", help="keep refreshing until the run ends")
+    parser_status.add_argument("--interval", type=float, default=2.0, metavar="SECONDS", help="--watch refresh interval (default 2)")
+    parser_status.add_argument("--refresh-lag", action="store_true",
+                               help="ask Kafka once, within a deadline, for the current consumer lag (never blocks otherwise)")
+    parser_status.add_argument("--refresh-timeout", type=float, default=5.0, metavar="SECONDS", help="deadline of --refresh-lag (default 5)")
+    parser_status.add_argument("--list", action="store_true", help="list the runs of the status store instead of showing one")
+    parser_status.add_argument("--active", action="store_true", help="with --list: only runs that have not finished")
+    parser_status.add_argument("--containers", action="store_true", help="also print the container listing `status` showed before run status existed")
+    parser_status.add_argument("--stale-after", type=float, default=None, metavar="SECONDS",
+                               help="a running execution whose heartbeat is older than this is stale (default 30; env GRAPH_LOADER_STATUS_STALE_AFTER_S)")
+    parser_status.add_argument("--status-store", dest="status_store", default=os.environ.get(STATUS_STORE_ENV) or "json",
+                               help="which store --list and --execution-id read when no run directory is given: json or sql")
     parser_status.set_defaults(func=handle_status)
 
     # Replay-DLQ command
@@ -3547,6 +4056,7 @@ def build_parser() -> argparse.ArgumentParser:
         "replay-dlq", help="Read a DLQ topic and republish matching envelopes to their source topic",
     )
     parser_replay.add_argument("--config", default=None, help="Path to schema YAML (default: bundled canonical schema)")
+    _add_runtime_option(parser_replay)
     replay_entity = parser_replay.add_mutually_exclusive_group(required=True)
     replay_entity.add_argument("--node-label", help="Replay this node label's DLQ topic")
     replay_entity.add_argument("--edge-type", help="Replay this relationship type's DLQ topic")
@@ -3588,16 +4098,299 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+STATUS_STORE_ENV = "GRAPH_LOADER_STATUS_STORE"
+STATUS_DB_URL_ENV = "GRAPH_LOADER_STATUS_DB_URL"
+STATUS_DB_SCHEMA_ENV = "GRAPH_LOADER_STATUS_SCHEMA"
+
+
+def _validated_status_store(args: argparse.Namespace) -> None:
+    from neo4j_graph_loader.status.locator import STORES
+    if getattr(args, "status_store", "json") not in STORES:
+        raise ValueError(f"status store must be one of {', '.join(STORES)}, got {args.status_store!r} (env {STATUS_STORE_ENV})")
+
+
+def _begin_execution(args: argparse.Namespace) -> StatusTracker | None:
+    """The execution's identity and status model: the first act of ``start``, before any validation or schema load.
+    It lives in memory until :func:`_open_status_store` gives it a directory."""
+    if getattr(args, "command", None) != "start":
+        return None
+    try:
+        run_id = getattr(args, "run_id", None)
+        backend = _runtime_backend(args)
+        execution = StatusTracker(
+            run_id=run_id if isinstance(run_id, str) and _RUN_ID.fullmatch(run_id) else None,
+            mode=getattr(args, "mode", None) if getattr(args, "mode", None) in status_model.MODES else None,
+            runtime=backend if backend in status_model.RUNTIMES else DEFAULT_RUNTIME_BACKEND,
+        )
+    except Exception as exc:          # status tracking must never stop a load
+        logger.warning("stage=status reason=could not create the execution record: %s", exc)
+        return None
+    set_log_context(execution_id=execution.execution_id, run_id=execution.run_id, runtime=backend)   # the CLI's own samples and log lines
+    return execution
+
+
+def _open_status_store(args: argparse.Namespace, execution: StatusTracker) -> None:
+    """Create the attempt directory and its locator from the arguments alone, then attach the chosen store.
+
+    This runs after the arguments are validated and before the schema is loaded, so a schema-load failure is
+    recorded in the attempt directory too (a rejected flag or a missing schema file still creates no state). Any
+    failure here disables status for the run with one log line; it never fails the load (the load's own directory
+    preflight reports an unusable base exactly as before).
+    """
+    from neo4j_graph_loader import _runtime
+    from neo4j_graph_loader.status import json_store, locator as status_locator
+    store = getattr(args, "status_store", "json")
+    store = store if store in status_locator.STORES else "json"
+    try:
+        root = _runtime.create_attempt_root(args)
+    except Exception as exc:
+        logger.warning("stage=status reason=status is disabled for this run, the attempt directory cannot be created: %s", exc)
+        return
+    args._attempt_root = root
+
+    def write_locator() -> None:
+        status_locator.write_locator(root, status_locator.build_locator(
+            store=store, execution_id=execution.execution_id, run_id=execution.run_id,
+            created_at=execution.snapshot()["started_at"],
+            db_url=os.environ.get(STATUS_DB_URL_ENV) if store == "sql" else None,
+            schema=(os.environ.get(STATUS_DB_SCHEMA_ENV) or "graph_loader") if store == "sql" else None))
+
+    try:
+        write_locator()
+    except Exception as exc:
+        logger.warning("stage=status reason=status is disabled for this run, the locator cannot be written in %s: %s", root, exc)
+        return
+    if store == "sql":
+        journal = _open_sql_journal(args, root)
+        if journal is None:
+            return
+    else:
+        try:
+            journal = json_store.JsonStatusStore(root, **json_store.settings_from_environment())
+        except Exception as exc:
+            logger.warning("stage=status reason=status is disabled for this run, the JSON store cannot start in %s: %s", root, exc)
+            return
+    args._status_store = journal
+
+    def on_event(event: dict) -> None:
+        if event.get("type") == "execution.run_id":
+            write_locator()
+
+    if execution.attach_journal(journal):
+        execution.subscribe(on_event=on_event, on_snapshot=journal.offer_snapshot)
+        if hasattr(journal, "write_snapshot"):
+            journal.write_snapshot()
+
+
+class StatusStoreRefused(RuntimeError):
+    """The chosen status store must not be used as configured (for example an older schema): the start is refused."""
+
+
+def _open_sql_journal(args: argparse.Namespace, root: Path):
+    """The SQL status store's journal, or ``None`` (status disabled, one log line). Raises :class:`StatusStoreRefused`
+    when the database is reachable but its schema is not this version's and auto-migration was not asked for."""
+    try:
+        from neo4j_graph_loader.status import sql_store
+    except ImportError as exc:
+        logger.warning("stage=status reason=status is disabled for this run: the SQL store needs the optional SQL support "
+                       "(install neo4j-graph-loader[sql], and [postgres] for PostgreSQL): %s", exc)
+        return None
+    if not os.environ.get(STATUS_DB_URL_ENV):
+        logger.warning("stage=status reason=status is disabled for this run: --status-store sql needs %s", STATUS_DB_URL_ENV)
+        return None
+
+    def count(reason: str) -> None:
+        metrics_module.safe_emit(lambda: metrics_module.process_metrics().status_store_errors.labels(kind="cli", reason=reason).inc())
+
+    try:
+        sql = sql_store.SqlStatusStore(metrics_listener=count)
+    except sql_store.StatusDatabaseError as exc:
+        logger.warning("stage=status reason=status is disabled for this run: %s", exc)
+        return None
+    try:
+        sql.check_schema()
+    except sql_store.SchemaNotReady as exc:
+        auto = getattr(args, "status_store_auto_migrate", False)
+        if not auto:
+            sql.close()
+            raise StatusStoreRefused(str(exc)) from None
+        try:
+            sql.migrate()
+        except sql_store.StatusDatabaseError as migration:
+            sql.close()
+            raise StatusStoreRefused(str(migration)) from None
+        logger.info("stage=status reason=the status database schema was migrated to version %s", sql_store.DB_SCHEMA_VERSION)
+    except sql_store.StatusDatabaseError as exc:
+        # Not reachable now: the run goes on and the writer keeps trying (a durable outbox arrives with E15.F1.S5).
+        logger.warning("stage=status reason=the status database is not reachable yet, events will be written when it is: %s", exc)
+    from neo4j_graph_loader.status import json_store, outbox
+    lock = outbox.AttemptLock(root)
+    try:
+        lock.acquire()
+    except (OSError, outbox.OutboxLocked) as exc:
+        logger.warning("stage=status reason=the status outbox lock could not be taken (%s); events are queued in memory only", exc)
+        lock = None
+    _recover_in_background(root.parent, root, sql_store, outbox)
+    execution = _execution_of(args)
+    return outbox.OutboxJournal(
+        root, sql, execution.execution_id, snapshot_interval=max(2.0, json_store.settings_from_environment()["snapshot_interval"]),
+        on_degraded=execution.mark_history_incomplete, on_error=count, lock=lock)
+
+
+def _recover_in_background(base: Path, current: Path, sql_store, outbox) -> None:
+    """Deliver what earlier runs under the same base left in their outboxes (their lock must be free). Never blocks the
+    start and never fails it."""
+    def work() -> None:
+        try:
+            for attempt in outbox.pending_attempts(base, exclude=current):
+                try:
+                    result = outbox.recover_attempt(attempt, lock_timeout=0)
+                    logger.info("stage=status reason=delivered %s event(s) left in the outbox of %s", result["events"], attempt)
+                except outbox.OutboxLocked:
+                    logger.info("stage=status reason=the outbox of %s belongs to a live process; left alone", attempt)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("stage=status reason=could not deliver the outbox of %s yet: %s", attempt, exc)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("stage=status reason=outbox recovery scan failed: %s", exc)
+
+    Thread(target=work, name="status-outbox-recovery", daemon=True).start()
+
+
+def _close_status_store(args: argparse.Namespace) -> None:
+    store = getattr(args, "_status_store", None)
+    if store is not None:
+        store.close()
+
+
+def _execution_of(args) -> StatusTracker | None:
+    execution = getattr(args, "execution", None)
+    return execution if isinstance(execution, StatusTracker) else None
+
+
+def _record_phase(args, phase_id: str, kind: str, index: int | None, edge_type: str | None, call: Callable[[], int]) -> int:
+    """Run ``call`` as a recorded phase of the execution: started before, finished by its result."""
+    execution = _execution_of(args)
+    if execution is None:
+        return call()
+    execution.phase_started(phase_id, kind, index, edge_type)
+    try:
+        result = call()
+    except BaseException:
+        execution.phase_finished(phase_id, status_model.FAILED)
+        raise
+    execution.phase_finished(phase_id, status_model.SUCCEEDED if result == 0 else status_model.FAILED)
+    return result
+
+
+def _start_status_telemetry(args, schema, runtime, cleanups: list) -> None:
+    """Start the run's telemetry acquisition: role snapshots and exits, the relationship lag poll, process OOMs."""
+    execution = _execution_of(args)
+    paths = getattr(args, "runtime", None)
+    if execution is None or paths is None:
+        return
+    try:
+        interval = metrics_module.status_interval_seconds()
+        entities = [("node", node.label) for node in getattr(schema, "nodes", ())] + \
+                   [("edge", edge.type) for edge in getattr(schema, "edges", ())]
+        poller = TelemetryPoller(execution, paths.timings, interval=interval, entities=entities,
+                                 handles=getattr(runtime, "status_handles", None))
+        poller.start()
+        cleanups.append(poller.stop)                  # after the roles stopped (their cleanups were registered later)
+        args._status_poller = poller
+
+        def on_lag(lag_by_edge_type: dict) -> None:
+            observed_at = status_model.timestamp(time.time())
+            for edge_type, lag in lag_by_edge_type.items():
+                execution.update_type("edge", edge_type, lag=None if lag is None else status_model.observed(
+                    lag, observed_at, "cli-lag-poll"))
+
+        set_lag_listener(on_lag)
+        cleanups.append(lambda: set_lag_listener(None))
+        lifecycle = getattr(runtime, "lifecycle", None)
+        if lifecycle is not None and hasattr(lifecycle, "add_oom_listener"):
+            lifecycle.add_oom_listener(lambda before, after: execution.group_oom(before, after))
+    except Exception as exc:  # noqa: BLE001 - status never stops a load
+        logger.warning("stage=status reason=telemetry could not start: %s", exc)
+
+
 def main(args_list: list[str] | None = None) -> int:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    argv = list(sys.argv[1:] if args_list is None else args_list)
+    configure_logging(kind="cli", argv=argv)          # text: logging.basicConfig as before; json: JSON lines (read before parsing)
     parser = build_parser()
-    args = parser.parse_args(args_list)
+    args = parser.parse_args(strip_log_format(argv))
+    execution = _begin_execution(args)
+    if execution is None:
+        return _dispatch(args)
+    args.execution = execution
+    try:
+        return _run_tracked(args, execution)
+    finally:
+        set_log_context(execution_id=None, run_id=None, runtime=None)     # an in-process caller's next command is a new execution
+
+
+def _run_tracked(args: argparse.Namespace, execution: StatusTracker) -> int:
+    try:
+        code = _dispatch(args)
+    except SystemExit as exc:
+        code = exc.code if isinstance(exc.code, int) else (0 if exc.code is None else 1)
+        execution.finish(code)
+        _close_status_store(args)
+        raise
+    except KeyboardInterrupt:
+        execution.request_stop()
+        execution.finish(130, reason="interrupted")
+        _close_status_store(args)
+        raise
+    except BaseException as exc:
+        execution.finish(1, error=exc)
+        _close_status_store(args)
+        raise
+    execution.finish(code)
+    _close_status_store(args)
+    return code
+
+
+def _dispatch(args: argparse.Namespace) -> int:
+    if args.command in {"start", "stop", "status", "replay-dlq"}:
+        if args.runtime_backend not in RUNTIME_BACKENDS:
+            logger.error("stage=runtime reason=%s must be one of %s, got %r", RUNTIME_ENV, ", ".join(RUNTIME_BACKENDS), args.runtime_backend,
+                         extra=structured("runtime", reason="invalid runtime", setting=RUNTIME_ENV, value=str(args.runtime_backend)))
+            return 1
+        if args.runtime_backend == "process" and args.command != "replay-dlq":
+            from neo4j_graph_loader.orchestrator.process_service import ProcessPreflightError, check_platform
+            try:
+                check_platform()
+            except ProcessPreflightError as exc:
+                logger.error("stage=runtime reason=%s", exc, extra=structured("runtime", reason=str(exc)))
+                return 1
+            if args.command == "start":
+                for given, option in ((getattr(args, "_explicit_network", False), "--network"),
+                                      (getattr(args, "skip_image_build", False), "--skip-image-build")):
+                    if given:
+                        logger.error("stage=runtime reason=%s applies to Docker containers and is not accepted with --runtime process", option,
+                                     extra=structured("runtime", reason="option not accepted with --runtime process", option=option))
+                        return 1
+    if args.command in {"stop", "status"} and args.runtime_backend != "process":
+        run_status = args.command == "status" and _wants_run_status(args)          # run status reads any runtime's attempt directory
+        for given, option in (((None if run_status else getattr(args, "run_dir", None)), "--run-dir"), (getattr(args, "recover", False), "--recover")):
+            if given:
+                logger.error("stage=runtime reason=%s applies to --runtime process only", option,
+                         extra=structured("runtime", reason="option applies to --runtime process only", option=option))
+                return 1
+    if args.command == "start" and args.runtime_backend != "process":
+        for given, option in ((args.metrics_addr, "--metrics-addr"), (args.metrics_port, "--metrics-port"), (args.health_addr, "--health-addr"), (args.child_logs, "--child-logs"),
+                              (args.health_stale_after, "--health-stale-after")):
+            if given:
+                logger.error("stage=runtime reason=%s applies to --runtime process only", option,
+                         extra=structured("runtime", reason="option applies to --runtime process only", option=option))
+                return 1
     if args.command == "start":
         try:
             _merge_deprecated_lease_flags(args)
             _validate_edge_mode_flags(args)
             _validate_early_numeric_args(args)
             _validated_run_id(args.run_id)
+            _validated_status_store(args)
         except ValueError as exc:
             logger.error("stage=launch reason=%s", exc)
             return 1
@@ -3612,6 +4405,14 @@ def main(args_list: list[str] | None = None) -> int:
                 logger.error("stage=schema reason=%s", exc)
                 return 1
             if args.command == "start":
+                # Arguments are valid and the schema file exists (an invalid flag or a missing file creates no state,
+                # as ever): from here a start-up failure is recorded in the attempt directory, schema load included.
+                if _execution_of(args) is not None and os.path.exists(args.config):
+                    try:
+                        _open_status_store(args, _execution_of(args))
+                    except StatusStoreRefused as exc:
+                        logger.error("stage=status reason=%s", exc)
+                        return 1
                 try:
                     schema = load_schema(args.config)
                     if (args.mode == "bulk" and not getattr(args, "edge_classic", False)
@@ -3619,7 +4420,8 @@ def main(args_list: list[str] | None = None) -> int:
                         _bucket_lease_numeric_args(args)
                     args.runtime = prepare_run(args, args.config)
                 except (OSError, ValueError, SchemaLoadError) as exc:
-                    logger.error("stage=runtime directory=%s reason=%s", getattr(args, "runtime_root", "-"), exc)
+                    logger.error("stage=runtime directory=%s reason=%s", getattr(args, "runtime_root", "-"), exc,
+                                 extra=structured("runtime", directory=str(getattr(args, "runtime_root", "-")), reason=str(exc)))
                     return 1
                 args.config = str(args.runtime.schema)
             return args.func(args)

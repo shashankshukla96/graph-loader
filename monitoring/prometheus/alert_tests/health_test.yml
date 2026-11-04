@@ -1,0 +1,133 @@
+# promtool unit tests for health.yml (E15): scrape health under each scrape path, the
+# aggregated path's per-child result, and the duplicate-scrape rule. Run with:
+#   docker run --rm --entrypoint promtool \
+#     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+#     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/health_test.yml
+rule_files:
+  - ../alerts/health.yml
+
+evaluation_interval: 1m
+
+tests:
+  # 1. Per-target path (Docker discovery or file_sd): `up` of the role's own target. A target that
+  # stays down fires after the 1m `for:`; one that is discovered then REMOVED (the role exited
+  # cleanly: its series go stale) never fires; another job being down is not ours.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="graph-loader",instance="graph-loader-node-1",kind="node"}'
+        values: "1x5 0x10"
+      - series: 'up{job="graph-loader",instance="graph-loader-edge-1",kind="edge"}'
+        values: "1x5 stale"
+      - series: 'up{job="prometheus",instance="localhost:9090"}'
+        values: "0x15"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: GraphLoaderTargetDown
+        exp_alerts: []
+      - eval_time: 9m
+        alertname: GraphLoaderTargetDown
+        exp_alerts:
+          - exp_labels:
+              job: graph-loader
+              instance: graph-loader-node-1
+              kind: node
+              severity: warning
+            exp_annotations:
+              summary: "Scrape target graph-loader-node-1 (job graph-loader) is down."
+              description: "Prometheus cannot scrape this graph-loader target. With the aggregated endpoint this is the one target for the whole run; with per-role targets it is one role. Check that the role or the CLI is running and that its metrics address is reachable from Prometheus (--metrics-addr, --metrics-port).\n"
+
+  # 2. Aggregated path: Prometheus `up` is 1 for the one aggregate target while ONE child cannot be
+  # scraped by the CLI; only `graph_loader_exporter_up` shows it, so only ExporterScrapeFailed fires
+  # (and TargetDown, which watches the aggregate target itself, stays silent).
+  - interval: 1m
+    input_series:
+      - series: 'up{job="graph-loader",instance="127.0.0.1:9600"}'
+        values: "1x15"
+      - series: 'graph_loader_exporter_up{exporter="node-Person-r0-aaaaaaaa",execution_id="x1",run_id="r1",runtime="process"}'
+        values: "1x5 0x10"
+      - series: 'graph_loader_exporter_up{exporter="edge-KNOWS-r0-bbbbbbbb",execution_id="x1",run_id="r1",runtime="process"}'
+        values: "1x15"
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: GraphLoaderExporterScrapeFailed
+        exp_alerts:
+          - exp_labels:
+              exporter: node-Person-r0-aaaaaaaa
+              execution_id: x1
+              run_id: r1
+              runtime: process
+              severity: warning
+            exp_annotations:
+              summary: "The aggregated endpoint cannot scrape exporter node-Person-r0-aaaaaaaa (execution x1)."
+              description: "The CLI's aggregated /metrics could not read this role's own metrics endpoint, so its series are missing from the aggregate while the role may still be running. Check the role's metrics-ready log line (stage=metrics-ready) and that it has not exited.\n"
+      - eval_time: 9m
+        alertname: GraphLoaderTargetDown
+        exp_alerts: []
+
+  # 3. Aggregated path, child exited: its row disappears from the aggregate (no 0, no series): nothing fires.
+  # The aggregate target itself going down does fire TargetDown (the CLI is gone or unreachable).
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_exporter_up{exporter="node-Person-r0-cccccccc",execution_id="x2",run_id="r2",runtime="process"}'
+        values: "1x5 stale"
+      - series: 'up{job="graph-loader",instance="127.0.0.1:9601"}'
+        values: "1x5 0x10"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: GraphLoaderExporterScrapeFailed
+        exp_alerts: []
+      - eval_time: 9m
+        alertname: GraphLoaderTargetDown
+        exp_alerts:
+          - exp_labels:
+              job: graph-loader
+              instance: 127.0.0.1:9601
+              severity: warning
+            exp_annotations:
+              summary: "Scrape target 127.0.0.1:9601 (job graph-loader) is down."
+              description: "Prometheus cannot scrape this graph-loader target. With the aggregated endpoint this is the one target for the whole run; with per-role targets it is one role. Check that the role or the CLI is running and that its metrics address is reachable from Prometheus (--metrics-addr, --metrics-port).\n"
+
+  # 4. Duplicate-scrape rule: the SAME exporter observed from two jobs (the per-role targets AND the
+  # aggregated endpoint) fires; one exporter with several series in ONE job does not; two exporters
+  # each in their own job do not.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_process_up{kind="node",name="Person",exporter="node-Person-r0-dddddddd",execution_id="x3",run_id="r3",runtime="process",job="graph-loader"}'
+        values: "1x10"
+      - series: 'graph_loader_process_up{kind="node",name="Person",exporter="node-Person-r0-dddddddd",execution_id="x3",run_id="r3",runtime="process",job="graph-loader-aggregate"}'
+        values: "1x10"
+      - series: 'graph_loader_process_up{kind="edge",name="KNOWS",exporter="edge-KNOWS-r0-eeeeeeee",execution_id="x3",run_id="r3",runtime="process",job="graph-loader"}'
+        values: "1x10"
+      - series: 'graph_loader_process_up{kind="edge",name="KNOWS",exporter="edge-KNOWS-r0-eeeeeeee",execution_id="x3",run_id="r3",runtime="process",job="graph-loader",instance="second-series"}'
+        values: "1x10"
+      - series: 'graph_loader_process_up{kind="clock",name="-",exporter="clock-ffffffff",execution_id="x3",run_id="r3",runtime="process",job="graph-loader-aggregate"}'
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: GraphLoaderDuplicateScrape
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: GraphLoaderDuplicateScrape
+        exp_alerts:
+          - exp_labels:
+              exporter: node-Person-r0-dddddddd
+              severity: warning
+            exp_annotations:
+              summary: "Exporter node-Person-r0-dddddddd is scraped by 2 jobs; sums over it are inflated."
+              description: "Keep one authoritative scrape path per discovery mode: either the per-role targets (Docker or file discovery) or the aggregated endpoint of the process runtime, never both.\n"
+
+  # 5. Missing series: no graph-loader series at all: no health or duplicate alert.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="prometheus",instance="localhost:9090"}'
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: GraphLoaderTargetDown
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: GraphLoaderExporterScrapeFailed
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: GraphLoaderDuplicateScrape
+        exp_alerts: []

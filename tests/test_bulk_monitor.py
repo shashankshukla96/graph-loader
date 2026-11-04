@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from confluent_kafka import TopicPartition
-from docker.errors import NotFound
+from neo4j_graph_loader.orchestrator.runtime import HandleGone
 
 from neo4j_graph_loader.orchestrator.bulk_monitor import (
     AssignmentCoverageError,
@@ -354,7 +354,7 @@ def test_crash_during_coverage_is_attributed(schema):
 def test_drain_polls_ack_before_accepting_auto_removed_container(schema):
     monitor, _, _, _, _, containers = _monitor(schema)
     _cover_all_partitions(monitor)
-    containers[("Person", "0")].reload.side_effect = NotFound("gone")
+    containers[("Person", "0")].reload.side_effect = HandleGone("gone")
     # A missing acknowledgement never counts as successful drain. Attribution is
     # retained, but only after the bounded control loop had time to receive it.
     with pytest.raises(LoaderCrashError, match="label=Person replica=0"):
@@ -371,7 +371,7 @@ def test_drain_polls_ack_before_accepting_auto_removed_container(schema):
     # Control records arrive after one exact container has already vanished.
     pending_acknowledgements = iter(acknowledgements)
     control.poll.side_effect = lambda *_args: next(pending_acknowledgements, None)
-    containers[("Person", "0")].reload.side_effect = NotFound("gone")
+    containers[("Person", "0")].reload.side_effect = HandleGone("gone")
     # An exited object has the same delayed-control race as an auto-removed one.
     containers[("Company", "0")].attrs = {"State": {"Status": "exited", "ExitCode": 0}}
 
@@ -385,7 +385,7 @@ def test_idle_surplus_must_ack_drain_before_disappearing(schema):
         "run_id": "run-1", "node_label": "Person", "replica_id": "1",
         "type": "IDLE_SURPLUS", "assignment_epoch": 2,
     }))
-    containers[("Person", "1")].reload.side_effect = NotFound("gone")
+    containers[("Person", "1")].reload.side_effect = HandleGone("gone")
 
     with pytest.raises(LoaderCrashError, match="label=Person replica=1"):
         monitor.wait_for_drain_complete(timeout_seconds=1)
@@ -586,7 +586,7 @@ def test_drain_failure_of_one_label_fails_without_waiting_for_others(schema):
         stopped.append(label)
         for (node_label, _), container in containers.items():
             if node_label == label:
-                container.reload.side_effect = NotFound("removed")
+                container.reload.side_effect = HandleGone("removed")
 
     with pytest.raises(LoaderCrashError, match="label=Person replica=0"):
         monitor.drive_label_readiness(
@@ -875,3 +875,18 @@ def test_wait_never_aborts_when_shutdown_is_not_requested(schema):
     with pytest.raises(bulk_monitor_module.BulkTimeoutError) as excinfo:
         monitor.wait_for_completion(1)
     assert not isinstance(excinfo.value, bulk_monitor_module.BulkShutdownRequested)
+
+
+def test_drive_label_readiness_beats_the_heartbeat_while_it_waits(schema, monkeypatch):
+    """Review fix 1: this loop is the main thread's whole wait while the nodes load and no relationship monitor runs yet; it must beat
+    so that /healthz does not turn stale during a long, healthy node phase."""
+    beats: list[int] = []
+    monkeypatch.setattr("neo4j_graph_loader.orchestrator.bulk_monitor.heartbeat.beat", lambda: beats.append(1))
+    monitor, _, inbox, _, containers = _readiness_monitor(schema)
+
+    def stop_label(label: str) -> None:
+        _exit(containers, label)
+        _ack_all(inbox, containers, label)
+
+    monitor.drive_label_readiness({"Person", "Company"}, 30, stop_label=stop_label, on_ready=lambda _label: None)
+    assert beats, "no heartbeat during the node-label wait"

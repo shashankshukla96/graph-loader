@@ -1,0 +1,86 @@
+# `docker compose -f docker-compose.yaml -f docker-compose.monitoring.yml config` (render only; GRAFANA_ADMIN_PASSWORD was a dummy, redacted below; DOCKER_GID=0)
+# prometheus and grafana services only. Without GRAFANA_ADMIN_PASSWORD the same command fails with:
+#   required variable GRAFANA_ADMIN_PASSWORD is missing a value: set GRAFANA_ADMIN_PASSWORD to a password of your own before starting the stack
+prometheus:
+  container_name: graph-loader-prometheus
+  cpuset: 28-31
+  command:
+  - --config.file=/etc/prometheus/prometheus.yml
+  - --storage.tsdb.path=/prometheus
+  - --storage.tsdb.retention.time=48h
+  extra_hosts:
+  - host.docker.internal=host-gateway
+  group_add:
+  - '0'
+  image: prom/prometheus:v2.55.1
+  networks:
+    graph-loader-net: null
+  volumes:
+  - type: bind
+    source: /Users/shashank/Desktop/Code/Graph/graph-loader-e15/monitoring/prometheus
+    target: /etc/prometheus
+    read_only: true
+    bind: {}
+  - type: bind
+    source: /var/run/docker.sock
+    target: /var/run/docker.sock
+    read_only: true
+    bind: {}
+  - type: bind
+    source: /nonexistent-render-only/prometheus
+    target: /prometheus
+    bind: {}
+  healthcheck:
+    test:
+    - CMD
+    - wget
+    - -q
+    - --spider
+    - http://localhost:9090/-/healthy
+    timeout: 5s
+    interval: 10s
+    retries: 10
+    start_period: 15s
+  ports:
+  - mode: ingress
+    host_ip: 127.0.0.1
+    target: 9090
+    published: '9090'
+    protocol: tcp
+grafana:
+  container_name: graph-loader-grafana
+  cpuset: 28-31
+  environment:
+    GF_AUTH_ANONYMOUS_ENABLED: 'false'
+    GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    GF_SECURITY_ADMIN_PASSWORD: <dummy-password-redacted>
+    GF_SECURITY_ADMIN_USER: admin
+    GF_USERS_ALLOW_SIGN_UP: 'false'
+  image: grafana/grafana-oss:11.3.1
+  networks:
+    graph-loader-net: null
+  volumes:
+  - type: bind
+    source: /Users/shashank/Desktop/Code/Graph/graph-loader-e15/monitoring/grafana/provisioning
+    target: /etc/grafana/provisioning
+    read_only: true
+    bind: {}
+  - type: bind
+    source: /Users/shashank/Desktop/Code/Graph/graph-loader-e15/monitoring/grafana/dashboards
+    target: /etc/grafana/dashboards
+    read_only: true
+    bind: {}
+  - type: bind
+    source: /nonexistent-render-only/grafana
+    target: /var/lib/grafana
+    bind: {}
+  depends_on:
+    prometheus:
+      condition: service_healthy
+      required: true
+  ports:
+  - mode: ingress
+    host_ip: 127.0.0.1
+    target: 3000
+    published: '3000'
+    protocol: tcp

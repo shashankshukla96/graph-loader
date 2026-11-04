@@ -1,0 +1,112 @@
+# promtool unit tests for the concurrency alert rules. Deliberately NOT
+# under monitoring/prometheus/alerts/: that directory's glob
+# ("alerts/*.yml") is prometheus.yml's own rule_files target AND
+# Story 5/6's "promtool check rules alerts/*.yml" validation target — a
+# promtool *test* file (this one) is not a valid rule-group file (no
+# top-level `groups:` key) and would break both if it lived there. Run
+# this file with:
+#   docker run --rm --entrypoint promtool \
+#     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+#     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/concurrency_test.yml
+#
+# This is the promtool proof required by Story 2's own acceptance
+# criterion: GraphLoaderPlannedModeDeadlockObserved fires against a
+# synthetic nonzero snapshot and does not fire against an all-zero one.
+#
+# E15 label mapping: the series carry the identity every sample has since E15
+# (execution_id, exporter, run_id, runtime as METRIC labels). Test 1 and 2 keep
+# their outcomes (fires on a nonzero snapshot, silent on an all-zero one); the
+# alert's labels gain the identity labels because the rule selects no labels.
+# New controls: 3 the exporter DISAPPEARS (a short-lived bulk writer exits) and
+# the alert keeps firing from the hour of history; 4 PlanResourceWaitHigh keeps
+# two executions that share one run_id apart (grouping is by execution_id).
+rule_files:
+  - ../alerts/concurrency.yml
+
+evaluation_interval: 1m
+
+tests:
+  # 1. A nonzero snapshot fires.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_deadlocks_recovered_total{kind="planned-writer",name="ACTED_IN",execution_id="x1",exporter="planned-writer-ACTED_IN-r0-aaaaaaaa",run_id="r1",runtime="process"}'
+        values: "0 1"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: GraphLoaderPlannedModeDeadlockObserved
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              kind: planned-writer
+              name: ACTED_IN
+              execution_id: x1
+              exporter: planned-writer-ACTED_IN-r0-aaaaaaaa
+              run_id: r1
+              runtime: process
+            exp_annotations:
+              summary: "Planned-mode writer recovered a deadlock — this must stay 0 by construction (docs/USAGE.md §6/§9); investigate the resource-disjointness invariant immediately."
+
+  # 2. An all-zero snapshot does not.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_deadlocks_recovered_total{kind="planned-writer",name="ACTED_IN",execution_id="x1",exporter="planned-writer-ACTED_IN-r0-aaaaaaaa",run_id="r1",runtime="process"}'
+        values: "0 0"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: GraphLoaderPlannedModeDeadlockObserved
+        exp_alerts: []
+
+  # 3. Exporter disappearance keeps the historical alert. The writer saw one
+  # recovered deadlock at 5m and exited at 8m (its series go stale; the exporter
+  # label is unique per incarnation, so nothing ever reports this series again).
+  # The alert is still firing 30m later, from the hour of history, and resolves
+  # only once the evidence is more than an hour old.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_deadlocks_recovered_total{kind="planned-writer",name="ACTED_IN",execution_id="x1",exporter="planned-writer-ACTED_IN-r0-bbbbbbbb",run_id="r1",runtime="process"}'
+        values: "0x4 1x3 stale"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: GraphLoaderPlannedModeDeadlockObserved
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              kind: planned-writer
+              name: ACTED_IN
+              execution_id: x1
+              exporter: planned-writer-ACTED_IN-r0-bbbbbbbb
+              run_id: r1
+              runtime: process
+            exp_annotations:
+              summary: "Planned-mode writer recovered a deadlock — this must stay 0 by construction (docs/USAGE.md §6/§9); investigate the resource-disjointness invariant immediately."
+      - eval_time: 75m
+        alertname: GraphLoaderPlannedModeDeadlockObserved
+        exp_alerts: []
+
+  # 4. PlanResourceWaitHigh, two executions that REUSE the run_id "same": the one
+  # whose waits sit in the (1s,10s] bucket (p95 about 9.5s) fires, with its own
+  # execution_id; the one whose waits are all under 1s does not; the merged
+  # distribution of a rule grouped by run_id would sit in between and could hide it.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_plan_resource_wait_seconds_bucket{le="1",kind="planned-dispatcher",name="-",execution_id="slow",exporter="planned-dispatcher-11111111",run_id="same",runtime="process"}'
+        values: "0x30"
+      - series: 'graph_loader_plan_resource_wait_seconds_bucket{le="10",kind="planned-dispatcher",name="-",execution_id="slow",exporter="planned-dispatcher-11111111",run_id="same",runtime="process"}'
+        values: "0+100x30"
+      - series: 'graph_loader_plan_resource_wait_seconds_bucket{le="+Inf",kind="planned-dispatcher",name="-",execution_id="slow",exporter="planned-dispatcher-11111111",run_id="same",runtime="process"}'
+        values: "0+100x30"
+      - series: 'graph_loader_plan_resource_wait_seconds_bucket{le="1",kind="planned-dispatcher",name="-",execution_id="fast",exporter="planned-dispatcher-22222222",run_id="same",runtime="process"}'
+        values: "0+100x30"
+      - series: 'graph_loader_plan_resource_wait_seconds_bucket{le="10",kind="planned-dispatcher",name="-",execution_id="fast",exporter="planned-dispatcher-22222222",run_id="same",runtime="process"}'
+        values: "0+100x30"
+      - series: 'graph_loader_plan_resource_wait_seconds_bucket{le="+Inf",kind="planned-dispatcher",name="-",execution_id="fast",exporter="planned-dispatcher-22222222",run_id="same",runtime="process"}'
+        values: "0+100x30"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: GraphLoaderPlanResourceWaitHigh
+        exp_alerts:
+          - exp_labels:
+              execution_id: slow
+              severity: warning
+            exp_annotations:
+              summary: "Planned-dispatcher execution slow p95 resource wait exceeded 5s over 5m."

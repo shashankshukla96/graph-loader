@@ -1,0 +1,14 @@
+=== before
+Mon Nov  2 09:21:10 PM UTC 2026
+MemAvailable:    9278772 kB
+graph-loader-kafka-ui Up 2 days
+graph-loader-kafka Up 21 hours (healthy)
+graph-loader-neo4j Up 21 hours (healthy)
+imdb-c7b4c997dfd08de3-kafka Exited (137) 21 hours ago
+imdb-c7b4c997dfd08de3-neo Exited (137) 21 hours ago
+postgres Up 2 days
+bridge graph-loader-net host imdb-c7b4c997dfd08de3-net none ws_default 
+f3962be2e6730adf55c827a82ea73c2192e54073b086839d56415ca465463b8a fd891d7013e42bd9f7d2ed52a8c797bc541d5cba9278d72f491038f905736962 graphloader_neo4j_data graphloader_neo4j_logs imdb-c7b4c997dfd08de3-kafka-data imdb-c7b4c997dfd08de3-neo-data imdb-c7b4c997dfd08de3-neo-logs 
+0.0.0.0:22 0.0.0.0:5432 0.0.0.0:7474 0.0.0.0:7687 0.0.0.0:8080 0.0.0.0:9092 0.0.0.0:9101 127.0.0.1:631 127.0.0.53%lo:53 127.0.0.54:53 [::1]:631 [::]:22 *:3389 [::]:5432 
+images same as baseline
+2655935 bash -c mkdir -p /home/shashank/e14/0c799fb7/tmp /home/shashank/e14/0c799fb7/config /home/shashank/e14/0c799fb7/logs && echo '=== before'; date -u; grep MemAvailable /proc/meminfo; docker ps -a --format '{{.Names}} {{.Status}}' | sort; docker network ls --format '{{.Name}}' | sort | tr '\n' ' '; echo; docker volume ls -q | sort | tr '\n' ' '; echo; ss -ltnH | awk '{print $4}' | sort -u | tr '\n' ' '; echo; docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | sort | diff - /home/shashank/e14/1384cb6f/logs/images-before.txt && echo 'images same as baseline'; pgrep -fa 'e14|neo4j_graph_loader' | head

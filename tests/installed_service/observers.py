@@ -20,7 +20,7 @@ from neo4j import Query
 
 def _owner_database(owner, database):
     if (not isinstance(owner, str) or re.fullmatch(r'[0-9a-f]{32}', owner) is None
-            or database != 'e09'+owner[:16]):
+            or database not in ('e09'+owner[:16], 'e14'+owner[:16])):
         raise ValueError('scratch database identity differs')
 
 
@@ -142,12 +142,12 @@ def _finite_float(value):
     return result
 
 
-def committed_offsets(*, owner, bootstrap, group, partitions, broker_guard):
+def committed_offsets(*, owner, bootstrap, group, partitions, broker_guard, prefix_name='e09'):
     """Read offsets without committing; caller must authenticate broker ownership.
 
     Loopback and token-prefixed names alone do not establish broker ownership.
     """
-    prefix = 'e09-'+owner+'-' if isinstance(owner, str) and re.fullmatch(r'[0-9a-f]{32}', owner) else None
+    prefix = prefix_name+'-'+owner+'-' if isinstance(owner, str) and re.fullmatch(r'[0-9a-f]{32}', owner) else None
     if (prefix is None or not isinstance(bootstrap, str)
             or re.fullmatch(r'127\.0\.0\.1:[0-9]{1,5}', bootstrap) is None
             or not 1 <= int(bootstrap.rsplit(':', 1)[1]) <= 65535

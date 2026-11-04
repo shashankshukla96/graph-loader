@@ -12,7 +12,9 @@ groups:
         # plain instant comparison resolves this critical alert within
         # ~5m even though the deadlock genuinely happened and still
         # deserves investigation. max_over_time keeps it visible for an
-        # hour after the fact.
+        # hour after the fact. The selector names no identity label, so the
+        # evidence also survives the exporter (unique per incarnation) leaving:
+        # max_over_time keeps the series by its labels, stale or not.
         expr: max_over_time(graph_loader_deadlocks_recovered_total{kind="planned-writer"}[1h]) > 0
         for: 0m
         labels:
@@ -38,13 +40,15 @@ groups:
         # every concurrent run's planned-dispatcher into one p95 — one
         # run's contention can hide behind, or pollute, another's. kind
         # adds nothing here (only planned-dispatcher emits this metric);
-        # run_id (a target label, always set for planned-dispatcher) is
-        # the dimension that actually distinguishes concurrent runs. An
-        # idle dispatcher has rate 0 across the window, so the quantile
+        # execution_id (a METRIC label since E15: one value per
+        # `graph-loader start`, always set) is the dimension that distinguishes
+        # runs. run_id is reusable (two executions may share one) and is
+        # empty on the roles Docker never gave it, so it is no grouping key.
+        # An idle dispatcher has rate 0 across the window, so the quantile
         # is NaN and `NaN > 5` is false — no false positive from idleness.
-        expr: histogram_quantile(0.95, sum by (le, run_id) (rate(graph_loader_plan_resource_wait_seconds_bucket[5m]))) > 5
+        expr: histogram_quantile(0.95, sum by (le, execution_id) (rate(graph_loader_plan_resource_wait_seconds_bucket[5m]))) > 5
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "Planned-dispatcher run_id={{ $labels.run_id }} p95 resource wait exceeded 5s over 5m."
+          summary: "Planned-dispatcher execution {{ $labels.execution_id }} p95 resource wait exceeded 5s over 5m."

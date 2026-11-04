@@ -24,6 +24,7 @@ import pytest
 from neo4j_graph_loader import cli
 from neo4j_graph_loader.cli import build_parser, handle_start
 from neo4j_graph_loader.orchestrator.bulk_monitor import BulkMonitorError, BulkShutdownRequested
+from neo4j_graph_loader.orchestrator.runtime import HandleGone
 
 from test_planned_edges_cli import FakeControl, SCHEMA as PLANNED_SCHEMA, make_plan
 from neo4j_graph_loader.loader.edge_plan import write_plan_file
@@ -489,7 +490,7 @@ def test_node_loader_watcher_flags_a_missing_node_loader_and_requests_shutdown(c
     running.attrs = {"State": {"Status": "running"}}
     gone = MagicMock()
     gone.name = "graph-loader-node-Person-0"
-    gone.reload.side_effect = cli.NotFound("gone")
+    gone.reload.side_effect = HandleGone("gone")
     shutdown = cli.Event()
     with caplog.at_level("ERROR"):
         watcher = cli._NodeLoaderWatcher([running, gone], shutdown, interval=0.01).start()
@@ -501,7 +502,7 @@ def test_node_loader_watcher_flags_a_missing_node_loader_and_requests_shutdown(c
 
 def test_node_loader_watcher_ignores_exits_during_an_operator_stop() -> None:
     gone = MagicMock()
-    gone.reload.side_effect = cli.NotFound("gone")
+    gone.reload.side_effect = HandleGone("gone")
     shutdown = cli.Event()
     shutdown.set()
     watcher = cli._NodeLoaderWatcher([gone], shutdown, interval=0.01).start()
@@ -552,7 +553,7 @@ def test_node_loader_watcher_ignores_containers_the_cli_itself_is_stopping(caplo
 
     node = MagicMock()
     node.name = "graph-loader-node-Person-0"
-    node.reload.side_effect = cli.NotFound("gone")
+    node.reload.side_effect = HandleGone("gone")
     shutdown = cli.Event()
     cli._stop_exact_containers([node])
     with caplog.at_level("ERROR"):

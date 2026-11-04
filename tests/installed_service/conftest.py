@@ -38,7 +38,9 @@ def registry(service_config):
 
 @pytest.fixture(scope='session')
 def stack(docker_client, registry, service_config):
-    live = LiveStack(docker_client, registry, deadline=time.monotonic() + service_config['deadline_seconds'])
+    live = LiveStack(docker_client, registry, deadline=time.monotonic() + service_config['deadline_seconds'],
+                     prefix=service_config.get('prefix', 'e09'), limits=service_config.get('limits'),
+                     expected_images=service_config.get('expected_images'), pin_neo_port=bool(service_config.get('pin_neo_port')))
     try:
         live.start()
         yield live

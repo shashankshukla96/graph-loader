@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from confluent_kafka import TopicPartition
-from docker.errors import NotFound
+from neo4j_graph_loader.orchestrator.runtime import HandleGone
 
 from neo4j_graph_loader.orchestrator.bulk_monitor import AssignmentCoverageError, BulkTimeoutError, QuiescentViolationError
 from neo4j_graph_loader.orchestrator.coordination import ClockLease, encode_clock_lease
@@ -148,7 +148,7 @@ def test_exited_and_removed_edge_container_require_current_drain_ack():
         monitor._check_health()
     monitor._decode_control(_message({**_assignment(), "type": "DRAIN_COMPLETE"}))
     monitor._check_health(True)
-    container.reload.side_effect = NotFound("removed")
+    container.reload.side_effect = HandleGone("removed")
     monitor._check_health(True)
 
 
@@ -939,7 +939,7 @@ def test_stream_supervisor_treats_a_removed_retry_consumer_as_a_crash():
     from neo4j_graph_loader.orchestrator.bulk_monitor import LoaderCrashError
 
     gone = MagicMock()
-    gone.reload.side_effect = NotFound("gone")
+    gone.reload.side_effect = HandleGone("gone")
     monitor, *_ = _monitor(retry_consumers=[gone])
     with pytest.raises(LoaderCrashError, match="stage=retry-consumer run_id=run-1 replica=0 .*status=removed"):
         monitor.supervise_stream(_NeverShutdown())

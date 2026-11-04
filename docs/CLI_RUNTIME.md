@@ -58,6 +58,15 @@ timing directories read-write at `/app/runtime_schema.yaml`, `/app/edge-plan.jso
 Docker daemon: use a local daemon or shared filesystem with matching host paths.
 The installed command does not translate files to remote Docker hosts.
 
+With `start --runtime process` the roles are child processes of the command, so
+nothing is bound or mounted: the attempt directory above also holds
+`registry.jsonl`, `logs/<role>.log`, `work/<role>/` (the working directory of each
+role, where a relative path set in a schema resolves) and `metrics/targets.json`,
+and the `/app/...` bind paths are replaced by the host paths of the same files.
+See [Process runtime](PROCESS_RUNTIME.md#5-the-run-directory). `stop`/`status`
+find the run through `registry.jsonl`, so pass `--run-dir` when you gave one to
+`start`.
+
 Starts resolve matching versioned prebuilt images independently of cwd. Missing
 images are pulled unless --skip-image-build requests compatible local images
 only; runtime never builds Dockerfiles. See [Docker execution](DOCKER_EXECUTION.md)

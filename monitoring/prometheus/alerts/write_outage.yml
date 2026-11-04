@@ -18,7 +18,7 @@ groups:
         # reason=neo4j_outage ERROR after 30 s. Example threshold only
         # (2 minutes, then 1m `for:`): long enough to ride out a restart or a
         # failover without paging.
-        expr: max by (kind, name, run_id) (graph_loader_write_outage_seconds) > 120
+        expr: max by (kind, name, execution_id) (graph_loader_write_outage_seconds) > 120
         for: 1m
         labels:
           severity: critical

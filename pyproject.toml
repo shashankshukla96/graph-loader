@@ -33,6 +33,12 @@ classifiers = [
 [project.scripts]
 graph-loader = "neo4j_graph_loader.cli:main"
 
+# E15 D15-4: optional run-status database support; the base install gains no dependency. [postgres] is [sql] plus the
+# PostgreSQL driver (psycopg 3, binary wheels so no libpq is needed). Floors are the lowest versions the SQL tests pass on.
+[project.optional-dependencies]
+sql = ["SQLAlchemy>=2.0.30,<3"]
+postgres = ["SQLAlchemy>=2.0.30,<3", "psycopg[binary]>=3.1.12,<4"]
+
 [project.urls]
 Repository = "https://github.com/shashankshukla96/graph-loader"
 Documentation = "https://github.com/shashankshukla96/graph-loader/blob/main/docs/QUICKSTART.md"
@@ -44,7 +50,18 @@ package-dir = {"" = "src"}
 include-package-data = false
 
 [tool.setuptools.package-data]
-neo4j_graph_loader = ["data/graph_schema.yaml", "data/social_schema.yaml"]
+neo4j_graph_loader = [
+    "data/graph_schema.yaml",
+    "data/social_schema.yaml",
+    # E15.F2.S10: the monitoring bundle (equals the checkout's monitoring/ tree; a test enforces it)
+    "monitoring/prometheus/*.yml",
+    "monitoring/prometheus/alerts/*.yml",
+    "monitoring/prometheus/alert_tests/*.yml",
+    "monitoring/grafana/dashboards/*.json",
+    "monitoring/grafana/dashboards-sql/*.json",
+    "monitoring/grafana/provisioning/dashboards/*.yml",
+    "monitoring/grafana/provisioning/datasources/*.yml",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -26,7 +26,7 @@ def events(data, *, marker, maximum=8*1024*1024):
     """Parse bounded complete JSON events with their server query IDs."""
     if (not isinstance(data, bytes) or type(maximum) is not int or maximum < 1
             or len(data) > maximum or not isinstance(marker, str)
-            or re.fullmatch(r'e09[0-9a-f]{32}', marker) is None):
+            or re.fullmatch(r'(e09|e14)[0-9a-f]{32}', marker) is None):
         raise ValueError('bounded data and a valid run marker are required')
     if not data or not data.endswith(b'\n'):
         raise RuntimeError('structured query log is empty or incomplete')

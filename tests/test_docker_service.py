@@ -283,7 +283,7 @@ class TestDockerService(unittest.TestCase):
         containers = [MagicMock(), MagicMock()]
         self.mock_client.containers.list.return_value = containers
 
-        self.assertEqual(self.service.list_run_containers(), containers)
+        self.assertEqual([handle.container for handle in self.service.list_run_containers()], containers)
         self.mock_client.containers.list.assert_called_once_with(
             all=True, filters={"label": ["app=graph-loader"]}
         )
@@ -535,7 +535,7 @@ class TestDockerService(unittest.TestCase):
             run_id="run-A", config_path="config.yaml", fleet_edge_types="BOUGHT,WORKS_AT",
             coordination_topic="graph.loader.coordination",
         )
-        assert clock is self.mock_client.containers.run.return_value
+        assert clock.container is self.mock_client.containers.run.return_value
         call = self.mock_client.containers.run.call_args.kwargs
         assert call["name"] == "graph-loader-clock-72756e2d41"
         assert call["labels"] == {
@@ -591,7 +591,7 @@ class TestConcurrentReplicaLaunch(unittest.TestCase):
                 node_label="Person", topic="person_topic", mode="bulk", config_path="config.yaml",
                 replicas=4, rejection_dir=rejection_dir, run_id="run-A",
             )
-        self.assertEqual(containers, [started[str(index)] for index in range(4)])
+        self.assertEqual([handle.container for handle in containers], [started[str(index)] for index in range(4)])
         names = sorted(call.kwargs["name"] for call in client.containers.run.call_args_list)
         self.assertEqual(
             names, [f"graph-loader-node-Person-{index}-{'run-A'.encode().hex()}" for index in range(4)]
@@ -654,7 +654,7 @@ class TestBucketLeaseWiring(unittest.TestCase):
             container = self.service.run_bucket_lease_server(
                 run_id="run-A", bucket_count=16, network="loader-net", keyed_labels=["Region", "Genre"],
             )
-        assert container is self.mock_client.containers.run.return_value
+        assert container.container is self.mock_client.containers.run.return_value
         call = self.mock_client.containers.run.call_args.kwargs
         assert call["image"] == IMAGE_IDS["edge"]
         assert call["entrypoint"] == ["python", "-m", "neo4j_graph_loader.orchestrator.lease_server"]
@@ -807,7 +807,7 @@ class TestRetryConsumerWiring(unittest.TestCase):
                 run_id="run-A", config_path=config_file.name, lease_address="172.17.0.9:7700",
                 dlq_topics=["works-at-events.dlq", "knows-events.dlq"], network="loader-net",
             )
-        assert containers == [self.mock_client.containers.run.return_value]
+        assert [handle.container for handle in containers] == [self.mock_client.containers.run.return_value]
         call = self.mock_client.containers.run.call_args.kwargs
         assert call["image"] == IMAGE_IDS["edge"]
         assert call["entrypoint"] == ["python", "-m", "neo4j_graph_loader.loader.retry_consumer"]

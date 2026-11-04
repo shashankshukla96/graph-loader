@@ -81,27 +81,48 @@ def free_port():
     raise RuntimeError('no free loopback port')
 
 
-def owned_name(owner, role):
-    return f'e09-{owner}-{role}'
+def owned_name(owner, role, prefix='e09'):
+    return f'{prefix}-{owner}-{role}'
 
 
 class LiveStack:
     """Network, Neo4j 5.26 Enterprise (APOC, structured query log) and Kafka 7.7.0."""
 
-    def __init__(self, client, registry, *, deadline):
+    def __init__(self, client, registry, *, deadline, prefix='e09', limits=None, expected_images=None, pin_neo_port=False):
         self.client = client
+        self.prefix = prefix                      # E14 runs name their resources 'e14-<owner>-...'; E09 keeps 'e09'
+        self.topic_prefix = f'{prefix}-{registry.owner}-'
+        self.expected_images = dict(expected_images or {})   # {'neo4j': 'sha256:...', 'kafka': ...}: refuse any other image
+        self.limits = dict(limits or {})          # optional memory bounds, see start(); empty = Docker's defaults
         self.registry = registry
         self.owner = registry.owner
         self.deadline = deadline
         self.labels = {OWNER_LABEL: self.owner}
         self.password = uuid.uuid4().hex
-        self.marker = 'e09' + self.owner
-        self.database = 'e09' + self.owner[:16]
+        self.marker = prefix + self.owner
+        self.database = prefix + self.owner[:16]
         self.network = self.neo = self.kafka = self.driver = None
         self.volumes = {}
         self.images = {}
         self.kafka_port = None
         self.neo_port = None
+        # Docker publishes Neo4j on a random loopback port that changes when the container is stopped and started again. Process-mode
+        # children are handed NEO4J_URI once, so the outage cells publish it on a port that is chosen up front and survives restarts.
+        self.neo_pin = free_port() if pin_neo_port else None
+
+    def _mem_limit(self, key):
+        return {'mem_limit': self.limits[key]} if self.limits.get(key) else {}
+
+    def _neo4j_memory_env(self):
+        env = {}
+        if self.limits.get('neo4j_heap'):
+            env['NEO4J_server_memory_heap_initial__size'] = env['NEO4J_server_memory_heap_max__size'] = self.limits['neo4j_heap']
+        if self.limits.get('neo4j_pagecache'):
+            env['NEO4J_server_memory_pagecache_size'] = self.limits['neo4j_pagecache']
+        return env
+
+    def _kafka_memory_env(self):
+        return {'KAFKA_HEAP_OPTS': f"-Xms{self.limits['kafka_heap']} -Xmx{self.limits['kafka_heap']}"} if self.limits.get('kafka_heap') else {}
 
     def _check(self):
         if time.monotonic() > self.deadline:
@@ -109,11 +130,11 @@ class LiveStack:
 
     @property
     def neo_name(self):
-        return owned_name(self.owner, 'neo')
+        return owned_name(self.owner, 'neo', self.prefix)
 
     @property
     def kafka_name(self):
-        return owned_name(self.owner, 'kafka')
+        return owned_name(self.owner, 'kafka', self.prefix)
 
     @property
     def neo_uri(self):
@@ -143,13 +164,16 @@ class LiveStack:
     def start(self):
         self.images = {'neo4j': self.client.images.get(NEO4J_IMAGE).id,
                        'kafka': self.client.images.get(KAFKA_IMAGE).id}
+        for role, wanted in self.expected_images.items():
+            if self.images[role] != wanted:
+                raise RuntimeError(f'the {role} image on this host is {self.images[role]}, not the pinned {wanted}')
         self.volumes = {}
         for role, suffix, mount in (('neo', 'data', '/data'), ('neo', 'logs', '/logs'), ('kafka', 'data', '/var/lib/kafka/data')):
-            volume_name = owned_name(self.owner, f'{role}-{suffix}')
+            volume_name = owned_name(self.owner, f'{role}-{suffix}', self.prefix)
             self.volumes[(role, mount)] = self._create('volume', volume_name, lambda n=volume_name: self.client.volumes.create(
                 name=n, labels=self.labels))
-        self.network = self._create('network', owned_name(self.owner, 'net'), lambda: self.client.networks.create(
-            owned_name(self.owner, 'net'), driver='bridge', labels=self.labels))
+        self.network = self._create('network', owned_name(self.owner, 'net', self.prefix), lambda: self.client.networks.create(
+            owned_name(self.owner, 'net', self.prefix), driver='bridge', labels=self.labels))
         config = make_config((Path(__file__).parents[2] / 'config/neo4j/server-logs.xml').read_bytes(), self.marker)
         archive = io.BytesIO()
         with tarfile.open(fileobj=archive, mode='w') as tar:
@@ -162,8 +186,8 @@ class LiveStack:
                          'NEO4J_PLUGINS': '["apoc"]', 'NEO4J_dbms_security_procedures_unrestricted': 'apoc.*',
                          'NEO4J_dbms_security_procedures_allowlist': 'apoc.*',
                          'NEO4J_db_logs_query_enabled': 'VERBOSE', 'NEO4J_db_logs_query_threshold': '0ms',
-                         'NEO4J_db_logs_query_parameter__logging__enabled': 'false'},
-            ports={'7687/tcp': ('127.0.0.1', None)},
+                         'NEO4J_db_logs_query_parameter__logging__enabled': 'false', **self._neo4j_memory_env()},
+            ports={'7687/tcp': ('127.0.0.1', self.neo_pin)}, **self._mem_limit('neo4j_mem'),
             volumes={volume.name: {'bind': mount, 'mode': 'rw'} for (role, mount), volume in self.volumes.items() if role == 'neo'}))
         if not self.neo.put_archive('/var/lib/neo4j/conf', archive.getvalue()):
             raise RuntimeError('scratch query-log configuration transfer failed')
@@ -179,8 +203,8 @@ class LiveStack:
                          'KAFKA_CONTROLLER_QUORUM_VOTERS': '1@localhost:9094', 'CLUSTER_ID': 'MkU3OEVBNTcwNTJENDM2Qk',
                          'KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR': '1', 'KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS': '1',
                          'KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR': '1', 'KAFKA_TRANSACTION_STATE_LOG_MIN_ISR': '1',
-                         'KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS': '0'},
-            ports={'9093/tcp': ('127.0.0.1', self.kafka_port)},
+                         'KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS': '0', **self._kafka_memory_env()},
+            ports={'9093/tcp': ('127.0.0.1', self.kafka_port)}, **self._mem_limit('kafka_mem'),
             volumes={volume.name: {'bind': mount, 'mode': 'rw'} for (role, mount), volume in self.volumes.items() if role == 'kafka'}))
         self.neo.start()
         self.kafka.start()
@@ -231,7 +255,7 @@ class LiveStack:
 
     def create_topics(self, names, partitions=1):
         for name in names:
-            if not name.startswith(f'e09-{self.owner}-'):
+            if not name.startswith(self.topic_prefix):
                 raise ValueError('scratch topic must carry the owner prefix')
         admin = self.admin()
         for name, future in admin.create_topics([NewTopic(n, num_partitions=partitions, replication_factor=1) for n in names]).items():
@@ -250,7 +274,7 @@ class LiveStack:
             raise RuntimeError('scratch publish was not fully acknowledged')
 
     def end_offsets(self, topic, partitions=1):
-        consumer = Consumer({'bootstrap.servers': self.bootstrap, 'group.id': f'e09-{self.owner}-probe-{topic[-8:]}',
+        consumer = Consumer({'bootstrap.servers': self.bootstrap, 'group.id': f'{self.topic_prefix}probe-{topic[-8:]}',
                              'enable.auto.commit': False})
         try:
             return {p: consumer.get_watermark_offsets(TopicPartition(topic, p), timeout=10)[1] for p in range(partitions)}
@@ -306,7 +330,7 @@ class LiveStack:
 
     def run_owned(self, role, image, command, *, network=True):
         """Create and start one owned helper container; the caller removes it with ``remove_owned``."""
-        name = owned_name(self.owner, role)
+        name = owned_name(self.owner, role, self.prefix)
         self.registry.write('intent', resource='container', name=name)
         container = self.client.containers.create(image, name=name, command=command, labels={**self.labels, ROLE_LABEL: role},
                                                   network=self.network.name if network else None,

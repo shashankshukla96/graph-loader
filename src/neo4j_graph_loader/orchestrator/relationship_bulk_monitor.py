@@ -10,12 +10,13 @@ from typing import Callable, Mapping, Sequence
 
 from confluent_kafka import Consumer, ConsumerGroupTopicPartitions, TopicPartition
 from confluent_kafka.admin import AdminClient
-from docker.errors import NotFound
 
 from neo4j_graph_loader.loader.control import CONTROL_TOPIC
 from neo4j_graph_loader.models.schema import EdgeConfig
 from neo4j_graph_loader.orchestrator.coordination import ClockLease, decode_clock_lease
 from neo4j_graph_loader.orchestrator.rotation import RotationPlan
+from neo4j_graph_loader.orchestrator import heartbeat
+from neo4j_graph_loader.orchestrator.runtime import HandleGone
 from neo4j_graph_loader.orchestrator.bulk_monitor import (
     AssignmentCoverageError, BulkMonitorError, BulkShutdownRequested, BulkTimeoutError, LoaderCrashError,
     OffsetResolutionError, QuiescentViolationError,
@@ -24,6 +25,28 @@ from neo4j_graph_loader.utils import metrics as metrics_module
 from neo4j_graph_loader.utils.consumer_groups import edge_group, stream_retry_group
 
 logger = logging.getLogger(__name__)
+
+LagListener = Callable[[dict[str, "int | None"]], None]
+_lag_listener: LagListener | None = None
+
+
+def set_lag_listener(listener: LagListener | None) -> None:
+    """Receive every consumer-lag refresh of any monitor in this process (the CLI's run status): a mapping of edge
+    type to its lag, or ``None`` for each edge type of a refresh that failed (never the previous value). Exceptions
+    raised by the listener are swallowed."""
+    global _lag_listener
+    _lag_listener = listener
+
+
+def _notify_lag(lag_by_edge_type: dict[str, "int | None"]) -> None:
+    listener = _lag_listener
+    if listener is None:
+        return
+    try:
+        listener(lag_by_edge_type)
+    except Exception as exc:  # noqa: BLE001 - status must never affect supervision
+        logger.debug("stage=monitor reason=lag_listener_failed error=%s", exc)
+
 
 Replica = tuple[str, str]
 WorkPartition = tuple[str, str, int]
@@ -317,7 +340,7 @@ class RelationshipBulkMonitor:
             try:
                 container.reload(); state = getattr(container, "attrs", {}).get("State", {})
                 status = state.get("Status", getattr(container, "status", "running"))
-            except NotFound:
+            except HandleGone:
                 status = "removed"
             except Exception as exc:
                 raise self._failure(
@@ -358,7 +381,7 @@ class RelationshipBulkMonitor:
                 container.reload()
                 state = getattr(container, "attrs", {}).get("State", {})
                 status = state.get("Status", getattr(container, "status", "running"))
-            except NotFound:
+            except HandleGone:
                 status, state = "removed", {}
             except Exception as exc:
                 raise LoaderCrashError(
@@ -395,7 +418,7 @@ class RelationshipBulkMonitor:
             self._tracked_clock.reload()
             state = getattr(self._tracked_clock, "attrs", {}).get("State", {})
             status = state.get("Status", getattr(self._tracked_clock, "status", "running"))
-        except NotFound:
+        except HandleGone:
             status = "removed"
         except Exception as exc:
             raise LoaderCrashError(
@@ -475,6 +498,7 @@ class RelationshipBulkMonitor:
         self._operation_deadline = deadline
         try:
             while self._clock() < deadline:
+                heartbeat.beat()
                 if self._abort_requested is not None and self._abort_requested():
                     raise BulkShutdownRequested(
                         f"shutdown requested while waiting for relationship stage={self._stage()} {name}"
@@ -629,6 +653,7 @@ class RelationshipBulkMonitor:
                     "initial stream clock lease timed out",
                 ) from exc
         while not shutdown_requested.is_set():
+            heartbeat.beat()
             if self._rotation_plan is not None:
                 self._check_clock_health()
             self._check_health()
@@ -706,7 +731,7 @@ class RelationshipBulkMonitor:
             self._tracked_lease_server.reload()
             state = getattr(self._tracked_lease_server, "attrs", {}).get("State", {})
             status = state.get("Status", getattr(self._tracked_lease_server, "status", "running"))
-        except NotFound:
+        except HandleGone:
             status = "removed"
         except Exception as exc:
             raise LoaderCrashError(
@@ -860,6 +885,7 @@ class RelationshipBulkMonitor:
             # failure, so a persistently slow/unreachable broker cannot
             # turn this back into a per-tick cost.
             self._next_lag_refresh = now + self._LAG_REFRESH_INTERVAL_SECONDS
+            _notify_lag({edge_type: None for edge_type in self._edges})
             return
         lag_by_key: dict[tuple[str, str], int] = {}
         for (edge_type, topic, _partition), (low, high) in watermarks.items():
@@ -876,6 +902,10 @@ class RelationshipBulkMonitor:
                 kind="cli", name=edge_type, topic=topic,
             ).set(lag))
         self._next_lag_refresh = now + self._LAG_REFRESH_INTERVAL_SECONDS
+        by_edge_type: dict[str, int | None] = {edge_type: 0 for edge_type in self._edges}
+        for (edge_type, _topic), lag in lag_by_key.items():
+            by_edge_type[edge_type] = by_edge_type.get(edge_type, 0) + lag
+        _notify_lag(by_edge_type)
 
     def _at_boundary(self) -> bool:
         """Return whether one stable offset snapshot reaches every boundary."""

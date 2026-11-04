@@ -34,14 +34,20 @@ graph-loader --version
 The version is pinned because pip skips pre-releases unless asked. The package
 has eight mandatory runtime dependencies (`neo4j`, `neo4j-rust-ext`,
 `confluent-kafka`, `pydantic`, `PyYAML`, `docker`, `numpy`, `prometheus-client`)
-and **no extras**. **`pip` does not install or start Neo4j, Kafka or Docker.** You
-provide them:
+and two **optional extras, only for keeping run status in a database**:
+`neo4j-graph-loader[sql]` (SQLAlchemy 2) and `neo4j-graph-loader[postgres]`
+(SQLAlchemy 2 and psycopg 3). Nothing else needs them. **`pip` does not install or
+start Neo4j, Kafka or Docker.** You provide them:
 
 | To do this | You need |
 | --- | --- |
 | Validate a schema, call `neo4j_graph_loader.schema` | nothing beyond the install |
 | Plan relationships with `neo4j_graph_loader.planning` | a Kafka broker you can create topics on |
 | Run `graph-loader start` (a load) | Neo4j 5.26 Enterprise, Kafka, Docker Engine on Linux, and the loader images `ghcr.io/shashankshukla96/graph-loader-{cli,node,edge,clock}:<package version>`, which `start` pulls when they are missing |
+| Read the status of a run (`graph-loader status --run`), or log it as JSON lines (`--log-format json`) | nothing beyond the install; the JSON status files are written next to the run, no services needed |
+| Keep run status and history in PostgreSQL (`--status-store sql`) | `pip install "neo4j-graph-loader[postgres]==0.1.0a1"` and a database ([status stores](https://github.com/shashankshukla96/graph-loader/blob/main/docs/STATUS_SQL.md)) |
+| Write Prometheus rules, scrape configuration and Grafana dashboards for your own monitoring (`graph-loader monitoring export`) | nothing beyond the install and your own Prometheus and Grafana ([monitoring guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/MONITORING.md#9-bring-your-own-prometheus-and-grafana)) |
+| Run `graph-loader start --runtime process` (a load without Docker, as host processes or a systemd service) | Neo4j 5.26 Enterprise, Kafka and Linux (kernel 5.3 or newer); see the [process runtime guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) |
 
 ## Quick start
 
@@ -72,6 +78,10 @@ and the
 | [Bulk load guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/BULK_LOAD.md) | Run an initial load: prerequisites, producer contract, flags, edge modes, verification, recovery. |
 | [Incremental load guide](https://github.com/shashankshukla96/graph-loader/blob/main/docs/INCREMENTAL_LOAD.md) | Repeated batches or continuous streaming, ordering, dead-letter queue, restart. |
 | [CLI reference](https://github.com/shashankshukla96/graph-loader/blob/main/docs/CLI.md) | Every command, flag, default, exit code and environment variable. |
+| [Monitoring](https://github.com/shashankshukla96/graph-loader/blob/main/docs/MONITORING.md) | Metrics, alert rules and dashboards, the quick-start stack, and `monitoring export` for your own Prometheus and Grafana. |
+| [Run status stores](https://github.com/shashankshukla96/graph-loader/blob/main/docs/STATUS_SQL.md) | Where a run's status and events are kept (JSON files or a database), the tables, the outbox, retention. |
+| [Process runtime](https://github.com/shashankshukla96/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) | Run the loader as host processes or a systemd service instead of containers: install, quick start, stopping and recovery, sizing. |
+| [Single container](https://github.com/shashankshukla96/graph-loader/blob/main/docs/SINGLE_CONTAINER.md) | Run the whole loader in one CLI-image container with `--runtime process`: image, `docker run`, stopping, memory, limits. |
 | [Public library API](https://github.com/shashankshukla96/graph-loader/blob/main/docs/LIBRARY_API.md) | The supported Python modules, Kafka requirements, ownership and cancellation. |
 | [Usage reference](https://github.com/shashankshukla96/graph-loader/blob/main/docs/USAGE.md) | Schema fields, input contract, planned mode, dead-lettering, operations, troubleshooting. |
 | [Support, security and reporting problems](https://github.com/shashankshukla96/graph-loader/blob/main/docs/SUPPORT.md) | Get help, report a vulnerability, write a minimal reproduction. |

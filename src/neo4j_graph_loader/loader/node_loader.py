@@ -14,6 +14,20 @@ def _exit_stopped_while_importing(_signum, _frame) -> None:
     is an immediate exit 0. Finishing the imports first would take seconds
     on a busy loader CPU and could outlast Docker's stop grace.
     """
+    if os.environ.get("GRAPH_LOADER_LOG_FORMAT", "").strip().lower() == "json":
+        # JSON log mode: the same event as one JSON line (standard library only; this runs before the heavy imports)
+        import json
+        import time
+        now = time.time()
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now)) + f".{int(now * 1000) % 1000:03d}Z"
+        os.write(2, (json.dumps({
+            "ts": stamp, "level": "warning", "logger": __name__, "execution_id": os.environ.get("GRAPH_LOADER_EXECUTION_ID"),
+            "run_id": os.environ.get("GRAPH_LOADER_RUN_ID"), "kind": "node", "name": None, "replica": None,
+            "incarnation": os.environ.get("GRAPH_LOADER_INCARNATION"), "stage": "node-startup-stopped",
+            "message": "stage=node-startup-stopped reason=stop requested while the loader was still importing; "
+                       "nothing was read, written or committed",
+        }, separators=(",", ":")) + "\n").encode())
+        os._exit(0)
     os.write(2, b"WARNING: stage=node-startup-stopped reason=stop requested while the loader was still "
                 b"importing; nothing was read, written or committed\n")
     os._exit(0)
@@ -41,6 +55,7 @@ from confluent_kafka import Consumer, Message, Producer, TopicPartition
 from neo4j import Driver
 from neo4j.exceptions import Neo4jError
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.cli import get_neo4j_credentials
 from neo4j_graph_loader.loader.control import CONTROL_TOPIC
 from neo4j_graph_loader.loader.fenced_tx import begin_fenced_transaction, check_deadline
@@ -59,6 +74,7 @@ from neo4j_graph_loader.orchestrator.schema_initializer import get_neo4j_driver
 from neo4j_graph_loader.utils.schema_loader import load_schema
 from neo4j_graph_loader.utils.neo4j_session import open_session
 from neo4j_graph_loader.utils import metrics as metrics_module
+from neo4j_graph_loader.utils.logging_config import structured
 
 
 logger = logging.getLogger(__name__)
@@ -268,6 +284,7 @@ class LeasedNodeWriter:
 
 # Concurrent cell transactions one node loader may run per flush.
 NODE_LEASE_WORKERS = 4
+NODE_LAG_OBSERVE_INTERVAL_SECONDS = 5.0
 
 
 def build_leased_node_writer(
@@ -380,6 +397,7 @@ class NodeLoader:
         # D2: once graceful stop begins, the loader only drains what is
         # already buffered/deferred; it never fetches new data again.
         self._draining = False
+        self._next_lag_observation: float | None = None
 
         self._consumer.subscribe(
             [self._topic],
@@ -647,6 +665,8 @@ class NodeLoader:
                     f"rejection sink {type(sink_error).__name__}: {sink_error}",
                 )
                 return False
+            metrics_module.safe_emit(lambda: self._metrics.rejected.labels(
+                kind="node", name=self._node_config.label).inc())
             self._logger.warning(
                 "Malformed node record durably rejected label=%s topic=%s partition=%s "
                 "offset=%s reason=%s phase5_action=%s",
@@ -660,6 +680,41 @@ class NodeLoader:
             )
             ledger.resolved_offsets.add(offset)
             return self._commit_contiguous_resolutions()
+
+    def _observe_lag(self) -> None:
+        """Throttled, best-effort ``graph_loader_consumer_lag_records{kind="node"}`` and its observed-at companion.
+
+        Lag is the cached high watermark minus the committed next offset (the consumer's position for a partition
+        with no commit yet), summed over the assigned partitions. Set only when every partition could be
+        measured: a failed or partial observation leaves both gauges as they were, so a reader sees an old
+        ``observed_at`` rather than a made-up value. Never raises, never performs a network round trip.
+        """
+        now = time.monotonic()           # not self._clock: tests script that clock call by call
+        if self._next_lag_observation is not None and now < self._next_lag_observation:
+            return
+        self._next_lag_observation = now + NODE_LAG_OBSERVE_INTERVAL_SECONDS
+        try:
+            keys = sorted(self._assigned_partitions)
+            if not keys:
+                return
+            lag = 0
+            for assigned_topic, partition in keys:
+                partition_id = TopicPartition(assigned_topic, partition)
+                _low, high = self._consumer.get_watermark_offsets(partition_id, timeout=0, cached=True)
+                position = self._committed_next_offsets.get((assigned_topic, partition))
+                if position is None:
+                    position = self._consumer.position([partition_id])[0].offset
+                if not all(isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in (high, position)):
+                    return
+                lag += max(0, high - position)
+            observed_at = time.time()
+            topic = self._topic
+            metrics_module.safe_emit(lambda: self._metrics.consumer_lag.labels(
+                kind="node", name=self._node_config.label, topic=topic).set(lag))
+            metrics_module.safe_emit(lambda: self._metrics.consumer_lag_observed_at.labels(
+                kind="node", name=self._node_config.label, topic=topic).set(observed_at))
+        except Exception as exc:  # noqa: BLE001 - a lag observation must never affect the load
+            self._logger.debug("stage=node-lag reason=observation_failed label=%s error=%s", self._node_config.label, exc)
 
     def _poll_for_callbacks(self) -> bool:
         """Dispatch Kafka callbacks and preserve any prefetched data message."""
@@ -843,6 +898,8 @@ class NodeLoader:
                     self._node_config.label, self._topic, self._replica_id,
                     self._run_id, len(records), attempt + 1,
                     elapsed_seconds * 1000,
+                    extra=structured("node-write", label=self._node_config.label, topic=self._topic, replica=self._replica_id,
+                                     run_id=self._run_id, records=len(records), attempts=attempt + 1, write_ms=round(elapsed_seconds * 1000, 3)),
                 )
                 # One observe/inc per batch (never per record) - P6-S2
                 # Story 4. Routed through safe_emit (review finding S4-1)
@@ -1036,6 +1093,7 @@ class NodeLoader:
 
                 if self._idle_flush_due() and not self._flush_batch():
                     return 1
+                self._observe_lag()
 
                 if self._deferred_messages:
                     message = self._deferred_messages.popleft()
@@ -1137,6 +1195,8 @@ def main(argv: list[str] | None = None, *, shutdown_requested: Event | None = No
     )
     try:
         args = build_parser().parse_args(argv)
+        from neo4j_graph_loader.utils.logging_config import set_log_context
+        set_log_context(name=args.node_label, replica=getattr(args, "replica_id", None))
         configure_write_timing_capture(logger, "node-write")
         if args.max_messages is not None and args.max_messages <= 0:
             raise SystemExit("--max-messages must be positive")
@@ -1159,6 +1219,7 @@ def main(argv: list[str] | None = None, *, shutdown_requested: Event | None = No
     process_metrics = metrics_module.process_metrics()
     metrics_module.install_dlq_routed_listener()
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="node", name=args.node_label)
+    runtime_ready(metrics=metrics_module.metrics_status(metrics_server))
     loop_started = False
     try:
         if args.mode == "stream" and shutdown_requested.is_set():
@@ -1299,5 +1360,7 @@ def main(argv: list[str] | None = None, *, shutdown_requested: Event | None = No
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    raise SystemExit(main())
+    from neo4j_graph_loader.utils.logging_config import configure_logging
+    configure_logging(kind="node")
+    from neo4j_graph_loader.utils.logging_config import run_entrypoint
+    raise SystemExit(run_entrypoint(main))

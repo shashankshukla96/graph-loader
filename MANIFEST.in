@@ -4,4 +4,5 @@ include pyproject.toml PACKAGE_README.md LICENSE MANIFEST.in
 recursive-include src/neo4j_graph_loader *.py
 include src/neo4j_graph_loader/data/graph_schema.yaml
 include src/neo4j_graph_loader/data/social_schema.yaml
+recursive-include src/neo4j_graph_loader/monitoring *.yml *.json
 recursive-include src/neo4j_graph_loader.egg-info PKG-INFO SOURCES.txt dependency_links.txt top_level.txt requires.txt entry_points.txt

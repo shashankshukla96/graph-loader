@@ -178,6 +178,7 @@ import threading
 import time
 from typing import Callable, Mapping, Protocol, Sequence, runtime_checkable
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.loader.dead_letter import (
     DeadLetterEnvelope,
     DeadLetterEnvelopeError,
@@ -198,8 +199,9 @@ from neo4j_graph_loader.models.schema import (
 from neo4j_graph_loader.utils import metrics as metrics_module
 from neo4j_graph_loader.utils.consumer_groups import legacy_retry_group
 from neo4j_graph_loader.utils.schema_loader import load_schema
+from neo4j_graph_loader.utils.logging_config import StageLogger
 
-logger = logging.getLogger(__name__)
+logger = StageLogger(logging.getLogger(__name__), "retry-consumer")      # every line of this module is the DLQ retry stage
 
 BLOCKED_DELAY_CEILING_SECONDS = 3600.0
 """v7-S4 review S-a: a blocked copy that has to be published (over the hold budget, or
@@ -3040,6 +3042,35 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def row_retried_listener(process_metrics):
+    """The ``on_row_retried`` callback: one retry-consumer row outcome into the metrics."""
+    def on_row_retried(edge_type: str, outcome: str) -> None:
+        # N10: "blocked"/"duplicate_skipped" are not real retry attempts.
+        if outcome in metrics_module.RETRY_OUTCOMES:
+            metrics_module.safe_emit(
+                lambda: process_metrics.retry_outcome.labels(kind="edge", name=edge_type, outcome=outcome).inc()
+            )
+            metrics_module.safe_emit(
+                lambda: process_metrics.retry.labels(
+                    kind="edge", name=edge_type, reason="missing-endpoint",
+                ).inc()
+            )
+    return on_row_retried
+
+
+def backlog_listener(process_metrics):
+    """The ``on_backlog_computed`` callback. It is reached only after a successful computation, so the observed-at
+    companion moves only then; a failed computation leaves both gauges as they were."""
+    def on_backlog_computed(edge_type: str, queue: str, backlog: int) -> None:
+        metrics_module.safe_emit(
+            lambda: process_metrics.dlq_backlog.labels(kind="edge", name=edge_type, queue=queue).set(backlog)
+        )
+        metrics_module.safe_emit(
+            lambda: process_metrics.dlq_backlog_observed_at.labels(kind="edge", name=edge_type, queue=queue).set(time.time())
+        )
+    return on_backlog_computed
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the retry consumer until SIGTERM, closing every Kafka/Neo4j/lease
     resource on every exit path. Never raises (review finding N13): any
@@ -3065,6 +3096,7 @@ def main(argv: list[str] | None = None) -> int:
     metrics_module.install_dlq_routed_listener()
     metrics_module.install_parked_listener()
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="retry-consumer", name="-")
+    runtime_ready(metrics=metrics_module.metrics_status(metrics_server))
     exit_code = 1
     try:
         from confluent_kafka import Consumer
@@ -3142,6 +3174,11 @@ def main(argv: list[str] | None = None) -> int:
             metrics_module.safe_emit(
                 lambda edge_type=edge.type: process_metrics.retry_stalled.labels(kind="edge", name=edge_type).set(0)
             )
+            for known_outcome in metrics_module.RETRY_OUTCOMES:
+                metrics_module.safe_emit(
+                    lambda edge_type=edge.type, outcome=known_outcome: process_metrics.retry_outcome.labels(
+                        kind="edge", name=edge_type, outcome=outcome)
+                )
             dlq_topic_by_edge_type[edge.type] = dlq_topic
             backlog_source_by_edge_type[edge.type] = backlog_source
             max_retry_attempts_by_edge_type[edge.type] = edge.dead_letter.max_retry_attempts
@@ -3225,24 +3262,14 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 single_pair_labels_by_edge_type[edge.type] = (edge.nodes.source, edge.nodes.target)
 
-        def _on_row_retried(edge_type: str, outcome: str) -> None:
-            # N10: "blocked"/"duplicate_skipped" are not real retry attempts.
-            if outcome in ("written", "re_dlq", "parked"):
-                metrics_module.safe_emit(
-                    lambda: process_metrics.retry.labels(
-                        kind="edge", name=edge_type, reason="missing-endpoint",
-                    ).inc()
-                )
+        _on_row_retried = row_retried_listener(process_metrics)
 
         def _on_stall_seconds(edge_type: str, seconds: float) -> None:
             metrics_module.safe_emit(
                 lambda: process_metrics.retry_stalled.labels(kind="edge", name=edge_type).set(seconds)
             )
 
-        def _on_backlog_computed(edge_type: str, queue: str, backlog: int) -> None:
-            metrics_module.safe_emit(
-                lambda: process_metrics.dlq_backlog.labels(kind="edge", name=edge_type, queue=queue).set(backlog)
-            )
+        _on_backlog_computed = backlog_listener(process_metrics)
 
         consumer = Consumer({
             "bootstrap.servers": bootstrap_servers,
@@ -3356,5 +3383,9 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     import sys
+    from neo4j_graph_loader.utils.logging_config import configure_logging
 
-    sys.exit(main())
+    from neo4j_graph_loader.utils.logging_config import run_entrypoint
+
+    configure_logging(kind="retry-consumer", text_configures=False)     # text mode: no handler, as before
+    sys.exit(run_entrypoint(main))

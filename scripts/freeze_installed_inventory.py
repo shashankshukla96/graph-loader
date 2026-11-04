@@ -27,7 +27,10 @@ EXTRA_LANES = {
     'orchestration-runtime': (8, 1.5, '''bulk_default_mode bulk_e2e bulk_monitor relationship_bulk_monitor
         monitor_empty_partitions cli_dead_letter dlq_migration_guards multi_pair_evidence multi_pair_leases
         multi_pair_metrics multi_pair_orchestration multi_topic_metrics multi_topic_stream_bulk
-        precedence_substages dependency_manager isolation rotation single_pair_multi_topic_compat'''),
+        precedence_substages dependency_manager isolation rotation single_pair_multi_topic_compat
+        docker_parity handle_conformance process_runtime process_service process_observability run_registry planner_supervision
+        cgroup_budget cgroup_oom_report node_only_supervision
+        status_model status_telemetry status_store status_command metric_identity status_live_findings'''),
     'example-contracts': (9, 1.5, 'social_example multi_topic_example star_topology_data'),
     'service-helper-unit': (10, .5, '''it_scratch_db lock_wait_helpers edge_before_node_dlq_probes
         planned_harness self_reference_isolation_e2e'''),
@@ -66,6 +69,15 @@ CHECKOUT = {
     'validate_monitoring': 'Authoring monitoring/deployment configuration outside runtime artifact; retained checkout suite.',
     'installed_runner': 'Developer installed-runner adversarial controls; retained checkout plus actual isolated positive/negative runner proof.',
     'installed_inventory': 'Developer inventory/freeze controls; retained checkout plus actual disappearance/deselection proof.',
+    'runtime_boundary': 'E14 source-structure controls (the runtime seam imports no Docker names); they read the checkout source tree.',
+    'dockerfile_single_container': 'E14 static controls on the CLI Dockerfile (tini PID 1, image contract unchanged); they read the checkout Dockerfiles.',
+    'single_container_support': 'E14 offline controls of the single-container live helpers; retained checkout, the live cells are the executed proof.',
+    'status_schema_files': 'E15 published status/event JSON Schema files under docs/ equal the Python source; they read the checkout docs tree.',
+    'status_outbox': 'E15 local outbox controls include the SQL delivery cells (a module-level SQLAlchemy import), and the optional [sql] extra is not in the finite installed-lane dependency set; retained checkout plus the installed proofs of the extras.',
+    'status_sql': 'E15 SQL status store controls need the optional [sql]/[postgres] extras, which the finite installed-lane dependency set excludes by design; retained checkout plus the installed proofs of the base, [sql] and [postgres] environments and the owned PostgreSQL cells.',
+    'json_logs': 'E15 JSON-log controls include static drift guards over the checkout source tree (every logger call, every Kafka client factory) and a second Kafka client environment; retained checkout.',
+    'monitoring_export': 'E15 monitoring bundle controls read the checkout monitoring/, Makefile, Compose and pyproject files; retained checkout plus the installed proof of `monitoring export` from the wheel.',
+    'artifact_contract': 'E15 artifact-contract controls build the wheel and sdist from the checkout and mutate them; developer tooling, never part of the runtime artifact.',
 }
 HISTORY = {
     'tests/test_multi_pair_leases.py::test_the_slice_does_not_touch_the_lease_server_or_client',
@@ -134,7 +146,8 @@ def disposition(row, policy):
     if nodeid == 'tests/test_metrics_overhead.py::test_prometheus_client_call_cost_ceiling':
         return {'kind': 'checkout-development', 'reason': 'Wall-clock prometheus microbenchmark, no service/runtime guarantee; deterministic per-batch instrumentation tests remain installed.'}
     if set(row['markers']) & LIVE:
-        return {'kind': 'service', 'owner': 'E09', 'reason': 'Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by E09. No skip counts as installed success.'}
+        owner = 'E14' if Path(path).name.startswith(('test_service_process_', 'test_service_single_container', 'test_service_systemd')) else 'E09'
+        return {'kind': 'service', 'owner': owner, 'reason': f'Explicit live integration/smoke/stress check; retained checkout source, real supported-mode coverage owned by {owner}. No skip counts as installed success.'}
     if nodeid in HISTORY:
         return {'kind': 'checkout-development', 'reason': 'Historical Git slice diff only, not application behavior; all runtime assertions in this mixed file remain installed.'}
     if path in policy:
@@ -325,6 +338,13 @@ def freeze(data, collection, wheel):
         lane.setdefault('estimate_days', {'core': 1, 'safety': 1.5, 'cli-runtime': 1.5}.get(name, 1))
         lane['allowed_skips'] = ({'tests/test_schema_multi_pair.py::test_every_shipped_schema_stays_single_pair[examples/multi_topic/graph_schema_multi_pair.yaml]':
                                 'the multi-pair example is multi-pair on purpose'} if name == 'core' else {})
+        if name == 'orchestration-runtime':       # E15: three cells that need a dev tool or an optional extra the finite lane set excludes
+            # the value must be a substring of the skip reason pytest reports (the runner refuses any other skip)
+            lane['allowed_skips'] = {
+                'tests/test_status_model.py::test_the_validator_agrees_with_jsonschema': "could not import 'jsonschema'",
+                'tests/test_status_model.py::test_the_validator_agrees_with_jsonschema_on_the_published_schemas': "could not import 'jsonschema'",
+                'tests/test_status_command.py::test_list_reads_the_sql_store_too': "could not import 'sqlalchemy'",
+            }
     for name, files in SERVICE_LANES.items():
         selected = [i for i in ids if i.split('::')[0] in files]
         if not selected or {i.split('::')[0] for i in selected} != set(files):

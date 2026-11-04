@@ -16,6 +16,7 @@ from typing import Callable, Deque, Mapping, Sequence
 from confluent_kafka import OFFSET_BEGINNING, Consumer, Message, Producer, TopicPartition
 from neo4j import Driver
 
+from neo4j_graph_loader._child_protocol import runtime_ready
 from neo4j_graph_loader.cli import get_neo4j_credentials
 from neo4j_graph_loader.loader.control import CONTROL_TOPIC
 from neo4j_graph_loader.loader.dead_letter import (
@@ -55,6 +56,7 @@ from neo4j_graph_loader.utils.schema_loader import load_schema
 from neo4j_graph_loader.utils.neo4j_session import open_session
 from neo4j_graph_loader.utils import metrics as metrics_module
 from neo4j_graph_loader.utils.consumer_groups import stream_edge_group
+from neo4j_graph_loader.utils.logging_config import structured
 
 
 logger = logging.getLogger(__name__)
@@ -604,6 +606,8 @@ class EdgeLoader:
                         self._edge_config.type, self._topic, self._replica_id,
                         self._run_id, len(batch.records),
                         elapsed_seconds * 1000, self._flush_detail(),
+                        extra=structured("edge-write", edge=self._edge_config.type, topic=self._topic, replica=self._replica_id,
+                                         run_id=self._run_id, records=len(batch.records), write_ms=round(elapsed_seconds * 1000, 3)),
                     )
                     # One observe/inc per worker batch (never per
                     # row/lane) - P6-S2 Story 5. Routed through safe_emit.
@@ -1374,6 +1378,8 @@ class EdgeLoader:
             except Exception as sink_error:
                 self._log_failure(message, f"rejection sink {type(sink_error).__name__}: {sink_error}")
                 return False
+            metrics_module.safe_emit(lambda: self._metrics.rejected.labels(
+                kind="edge", name=self._edge_config.type).inc())
             self._logger.warning(
                 "Malformed relationship record durably rejected edge=%s topic=%s partition=%s "
                 "offset=%s reason=%s phase5_action=%s",
@@ -1563,6 +1569,8 @@ class EdgeLoader:
             self._edge_config.type, self._topic, self._replica_id,
             self._run_id, len(written_batch),
             elapsed_seconds * 1000, self._flush_detail(),
+            extra=structured("edge-write", edge=self._edge_config.type, topic=self._topic, replica=self._replica_id,
+                             run_id=self._run_id, records=len(written_batch), write_ms=round(elapsed_seconds * 1000, 3)),
         )
         # This is the classic/bulk (non-slot-gated) synchronous write path
         # - _worker_loop above covers the slot-gated streaming path; both
@@ -1848,6 +1856,8 @@ def main(argv: list[str] | None = None) -> int:
     """Run a selected edge loader and close Kafka/Neo4j resources on all paths."""
     parser = build_parser()
     args = parser.parse_args(argv)
+    from neo4j_graph_loader.utils.logging_config import set_log_context
+    set_log_context(name=getattr(args, "edge_type", None), replica=getattr(args, "replica_id", None))
     configure_write_timing_capture(logger, "edge-write")
     if args.max_messages is not None and args.max_messages <= 0:
         raise SystemExit("--max-messages must be positive")
@@ -1888,6 +1898,7 @@ def main(argv: list[str] | None = None) -> int:
     process_metrics = metrics_module.process_metrics()
     metrics_module.install_dlq_routed_listener()
     metrics_server = metrics_module.start_metrics_server(process_metrics, kind="edge", name=args.edge_type)
+    runtime_ready(metrics=metrics_module.metrics_status(metrics_server))
     try:
         schema = load_schema(args.config)
         edge_config = _select_edge_config(schema, args.edge_type)
@@ -2179,5 +2190,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    raise SystemExit(main())
+    from neo4j_graph_loader.utils.logging_config import configure_logging
+    configure_logging(kind="edge")
+    from neo4j_graph_loader.utils.logging_config import run_entrypoint
+    raise SystemExit(run_entrypoint(main))

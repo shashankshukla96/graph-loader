@@ -63,6 +63,7 @@ from typing import Callable
 from neo4j_graph_loader.loader import write_errors
 from neo4j_graph_loader.loader.edge_execution import LeaseDrainAbandoned
 from neo4j_graph_loader.utils import metrics as metrics_module
+from neo4j_graph_loader.utils.logging_config import structured
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +234,7 @@ class StreamWriteOutage:
                 "stage=write-outage kind=%s name=%s%s reason=neo4j_unavailable error_class=%s error=%s -- "
                 "holding the batch uncommitted (rolled back, no lease held) and retrying it in order",
                 self._kind, self._name, self._context, error_class, _describe(exc),
+                extra=structured("write-outage", entity_kind=self._kind, entity=self._name, reason="neo4j_unavailable", error_class=error_class),
             )
         self._failures += 1
         self._last_error = exc
@@ -248,6 +250,8 @@ class StreamWriteOutage:
             "stage=write-outage-retry kind=%s name=%s%s attempt=%s outage_s=%.1f delay_s=%.1f error=%s",
             self._kind, self._name, self._context, self._failures, self.outage_seconds,
             verdict.delay_seconds, _describe(exc),
+            extra=structured("write-outage-retry", entity_kind=self._kind, entity=self._name, attempt=self._failures,
+                             outage_s=round(self.outage_seconds, 1), delay_s=round(verdict.delay_seconds, 1)),
         )
 
     def log_fatal(self, exc: BaseException) -> None:
@@ -257,6 +261,8 @@ class StreamWriteOutage:
             "authentication or database errors have persisted; exiting non-zero so stream supervision "
             "stops the fleet (D2). Nothing of the held batch was committed",
             self._kind, self._name, self._context, self._clock() - first, self._failures, _describe(exc),
+            extra=structured("write-outage", entity_kind=self._kind, entity=self._name, reason="neo4j_fatal",
+                             fatal_s=round(self._clock() - first), attempts=self._failures),
         )
 
     def remember_dlq_acks(self) -> "HeldBatchDlqMemory":
@@ -280,6 +286,8 @@ class StreamWriteOutage:
         self._logger.info(
             "stage=write-outage-recovered kind=%s name=%s%s outage_s=%.1f attempts=%s",
             self._kind, self._name, self._context, self.outage_seconds, self._failures,
+            extra=structured("write-outage-recovered", entity_kind=self._kind, entity=self._name,
+                             outage_s=round(self.outage_seconds, 1), attempts=self._failures),
         )
         self._reset()
 
@@ -296,6 +304,8 @@ class StreamWriteOutage:
             "stage=write-outage-abandoned kind=%s name=%s%s outage_s=%.1f attempts=%s reason=%s -- "
             "the outage clock keeps running until a write succeeds",
             self._kind, self._name, self._context, self.outage_seconds, self._failures, reason,
+            extra=structured("write-outage-abandoned", entity_kind=self._kind, entity=self._name,
+                             outage_s=round(self.outage_seconds, 1), attempts=self._failures, reason=reason),
         )
         self._failures = 0
 
@@ -317,6 +327,8 @@ class StreamWriteOutage:
                 "Neo4j writes keep failing; the batch is held uncommitted (no lease held, partitions paused) "
                 "and retried in order with capped backoff",
                 self._kind, self._name, self._context, seconds, self._failures, _describe(self._last_error),
+                extra=structured("write-outage", entity_kind=self._kind, entity=self._name, reason="neo4j_outage",
+                                 outage_s=round(seconds), attempts=self._failures),
             )
 
     # -- waiting -------------------------------------------------------------

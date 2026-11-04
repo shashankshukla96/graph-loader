@@ -73,9 +73,9 @@ Related docs: [CLI.md](CLI.md) (command and flag reference),
   never share a resource, so they never share a node. Neo4j therefore never
   makes one transaction wait for another's locks, and deadlocks cannot occur.
   See [section 6](#6-planned-mode-in-depth).
-* **Everything runs in Docker.** The CLI runs on the host and launches node
-  loaders, a dispatcher and writer containers on a Docker network, and runs
-  the planner processes itself. Each of those containers talks to Kafka and Neo4j.
+* **Everything runs in Docker, or as processes.** The CLI runs on the host and launches node
+  loaders, a dispatcher and writer containers on a Docker network (`--runtime process`: child processes of the command, no Docker, see [Process runtime](PROCESS_RUNTIME.md)), and runs
+  the planner processes itself. Each of those roles talks to Kafka and Neo4j.
 
 ## 2. Requirements and environment
 
@@ -83,7 +83,7 @@ Related docs: [CLI.md](CLI.md) (command and flag reference),
 | --- | --- |
 | Neo4j | **5 Enterprise; tested with 5.26** (block store format). The target database must already exist. The classic and lease relationship writers use Cypher's `CALL (vars) { ... }` scoped-subquery syntax, which needs 5.23 or later (5.21 rejects it); planned mode does not use it. APOC is needed only for the classic relationship modes (`apoc.lock.nodes`). |
 | Kafka | Any broker reachable from the host **and** from the loader containers (tested with Confluent 7.7 in KRaft mode). |
-| Docker | A local Docker Engine on the machine that runs `graph-loader start`; the CLI pulls or reuses the versioned images `ghcr.io/shashankshukla96/graph-loader-{node,edge,clock}:<package version>`. See [Docker execution](DOCKER_EXECUTION.md). |
+| Docker | A local Docker Engine on the machine that runs `graph-loader start`; the CLI pulls or reuses the versioned images `ghcr.io/shashankshukla96/graph-loader-{node,edge,clock}:<package version>`. See [Docker execution](DOCKER_EXECUTION.md). Not needed with `--runtime process` (Linux >= 5.3 instead; see [Process runtime](PROCESS_RUNTIME.md)). |
 | Python | CPython 3.12 and `pip install neo4j-graph-loader` (the Neo4j Python driver is `>=6.0,<7`). A source checkout uses `pip install -e .`; see [Distribution development](DISTRIBUTION_DEVELOPMENT.md). |
 
 ### Local services
@@ -123,7 +123,7 @@ project `.env` without overriding exported values.
 | `NEO4J_DATABASE` | host and containers | Target database; omit to use the server default |
 | `LOADER_KAFKA_BOOTSTRAP_SERVERS` | containers | Kafka address inside the Docker network (default `kafka:29092`) |
 | `LOADER_NEO4J_URI` | containers | Neo4j URI inside the Docker network (default `bolt://neo4j:7687`) |
-| `LOADER_CPUSET` | containers | CPU set for every loader, dispatcher and writer container |
+| `LOADER_CPUSET` | containers, or the roles with `--runtime process` | CPU set for every loader, dispatcher and writer container (process runtime: each role pins itself) |
 | `GRAPH_LOADER_NODE_IMAGE`, `GRAPH_LOADER_EDGE_IMAGE`, `GRAPH_LOADER_CLOCK_IMAGE` | CLI | Compatible image overrides; defaults are matching package-version tags under `ghcr.io/shashankshukla96`. See [Docker execution](DOCKER_EXECUTION.md). |
 | `GRAPH_LOADER_TIMING_DIR` | CLI | Explicit timing/metrics directory override (default `<attempt>/timings/`); plan and ledger default to `<attempt>/plans/` |
 | `GRAPH_LOADER_METRICS_ENABLED` | host and containers | `1`/`true` (default) to expose a Prometheus `/metrics` endpoint and write the `metrics-<kind>[-<name>][-<replica>].prom` snapshot in `GRAPH_LOADER_TIMING_DIR`; `0`/`false` (case-insensitive) disables both |
@@ -1001,8 +1001,10 @@ other improvements. See [section 9](#9-performance-guide).
 | --- | --- | --- |
 | `--config PATH` | bundled canonical schema | Schema YAML |
 | `--mode {bulk,stream}` | – | Bulk loads everything up to the boundary and exits; stream keeps consuming |
-| `--network NAME` | `graph-loader-net` | Docker network for all containers |
-| `--skip-image-build` | off | Require compatible preloaded images and never pull; starts never build images |
+| `--runtime {docker,process}` | `docker` (`GRAPH_LOADER_RUNTIME`) | Run each role as a Docker container, or as a child process of this command (Linux >= 5.3; [Process runtime](PROCESS_RUNTIME.md)) |
+| `--network NAME` | `graph-loader-net` | Docker network for all containers (Docker runtime only; refused with `--runtime process`) |
+| `--skip-image-build` | off | Require compatible preloaded images and never pull; starts never build images (Docker runtime only) |
+| `--metrics-addr HOST[:PORT]`, `--health-addr HOST:PORT`, `--health-stale-after S`, `--child-logs {relay,files}` | `127.0.0.1` + OS-assigned ports, off, `30`, `relay` | Process runtime only: where role metrics bind, the `/healthz` + `/readyz` server, its stall threshold, and whether role output is also relayed to the command's stdout |
 | `--bulk-timeout-seconds N` | `300` | Stall limit of each monitored bulk stage. Long stages are progress-based: node draining, waiting for the edge plan (the planner's heartbeat) and the planned dispatch fail only after `N` seconds without progress, however long they run |
 | `--edge-plan [PLAN_FILE]` | the bulk default (no file) | Planned mode; with a file, load a producer-written plan |
 | `--edge-classic` | off | Classic per-type APOC-locked relationship loaders (bulk only); the one mode that can wait on locks. Exclusive with `--edge-plan` and `--edge-leases` |
@@ -1042,6 +1044,19 @@ graph-loader status --config my_graph.yaml   # list running node-loader containe
 graph-loader stop [--loader NAME]            # stop loader containers
 graph-loader replay-dlq --node-label Person --dry-run   # preview a DLQ replay (section 10)
 ```
+
+#### Runtime: containers or processes
+
+`--runtime docker` (the default) is what the rest of this guide describes: the
+CLI starts one container per role. `--runtime process` runs the same roles as
+child processes of the `start` command on a Linux host (kernel 5.3 or newer):
+no Docker daemon, network or images, the roles reach Neo4j and Kafka at the
+CLI's own `NEO4J_URI` and `KAFKA_BOOTSTRAP_SERVERS`, and `stop`, `status` and
+`stop --recover` find the run through `registry.jsonl` in its attempt directory
+(pass `--run-dir`). The same command can be a systemd service. Everything about
+the schema, the modes, consumer groups, the DLQ and the exit codes is unchanged;
+what differs (run directory, logs, metrics `file_sd`, health endpoints, memory
+sizing, `kill -9` behaviour) is in [Process runtime](PROCESS_RUNTIME.md).
 
 ### Streaming mode
 
@@ -1644,6 +1659,23 @@ identical either way.
 
 * **Exit status:** `0` only after the completion proof described in
   [section 6](#6-planned-mode-in-depth).
+* **Run status and event history (every runtime, both modes).** `graph-loader start` records what it is doing as a
+  status document (state, roles, per-type progress) and a gap-free event list, in the attempt directory
+  (`status.json`, `events.<first seq>.jsonl`; `--status-store json`, the default) or in a database
+  (`--status-store sql` with `GRAPH_LOADER_STATUS_DB_URL`, after `graph-loader status-store migrate`; needs
+  `pip install "neo4j-graph-loader[postgres]"`). Read it while the run is live or after:
+  `graph-loader status --run --run-dir <base>` (summary), `--json`, `--watch`, `--list`; it needs no Docker or Kafka.
+  Fields and their sources: [STATUS_FIELDS](STATUS_FIELDS.md); stores, tables, outbox, retention and the database
+  schema: [STATUS_SQL](STATUS_SQL.md); the JSON Schemas: [status-schemas/](status-schemas/). The status exit code is
+  `0` running or succeeded, `1` failed, `2` stale, dead or not found, `3` stopped ([CLI](CLI.md#status)).
+* **JSON logs.** `graph-loader --log-format json start ...` (or `GRAPH_LOADER_LOG_FORMAT=json`) writes one JSON object
+  per line on stderr from the CLI and every role, each with `ts`, `level`, `logger`, `execution_id`, `run_id`, `kind`,
+  `name`, `replica`, `incarnation` and `stage`, so a log system can follow one run across all of its roles. The default
+  `text` format is unchanged ([CLI](CLI.md#logging)).
+* **Run identity on metrics.** Every sample and snapshot carries `run_id`, `execution_id`, `exporter` and `runtime`.
+  Scrape through one path per run and use `graph-loader monitoring export` for your own Prometheus and Grafana
+  ([MONITORING §9](MONITORING.md#9-bring-your-own-prometheus-and-grafana)); with `--runtime process --metrics-port N`
+  one aggregated `/metrics` carries the CLI's and every role's series.
 * **Plan and ledger:** `edge-plan.json` and `edge-plan.json.ledger.json` in
   `--plan-dir`. These record every chunk, its resources and when it committed.
 * **Write-timing logs:** use `<attempt>/timings/`, or set `GRAPH_LOADER_TIMING_DIR` to override it. Each node batch and
@@ -2199,7 +2231,8 @@ writes, so it always reaches a commit or a rollback first.
 * **Stream mode with no relationships.** The `start` command launches the
   node loaders and exits `0` at once; nothing supervises them, so nothing
   stops them for you. Stop those with `graph-loader stop` or the
-  recipe below.
+  recipe below. (With `--runtime process` the node loaders are children of
+  that command and end with it, so use a schema that declares relationships.)
 * Node loaders of a stream run *with* relationships are now stopped on
   every exit path (graceful stop, failure, an isolation-policy rejection
   such as `mixed-stream`, or an unexpected error), not only on failure.
@@ -2231,31 +2264,61 @@ watching closely; after a normal stop it finds nothing.
 
 
 **`SIGKILL` (`kill -9`, or a `docker kill` on the CLI host process itself
-if it runs inside a container).** Cannot be caught by any process, by
-design: no cleanup runs at all, and every container the run had started is
-left running. Recovery:
+if it runs inside a container), Docker runtime.** Cannot be caught by any
+process, by design: no cleanup runs at all, and every container the run had
+started is left running. Recover **only that run's containers**, not every
+graph-loader container on the Docker host:
 
-```bash
-docker ps -a --filter label=app=graph-loader
-docker rm -f $(docker ps -aq --filter label=app=graph-loader)
-```
+1. Confirm the run's `start` command is really gone (`pgrep -af 'graph-loader
+   start'`), so you do not remove the containers of a run that is alive.
+2. List the containers with the labels that identify a run:
 
-Optionally narrow either command with `--filter label=run_id=<id>` when
-the run used an explicit `--run-id` — but note that node/edge-loader
-containers launched **without** `--run-id` never carry that label at all
-(it is only set when a run explicitly provides one; every other kind
-always carries it), so the unnarrowed `app=graph-loader` filter is the one
-guaranteed to catch everything a run started, with any command's own name
-in `--filter label=component=<kind>` (`node-loader`, `edge-loader`,
-`bucket-lease-server`, `retry-consumer`, `planned-dispatcher`, `planned-edge-writer`,
-`global-batch-clock`) as a further narrowing option if you need to leave
-other concurrent runs alone.
+   ```bash
+   docker ps -a --filter label=app=graph-loader \
+     --format 'table {{.ID}}\t{{.Names}}\t{{.Label "component"}}\t{{.Label "run_id"}}\t{{.Status}}'
+   ```
+
+3. Remove the ones that belong to the dead run, by ID from that list, or with
+   a filter that selects exactly them:
+
+   ```bash
+   docker rm -f <id> <id> ...
+   docker rm -f $(docker ps -aq --filter label=run_id=<id>)                  # explicit --run-id
+   docker rm -f $(docker ps -aq --filter label=app=graph-loader --filter label=component=<kind>)
+   ```
+
+   `app=graph-loader` is the only label every container carries, so it also
+   matches other runs and other users' runs; it is safe as the sole filter
+   (`docker rm -f $(docker ps -aq --filter label=app=graph-loader)`) only when
+   you know nothing else of graph-loader runs on that Docker host. `run_id` is
+   set only when the run used an explicit `--run-id` (node and edge loaders
+   started **without** it never carry it), and in bulk the lease and classic
+   edge loaders carry a derived stage id instead of yours, so `label=run_id=<id>`
+   can miss them; pass an explicit `--run-id` to every run you may have to
+   clean up after, and check the list against step 2. `component` is one of
+   `node-loader`, `edge-loader`, `bucket-lease-server`, `retry-consumer`,
+   `planned-dispatcher`, `planned-edge-writer`, `global-batch-clock`.
 
 After a `kill -9` of a bulk planned run the run-scoped chunk topic
-`graph-loader-edge-chunks-<run id>` is also left. Rerunning with a new
-`--run-id` is always safe; to reuse the same `--run-id`, add
-`--replace-stale-plan-topic` (refused while any container labelled with the
-run id is still alive, so remove those first with the recipe above).
+`graph-loader-edge-chunks-<run id>` is also left. Delete it (see the bulk
+guide's [Re-running and recovering](BULK_LOAD.md#14-re-running-and-recovering)),
+or rerun with a new `--run-id`, which is always safe; to reuse the same
+`--run-id`, add `--replace-stale-plan-topic` (refused while any container
+labelled with the run id is still alive, so remove those first with the recipe
+above).
+
+**`SIGKILL` of the CLI, process runtime.** The roles are the CLI's children and
+stop themselves: each sees its control socket close, runs its ordinary graceful
+shutdown and exits within 30 seconds (measured: 0.2 to 1 s); planner workers
+exit at once. Nothing is left running in the normal case, which is the difference
+from the Docker runtime. If something is (a process that cannot act on
+`SIGTERM`), run `graph-loader stop --runtime process --recover --run-dir <attempt
+or base>`: it signals only processes the run's `registry.jsonl` shows as started
+and whose pid, start time and boot id still match, escalates to `SIGKILL` after
+15 seconds, reports the retained files and deletes nothing. A bulk planned run
+still leaves its chunk topic (delete it as above) and the attempt directory's
+planner files. Details and the exact steps: [Process runtime, stopping and
+recovery](PROCESS_RUNTIME.md#7-stopping-and-recovery).
 
 **What "graceful" means, restated in operator terms.** This is the
 existing, unchanged contract from section 6's "Crash safety" note: an
@@ -2299,7 +2362,7 @@ both already safe under the guarantee above:
 | `planner spill directory ... is full` | The planner's spill files did not fit: free space or point `--plan-spill-dir` at a larger disk (about the records' uncompressed size is needed). |
 | A loader exits with `... over the 8388608-byte DLQ envelope limit` | A malformed record's DLQ envelope (base64-encoded payload plus metadata) exceeds the cap; that partition stalls fail-closed at that offset until an operator intervenes. Fix the producer to stop sending oversized records, or manually advance the consumer group's committed offset past it after capturing the record from the source topic for manual recovery. |
 | `start` fails with `DLQ topic ... already exists but violates the DLQ policy` | A pre-existing DLQ topic (operator-created, or broker auto-created) has `retention.ms`/`retention.bytes` other than `-1`, or a `max.message.bytes` below the envelope cap. Fix the topic's configuration to match the policy, or delete it and rerun so the CLI recreates it correctly. |
-| `chunk topic graph-loader-edge-chunks-<id> already exists` | A previous run with the same `--run-id` was `kill -9`ed. Use a new `--run-id`, or rerun with `--replace-stale-plan-topic` once the run's containers are gone. |
+| `chunk topic graph-loader-edge-chunks-<id> already exists` | A previous run with the same `--run-id` was `kill -9`ed. Use a new `--run-id`, delete the topic, or rerun with `--replace-stale-plan-topic` once the run's containers (process runtime: processes, see `stop --recover`) are gone. |
 | `start --mode stream` is refused for a multi-topic type with `topic_conflict: precedence` | Precedence needs bulk (planned, `--edge-leases` or `--edge-classic`): there is no cross-topic order in a stream. Use `order_by`, or run in bulk |
 | Rerun of a precedence type fails with `rerun a precedence type with a fresh --run-id` | A previous run under the same `--run-id` left commits on a higher-ranked topic while a lower one still has work. Use a new `--run-id` |
 | Precedence stage fails with `records were appended to an already loaded topic during the run` or `boundary differs from the pre-run snapshot` | A topic of the type received records after the run captured its end offsets; they would not be loaded. Stop publishing to the type's topics for the duration of a bulk run, then rerun with a fresh `--run-id` |
@@ -2309,7 +2372,7 @@ both already safe under the guarantee above:
 | A planned run is refused with `plan binds <topic> to S->T; the schema binds it to ...` | The schema changed a topic's label pair (or added/removed a pair) after the plan was made. Re-plan the load |
 | `replay-dlq` refuses with `replaying <topics> records into <topic> would write them as S->T` | `--target-topic` names a topic of another label pair. Replay without `--target-topic` (each record returns to its own `original_topic`), or name a target of the same pair and `--source-topic` values of that pair only |
 | Retry consumer logs `reason=invalid_on_retry` for a multi-pair type | The row's `original_topic` is no longer a topic of the type, or its DLQ key names another pair. It parks after `max_retry_attempts`; fix the schema or replay the parked row to the right topic |
-| Containers still running after I stopped the load | See section 10's "Stopping a run safely" subsection — run `docker ps -a --filter label=app=graph-loader` and the matching `docker rm -f` recipe there, regardless of how the run was stopped. |
+| Containers still running after I stopped the load | See section 10's "Stopping a run safely" subsection: list with `docker ps -a --filter label=app=graph-loader`, then remove only the run's own containers as shown there, regardless of how the run was stopped. With `--runtime process` there are no containers: run `graph-loader stop --runtime process --recover --run-dir ...` ([Process runtime](PROCESS_RUNTIME.md#7-stopping-and-recovery)). |
 
 **Duplicate DLQ envelopes:** DLQ routing is at-least-once, matching the
 existing counters' precedent (P5-Q5) — a duplicate envelope for the same
@@ -2323,6 +2386,17 @@ already been evicted from its group for exceeding `max_poll_interval_ms`.
 
 ## 12. Limitations
 
+* **Stream start-up revoke (both runtimes).** A stream run can end with exit `1` shortly after its loaders start:
+  one replica of a label or type logs `Kafka partitions revoked with unresolved work` (after
+  `Dropped N uncommitted prefetched message(s) of revoked partitions`) and the command stops the fleet
+  (`node loader exited while the stream run was active`, or `exited before drain acknowledgement`). Trigger: a replica
+  joins a consumer group after its sibling already holds partitions and has writes in flight, which is likely after a
+  restart that waited for the previous run's members to expire while a backlog built up, and when the broker's
+  `group.initial.rebalance.delay.ms` is `0`. Effect: nothing is lost or duplicated (offsets are committed only after the
+  write), the next start recovers, and the cost is one extra restart. Mitigations: keep the broker default of `3000` ms
+  (the repository's own test stacks set `0` for speed; do not copy that to a real broker) and run
+  the command under a restart manager (systemd `Restart=on-failure`, a container restart policy). A product fix
+  (static group membership or a first-assignment grace period) is planned for a later version.
 * Planning is bounded in memory but not in disk: the spill directory needs
   about the relationship records' uncompressed size, and the chunk topic
   holds the records once more.
@@ -2451,7 +2525,8 @@ already been evicted from its group for exceeding `max_poll_interval_ms`.
   "Stopping a run safely". A stream run *with* relationships stops and
   removes the node loaders it started on every exit path, including a clean
   `SIGTERM`/`SIGINT`. A `SIGKILL` of the CLI itself still leaves
-  every container running (same recipe).
+  every container running (same recipe; with `--runtime process` the roles stop
+  on their own).
 * **Streaming: the lease server's readiness probe assumes a Linux Docker
   bridge network's container IPs are routable from the CLI's own host
   process.** On Docker Desktop (macOS/Windows), a user-defined bridge

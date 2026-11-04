@@ -2,6 +2,14 @@
 #   docker run --rm --entrypoint promtool \
 #     -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
 #     prom/prometheus:v2.55.1 test rules /etc/prometheus/alert_tests/write_outage_test.yml
+#
+# E15 label mapping: `instance="e0|n0|e1"` -> `exporter="edge-WORKS_AT-r0-e0e0e0e0" | "node-Person-r0-n0n0n0n0" |
+# "edge-KNOWS-r0-e1e1e1e1"` (a METRIC label, unique per incarnation), plus execution_id and runtime on every
+# series; the rule now groups by (kind, name, execution_id) instead of run_id, so the alert's `run_id` label is
+# `execution_id`. Outcomes unchanged, test by test: tests 1 and 2 fire exactly where they did (WORKS_AT at 4m and 10m,
+# Person at 5m), and the 90 s restart and the recovering KNOWS never fire. New controls below: 3 two executions
+# sharing one run_id are kept separate; 4 the exporter disappears while the evidence is still pending
+# (does not fire); 5 the threshold boundary (120 s does not fire, 121 s does).
 rule_files:
   - ../alerts/write_outage.yml
 
@@ -14,11 +22,11 @@ tests:
   # neither does KNOWS, which recovers (back to 0) after 2 minutes.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_write_outage_seconds{kind="edge",name="WORKS_AT",run_id="r1",instance="e0"}'
+      - series: 'graph_loader_write_outage_seconds{kind="edge",name="WORKS_AT",execution_id="x1",exporter="edge-WORKS_AT-r0-e0e0e0e0",run_id="r1",runtime="process"}'
         values: "0+60x10"
-      - series: 'graph_loader_write_outage_seconds{kind="node",name="Person",run_id="r1",instance="n0"}'
+      - series: 'graph_loader_write_outage_seconds{kind="node",name="Person",execution_id="x1",exporter="node-Person-r0-n0n0n0n0",run_id="r1",runtime="process"}'
         values: "0 30 90 0x8"
-      - series: 'graph_loader_write_outage_seconds{kind="edge",name="KNOWS",run_id="r1",instance="e1"}'
+      - series: 'graph_loader_write_outage_seconds{kind="edge",name="KNOWS",execution_id="x1",exporter="edge-KNOWS-r0-e1e1e1e1",run_id="r1",runtime="process"}'
         values: "0+60x2 0x8"
     alert_rule_test:
       - eval_time: 3m
@@ -30,7 +38,7 @@ tests:
           - exp_labels:
               kind: edge
               name: WORKS_AT
-              run_id: r1
+              execution_id: x1
               severity: critical
             exp_annotations:
               summary: "edge/WORKS_AT Neo4j writes have failed for 4m 0s; the stream loader is holding its batch and retrying."
@@ -41,7 +49,7 @@ tests:
           - exp_labels:
               kind: edge
               name: WORKS_AT
-              run_id: r1
+              execution_id: x1
               severity: critical
             exp_annotations:
               summary: "edge/WORKS_AT Neo4j writes have failed for 10m 0s; the stream loader is holding its batch and retrying."
@@ -49,7 +57,7 @@ tests:
   # Recovery clears it: the gauge returns to 0 and the alert resolves.
   - interval: 1m
     input_series:
-      - series: 'graph_loader_write_outage_seconds{kind="node",name="Person",run_id="r2",instance="n0"}'
+      - series: 'graph_loader_write_outage_seconds{kind="node",name="Person",execution_id="x2",exporter="node-Person-r0-n2n2n2n2",run_id="r2",runtime="process"}'
         values: "0+60x6 0x6"
     alert_rule_test:
       - eval_time: 5m
@@ -58,7 +66,7 @@ tests:
           - exp_labels:
               kind: node
               name: Person
-              run_id: r2
+              execution_id: x2
               severity: critical
             exp_annotations:
               summary: "node/Person Neo4j writes have failed for 5m 0s; the stream loader is holding its batch and retrying."
@@ -66,3 +74,59 @@ tests:
       - eval_time: 8m
         alertname: GraphLoaderWriteOutage
         exp_alerts: []
+
+  # 3. Two executions that REUSE run_id "same" (a restarted stream): only the execution
+  # in an outage fires, with its own execution_id.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_write_outage_seconds{kind="edge",name="WORKS_AT",execution_id="down",exporter="edge-WORKS_AT-r0-d0d0d0d0",run_id="same",runtime="process"}'
+        values: "0+60x10"
+      - series: 'graph_loader_write_outage_seconds{kind="edge",name="WORKS_AT",execution_id="fine",exporter="edge-WORKS_AT-r0-f0f0f0f0",run_id="same",runtime="process"}'
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts:
+          - exp_labels:
+              kind: edge
+              name: WORKS_AT
+              execution_id: down
+              severity: critical
+            exp_annotations:
+              summary: "edge/WORKS_AT Neo4j writes have failed for 6m 0s; the stream loader is holding its batch and retrying."
+              description: "A live stream loader cannot write to Neo4j. Nothing is lost: the batch stays uncommitted in Kafka and is retried in order, and the fleet stays up. Ingestion of this entity is stopped until Neo4j accepts writes again (consumer lag grows). Check Neo4j's health and the loader's reason=neo4j_outage ERROR lines for the error. Authentication and missing-database errors that persist for 10 minutes stop the fleet (reason=neo4j_fatal).\n"
+
+  # 4. The exporter disappears (the loader exits or is replaced) 1 minute into the
+  # outage, before the `for:` elapsed: nothing fires, then or later (a replacement is a
+  # NEW exporter and starts again at 0).
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_write_outage_seconds{kind="edge",name="KNOWS",execution_id="x6",exporter="edge-KNOWS-r0-a1a1a1a1",run_id="r6",runtime="process"}'
+        values: "0 200 stale"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts: []
+
+  # 5. Boundary of the default threshold (120 s): exactly 120 never fires, 121 does.
+  - interval: 1m
+    input_series:
+      - series: 'graph_loader_write_outage_seconds{kind="node",name="At",execution_id="x7",exporter="node-At-r0-b1b1b1b1",run_id="r7",runtime="process"}'
+        values: "120x10"
+      - series: 'graph_loader_write_outage_seconds{kind="node",name="Over",execution_id="x7",exporter="node-Over-r0-b2b2b2b2",run_id="r7",runtime="process"}'
+        values: "121x10"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: GraphLoaderWriteOutage
+        exp_alerts:
+          - exp_labels:
+              kind: node
+              name: Over
+              execution_id: x7
+              severity: critical
+            exp_annotations:
+              summary: "node/Over Neo4j writes have failed for 2m 1s; the stream loader is holding its batch and retrying."
+              description: "A live stream loader cannot write to Neo4j. Nothing is lost: the batch stays uncommitted in Kafka and is retried in order, and the fleet stays up. Ingestion of this entity is stopped until Neo4j accepts writes again (consumer lag grows). Check Neo4j's health and the loader's reason=neo4j_outage ERROR lines for the error. Authentication and missing-database errors that persist for 10 minutes stop the fleet (reason=neo4j_fatal).\n"

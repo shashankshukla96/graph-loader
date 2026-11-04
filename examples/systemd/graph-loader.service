@@ -1,0 +1,53 @@
+# graph-loader as a systemd USER service (process runtime: every role is a child process of one `graph-loader start`).
+#
+# Install (as the user that owns the data and credentials; no root needed):
+#   python3 -m venv ~/graph-loader/venv && ~/graph-loader/venv/bin/pip install neo4j-graph-loader
+#   install -d -m 700 ~/.config/graph-loader && install -m 600 graph-loader.env.example ~/.config/graph-loader/graph-loader.env
+#   $EDITOR ~/.config/graph-loader/graph-loader.env ~/graph-loader/schema.yaml
+#   install -D -m 644 graph-loader.service ~/.config/systemd/user/graph-loader.service
+#   systemctl --user daemon-reload && systemctl --user start graph-loader
+#   loginctl enable-linger "$USER"        # keep the user manager (and this service) running after you log out
+#
+# Why these settings:
+#   KillMode=mixed      systemd sends SIGTERM to the `graph-loader` process ONLY; it runs the ordered stop (edge loaders and retry
+#                       consumer, then node loaders, then the lease server) and exits 0. After it exits, systemd SIGKILLs whatever
+#                       is left in the unit's cgroup. KillMode=control-group would SIGTERM every process at once and skip the
+#                       ordered stop: the lease server can be gone before the loaders that still hold leases have drained.
+#   TimeoutStopSec=120  the ordered stop takes seconds (each loader waits at most 5 s for its leases); this is the ceiling
+#                       before systemd sends SIGKILL to the whole unit.
+#   Restart=on-failure  a role that dies makes `graph-loader` stop the fleet and exit 1; systemd starts it again and the run
+#                       resumes from the committed consumer-group offsets after the group-member wait. A clean stop
+#                       (systemctl --user stop, or SIGTERM) is exit 0 and is not restarted.
+#   Type=exec           the unit is "started" once the command has been executed; use /readyz (below) for readiness.
+[Unit]
+Description=graph-loader streaming fleet (process runtime)
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=exec
+# Credentials live in a file readable only by you (chmod 600); see graph-loader.env.example.
+EnvironmentFile=%h/.config/graph-loader/graph-loader.env
+# --health-addr: GET /healthz (liveness: the CLI's heartbeat) and GET /readyz (200 once every role is ready and supervised).
+# --run-dir: every start creates its own attempt directory here (registry, child logs, spill); remove old ones yourself.
+ExecStart=%h/graph-loader/venv/bin/graph-loader start --mode stream --config %h/graph-loader/schema.yaml --runtime process \
+    --run-dir %h/graph-loader/runs --health-addr 127.0.0.1:8081
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=120
+SendSIGKILL=yes
+Restart=on-failure
+RestartSec=10
+# A role killed by the kernel's OOM killer: with systemd's default (OOMPolicy=stop) the whole unit is stopped at once and the command
+# never reports it. "continue" lets the command see the killed role, log `stage=oom ... victim unknown`, fail the run (exit 1) and
+# be restarted by Restart=on-failure.
+OOMPolicy=continue
+# Child logs reach the journal with a `[graph-loader-<role>-...]` prefix: journalctl --user -u graph-loader -f
+# Optional hard memory bound for the whole fleet (CLI + roles + planner); the CLI sizes itself inside it (docs: sizing).
+#MemoryMax=6G
+#MemorySwapMax=0
+
+[Install]
+WantedBy=default.target

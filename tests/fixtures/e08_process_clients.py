@@ -211,7 +211,30 @@ def run(context, workers, scenario, output):
     return observed
 
 
+def reap_resource_tracker(timeout=5.):
+    """Stop and wait for this client's multiprocessing resource tracker (same race and fix as tests/fixtures/e04_faults.py).
+
+    Without it the tracker outlives the client by a few ms on CPython builds that never wait for it at exit (the host's 3.12.3), and the
+    supervisor's group probe (run_e04_fault.py, right after client.wait()) reports emergency_group_cleanup. Every worker is already reaped here.
+    """
+    from multiprocessing import resource_tracker
+    tracker = resource_tracker._resource_tracker
+    with tracker._lock:
+        fd, pid = tracker._fd, tracker._pid
+        if fd is None or pid is None:
+            return
+        os.close(fd)
+        tracker._fd = None
+        deadline = time.monotonic()+timeout
+        while not os.waitpid(pid, os.WNOHANG)[0]:
+            if time.monotonic() >= deadline:
+                raise AssertionError('resource tracker did not exit after its pipe closed')
+            time.sleep(.002)
+        tracker._pid = None
+
+
 if __name__ == '__main__':
     mode, count, scenario, destination = sys.argv[1:]
     result = run(mode, int(count), scenario, destination)
     Path(destination, 'client.json').write_text(json.dumps(result, indent=2)+'\n')
+    reap_resource_tracker()
