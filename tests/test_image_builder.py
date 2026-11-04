@@ -135,7 +135,7 @@ def refused(world, message, **kw):
     assert not any(call[0][:2] == ('buildx', 'build') for call in Fake.calls), 'a refused build must not start building'
 
 
-@pytest.mark.parametrize('registry', ['https://registry.example.com', f'user:{SENTINEL}@registry.example.com', 'registry.example.com/Team', 'registry.example.com/', ''])
+@pytest.mark.parametrize('registry', ['https://registry.example.com', pytest.param(f'user:{SENTINEL}@registry.example.com', id='user-and-secret-before-the-host'), 'registry.example.com/Team', 'registry.example.com/', ''])
 def test_control_a_bad_registry_prefix_is_refused_without_echo(world, registry):
     with pytest.raises(builder.BuildError, match='invalid --registry') as error:
         run(world, registry=registry)
@@ -151,15 +151,17 @@ def test_control_exactly_one_dependency_source_is_required(world):
     refused(world, 'exactly one of', index_url='https://index.example/simple/')
 
 
-@pytest.mark.parametrize('url', [credentialed('https://index.example/simple/', 'user', SENTINEL), 'ftp://index.example/', 'https://index.example/ simple', 'index.example'])
+@pytest.mark.parametrize('url', [pytest.param(credentialed('https://index.example/simple/', 'user', SENTINEL), id='credentials-in-the-url'), 'ftp://index.example/', 'https://index.example/ simple', 'index.example'])
 def test_control_an_index_url_with_credentials_or_a_bad_scheme_is_refused_without_echo(world, url):
     with pytest.raises(builder.BuildError) as error:
         run(world, wheelhouse=None, index_url=url, package_wheel=world['package'])
     assert SENTINEL not in str(error.value)
 
 
-@pytest.mark.parametrize('field,value', [('proxy', credentialed('http://proxy.example:3128', 'user', 'pw')), ('proxy', 'socks5://proxy.example'), ('debian_mirror', 'ftp://deb.example/debian'),
-                                         ('debian_mirror', credentialed('http://deb.example/debian', 'u', 'p')), ('tag_suffix', 'Bad Suffix'), ('tag_suffix', 'x' * 80)])
+@pytest.mark.parametrize('field,value', [pytest.param('proxy', credentialed('http://proxy.example:3128', 'user', 'pw'), id='proxy-with-credentials'), ('proxy', 'socks5://proxy.example'),
+                                         ('debian_mirror', 'ftp://deb.example/debian'),
+                                         pytest.param('debian_mirror', credentialed('http://deb.example/debian', 'u', 'p'), id='debian_mirror-with-credentials'),
+                                         ('tag_suffix', 'Bad Suffix'), ('tag_suffix', 'x' * 80)])
 def test_control_unsafe_optional_values_are_refused(world, field, value):
     refused(world, '.', **{field: value})
 

@@ -1,0 +1,113 @@
+{
+ "time": "2026-11-04T23:21:44Z",
+ "containers": [
+  "24f09baf3ea46fd95c3680bc9d5a131a4dd48197087c30f412c266b43d82df64 graph-loader-kafka confluentinc/cp-kafka:7.7.0 exited",
+  "efaa56910881ff85d339766b863b7f8dd0a4d87e6b69e174355c5d9be075397e graph-loader-neo4j neo4j:5-enterprise exited",
+  "26fa4d14f2224957057a2e54974e9736882ef241b168d363c088aaa064ab653a graph-loader-kafka-ui provectuslabs/kafka-ui:v0.7.2 exited",
+  "2b7c9b78405e6bea53cce251153a41ea3c2ec78ccfd74d1f36b1faabe9223f5d postgres postgres running"
+ ],
+ "networks": [
+  "a64a680fd618cde18f3f58e982f5711bb45e9b33002d2258782c7cea78086e3f bridge bridge",
+  "21d7fc64fa41379fc22f2110d1eef807cc269a7b02e908150d4bfae7bb043162 graph-loader-net bridge",
+  "8466985afc9e05875093859b754c9d6aa02a4943d5d6f9e1d439d7b507ea2f0c host host",
+  "b8e948b02ecb57e8c350576750537f0a7865c6b83856c43520fa33cfe727a2cd none null",
+  "6aac316a074b348a7ce9a2addc8dc5c96de8ff438c1a423953bd33213201cfd7 ws_default bridge"
+ ],
+ "volumes": [
+  "f3962be2e6730adf55c827a82ea73c2192e54073b086839d56415ca465463b8a",
+  "fd891d7013e42bd9f7d2ed52a8c797bc541d5cba9278d72f491038f905736962",
+  "graphloader_neo4j_data",
+  "graphloader_neo4j_logs",
+  "imdb-c7b4c997dfd08de3-kafka-data",
+  "imdb-c7b4c997dfd08de3-neo-data",
+  "imdb-c7b4c997dfd08de3-neo-logs"
+ ],
+ "images": [
+  "sha256:c4b306c18891821fba2e1846f6662d4b09c85f6e9b096a7ae67a31e16899f96e neo4j:5-enterprise",
+  "sha256:87ec5e0a167dc7d4831729f9e1d2ee7b8597dcc49ccd9e43cc5f89e808d2adae postgres:latest",
+  "sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3 confluentinc/cp-kafka:7.7.0",
+  "sha256:8f2ff02d64b0a7a2b71b6b3b3148b85f66d00ec20ad40c30bdcd415d46d31818 provectuslabs/kafka-ui:v0.7.2"
+ ],
+ "digests": [
+  "sha256:c4b306c18891821fba2e1846f6662d4b09c85f6e9b096a7ae67a31e16899f96e neo4j sha256:c4b306c18891821fba2e1846f6662d4b09c85f6e9b096a7ae67a31e16899f96e",
+  "sha256:87ec5e0a167dc7d4831729f9e1d2ee7b8597dcc49ccd9e43cc5f89e808d2adae postgres sha256:87ec5e0a167dc7d4831729f9e1d2ee7b8597dcc49ccd9e43cc5f89e808d2adae",
+  "sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3 confluentinc/cp-kafka sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3",
+  "sha256:8f2ff02d64b0a7a2b71b6b3b3148b85f66d00ec20ad40c30bdcd415d46d31818 provectuslabs/kafka-ui sha256:8f2ff02d64b0a7a2b71b6b3b3148b85f66d00ec20ad40c30bdcd415d46d31818"
+ ],
+ "listening_ports": [
+  22,
+  53,
+  631,
+  3389,
+  5432
+ ],
+ "home": [
+  ".android",
+  ".antigravity-ide",
+  ".bash_history",
+  ".bash_logout",
+  ".bashrc",
+  ".cache",
+  ".<redacted-hidden-dir>",
+  ".config",
+  ".copilot",
+  ".docker",
+  ".dotnet",
+  ".e09-candidate-dir",
+  ".e09-migration-backup-dir",
+  ".gemini",
+  ".gitconfig",
+  ".gnupg",
+  ".gphoto",
+  ".ipython",
+  ".lesshst",
+  ".local",
+  ".mozilla",
+  ".npm",
+  ".nv",
+  ".nvidia-settings-rc",
+  ".nvm",
+  ".pki",
+  ".profile",
+  ".psensor",
+  ".ssh",
+  ".sudo_as_admin_successful",
+  ".swt",
+  ".viminfo",
+  ".vscode",
+  ".vscode-shared",
+  ".wget-hsts",
+  "Desktop",
+  "Documents",
+  "Downloads",
+  "Music",
+  "Pictures",
+  "Public",
+  "Templates",
+  "Videos",
+  "duckdns",
+  "e11-amd64-rebuild-20261102T020113Z",
+  "e13-soak",
+  "e14",
+  "e19",
+  "graph-loader-data",
+  "imdb-load",
+  "imdb-load-20261101T045903Z",
+  "snap"
+ ],
+ "docker_df": [
+  "Images total=4 size=4.074GB reclaimable=0B (0%)",
+  "Containers total=4 size=602.9MB reclaimable=602.9MB (99%)",
+  "Local Volumes total=7 size=14.19GB reclaimable=14.14GB (99%)",
+  "Build Cache total=0 size=0B reclaimable=0B"
+ ],
+ "memory_mb": {
+  "total": 23905,
+  "available": 21839
+ },
+ "disk_root": {
+  "size": "301291M",
+  "used": "96626M",
+  "available": "189290M"
+ }
+}

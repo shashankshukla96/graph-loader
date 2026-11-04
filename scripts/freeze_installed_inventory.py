@@ -299,7 +299,7 @@ def freeze(data, collection, wheel):
         raise ValueError('test file missing from full source collection: ' + repr(discovered ^ collected))
     policy = file_policy(data)
     result = json.loads(json.dumps(data))
-    result.update(schema_version=1, status='executable inventory; original pre-port baseline retained; acceptance recorded in story reviews', package_version=source_version(),
+    result.update(schema_version=1, status='executable inventory; original pre-port baseline kept in the private provenance; acceptance recorded in story reviews', package_version=source_version(),
                   test_requirements=['pytest==9.1.1', 'testcontainers[neo4j,kafka]>=4.8,<5', 'psutil>=6,<8'])
     with zipfile.ZipFile(wheel) as archive:
         result['package_payload'] = {n: sha(archive.read(n)) for n in archive.namelist() if n.startswith('neo4j_graph_loader/')}
@@ -449,6 +449,9 @@ def make_portable(data):
     if any(Path(a['path']).is_absolute() for a in artifacts):
         provenance['artifact_contract.artifacts'] = artifacts
         result['artifact_contract']['artifacts'] = [{**a, 'path': Path(a['path']).name} for a in artifacts]
+    baseline = result.pop('original_source_baseline', None)
+    if baseline:
+        provenance['original_source_baseline'] = baseline     # the assertion dumps of the tests at their first freeze: a reviewer aid, private
     for index, amendment in enumerate(result.get('disposition_amendments', [])):
         private = {k: amendment.pop(k) for k in PRIVATE_AMENDMENT_KEYS if k in amendment}
         if private:
@@ -457,6 +460,20 @@ def make_portable(data):
         if 'command' in lane:
             lane['command'] = re.sub(r'--inventory \S*test-inventory\.json', '--inventory tests/inventory/test-inventory.json', lane['command'])
     return result, provenance
+
+
+def with_private_baseline(data, provenance_path):
+    """``data`` plus the ``original_source_baseline`` kept in the private provenance file (the public inventory does not carry it).
+
+    A path the public file still carries wins over the sidecar (it is the same original record); the sidecar fills in the rest, so a
+    re-freeze keeps every original dump and records only the files that are new.
+    """
+    if provenance_path is None or not Path(provenance_path).exists():
+        return data
+    kept = json.loads(Path(provenance_path).read_text()).get('original_source_baseline')
+    if not kept:
+        return data
+    return {**data, 'original_source_baseline': {**kept, **data.get('original_source_baseline', {})}}
 
 
 def portability_problems(data):
@@ -600,6 +617,7 @@ def main():
     collection, command = collect(args.collection_output.resolve())
     data = json.loads((args.migrate_from or args.inventory).read_text())
     if args.freeze:
+        data = with_private_baseline(data, args.provenance)
         if args.wheel is None or args.sdist is None:
             parser.error('--freeze requires explicit wheel and sdist for strict validation')
         baseline = json.loads(json.dumps(data))

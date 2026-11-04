@@ -41,7 +41,7 @@ versions and installation reports. On the actual native target, run:
 python -B /absolute/bundle/scripts/support_matrix.py prepare \
   --pins /absolute/bundle/config/support-matrix/minimum-runtime.txt \
   --resolution-constraints /absolute/bundle/config/support-matrix/minimum-linux-arm64-20261027.txt \
-  --wheel /absolute/bundle/neo4j_graph_loader-0.1.0a1-py3-none-any.whl \
+  --wheel /absolute/bundle/neo4j_graph_loader-0.1.0a2-py3-none-any.whl \
   --inventory /absolute/bundle/inventory.json \
   --output /absolute/new-preparation
 ```

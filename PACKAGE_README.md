@@ -6,7 +6,7 @@ label and per type, publish JSON records to those topics, and the loader writes
 the graph. This package provides the `graph-loader` command, a schema loader and
 a producer-side relationship planner you can call from Python.
 
-**Status: alpha (`0.1.0a1`).** The public Python API (`neo4j_graph_loader.schema`
+**Status: alpha (`0.1.0a2`).** The public Python API (`neo4j_graph_loader.schema`
 and `neo4j_graph_loader.planning`) and the command line may change between alpha
 releases; deprecated names and flags are kept for at least one later alpha except
 for urgent fixes. Read [Support and limits](#support-and-limits) before relying on
@@ -27,7 +27,7 @@ You need CPython 3.12 and `pip`. Use a virtual environment:
 ```bash
 python3.12 -m venv .venv
 . .venv/bin/activate
-python -m pip install "neo4j-graph-loader==0.1.0a1"
+python -m pip install "neo4j-graph-loader==0.1.0a2"
 graph-loader --version
 ```
 
@@ -45,7 +45,7 @@ start Neo4j, Kafka or Docker.** You provide them:
 | Plan relationships with `neo4j_graph_loader.planning` | a Kafka broker you can create topics on |
 | Run `graph-loader start` (a load) | Neo4j 5.26 Enterprise, Kafka, Docker Engine on Linux, and the loader images `ghcr.io/neburyx/graph-loader-{cli,node,edge,clock}:<package version>`, which `start` pulls when they are missing |
 | Read the status of a run (`graph-loader status --run`), or log it as JSON lines (`--log-format json`) | nothing beyond the install; the JSON status files are written next to the run, no services needed |
-| Keep run status and history in PostgreSQL (`--status-store sql`) | `pip install "neo4j-graph-loader[postgres]==0.1.0a1"` and a database ([status stores](https://github.com/Neburyx/graph-loader/blob/main/docs/STATUS_SQL.md)) |
+| Keep run status and history in PostgreSQL (`--status-store sql`) | `pip install "neo4j-graph-loader[postgres]==0.1.0a2"` and a database ([status stores](https://github.com/Neburyx/graph-loader/blob/main/docs/STATUS_SQL.md)) |
 | Write Prometheus rules, scrape configuration and Grafana dashboards for your own monitoring (`graph-loader monitoring export`) | nothing beyond the install and your own Prometheus and Grafana ([monitoring guide](https://github.com/Neburyx/graph-loader/blob/main/docs/MONITORING.md#9-bring-your-own-prometheus-and-grafana)) |
 | Run `graph-loader start --runtime process` (a load without Docker, as host processes or a systemd service) | Neo4j 5.26 Enterprise, Kafka and Linux (kernel 5.3 or newer); see the [process runtime guide](https://github.com/Neburyx/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) |
 
@@ -82,6 +82,7 @@ and the
 | [Run status stores](https://github.com/Neburyx/graph-loader/blob/main/docs/STATUS_SQL.md) | Where a run's status and events are kept (JSON files or a database), the tables, the outbox, retention. |
 | [Process runtime](https://github.com/Neburyx/graph-loader/blob/main/docs/PROCESS_RUNTIME.md) | Run the loader as host processes or a systemd service instead of containers: install, quick start, stopping and recovery, sizing. |
 | [Single container](https://github.com/Neburyx/graph-loader/blob/main/docs/SINGLE_CONTAINER.md) | Run the whole loader in one CLI-image container with `--runtime process`: image, `docker run`, stopping, memory, limits. |
+| [Restricted networks](https://github.com/Neburyx/graph-loader/blob/main/docs/RESTRICTED_NETWORKS.md) | Run where `ghcr.io`, PyPI and Debian are not reachable: your own PyPI mirror, copied images, or `graph-loader images build`. |
 | [Public library API](https://github.com/Neburyx/graph-loader/blob/main/docs/LIBRARY_API.md) | The supported Python modules, Kafka requirements, ownership and cancellation. |
 | [Usage reference](https://github.com/Neburyx/graph-loader/blob/main/docs/USAGE.md) | Schema fields, input contract, planned mode, dead-lettering, operations, troubleshooting. |
 | [Support, security and reporting problems](https://github.com/Neburyx/graph-loader/blob/main/docs/SUPPORT.md) | Get help, report a vulnerability, write a minimal reproduction. |
@@ -105,8 +106,11 @@ what the project has checked.
   host, which Docker Desktop does not provide.
 * **Services:** Neo4j 5.26 Enterprise and Kafka 3.7 (`confluentinc/cp-kafka:7.7.0`),
   one broker, plaintext listener. Other versions and security settings were not
-  tested. The loaders run as Docker containers; `graph-loader start` needs a
-  Docker Engine on Linux.
+  tested. The loaders run as Docker containers (`--runtime docker`, the default,
+  which needs a Docker Engine on Linux) or as child processes of the one
+  `graph-loader start` command (`--runtime process`: Linux kernel 5.3 or newer, no
+  Docker, also as a single container or a systemd service); both runtimes were
+  exercised against real Neo4j and Kafka on Linux amd64.
 * **Dependencies:** the declared ranges were tested at their minimum and at a
   recent set of versions.
 

@@ -257,7 +257,8 @@ def test_the_process_runtime_ignores_the_registry(tmp_path, monkeypatch, no_over
 
 
 # per-role references: userinfo is refused (the old pattern accepted ``user:password@host/image``), digests and tags still work
-@pytest.mark.parametrize('reference', [f'user:{SENTINEL}@registry.example.com/img:1', f'{SENTINEL}@registry.example.com/img',
+@pytest.mark.parametrize('reference', [pytest.param(f'user:{SENTINEL}@registry.example.com/img:1', id='user-and-secret-before-the-host'),
+                                       pytest.param(f'{SENTINEL}@registry.example.com/img', id='secret-before-the-host'),
                                        f'registry.example.com/img@{SENTINEL}', f'a@b@sha256:{"a" * 64}', f'registry.example.com/img@sha256:{SENTINEL}',
                                        f'@sha256:{"a" * 64}'])
 def test_per_role_references_with_userinfo_are_rejected_without_echo(reference):

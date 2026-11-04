@@ -88,16 +88,15 @@ it is unaffected.
 **Which image to use.** The image naming policy is
 `ghcr.io/neburyx/graph-loader-cli:<package version>`
 ([Docker execution](DOCKER_EXECUTION.md)), or `<prefix>/graph-loader-cli:<package version>` under your own
-`GRAPH_LOADER_IMAGE_REGISTRY` prefix. The `0.1.0a1` release images were
-frozen before `tini` was added to the CLI image (the change alters the image
-bytes), so **do not assume that a published `graph-loader-cli` tag contains
-`tini`**; check any image first:
+`GRAPH_LOADER_IMAGE_REGISTRY` prefix. The CLI image carries `tini` from `0.1.0a2` on
+(images built by an earlier development build do not, and `0.1.0a1` was never
+published), so **check any image before you rely on it**:
 
 ```bash
 docker run --rm --entrypoint tini <image> --version         # prints "tini version 0.19.0"
 ```
 
-Until a release that includes it is published, build the images yourself from the installed package, under your own registry name
+Until the release images are published, build the images yourself from the installed package, under your own registry name
 (Docker with buildx is needed; the dependencies come from your PyPI mirror or an offline wheelhouse, see
 [`graph-loader images build`](CLI.md#images-build)):
 
@@ -516,7 +515,7 @@ spec:
       terminationGracePeriodSeconds: 120
       containers:
         - name: graph-loader
-          image: registry.example.com/graph-loader-cli:0.1.0a1       # your build
+          image: registry.example.com/graph-loader-cli:0.1.0a2       # your build
           args: [start, --mode=stream, --config=/work/schema.yaml, --runtime=process,
                  --run-dir=/work/runs, --health-addr=0.0.0.0:8081]
           envFrom:

@@ -1,12 +1,12 @@
 # Neo4j Distributed Graph Loader
 
-**Status: alpha (`0.1.0a1`).** Install the package with
-`python -m pip install "neo4j-graph-loader==0.1.0a1"` (CPython 3.12; `pip` does not
+**Status: alpha (`0.1.0a2`).** Install the package with
+`python -m pip install "neo4j-graph-loader==0.1.0a2"` (CPython 3.12; `pip` does not
 install or start Neo4j, Kafka or Docker) and follow the
 [quick start for the installed package](docs/QUICKSTART.md). What is supported and
 what is not is in [Support and limits](#support-and-limits). The walk-through below
 and the Development section are for working in a source checkout: see the
-[development guide](docs/DISTRIBUTION_DEVELOPMENT.md) first.
+[development guide](docs/DISTRIBUTION_DEVELOPMENT.md) first. Other ways to run and operate it: [process runtime](docs/PROCESS_RUNTIME.md) (no Docker), [single container](docs/SINGLE_CONTAINER.md), [run status stores](docs/STATUS_SQL.md), [monitoring](docs/MONITORING.md) and [restricted networks](docs/RESTRICTED_NETWORKS.md).
 
 graph-loader loads data from Kafka topics into a Neo4j graph. You describe the
 graph model in a YAML schema (node labels, relationship types, property types,
@@ -275,8 +275,11 @@ what the project has checked.
   host, which Docker Desktop does not provide.
 * **Services:** Neo4j 5.26 Enterprise and Kafka 3.7 (`confluentinc/cp-kafka:7.7.0`),
   one broker, plaintext listener. Other versions and security settings were not
-  tested. The loaders run as Docker containers; `graph-loader start` needs a
-  Docker Engine on Linux.
+  tested. The loaders run as Docker containers (`--runtime docker`, the default,
+  which needs a Docker Engine on Linux) or as child processes of the one
+  `graph-loader start` command (`--runtime process`: Linux kernel 5.3 or newer, no
+  Docker, also as a single container or a systemd service); both runtimes were
+  exercised against real Neo4j and Kafka on Linux amd64.
 * **Dependencies:** the declared ranges were tested at their minimum and at a
   recent set of versions.
 
@@ -351,6 +354,6 @@ See also [Support and reporting problems](docs/SUPPORT.md) and the [security pol
   `GRAPH_LOADER_IT_*` connection variables and credentials; see
   [USAGE section 13](docs/USAGE.md#13-development-and-validation).
 * Lint: `make lint`. Images: `make build-images`. Monitoring stack:
-  `make monitoring-up` (see [MONITORING](docs/MONITORING.md)).
+  `make monitoring-up` (it needs `GRAFANA_ADMIN_PASSWORD` and binds to 127.0.0.1; see [MONITORING](docs/MONITORING.md)).
 * Debug a single topic with `python -m neo4j_graph_loader.loader.node_loader` /
   `python -m neo4j_graph_loader.loader.edge_loader` ([HISTORY](docs/HISTORY.md#direct-single-topic-runs)).

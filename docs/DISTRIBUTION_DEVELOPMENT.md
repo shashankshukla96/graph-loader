@@ -80,7 +80,7 @@ are needed. `MANIFEST.in` and restricted regular-package discovery include every
 Python module, excluding plans, tests, datasets, secrets and operational logs.
 
 The version authority is the literal `_version.py` value. The current version is
-`0.1.0a1`; the release process freezes a clean reviewed source snapshot before
+`0.1.0a2`; the release process freezes a clean reviewed source snapshot before
 building exact retained artifacts. File-based
 versioning needs no SCM fallback or Git at runtime. The release tag is created at
 the tested commit during publication ([release runbook](RELEASE_RUNBOOK.md)).
@@ -153,10 +153,10 @@ Each image is built from a context directory that holds: the Dockerfile of the r
 secrets) and need no registry other than the one holding the base image:
 
 ```sh
-docker buildx build --load -t my-registry.example.com/team/graph-loader-node:0.1.0a1 \
+docker buildx build --load -t my-registry.example.com/team/graph-loader-node:0.1.0a2 \
     --build-arg BASE_IMAGE=my-registry.example.com/mirror/python@sha256:<digest> \
-    --build-arg GRAPH_LOADER_VERSION=0.1.0a1 \
-    --build-arg PACKAGE_WHEEL=neo4j_graph_loader-0.1.0a1-py3-none-any.whl --build-arg PACKAGE_WHEEL_SHA256=<sha256 of the wheel> \
+    --build-arg GRAPH_LOADER_VERSION=0.1.0a2 \
+    --build-arg PACKAGE_WHEEL=neo4j_graph_loader-0.1.0a2-py3-none-any.whl --build-arg PACKAGE_WHEEL_SHA256=<sha256 of the wheel> \
     --build-arg DEPENDENCY_SOURCE=index-secret --secret id=pip_index,src=pip-index-url.txt <context>
 ```
 

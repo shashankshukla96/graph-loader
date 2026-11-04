@@ -56,7 +56,7 @@ a plain type mapping cannot identify the pair. Ordering follows source order
 and schema rules; no restart-safe arrival or exactly-once guarantee is added.
 
 The installed console script and bundled default/social resources are available; existing module
-commands still work with external configuration. This is an alpha (`0.1.0a1`); the supported environment is in
+commands still work with external configuration. This is an alpha (`0.1.0a2`); the supported environment is in
 [Support and limits](../README.md#support-and-limits). Cancellation and cleanup behavior is described below.
 
 ## Ownership and lifecycle

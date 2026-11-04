@@ -2,7 +2,7 @@
 
 How to run the loader where the hosts that run it cannot reach the public internet: no `ghcr.io`, no `pypi.org`, no `deb.debian.org`, no
 Docker Hub. The loader itself never needs the internet; only getting its **software** into the network does. There are three routes, and you
-can mix them. This is an alpha (`0.1.0a1`): [what was tested and what was not](#what-was-tested) is at the end.
+can mix them. This is an alpha (`0.1.0a2`): [what was tested and what was not](#what-was-tested) is at the end.
 
 | Route | You run the loader as | You bring into the network | Needs |
 | --- | --- | --- | --- |
@@ -36,7 +36,7 @@ package has to enter the network.
    python3.12 -m venv .venv && . .venv/bin/activate
    export PIP_INDEX_URL="$(cat pip-index-url.txt)"     # one line: your index URL, with its user and password if it needs them
    export PIP_CERT=/path/to/your-ca.pem                # only for a private CA
-   python -m pip install "neo4j-graph-loader==0.1.0a1"
+   python -m pip install "neo4j-graph-loader==0.1.0a2"
    unset PIP_INDEX_URL
    ```
 
@@ -61,10 +61,10 @@ you copied, so the image you run is the image you reviewed:
 # on the machine that can reach both registries; docker login to each registry first
 for role in cli node edge clock; do
   src=ghcr.io/neburyx/graph-loader-$role
-  digest=$(docker buildx imagetools inspect "$src:0.1.0a1" --format '{{.Manifest.Digest}}')   # sha256:... of the release you reviewed
+  digest=$(docker buildx imagetools inspect "$src:0.1.0a2" --format '{{.Manifest.Digest}}')   # sha256:... of the release you reviewed
   docker pull "$src@$digest"
-  docker tag "$src@$digest" registry.example.com:5000/team/graph-loader-$role:0.1.0a1
-  docker push registry.example.com:5000/team/graph-loader-$role:0.1.0a1                        # prints "digest: sha256:..."
+  docker tag "$src@$digest" registry.example.com:5000/team/graph-loader-$role:0.1.0a2
+  docker push registry.example.com:5000/team/graph-loader-$role:0.1.0a2                        # prints "digest: sha256:..."
   echo "$role $digest" >> copied-digests.txt                                                   # the pushed digest must equal this one
 done
 ```
@@ -111,7 +111,7 @@ graph-loader images build --registry registry.example.com:5000/team \
     --base-image registry.example.com:5000/mirror/python:3.12-slim \
     --pip-index-secret pip-index-url.txt --pip-ca-bundle your-ca.pem \
     --debian-mirror http://debian.internal.example/debian \
-    --package-wheel neo4j_graph_loader-0.1.0a1-py3-none-any.whl --push --output ./build-manifest
+    --package-wheel neo4j_graph_loader-0.1.0a2-py3-none-any.whl --push --output ./build-manifest
 ```
 
 **Cell B, offline.** Prepare the wheelhouse **inside the target base image** on the target platform, so that pip chooses the wheels the build will install;
@@ -123,7 +123,7 @@ LOCK=$(python3.12 -c "from importlib.resources import files; print(files('neo4j_
 mkdir wheelhouse
 docker run --rm --platform linux/amd64 -v "$LOCK:/lock.txt:ro" -v "$PWD/wheelhouse:/wheelhouse" --user "$(id -u):$(id -g)" -e HOME=/tmp \
     python:3.12-slim pip download --no-deps --only-binary=:all: --require-hashes -r /lock.txt -d /wheelhouse
-cp neo4j_graph_loader-0.1.0a1-py3-none-any.whl wheelhouse/
+cp neo4j_graph_loader-0.1.0a2-py3-none-any.whl wheelhouse/
 graph-loader images build --registry registry.example.com:5000/team \
     --base-image registry.example.com:5000/mirror/python-tini:3.12-slim --wheelhouse ./wheelhouse --push --output ./build-manifest
 ```
@@ -165,8 +165,8 @@ runs it. Observed behaviour against an authenticated registry:
 ## Checking what you have
 
 ```bash
-docker image inspect --format '{{json .Config.Labels}}' registry.example.com:5000/team/graph-loader-node:0.1.0a1
-docker run --rm --entrypoint tini registry.example.com:5000/team/graph-loader-cli:0.1.0a1 --version      # tini version 0.19.0
+docker image inspect --format '{{json .Config.Labels}}' registry.example.com:5000/team/graph-loader-node:0.1.0a2
+docker run --rm --entrypoint tini registry.example.com:5000/team/graph-loader-cli:0.1.0a2 --version      # tini version 0.19.0
 ```
 
 The loader requires three labels on every role image, and refuses an image without them: `org.opencontainers.image.version` equal to the package

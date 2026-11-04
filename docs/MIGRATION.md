@@ -81,7 +81,7 @@ destructively, for example on leftover DLQ records of a renamed default DLQ.
 `--stream-clock-rotation` selects the original rotating global batch clock for
 streaming. It is deprecated: `start` logs `stage=deprecation
 flag=--stream-clock-rotation`, it is refused for multi-pair relationship types,
-and it remains in `0.1.0a1` and at least through the next alpha before any
+and it remains in `0.1.0a2` and at least through the next alpha before any
 removal, which the changelog will announce first (D03). The default streaming
 mechanism is the bucket-lease fleet, the one the release tests exercised; the
 clock path was **not** exercised live. The hidden `--lease-*` flags and

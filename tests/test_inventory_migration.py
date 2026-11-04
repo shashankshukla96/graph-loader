@@ -143,6 +143,22 @@ def test_make_portable_moves_private_paths_to_the_provenance_and_is_idempotent()
     assert old['source_collection']['command'][0] == '/venv/bin/python', 'the input is not modified'
 
 
+def test_the_original_source_baseline_goes_to_the_private_provenance_and_comes_back_for_a_refreeze(tmp_path):
+    old = baseline()
+    old['original_source_baseline'] = {'tests/test_a.py': {'sha256': 'a', 'assertions': ['original']}}
+    public, provenance = inventory.make_portable(old)
+    assert 'original_source_baseline' not in public
+    assert provenance['original_source_baseline'] == {'tests/test_a.py': {'sha256': 'a', 'assertions': ['original']}}
+    sidecar = tmp_path / 'provenance.json'
+    sidecar.write_text(json.dumps(provenance))
+    restored = inventory.with_private_baseline(public, sidecar)
+    assert restored['original_source_baseline'] == provenance['original_source_baseline'] and 'original_source_baseline' not in public
+    # a path the public file still carries is the same original record and wins over the sidecar; the sidecar fills in the others
+    mixed = inventory.with_private_baseline({**public, 'original_source_baseline': {'tests/test_b.py': {'sha256': 'b'}}}, sidecar)
+    assert set(mixed['original_source_baseline']) == {'tests/test_a.py', 'tests/test_b.py'}
+    assert inventory.with_private_baseline(public, tmp_path / 'missing.json') == public and inventory.with_private_baseline(public, None) == public
+
+
 @pytest.mark.parametrize('where,value', [pytest.param(*case, id=f'{case[0]}-{index}') for index, case in enumerate([
     ('artifact', HOME + '/dist/p.whl'), ('artifact', 'C:/x/../p.whl'), ('stage', f'{PRIVATE_FOLDER}/tools/x.py'),
     ('stage', '../outside.py'), ('command', f'python run.py --inventory {PRIVATE_FOLDER}/test-inventory.json'),
@@ -197,6 +213,7 @@ def test_the_public_inventory_is_where_the_freeze_tool_writes_it_and_carries_no_
     assert 'run_e04' + '_fault' not in text and 'verify_e03' + '_artifacts' not in text
     assert not inventory.LAN_ADDRESS.search(text), 'no private 192.168.x.x address in the public inventory'
     assert inventory.concealed_problems(data) == []
+    assert 'original_source_baseline' not in data, 'the original assertion dumps stay in the private provenance'
     # the one reviewed rename of the migration is recorded by the digest of its old ID
     old_id = ('tests/test_installed_service.py::test_remote_or_ambiguous_docker_hosts_are_rejected[tcp://192.' + '168.1.75:2375]')
     entry = data['reviewed_id_renames'][inventory.CONCEALED + inventory.id_digest(old_id)]

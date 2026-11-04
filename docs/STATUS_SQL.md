@@ -57,7 +57,7 @@ roles     5: 5 exited
 ## The SQL store
 
 ```bash
-python -m pip install "neo4j-graph-loader[postgres]==0.1.0a1"     # SQLAlchemy 2 and psycopg 3
+python -m pip install "neo4j-graph-loader[postgres]==0.1.0a2"     # SQLAlchemy 2 and psycopg 3
 export GRAPH_LOADER_STATUS_DB_URL='postgresql+psycopg://USER:PASSWORD@HOST:5432/DBNAME'
 graph-loader status-store migrate                                 # once; idempotent
 graph-loader start --mode bulk --config schema.yaml --status-store sql --run-dir ./runs

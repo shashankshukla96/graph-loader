@@ -7,7 +7,7 @@ command and the public `neo4j_graph_loader.schema` and `neo4j_graph_loader.plann
 modules, nothing from a source checkout. Developing the library itself is a
 separate path: see [Distribution development](DISTRIBUTION_DEVELOPMENT.md).
 
-This is an alpha (`0.1.0a1`). The guarantees and limits of this release are in the
+This is an alpha (`0.1.0a2`). The guarantees and limits of this release are in the
 [README](../README.md#support-and-limits); the full API contract is
 [Public library API](LIBRARY_API.md).
 
@@ -37,12 +37,12 @@ Create a working directory with its own virtual environment:
 mkdir graph-loader-quickstart && cd graph-loader-quickstart
 python3.12 -m venv .venv
 . .venv/bin/activate
-python -m pip install "neo4j-graph-loader==0.1.0a1"
+python -m pip install "neo4j-graph-loader==0.1.0a2"
 graph-loader --version
 ```
 
 The version is pinned because pip skips pre-releases of a package unless you ask
-for one. `graph-loader --version` prints `graph-loader 0.1.0a1`.
+for one. `graph-loader --version` prints `graph-loader 0.1.0a2`.
 
 ## Quick start 1: describe and validate a graph schema
 

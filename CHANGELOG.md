@@ -1,14 +1,19 @@
 # Changelog
 
-## 0.1.0a1 (first alpha)
+## 0.1.0a2 (first alpha)
 
-Release date: **2026-11-01**, the day this release candidate was built and frozen.
+Release date: **2026-11-04**, the day this release candidate was built and frozen.
 Those same files go to TestPyPI and to PyPI unchanged, so the date is the freeze date
 and not necessarily the day the package appears on an index.
 
 This is the first release on PyPI as `neo4j-graph-loader` (import
 `neo4j_graph_loader`, command `graph-loader`). Before it, the loader existed only as
-a source checkout (`python -m src.cli`). It is an alpha: the supported Python API
+a source checkout (`python -m src.cli`). An earlier candidate, `0.1.0a1`, was frozen
+but never published; everything it contained is in this entry, together with three
+larger changes made after it: the **process runtime** (run without Docker, as host
+processes, in a single container or as a systemd service), **run status tracking and
+portable monitoring**, and the move to the **Neburyx** namespace with images that can
+be built and run in networks without internet access. It is an alpha: the supported Python API
 (`neo4j_graph_loader.schema`, `neo4j_graph_loader.planning`) and the command line
 may change between alphas, every such change is listed here, and a deprecated name
 or flag keeps working with a warning for at least one later alpha unless an urgent
@@ -18,6 +23,85 @@ See [docs/QUICKSTART.md](docs/QUICKSTART.md) to install and try it,
 [docs/MIGRATION.md](docs/MIGRATION.md) to move from a checkout,
 [docs/CLI.md](docs/CLI.md) for every flag, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 for how the pieces fit together and [docs/USAGE.md](docs/USAGE.md) for the reference.
+
+### Run the loader without Docker: the process runtime
+
+`graph-loader start --runtime process` (environment `GRAPH_LOADER_RUNTIME`) runs every
+role as a child process of the one command on a Linux host (kernel 5.3 or newer), with
+no Docker daemon, network or images; the roles reach Neo4j and Kafka at the command's own
+`NEO4J_URI` and `KAFKA_BOOTSTRAP_SERVERS`. The same command runs as a **single
+container** (the CLI image, whose entrypoint is now `tini`, runs
+`graph-loader start --runtime process`) and as a **systemd service** (an example unit
+ships under `examples/systemd/`, with `OOMPolicy=continue`). `stop` and `status` find the run through
+its attempt directory (`--run-dir`); `stop --recover` cleans up after a command that was
+killed abruptly; the memory sizing follows the cgroup limit of the command, and an
+out-of-memory kill of a role is reported (`stage=oom`, status event `oom`). In process mode a stream schema
+with no relationship types is supervised by the command in the foreground (Docker mode
+keeps launching the node containers and returning). New flags: `--runtime`, `--metrics-addr`, `--health-addr`, `--health-stale-after`
+and `--child-logs`; `--network` and `--skip-image-build` are Docker-only (`--network` is
+refused with `--runtime process`). Docker mode is unchanged except for three new environment keys
+for the run-status identity (below). See [docs/PROCESS_RUNTIME.md](docs/PROCESS_RUNTIME.md)
+and [docs/SINGLE_CONTAINER.md](docs/SINGLE_CONTAINER.md).
+
+### Run status, stores and JSON logs
+
+Every `graph-loader start` records a **run status** that you can read while it runs and
+afterwards: an overall state (`starting`, `running`, `stopping`, `succeeded`, `failed`,
+`stopped`), overlapping activities (planning, nodes, edges, draining, stream), per-role
+state and incarnation, progress numbers that carry their observation time and source (an
+unknown number is `null`, never 0), and an ordered event history. Identity is an
+`execution_id` per command, a `run_id` per logical run and an `incarnation` per role
+process. The status is kept as JSON files in the attempt directory or, with
+`--status-store sql`, in a database (SQLAlchemy Core; PostgreSQL 17 and SQLite tested)
+through a durable local outbox that delivers at least once and records any loss as an
+explicit gap. New: `graph-loader status --run | --json | --watch | --list |
+--execution-id`, the `graph-loader status-store migrate|prune|flush` command group, and
+`--log-format json` (JSON lines for the loader's own logs and for the Kafka client's log
+output). The SQL store is optional: the base install gains **no dependency**; the extras
+`neo4j-graph-loader[sql]` (`SQLAlchemy>=2.0.30,<3`) and `neo4j-graph-loader[postgres]`
+(adds `psycopg[binary]>=3.1.12,<4`) exist only for it. The status document, event schema
+and metric names and labels are versioned and change only additively. See
+[docs/STATUS_SQL.md](docs/STATUS_SQL.md), [docs/STATUS_FIELDS.md](docs/STATUS_FIELDS.md) and
+[docs/CLI.md](docs/CLI.md).
+
+### Portable monitoring
+
+`graph-loader monitoring export` writes a Prometheus scrape configuration (Docker
+discovery, `file_sd`, Kubernetes or static targets), alert rules with overridable thresholds,
+promtool tests and Grafana dashboards (a provisioning variant and an import variant) for
+your own Prometheus and Grafana. Metrics carry the reserved labels `run_id`,
+`execution_id`, `exporter` and `runtime`; rules and dashboards key on `execution_id` and
+`exporter` and pin no datasource uid; new `health.yml` alerts cover `TargetDown`,
+`ExporterScrapeFailed` and `DuplicateScrape`. In process mode the command can serve one
+aggregated `/metrics` (`--metrics-port`) and writes `file_sd` targets. See
+[docs/MONITORING.md](docs/MONITORING.md).
+
+### Neburyx, images and restricted networks
+
+* **Namespace.** The project lives at `github.com/Neburyx/graph-loader` and the images are
+  `ghcr.io/neburyx/graph-loader-{cli,node,edge,clock}:<package version>`.
+* **`GRAPH_LOADER_IMAGE_REGISTRY=<prefix>`** makes every default image reference
+  `<prefix>/graph-loader-<role>:<package version>` (the per-role variables still win); a
+  prefix with a scheme, credentials, a tag or a digest is refused without echoing it, and
+  so is a per-role reference with credentials.
+* **`graph-loader images build`** builds the four images from the installed package for a
+  registry you control, from your own PyPI mirror (the URL, with its credentials, only as a
+  BuildKit secret) or from a wheelhouse with no index, your Debian mirror or a base image
+  that already has `tini`, a private CA bundle, scoped registry logins, `--push` and a
+  manifest (`graph-loader-image-manifest/2`). It needs Docker with `buildx` (only to
+  build, not to run). The dependencies are installed from a **hashed lock per platform**
+  (`linux/amd64`, `linux/arm64`) with `--require-hashes --only-binary=:all:`, shipped inside the package.
+* **Image content changed.** `/app` now holds only `config/graph_schema.yaml` (nothing in the
+  clock image); the earlier images also carried the whole source tree, `build/`,
+  `pyproject.toml`, `requirements.txt`, `PACKAGE_README.md`, `LICENSE`, `MANIFEST.in`,
+  `config/neo4j`, `config/support-matrix` and, in the CLI image, `.env.example`. The runtime
+  reads none of them. The installed set of distributions changes only from version ranges to
+  the locked pins. The CLI image installs the Debian `tini` package.
+* **Guide.** [docs/RESTRICTED_NETWORKS.md](docs/RESTRICTED_NETWORKS.md): the process runtime from
+  your PyPI mirror, copying the released images by digest, and building the images, with
+  mirrors, a wheelhouse, registry login, checks and what was tested.
+* `make build-images` and `scripts/build_candidate_images.py` (checkout only) use the same
+  build core and take `CANDIDATE_WHEELHOUSE` / `CANDIDATE_INDEX`.
 
 ### What this release guarantees, and what it only describes
 
@@ -30,10 +114,20 @@ server and from a Neo4j outage, and the restricted ordering cases listed under
 "Limits" in the [README](README.md#support-and-limits). The installed package,
 schema loader, planning API and command line were also tested on Linux arm64. The
 guarantees are exactly those listed there; they are not stronger than the tests.
+Since the first candidate, the process runtime (host processes, a single container and
+a systemd service) was exercised against the same real services on Linux amd64; the run
+status, JSON log and metrics matrix was run live for every start mode in both runtimes
+(32 cells, with PostgreSQL 17.2 for the SQL store); and the restricted-network path was
+exercised on Linux amd64 in an isolated topology (an internal Docker network with no route out): images
+built from an authenticated PyPI index and Debian mirror and offline from a wheelhouse,
+pushed to an authenticated registry, and used for bulk and stream loads, plus the process
+runtime installed from that index.
 
 **Described but not exercised for this release.** Everything else in these notes and
 in `docs/`, including the legacy clock path, legacy consumer-group migration, the
-monitoring stack and metrics, `precedence` conflicts, multi-pair relationship types in
+bundled monitoring stack (rendered and checked with promtool, not started live; live
+Docker discovery was not run), the exported Kubernetes files (structural checks and promtool
+only; no cluster), `precedence` conflicts, multi-pair relationship types in
 streaming, and any Neo4j, Kafka, Python or platform outside the supported
 environment. These come from the original loader, are documented and unit-tested,
 and are not promised. `execution.mode: native_disjoint` is **not supported** on
@@ -58,13 +152,14 @@ Neo4j 5.26 (it needs the Cypher 25 dialect).
   files go to a private `graph-loader-*` directory under the OS temporary directory
   (or `--run-dir BASE`), logged as `stage=runtime directory=...` and kept afterwards.
 * All eight runtime dependencies are mandatory, including the matching
-  `neo4j` and `neo4j-rust-ext` (`>=6.0,<7`); there are no extras.
-  Python `>=3.12`.
+  `neo4j` and `neo4j-rust-ext` (`>=6.0,<7`). The only extras, `[sql]` and `[postgres]`,
+  are for keeping run status in a database (see above). Python `>=3.12`.
 
 ### Images and coordinated upgrades
 
 `start` runs the loaders from four prebuilt images,
-`ghcr.io/shashankshukla96/graph-loader-{cli,node,edge,clock}:<package version>`, and
+`ghcr.io/neburyx/graph-loader-{cli,node,edge,clock}:<package version>` (or under your
+own registry with `GRAPH_LOADER_IMAGE_REGISTRY`, see above), and
 never builds from the current directory. Upgrade the package and the images together:
 every image, overrides included, must carry the installed package's version label or
 `start` fails before launching anything. Stop a running fleet, install the new
@@ -257,6 +352,21 @@ records go to the DLQ instead of the rejection file. *What to do:* review every
     are validated before any side effect; `stop` and `status` exit 1 with a clear
     message when Docker is unreachable; `GRAPH_LOADER_VERSION` is forwarded to
     containers; the `--run-id` help text now describes its real scope.
+
+23. **The bundled Prometheus and Grafana stack has safer defaults.** `make monitoring-up`
+    now binds both UIs to `127.0.0.1` (`PROMETHEUS_HOST_BIND` and `GRAFANA_HOST_BIND` widen it
+    on purpose), **requires** `GRAFANA_ADMIN_PASSWORD` (at least 8 characters, not `admin`; there
+    is no default) and leaves anonymous Viewer access off (`GRAFANA_ANONYMOUS_ENABLED=true`
+    turns it on). Earlier development builds bound `0.0.0.0`, shipped `admin`/`admin` and allowed
+    anonymous access. *What to do:* export a password before `make monitoring-up`, and put
+    your own authentication in front of Prometheus before you widen its bind. The dashboards and
+    rules now key on `execution_id` and `exporter`; the Docker-discovery `run_id` label alone no longer
+    identifies a run.
+24. **Run status files and new environment keys.** Every `start` creates its attempt
+    directory and a status locator before the schema is loaded; roles started in Docker mode
+    receive three new environment keys (`GRAPH_LOADER_EXECUTION_ID`, `GRAPH_LOADER_INCARNATION`,
+    `GRAPH_LOADER_STATUS_SNAPSHOT_DIR`, inside the existing timing mount). Input that is rejected
+    before the schema is loaded (a bad flag, a missing schema path) leaves no status.
 
 ### Streaming resilience
 

@@ -71,4 +71,4 @@ def test_installed_fork_exec():
 def test_installed_console_child():
     child=subprocess.run([str(Path(sys.executable).parent/'graph-loader'),'--version'],capture_output=True,text=True,timeout=20)
     assert child.returncode==0,child.stderr
-    assert child.stdout.strip()=='graph-loader 0.1.0a1'
+    assert child.stdout.strip()=='graph-loader 0.1.0a2'

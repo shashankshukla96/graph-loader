@@ -8,7 +8,7 @@ container, see [Single container](SINGLE_CONTAINER.md).
 
 `graph-loader start` resolves prebuilt images and never builds from cwd. Defaults
 are `ghcr.io/neburyx/graph-loader-{node,edge,clock}:<package-version>`;
-the current package version is `0.1.0a1`. The CLI image follows
+the current package version is `0.1.0a2`. The CLI image follows
 the same naming policy.
 
 **Your own registry.** (Behind a network without internet access: [Restricted networks](RESTRICTED_NETWORKS.md).) Set `GRAPH_LOADER_IMAGE_REGISTRY=<prefix>` (for example `registry.example.com:5000/team`) and every

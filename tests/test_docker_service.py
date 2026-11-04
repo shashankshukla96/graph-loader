@@ -17,7 +17,7 @@ class TestDockerService(unittest.TestCase):
         assert self.service.build_image() == IMAGE_IDS["node"]
         self.mock_client.images.build.assert_not_called()
         self.mock_client.images.get.assert_called_once_with(
-            "ghcr.io/neburyx/graph-loader-node:0.1.0a1")
+            "ghcr.io/neburyx/graph-loader-node:0.1.0a2")
 
     def test_run_node_loader(self):
         mock_container = MagicMock()
