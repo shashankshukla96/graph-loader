@@ -1,0 +1,56 @@
+{
+  "schema": "graph-loader-candidate-provenance/1",
+  "version": "0.1.0a2",
+  "published": false,
+  "source": {
+    "commit": "b8980220a1179335f3d3394afe06e79ac20e59c6",
+    "tree": "a41bd16b4c1ece14e603cd57267e853d13348cd7",
+    "parent": "d4f29c6175887258ed2a8ef15cbd7b15e2b3049c",
+    "branch": "freeze-0.1.0a2",
+    "subject": "Prepare the 0.1.0a2 candidate: version, changelog, docs and inventory",
+    "tag": null,
+    "export": "git archive b898022 into an empty directory (no .git)"
+  },
+  "artifacts": [
+    {
+      "file": "neo4j_graph_loader-0.1.0a2-py3-none-any.whl",
+      "size": 659415,
+      "sha256": "88c5716d42cfda0be12fba1c6209a3139f9545be052d90292e810af3c0776c3c"
+    },
+    {
+      "file": "neo4j_graph_loader-0.1.0a2.tar.gz",
+      "size": 600975,
+      "sha256": "6bc737ae11bfea7403a822e52a106ba41e9cf44e52eb2d09ea0a13a1434f2c90"
+    }
+  ],
+  "build": {
+    "command": "python -m build --no-isolation --outdir dist .",
+    "host": "macOS arm64",
+    "python": "3.12.14",
+    "build": "1.6.1",
+    "setuptools": "84.2.1",
+    "wheel": "0.48.0",
+    "twine": "6.2.0",
+    "wheel_generator": "setuptools (84.2.1)"
+  },
+  "inventory": {
+    "path": "tests/inventory/test-inventory.json",
+    "sha256": "fe28ac3387440f261676cfa97d8248e7822a1aff1a729691f4d4e2c7fe24704f",
+    "test_ids": 5217,
+    "files": 182,
+    "artifact_contract_artifacts_note": "records the preparation build (wheel f47cf392\u2026, sdist ad10cede\u2026); the content of both builds is identical, only archive timestamps differ"
+  },
+  "locks": {
+    "py312-linux-amd64.txt": "112cb6b21b12008f84db5e5cb43962a6cc364c25cb8c10511bea0e4e53ce7750",
+    "py312-linux-arm64.txt": "c10f85aa449272e49b61e9ef62f3d4e0cd3681ff27fcbe6f72a482e928e00a77"
+  },
+  "checks": {
+    "twine_check_strict": "passed for both files",
+    "wheel_members": 123,
+    "sdist_members": 152,
+    "wheel_payload_and_dist_files_equal_inventory": true,
+    "sdist_rebuild_without_git": "wheel rebuilt from the sdist: 123 members, content and order equal",
+    "strict_inspector": "92 runtime modules, 25 resources, version 0.1.0a2",
+    "linux_host": "freezer check mode matched (5217 ids, 182 files); eight installed unit lanes passed on the exact wheel (collect-only and executed): core 454, safety 1335, cli-runtime 636, public-contracts 336, writer-runtime 540, orchestration-runtime 745, example-contracts 54, service-helper-unit 41"
+  }
+}
