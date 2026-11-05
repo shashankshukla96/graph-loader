@@ -1,0 +1,52 @@
+........................................................................ [ 21%]
+........................................................................ [ 42%]
+........................................................................ [ 64%]
+.....................................................F.................. [ 85%]
+................................................                         [100%]
+=================================== FAILURES ===================================
+_ test_public_fault_reaps_every_child_and_releases_owned_resources[public-many-cancel] _
+
+tmp_path = PosixPath('/tmp/pytest-of-unknown/pytest-0/test_public_fault_reaps_every_7')
+scenario = 'public-many', mode = 'cancel'
+
+    @pytest.mark.parametrize('scenario,mode',[
+        (scenario,mode) for scenario in ('public-blocked','public-partial','public-send','public-many')
+        for mode in ('timeout','cancel')
+    ]+[('public-stop','timeout'),('public-source-error','timeout'),('public-startup','timeout')])
+    def test_public_fault_reaps_every_child_and_releases_owned_resources(tmp_path,scenario,mode):
+        output=tmp_path/'fault'
+        result=subprocess.run([sys.executable,str(ROOT/'tests/fixtures/run_fault.py'),
+            scenario,'--mode',mode,'--python',sys.executable,'--output',str(output)],
+            cwd=ROOT,capture_output=True,text=True,timeout=30)
+>       assert result.returncode==0,result.stdout+result.stderr+(output/'client.log').read_text()
+E       AssertionError: {"command": ["/work/out/current-public-contracts/installed/environment/bin/python", "-m", "tests.fixtures.e04_faults", "public-many", "cancel", "/tmp/pytest-of-unknown/pytest-0/test_public_fault_reaps_every_7/fault/client.json"], "cwd": "/work/out/current-public-contracts/installed/stage", "exit_code": 1, "timeout": false, "emergency_group_cleanup": false, "elapsed_seconds": 2.3007783319990267}
+E         Traceback (most recent call last):
+E           File "/work/out/current-public-contracts/installed/stage/tests/fixtures/e04_faults.py", line 271, in public_fault
+E             planner.start()
+E           File "/work/out/current-public-contracts/installed/environment/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_planner.py", line 1641, in start
+E             self._check()
+E           File "/work/out/current-public-contracts/installed/stage/tests/fixtures/e04_faults.py", line 255, in check
+E             try:return original_check()
+E                        ^^^^^^^^^^^^^^^^
+E           File "/work/out/current-public-contracts/installed/environment/lib/python3.12/site-packages/neo4j_graph_loader/loader/edge_planner.py", line 1508, in _check
+E             raise EdgePlanCancelledError("edge planning cancelled by caller")
+E         neo4j_graph_loader.loader.edge_plan.EdgePlanCancelledError: edge planning cancelled by caller
+E         
+E         During handling of the above exception, another exception occurred:
+E         
+E         Traceback (most recent call last):
+E           File "<frozen runpy>", line 198, in _run_module_as_main
+E           File "<frozen runpy>", line 88, in _run_code
+E           File "/work/out/current-public-contracts/installed/stage/tests/fixtures/e04_faults.py", line 365, in <module>
+E             public_fault(scenario,mode,output,workers=args.workers,context=args.context))
+E             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/work/out/current-public-contracts/installed/stage/tests/fixtures/e04_faults.py", line 298, in public_fault
+E             assert 0 <= lateness < .3,lateness
+E                    ^^^^^^^^^^^^^^^^^^
+E         AssertionError: 0.6023335629997746
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/work/out/current-public-contracts/installed/environment/bin/python', '/work/out/current-publi...xit_code": 1, "timeout": false, "emergency_group_cleanup": false, "elapsed_seconds": 2.3007783319990267}\n', stderr='').returncode
+
+tests/test_public_cleanup.py:52: AssertionError
+1 failed, 335 passed in 135.97s (0:02:15)

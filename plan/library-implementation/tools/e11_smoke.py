@@ -13,6 +13,7 @@ run remains.
 """
 import json
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -117,7 +118,7 @@ def main():
     for line in overrides.read_text().splitlines():
         if line.startswith('export '):
             key, _, value = line[len('export '):].partition('=')
-            env[key] = value
+            env[key] = shlex.split(value)[0]          # the overrides file quotes its values (graph-loader-image-manifest/2)
     env.update(NEO4J_URI=bolt, NEO4J_USERNAME='neo4j', NEO4J_PASSWORD=creds['NEO4J_PASSWORD'], NEO4J_DATABASE='neo4j',
                KAFKA_BOOTSTRAP_SERVERS=kafka, LOADER_NEO4J_URI=stack['neo4j_uri_network'],
                LOADER_KAFKA_BOOTSTRAP_SERVERS=stack['kafka_bootstrap_network'])

@@ -1,0 +1,553 @@
+{
+ "schema": "graph-loader-candidate-manifest/1",
+ "version": "0.1.0a2",
+ "tag": "rc1",
+ "published": false,
+ "uploaded": false,
+ "source": {
+  "commit": "b8980220a1179335f3d3394afe06e79ac20e59c6",
+  "tree": "a41bd16b4c1ece14e603cd57267e853d13348cd7",
+  "parent": "d4f29c6175887258ed2a8ef15cbd7b15e2b3049c",
+  "branch": "freeze-0.1.0a2",
+  "subject": "Prepare the 0.1.0a2 candidate: version, changelog, docs and inventory",
+  "tag": null,
+  "export": "git archive b898022 into an empty directory (no .git)"
+ },
+ "artifacts": [
+  {
+   "file": "neo4j_graph_loader-0.1.0a2-py3-none-any.whl",
+   "size": 659415,
+   "sha256": "88c5716d42cfda0be12fba1c6209a3139f9545be052d90292e810af3c0776c3c"
+  },
+  {
+   "file": "neo4j_graph_loader-0.1.0a2.tar.gz",
+   "size": 600975,
+   "sha256": "6bc737ae11bfea7403a822e52a106ba41e9cf44e52eb2d09ea0a13a1434f2c90"
+  }
+ ],
+ "provenance": "provenance.json",
+ "inventory": {
+  "path": "tests/inventory/test-inventory.json",
+  "sha256": "fe28ac3387440f261676cfa97d8248e7822a1aff1a729691f4d4e2c7fe24704f",
+  "test_ids": 5217,
+  "files": 182,
+  "artifact_contract_artifacts_note": "records the preparation build (wheel f47cf392\u2026, sdist ad10cede\u2026); the content of both builds is identical, only archive timestamps differ"
+ },
+ "images": {
+  "arm64": {
+   "manifest_file": "mac/images-arm64.json",
+   "manifest_sha256": "f5e71e25cd53be476cd68999ab1027839fc9eaf3202923598f80be53bd81742a",
+   "platform": "linux/arm64",
+   "base_image": {
+    "requested": "python:3.12-slim",
+    "resolved": "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30"
+   },
+   "dependency_source": "index-url",
+   "lock": {
+    "file": "py312-linux-arm64.txt",
+    "sha256": "c10f85aa449272e49b61e9ef62f3d4e0cd3681ff27fcbe6f72a482e928e00a77"
+   },
+   "dependency_artifacts": 18,
+   "debian_packages": {
+    "base-files": "13.8+deb13u7",
+    "tini": "0.19.0-3+b8"
+   },
+   "recipe": {
+    "version": 1,
+    "dockerfiles": {
+     "Dockerfile": "286eee9c2262270e605f541a1e859c64eacce7dcc51e391dfd1b21dff71072f2",
+     "Dockerfile.node_loader": "9aa76e203fc1560652b9d769eaee23525b13f7ac64e9412a7e5055ef7ab2925d",
+     "Dockerfile.edge_loader": "955045577c39284b6deb553c3a0c97d7016603ca571adc362665005a2cb95f05",
+     "Dockerfile.clock": "c3d2899c2aa2a6c1ba543ca997b26f5091b44dc80f9d749d0fa0b58a814974c3"
+    },
+    "install_helper_sha256": "4235e0ea0dd78624f87037ad9a9defc144fabdd70eb5cfac2354aa443ce4e3ea"
+   },
+   "images": {
+    "cli": {
+     "tag": "ghcr.io/neburyx/graph-loader-cli:0.1.0a2-rc1-arm64",
+     "id": "sha256:02d308d914d1f825ba28f95e41578f1da79fa7e3f844c8d38df6881b69bb4a34",
+     "archive": "graph-loader-cli-0.1.0a2-rc1-arm64.tar",
+     "archive_sha256": "e8cabc51a8eb2987937bc470855fb22635c16c4dfc78d41556ac73cabb549791",
+     "archive_size": 82465792,
+     "labels": {
+      "io.graph-loader.component": "cli",
+      "io.graph-loader.image-contract": "1",
+      "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+      "org.opencontainers.image.version": "0.1.0a2"
+     },
+     "entrypoint": [
+      "tini",
+      "--",
+      "python",
+      "-m",
+      "neo4j_graph_loader.cli"
+     ],
+     "in_image": {
+      "distribution_version": "0.1.0a2",
+      "package_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "GRAPH_LOADER_VERSION_env": null,
+      "python": "3.12.16",
+      "machine": "aarch64",
+      "payload_files": 117,
+      "payload_equal_to_frozen_wheel": true,
+      "pip_check": 0
+     }
+    },
+    "node": {
+     "tag": "ghcr.io/neburyx/graph-loader-node:0.1.0a2-rc1-arm64",
+     "id": "sha256:a4ff9c13d5c500aa4d9d9e6031c3bcfab931f5b2b5d17833b23df458aa2dd645",
+     "archive": "graph-loader-node-0.1.0a2-rc1-arm64.tar",
+     "archive_sha256": "62b20b1b03b644c278534ecec7ca0a0e73c624353fd775f1f22485ceeb9a4af1",
+     "archive_size": 82075648,
+     "labels": {
+      "io.graph-loader.component": "node",
+      "io.graph-loader.image-contract": "1",
+      "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+      "org.opencontainers.image.version": "0.1.0a2"
+     },
+     "entrypoint": [
+      "python",
+      "-m",
+      "neo4j_graph_loader.loader.node_loader"
+     ],
+     "in_image": {
+      "distribution_version": "0.1.0a2",
+      "package_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "GRAPH_LOADER_VERSION_env": null,
+      "python": "3.12.16",
+      "machine": "aarch64",
+      "payload_files": 117,
+      "payload_equal_to_frozen_wheel": true,
+      "pip_check": 0
+     }
+    },
+    "edge": {
+     "tag": "ghcr.io/neburyx/graph-loader-edge:0.1.0a2-rc1-arm64",
+     "id": "sha256:eeb413016e5d90a94ef121f9ccfad275d30b055493f5666ac6886ea857b0b605",
+     "archive": "graph-loader-edge-0.1.0a2-rc1-arm64.tar",
+     "archive_sha256": "2458a0ca1846b4d2f2af633400d82d2243accf2258fa826c9e0bf1d4419e5135",
+     "archive_size": 82075648,
+     "labels": {
+      "io.graph-loader.component": "edge",
+      "io.graph-loader.image-contract": "1",
+      "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+      "org.opencontainers.image.version": "0.1.0a2"
+     },
+     "entrypoint": [
+      "python",
+      "-m",
+      "neo4j_graph_loader.loader.edge_loader"
+     ],
+     "in_image": {
+      "distribution_version": "0.1.0a2",
+      "package_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "GRAPH_LOADER_VERSION_env": null,
+      "python": "3.12.16",
+      "machine": "aarch64",
+      "payload_files": 117,
+      "payload_equal_to_frozen_wheel": true,
+      "pip_check": 0
+     }
+    },
+    "clock": {
+     "tag": "ghcr.io/neburyx/graph-loader-clock:0.1.0a2-rc1-arm64",
+     "id": "sha256:408d3b16bcfde6c786efb29072f52ace0ec3d0efafe4843fd51b6e0d56f25396",
+     "archive": "graph-loader-clock-0.1.0a2-rc1-arm64.tar",
+     "archive_sha256": "d7295b71c49bbcedb8516cc4b6fae257767980ff35cad23dfb26def5eb7816a8",
+     "archive_size": 82070528,
+     "labels": {
+      "io.graph-loader.component": "clock",
+      "io.graph-loader.image-contract": "1",
+      "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+      "org.opencontainers.image.version": "0.1.0a2"
+     },
+     "entrypoint": [
+      "python",
+      "-m",
+      "neo4j_graph_loader.orchestrator.clock_runner"
+     ],
+     "in_image": {
+      "distribution_version": "0.1.0a2",
+      "package_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "GRAPH_LOADER_VERSION_env": null,
+      "python": "3.12.16",
+      "machine": "aarch64",
+      "payload_files": 117,
+      "payload_equal_to_frozen_wheel": true,
+      "pip_check": 0
+     }
+    }
+   }
+  },
+  "amd64": {
+   "manifest_file": "host/images.json",
+   "manifest_sha256": "7fb5397826aef172090ac01a7b95ac118eb468629314e14916f9f875f206d107",
+   "platform": "linux/amd64",
+   "base_image": {
+    "requested": "python:3.12-slim",
+    "resolved": "python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30"
+   },
+   "dependency_source": "index-url",
+   "lock": {
+    "file": "py312-linux-amd64.txt",
+    "sha256": "112cb6b21b12008f84db5e5cb43962a6cc364c25cb8c10511bea0e4e53ce7750"
+   },
+   "dependency_artifacts": 18,
+   "debian_packages": {
+    "base-files": "13.8+deb13u7",
+    "tini": "0.19.0-3+b8"
+   },
+   "recipe": {
+    "version": 1,
+    "dockerfiles": {
+     "Dockerfile": "286eee9c2262270e605f541a1e859c64eacce7dcc51e391dfd1b21dff71072f2",
+     "Dockerfile.node_loader": "9aa76e203fc1560652b9d769eaee23525b13f7ac64e9412a7e5055ef7ab2925d",
+     "Dockerfile.edge_loader": "955045577c39284b6deb553c3a0c97d7016603ca571adc362665005a2cb95f05",
+     "Dockerfile.clock": "c3d2899c2aa2a6c1ba543ca997b26f5091b44dc80f9d749d0fa0b58a814974c3"
+    },
+    "install_helper_sha256": "4235e0ea0dd78624f87037ad9a9defc144fabdd70eb5cfac2354aa443ce4e3ea"
+   },
+   "images": {
+    "cli": {
+     "tag": "ghcr.io/neburyx/graph-loader-cli:0.1.0a2-rc1-amd64",
+     "id": "sha256:872f00222c2209e6d779f40fb88f61f7055a7171e92c8852481aa65b1a1e2b5a",
+     "archive": "graph-loader-cli-0.1.0a2-rc1-amd64.tar",
+     "archive_sha256": "f0a6042fec69601f10c1ce353b122ca2c739dd389e81aa8d9b3274dbf93b347a",
+     "archive_size": 82812928,
+     "labels": {
+      "io.graph-loader.component": "cli",
+      "io.graph-loader.image-contract": "1",
+      "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+      "org.opencontainers.image.version": "0.1.0a2"
+     },
+     "entrypoint": [
+      "tini",
+      "--",
+      "python",
+      "-m",
+      "neo4j_graph_loader.cli"
+     ],
+     "in_image": {
+      "distribution_version": "0.1.0a2",
+      "package_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "GRAPH_LOADER_VERSION_env": null,
+      "python": "3.12.16",
+      "machine": "x86_64",
+      "payload_files": 117,
+      "payload_equal_to_frozen_wheel": true,
+      "pip_check": 0
+     }
+    },
+    "node": {
+     "tag": "ghcr.io/neburyx/graph-loader-node:0.1.0a2-rc1-amd64",
+     "id": "sha256:025acf8de83aad1e01510113391d7320ab0b4b8e0b0356e89a5b004ad5d25865",
+     "archive": "graph-loader-node-0.1.0a2-rc1-amd64.tar",
+     "archive_sha256": "b35fd974ba780d18ef924dfdb6afea8d76af723a042ea319d6306dd605e4c7ba",
+     "archive_size": 82388480,
+     "labels": {
+      "io.graph-loader.component": "node",
+      "io.graph-loader.image-contract": "1",
+      "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+      "org.opencontainers.image.version": "0.1.0a2"
+     },
+     "entrypoint": [
+      "python",
+      "-m",
+      "neo4j_graph_loader.loader.node_loader"
+     ],
+     "in_image": {
+      "distribution_version": "0.1.0a2",
+      "package_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "GRAPH_LOADER_VERSION_env": null,
+      "python": "3.12.16",
+      "machine": "x86_64",
+      "payload_files": 117,
+      "payload_equal_to_frozen_wheel": true,
+      "pip_check": 0
+     }
+    },
+    "edge": {
+     "tag": "ghcr.io/neburyx/graph-loader-edge:0.1.0a2-rc1-amd64",
+     "id": "sha256:52b4d9ebff60f46fcd2a8a0bbf70a77c7454a0d38e1a0b6d4e38b93cbe7ef68f",
+     "archive": "graph-loader-edge-0.1.0a2-rc1-amd64.tar",
+     "archive_sha256": "1d37bd3176c8fb867b7c75f1703c47d176c6aa63b05298916b06471b004b4923",
+     "archive_size": 82388480,
+     "labels": {
+      "io.graph-loader.component": "edge",
+      "io.graph-loader.image-contract": "1",
+      "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+      "org.opencontainers.image.version": "0.1.0a2"
+     },
+     "entrypoint": [
+      "python",
+      "-m",
+      "neo4j_graph_loader.loader.edge_loader"
+     ],
+     "in_image": {
+      "distribution_version": "0.1.0a2",
+      "package_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "GRAPH_LOADER_VERSION_env": null,
+      "python": "3.12.16",
+      "machine": "x86_64",
+      "payload_files": 117,
+      "payload_equal_to_frozen_wheel": true,
+      "pip_check": 0
+     }
+    },
+    "clock": {
+     "tag": "ghcr.io/neburyx/graph-loader-clock:0.1.0a2-rc1-amd64",
+     "id": "sha256:ee6a5b79914d4d717729936819e189ed17fe2dbe49e9b7fbd5e0dafa72a54f52",
+     "archive": "graph-loader-clock-0.1.0a2-rc1-amd64.tar",
+     "archive_sha256": "a936e7dad1952d590830d95a55ef975dac276550103928c6adfec0ffdb92b691",
+     "archive_size": 82383360,
+     "labels": {
+      "io.graph-loader.component": "clock",
+      "io.graph-loader.image-contract": "1",
+      "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+      "org.opencontainers.image.version": "0.1.0a2"
+     },
+     "entrypoint": [
+      "python",
+      "-m",
+      "neo4j_graph_loader.orchestrator.clock_runner"
+     ],
+     "in_image": {
+      "distribution_version": "0.1.0a2",
+      "package_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "GRAPH_LOADER_VERSION_env": null,
+      "python": "3.12.16",
+      "machine": "x86_64",
+      "payload_files": 117,
+      "payload_equal_to_frozen_wheel": true,
+      "pip_check": 0
+     }
+    }
+   }
+  }
+ },
+ "builder": "scripts/build_candidate_images.py --wheel <candidate wheel> --suffix rc1-<arch> (the code path of `graph-loader images build`); dependencies from the public index under the hashed lock (--require-hashes), tini from the base-image Debian archive; no registry digests (nothing pushed)",
+ "gates": {
+  "image_probe": {
+   "arm64": {
+    "result": "pass",
+    "file": "E11.F1.S3-a2-logs/mac/image-probe-arm64.json"
+   },
+   "amd64": {
+    "result": "pass",
+    "file": "E11.F1.S3-a2-logs/host/image-probe-amd64.json"
+   },
+   "checked": "per image: the 117 installed neo4j_graph_loader/** files equal the frozen wheel payload byte for byte; distribution version, package export and metrics process version all 0.1.0a2; the org.opencontainers.image.version, component and image-contract labels; pip check 0; --help exit 0 (cli also --version); Python 3.12.16, aarch64 / x86_64; offline, read-only root, no leftover container. GRAPH_LOADER_VERSION is not set in the images (it is a startup override only)."
+  },
+  "installed_unit_lanes_native": {
+   "arm64_macos": {
+    "environment": "Mac, macOS arm64, CPython 3.12.14, fresh venv from the candidate wheel",
+    "result": "7 of 8 lanes pass; orchestration-runtime refused by design on macOS",
+    "lanes": {
+     "core": "454 (453 passed, 1 allowed skip)",
+     "safety": "1335",
+     "cli-runtime": "636",
+     "public-contracts": "336",
+     "writer-runtime": "540",
+     "example-contracts": "54",
+     "service-helper-unit": "41",
+     "orchestration-runtime": "not runnable on macOS: the lane contains the Linux-only process-runtime tests, which skip on macOS, and the runner refuses any skip not in the lane's allowed list (it aborted at the first skip, exit 86, after 77 passed); the same lane passes on Linux arm64 in the E08 cells below (745 ids)"
+    },
+    "retained_red": "E11.F1.S3-a2-logs/mac/lane-orchestration-runtime.result.json"
+   },
+   "amd64_linux": {
+    "environment": "host, CPython 3.12.3, fresh venv from the candidate wheel",
+    "result": "pass (8 of 8)",
+    "lanes": {
+     "core": [
+      454,
+      "453 passed, 1 skipped (the allowed multi-pair example)"
+     ],
+     "safety": [
+      1335,
+      "1335 passed"
+     ],
+     "cli-runtime": [
+      636,
+      "636 passed"
+     ],
+     "public-contracts": [
+      336,
+      "336 passed"
+     ],
+     "writer-runtime": [
+      540,
+      "540 passed"
+     ],
+     "orchestration-runtime": [
+      745,
+      "742 passed, 3 skipped (the allowed jsonschema and SQLAlchemy cells)"
+     ],
+     "example-contracts": [
+      54,
+      "54 passed"
+     ],
+     "service-helper-unit": [
+      41,
+      "41 passed"
+     ]
+    },
+    "also": "the same eight lanes were run on the same wheel in E11.F1.S2 Part B (collect-only and executed)"
+   }
+  },
+  "e08_support_matrix_cells": {
+   "arm64": {
+    "environment": "Mac Docker Desktop, python:3.12-slim aarch64 container (CPython 3.12.16), offline, read-only root, uid 10001",
+    "result": "pass: minimum and current cells, bare probe + 8 lanes + public-contracts with --process-envelope, all exit 0",
+    "summary": "E11.F1.S3-a2-logs/matrix-arm64/summary.json"
+   },
+   "amd64": {
+    "environment": "host, Docker Engine 29.9.0, same container recipe",
+    "result": "RED in both cells, one id: public-contracts 335 passed, 1 failed (test_public_fault_reaps_every_child_and_releases_owned_resources[public-many-cancel], lateness 0.57 s against the 0.3 s bound); bare probe and the other seven lanes pass",
+    "status": "red, accepted by the user for this candidate as a test limit (see accepted_red_gates); the gate is NOT recorded as a pass",
+    "summary": "E11.F1.S3-a2-logs/host/matrix-amd64",
+    "log": "E11.F1.S3-a2-logs/host/matrix-amd64-minimum-public-contracts.pytest.log",
+    "process_envelope_amd64": {
+     "container_route": "not run (see gates.e08_process_envelope.amd64_container_route)",
+     "native": "pass 134/134 (gates.e08_process_envelope.amd64_native); not counted as covering the container cells"
+    }
+   }
+  },
+  "e09_service_harness_amd64": {
+   "images": {
+    "cli": "sha256:872f00222c2209e6d779f40fb88f61f7055a7171e92c8852481aa65b1a1e2b5a",
+    "node": "sha256:025acf8de83aad1e01510113391d7320ab0b4b8e0b0356e89a5b004ad5d25865",
+    "edge": "sha256:52b4d9ebff60f46fcd2a8a0bbf70a77c7454a0d38e1a0b6d4e38b93cbe7ef68f",
+    "clock": "sha256:ee6a5b79914d4d717729936819e189ed17fe2dbe49e9b7fbd5e0dafa72a54f52"
+   },
+   "stack": "owned Neo4j 5-enterprise (the host's existing image, 5.26 line) and cp-kafka:7.7.0 created and removed by the lane",
+   "runs": [
+    {
+     "run": 1,
+     "result": "RED: 149 passed, 1 failed in 1531 s",
+     "failed": "test_h5_neo4j_outage_and_termination_controls",
+     "cause": "environment prerequisite: the test starts an owned python:3.12-slim container and the host had no python image (docker.errors.ImageNotFound); the product and the images were not involved",
+     "retained": "E11.F1.S3-a2-logs/host/svc-run1"
+    },
+    {
+     "run": 2,
+     "result": "PASS: 150 passed in 1532 s",
+     "change": "python@sha256:b18b261e1b49\u2026 (the digest the images are built on) was pulled and tagged python:3.12-slim; no test, tool or product change",
+     "retained": "E11.F1.S3-a2-logs/host/svc-run2"
+    }
+   ],
+   "postflight": "runner foreign snapshots equal; no e09 container or volume left"
+  },
+  "arm64_real_load_smoke": {
+   "result": "pass",
+   "environment": "Mac, fresh venv with only the candidate wheel, owned Neo4j 5.26 Enterprise (neo4j@sha256:c07aabc5\u2026) and cp-kafka:7.7.0 containers, native arm64 images from this manifest",
+   "checks": "planned bulk default, 300 Person / 6 City / 12 Company, LIVES_IN 300, WORKS_AT 300, FRIEND_OF 600 (self reference), no duplicate relationships, sampled properties, node offsets at the ends, ledger present, no loader container left, password absent from the CLI output; the CLI logged the node and edge image ids of this manifest",
+   "files": [
+    "E11.F1.S3-a2-logs/mac/smoke-arm64.json",
+    "E11.F1.S3-a2-logs/mac/cli-output.log"
+   ],
+   "retained_red": "attempt 1 stopped before any load: e11_smoke.py copied the quoted values of image-overrides.sh (graph-loader-image-manifest/2 writes export NAME='value') into the environment and the CLI refused \"invalid node image reference\"; a tooling bug (the smoke parsed the old unquoted form), fixed with shlex in plan/library-implementation/tools/e11_smoke.py; images and product unchanged"
+  },
+  "e08_process_envelope": {
+   "amd64_native": {
+    "result": "pass",
+    "what": "the shipped runner, unchanged: verify_installed.py --lane public-contracts --process-envelope, on the host (Linux x86_64, CPython 3.12.3, fresh venv from the candidate wheel 88c5716d\u2026, inventory fe28ac33\u2026)",
+    "lane": "336 passed (public-contracts, exit 0)",
+    "envelope": "134 cases, all passed, complete: true, guard configuration restored",
+    "envelope_result_sha256": "529be0016c00bd94290d5bc51ce8e872bb7507428fdbc02d8e115c5267bb6ce5",
+    "seconds": 428.3,
+    "evidence": "E11.F1.S3-a2-logs/host/envelope-native/",
+    "scope": "a native amd64 envelope; it does NOT cover the amd64 container cells"
+   },
+   "amd64_container_route": {
+    "result": "not run",
+    "reason": "the runner executes the envelope only after a green public-contracts lane (pytest receipt without failure); the container-route lane has the accepted red (public-many-cancel), so the runner stops before the envelope. Reaching it would need that id's failure to be tolerated by a patched gate, which the orchestrator did not allow (the user accepted one test's failure, not a patched gate)."
+   },
+   "arm64_container_route": {
+    "result": "pass",
+    "what": "minimum and current cells, Docker Desktop aarch64 python:3.12-slim container, public-contracts with --process-envelope",
+    "cases": {
+     "minimum": "134 passed, complete",
+     "current": "134 passed, complete"
+    },
+    "evidence": "E11.F1.S3-a2-logs/matrix-arm64/envelope/"
+   }
+  }
+ },
+ "environment": {
+  "mac": {
+   "docker": "Docker Desktop 29.8.2 aarch64",
+   "df_before": [
+    "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE",
+    "Images          9         2         2.9GB     1.333GB (45%)",
+    "Containers      3         3         704.6MB   0B (0%)",
+    "Local Volumes   243       5         47.71GB   46.5GB (97%)",
+    "Build Cache     507       0         22.01GB   21.42GB"
+   ],
+   "df_after": [
+    "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE",
+    "Images          13        2         3.237GB   1.502GB (46%)",
+    "Containers      3         3         704.6MB   0B (0%)",
+    "Local Volumes   243       5         47.71GB   46.5GB (97%)",
+    "Build Cache     516       0         22.34GB   21.42GB"
+   ]
+  },
+  "host": {
+   "docker": "Docker Engine 29.9.0, kernel 7.0.0-38, x86_64",
+   "df_before": "Images 4 / 4.074GB; Containers 4; Local Volumes 7; Build Cache 0 / 0B",
+   "df_after": [
+    "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE",
+    "Images          8         4         4.595GB   173MB (3%)",
+    "Containers      4         1         602.9MB   602.9MB (99%)",
+    "Local Volumes   7         1         14.19GB   14.14GB (99%)",
+    "Build Cache     16        0         523.8MB   712.7kB"
+   ]
+  }
+ },
+ "retained_tags": {
+  "arm64 (Mac Docker Desktop)": [
+   "ghcr.io/neburyx/graph-loader-cli:0.1.0a2-rc1-arm64",
+   "ghcr.io/neburyx/graph-loader-node:0.1.0a2-rc1-arm64",
+   "ghcr.io/neburyx/graph-loader-edge:0.1.0a2-rc1-arm64",
+   "ghcr.io/neburyx/graph-loader-clock:0.1.0a2-rc1-arm64"
+  ],
+  "amd64 (host)": [
+   "ghcr.io/neburyx/graph-loader-cli:0.1.0a2-rc1-amd64",
+   "ghcr.io/neburyx/graph-loader-node:0.1.0a2-rc1-amd64",
+   "ghcr.io/neburyx/graph-loader-edge:0.1.0a2-rc1-amd64",
+   "ghcr.io/neburyx/graph-loader-clock:0.1.0a2-rc1-amd64"
+  ]
+ },
+ "not_done": [
+  "no docker push, no login, no twine, no tag, no export, no git push",
+  "no multi-arch manifest list (local, per-architecture tags only)",
+  "amd64 process envelope on the container route (the native amd64 envelope passed; see gates.e08_process_envelope)",
+  "service lanes on the arm64 images (the real-load smoke only, as the story requires)"
+ ],
+ "accepted_red_gates": [
+  {
+   "gate": "E08 support-matrix cells, amd64, container route: public-contracts",
+   "id": "tests/test_public_cleanup.py::test_public_fault_reaps_every_child_and_releases_owned_resources[public-many-cancel]",
+   "candidate": "0.1.0a2 (b8980220a117\u2026; wheel 88c5716d\u2026, sdist 6bc737ae\u2026)",
+   "observed": "AssertionError lateness 0.57 s against the 0.3 s bound, in the minimum and the current cell",
+   "decision": "red, accepted by the user for this candidate as a test limit; the test and its bound are not changed",
+   "user_question": "Do you accept this failure as a known test limit for this candidate, or should I investigate it first?",
+   "user_words": "Accept it",
+   "date": "2026-11-04",
+   "relayed_by": "orchestrator session",
+   "scope": "only this id, only the amd64 container route, only candidate 0.1.0a2",
+   "not_a_pass": true,
+   "logs": [
+    "E11.F1.S3-a2-logs/host/matrix-amd64",
+    "E11.F1.S3-a2-logs/host/matrix-amd64-minimum-public-contracts.pytest.log"
+   ]
+  }
+ ]
+}

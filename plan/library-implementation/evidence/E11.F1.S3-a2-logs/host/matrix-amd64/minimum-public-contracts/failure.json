@@ -1,0 +1,41 @@
+{
+  "status": "failed",
+  "error": "command failed; retained output: /work/out/minimum-public-contracts/installed.log",
+  "interruption": "RuntimeError",
+  "commands": [
+    {
+      "command": [
+        "/work/ctl-minimum/bin/python",
+        "-B",
+        "/work/out/minimum-bundle/scripts/verify_installed.py",
+        "--lane",
+        "public-contracts",
+        "--wheel",
+        "/work/out/minimum-bundle/neo4j_graph_loader-0.1.0a2-py3-none-any.whl",
+        "--inventory",
+        "/work/out/minimum-bundle/inventory.json",
+        "--constraints",
+        "/work/out/minimum-bundle/constraints.txt",
+        "--wheelhouse",
+        "/work/out/minimum-bundle/wheelhouse",
+        "--wheelhouse-manifest",
+        "/work/out/minimum-bundle/wheelhouse.json",
+        "--output",
+        "/work/out/minimum-public-contracts/installed",
+        "--timeout",
+        "1800",
+        "--process-envelope"
+      ],
+      "cwd": "/work/out/minimum-public-contracts",
+      "exit_code": 1,
+      "timeout": false,
+      "elapsed_seconds": 151.137902561999,
+      "log": "/work/out/minimum-public-contracts/installed.log",
+      "log_sha256": "b6435c035473cf328bd93895ecb3a4dcdb9069244af47ea9f40ba629d2b9ad03",
+      "owned_cleanup": {
+        "leftover_owned": [],
+        "cleanup_errors": []
+      }
+    }
+  ]
+}

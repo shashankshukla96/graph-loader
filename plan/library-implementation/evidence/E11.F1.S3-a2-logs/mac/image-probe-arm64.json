@@ -1,0 +1,257 @@
+{
+  "owner_label": "io.graph-loader.e11-owner=a2ddf32f47a7626e",
+  "version": "0.1.0a2",
+  "images": {
+    "cli": {
+      "id": "sha256:02d308d914d1f825ba28f95e41578f1da79fa7e3f844c8d38df6881b69bb4a34",
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "cli",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a2"
+      },
+      "entrypoint": [
+        "tini",
+        "--",
+        "python",
+        "-m",
+        "neo4j_graph_loader.cli"
+      ],
+      "probe_exit": 0,
+      "payload_equal_to_frozen_wheel": true,
+      "payload_only_in_image": [],
+      "payload_missing_in_image": [],
+      "payload_differing": [],
+      "payload_files": 117,
+      "version": "0.1.0a2",
+      "root_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "env_version": null,
+      "python": "3.12.16",
+      "machine": "aarch64",
+      "location": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader",
+      "pip_check": [
+        0,
+        "No broken requirements found."
+      ],
+      "distributions": [
+        "PyYAML==6.0.3",
+        "annotated-types==0.8.0",
+        "certifi==2026.10.23",
+        "charset-normalizer==3.5.2",
+        "confluent-kafka==2.16.1",
+        "docker==7.2.0",
+        "idna==3.20",
+        "neo4j-graph-loader==0.1.0a2",
+        "neo4j-rust-ext==6.4.1.0",
+        "neo4j==6.4.1",
+        "numpy==2.5.4",
+        "pip==25.0.1",
+        "prometheus_client==0.26.0",
+        "pydantic==2.14.2",
+        "pydantic_core==2.50.2",
+        "pytz==2026.6",
+        "requests==2.34.2",
+        "typing-inspection==0.4.4",
+        "typing_extensions==4.16.0",
+        "urllib3==2.8.0"
+      ],
+      "entrypoint--help": {
+        "exit": 0,
+        "stdout": "usage: graph-loader [-h] [--version] [--log-format {text,json}]\n                    {status-store,monitoring,images,schema-example,validate-schema,start,stop,status,replay-dlq}\n                    ...",
+        "stderr": ""
+      },
+      "entrypoint--version": {
+        "exit": 0,
+        "stdout": "graph-loader 0.1.0a2",
+        "stderr": ""
+      }
+    },
+    "node": {
+      "id": "sha256:a4ff9c13d5c500aa4d9d9e6031c3bcfab931f5b2b5d17833b23df458aa2dd645",
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "node",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a2"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.loader.node_loader"
+      ],
+      "probe_exit": 0,
+      "payload_equal_to_frozen_wheel": true,
+      "payload_only_in_image": [],
+      "payload_missing_in_image": [],
+      "payload_differing": [],
+      "payload_files": 117,
+      "version": "0.1.0a2",
+      "root_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "env_version": null,
+      "python": "3.12.16",
+      "machine": "aarch64",
+      "location": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader",
+      "pip_check": [
+        0,
+        "No broken requirements found."
+      ],
+      "distributions": [
+        "PyYAML==6.0.3",
+        "annotated-types==0.8.0",
+        "certifi==2026.10.23",
+        "charset-normalizer==3.5.2",
+        "confluent-kafka==2.16.1",
+        "docker==7.2.0",
+        "idna==3.20",
+        "neo4j-graph-loader==0.1.0a2",
+        "neo4j-rust-ext==6.4.1.0",
+        "neo4j==6.4.1",
+        "numpy==2.5.4",
+        "pip==25.0.1",
+        "prometheus_client==0.26.0",
+        "pydantic==2.14.2",
+        "pydantic_core==2.50.2",
+        "pytz==2026.6",
+        "requests==2.34.2",
+        "typing-inspection==0.4.4",
+        "typing_extensions==4.16.0",
+        "urllib3==2.8.0"
+      ],
+      "entrypoint--help": {
+        "exit": 0,
+        "stdout": "usage: node_loader.py [-h] [--config CONFIG] --node-label NODE_LABEL\n                      [--max-messages MAX_MESSAGES] [--mode {bulk,stream}]\n                      [--topic TOPIC] [--run-id RUN_ID]\n",
+        "stderr": ""
+      }
+    },
+    "edge": {
+      "id": "sha256:eeb413016e5d90a94ef121f9ccfad275d30b055493f5666ac6886ea857b0b605",
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "edge",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a2"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.loader.edge_loader"
+      ],
+      "probe_exit": 0,
+      "payload_equal_to_frozen_wheel": true,
+      "payload_only_in_image": [],
+      "payload_missing_in_image": [],
+      "payload_differing": [],
+      "payload_files": 117,
+      "version": "0.1.0a2",
+      "root_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "env_version": null,
+      "python": "3.12.16",
+      "machine": "aarch64",
+      "location": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader",
+      "pip_check": [
+        0,
+        "No broken requirements found."
+      ],
+      "distributions": [
+        "PyYAML==6.0.3",
+        "annotated-types==0.8.0",
+        "certifi==2026.10.23",
+        "charset-normalizer==3.5.2",
+        "confluent-kafka==2.16.1",
+        "docker==7.2.0",
+        "idna==3.20",
+        "neo4j-graph-loader==0.1.0a2",
+        "neo4j-rust-ext==6.4.1.0",
+        "neo4j==6.4.1",
+        "numpy==2.5.4",
+        "pip==25.0.1",
+        "prometheus_client==0.26.0",
+        "pydantic==2.14.2",
+        "pydantic_core==2.50.2",
+        "pytz==2026.6",
+        "requests==2.34.2",
+        "typing-inspection==0.4.4",
+        "typing_extensions==4.16.0",
+        "urllib3==2.8.0"
+      ],
+      "entrypoint--help": {
+        "exit": 0,
+        "stdout": "usage: edge_loader.py [-h] [--config CONFIG] --edge-type EDGE_TYPE\n                      [--topic TOPIC] [--topics TOPICS] [--mode {bulk,stream}]\n                      [--replica-id REPLICA_ID]\n      ",
+        "stderr": ""
+      }
+    },
+    "clock": {
+      "id": "sha256:408d3b16bcfde6c786efb29072f52ace0ec3d0efafe4843fd51b6e0d56f25396",
+      "platform": "linux/arm64",
+      "labels": {
+        "io.graph-loader.component": "clock",
+        "io.graph-loader.image-contract": "1",
+        "org.opencontainers.image.source": "https://github.com/Neburyx/graph-loader",
+        "org.opencontainers.image.version": "0.1.0a2"
+      },
+      "entrypoint": [
+        "python",
+        "-m",
+        "neo4j_graph_loader.orchestrator.clock_runner"
+      ],
+      "probe_exit": 0,
+      "payload_equal_to_frozen_wheel": true,
+      "payload_only_in_image": [],
+      "payload_missing_in_image": [],
+      "payload_differing": [],
+      "payload_files": 117,
+      "version": "0.1.0a2",
+      "root_export": "0.1.0a2",
+      "metrics_process_version": "0.1.0a2",
+      "env_version": null,
+      "python": "3.12.16",
+      "machine": "aarch64",
+      "location": "/usr/local/lib/python3.12/site-packages/neo4j_graph_loader",
+      "pip_check": [
+        0,
+        "No broken requirements found."
+      ],
+      "distributions": [
+        "PyYAML==6.0.3",
+        "annotated-types==0.8.0",
+        "certifi==2026.10.23",
+        "charset-normalizer==3.5.2",
+        "confluent-kafka==2.16.1",
+        "docker==7.2.0",
+        "idna==3.20",
+        "neo4j-graph-loader==0.1.0a2",
+        "neo4j-rust-ext==6.4.1.0",
+        "neo4j==6.4.1",
+        "numpy==2.5.4",
+        "pip==25.0.1",
+        "prometheus_client==0.26.0",
+        "pydantic==2.14.2",
+        "pydantic_core==2.50.2",
+        "pytz==2026.6",
+        "requests==2.34.2",
+        "typing-inspection==0.4.4",
+        "typing_extensions==4.16.0",
+        "urllib3==2.8.0"
+      ],
+      "entrypoint--help": {
+        "exit": 0,
+        "stdout": "usage: clock_runner.py [-h] --config CONFIG --run-id RUN_ID --fleet-edge-types\n                       FLEET_EDGE_TYPES --coordination-topic\n                       COORDINATION_TOPIC\n\nRun one shared re",
+        "stderr": ""
+      }
+    }
+  },
+  "created": [
+    "e1c0fbbbed8fa76fb370ba0550b02115e0ae89c196afffbe91a71804f9298155",
+    "1841f69dd548e84a5ef6b22d2fe945e750b9245058b49a95752f4e9a47a6b1a5",
+    "bf673b10ce611a4d64c47c8187b04b5cb2391a9318cc7155840b0ea253120d06",
+    "cb37a116453ee46def103bcbaa55499aabcb455b5dc7c1516919c527d6515032"
+  ],
+  "removed": [],
+  "leftover_containers": []
+}

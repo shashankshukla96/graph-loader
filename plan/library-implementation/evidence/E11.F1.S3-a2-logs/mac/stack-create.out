@@ -1,0 +1,41 @@
+{
+ "images": {
+  "kafka": "sha256:1fa3cdb3ef77b75bc56e7040bbdfa2bd6950b6ee6363381b2493f7a83e07a0b3",
+  "neo4j": "sha256:c07aabc5a52c7097bcdc3085cc22152b3804f86752aecac4d668f0ab177afe15"
+ },
+ "kafka_bootstrap_host": "127.0.0.1:59030",
+ "kafka_bootstrap_network": "e11-1f725775758266a5-kafka:9092",
+ "kafka_host_port": 59030,
+ "limits": {
+  "kafka": {
+   "heap": "512m-768m",
+   "mem": "1536m"
+  },
+  "neo4j": {
+   "cpus": 2,
+   "heap": "512M",
+   "mem": "2g",
+   "pagecache": "256M"
+  }
+ },
+ "names": {
+  "kafka": "e11-1f725775758266a5-kafka",
+  "kafka-data": "e11-1f725775758266a5-kafka-data",
+  "neo": "e11-1f725775758266a5-neo",
+  "neo-data": "e11-1f725775758266a5-neo-data",
+  "neo-logs": "e11-1f725775758266a5-neo-logs",
+  "net": "e11-1f725775758266a5-net"
+ },
+ "neo4j_bolt_port": 59031,
+ "neo4j_http_port": 59032,
+ "neo4j_settings": {
+  "db.logs.query.enabled": "VERBOSE",
+  "server.memory.heap.initial_size": "512.00MiB",
+  "server.memory.heap.max_size": "512.00MiB",
+  "server.memory.pagecache.size": "256.00MiB"
+ },
+ "neo4j_uri_host": "bolt://127.0.0.1:59031",
+ "neo4j_uri_network": "bolt://e11-1f725775758266a5-neo:7687",
+ "network": "e11-1f725775758266a5-net",
+ "token": "1f725775758266a5"
+}

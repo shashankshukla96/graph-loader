@@ -1,0 +1,112 @@
+{
+  "arch": "amd64",
+  "owner": "7e2c3216688dcd8f",
+  "image": "python:3.12-slim",
+  "cells": {
+    "minimum": {
+      "controller": {
+        "exit": 0,
+        "seconds": 7.6
+      },
+      "prepare": {
+        "exit": 0,
+        "seconds": 25.9
+      },
+      "bundle": {
+        "exit": 0,
+        "seconds": 1.7
+      },
+      "bare": {
+        "exit": 0,
+        "seconds": 34.4
+      },
+      "core": {
+        "exit": 0,
+        "seconds": 21.3
+      },
+      "safety": {
+        "exit": 0,
+        "seconds": 103.9
+      },
+      "cli-runtime": {
+        "exit": 0,
+        "seconds": 99.8
+      },
+      "public-contracts": {
+        "exit": 1,
+        "seconds": 152.1
+      },
+      "writer-runtime": {
+        "exit": 0,
+        "seconds": 55.6
+      },
+      "orchestration-runtime": {
+        "exit": 0,
+        "seconds": 146.7
+      },
+      "example-contracts": {
+        "exit": 0,
+        "seconds": 40.0
+      },
+      "service-helper-unit": {
+        "exit": 0,
+        "seconds": 11.8
+      }
+    },
+    "current": {
+      "controller": {
+        "exit": 0,
+        "seconds": 7.5
+      },
+      "prepare": {
+        "exit": 0,
+        "seconds": 18.7
+      },
+      "bundle": {
+        "exit": 0,
+        "seconds": 1.8
+      },
+      "bare": {
+        "exit": 0,
+        "seconds": 34.1
+      },
+      "core": {
+        "exit": 0,
+        "seconds": 21.3
+      },
+      "safety": {
+        "exit": 0,
+        "seconds": 104.4
+      },
+      "cli-runtime": {
+        "exit": 0,
+        "seconds": 100.2
+      },
+      "public-contracts": {
+        "exit": 1,
+        "seconds": 146.9
+      },
+      "writer-runtime": {
+        "exit": 0,
+        "seconds": 56.0
+      },
+      "orchestration-runtime": {
+        "exit": 0,
+        "seconds": 146.5
+      },
+      "example-contracts": {
+        "exit": 0,
+        "seconds": 39.5
+      },
+      "service-helper-unit": {
+        "exit": 0,
+        "seconds": 12.1
+      }
+    }
+  },
+  "export_bytes": 3746621440,
+  "removed_volumes": [
+    "e11-7e2c3216688dcd8f-matrix-amd64"
+  ],
+  "removed_leftover_containers": []
+}

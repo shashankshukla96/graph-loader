@@ -1,0 +1,3 @@
+{"runtime_pins_sha256": "ad8a934d2284ae0443a3b765b19f12d5683815417c53115a5462c335ecc3f4d5", "resolution_constraints_sha256": null, "resolution_sha256": "5730eb3ecac109b8f40d80651a3090f51ff76201216a593d6f65c9e35431b3d9", "status": "observed", "command": ["/work/export/scripts/support_matrix.py", "prepare", "--pins", "/work/export/config/support-matrix/minimum-runtime.txt", "--wheel", "/work/cand/neo4j_graph_loader-0.1.0a2-py3-none-any.whl", "--inventory", "/work/export/tests/inventory/test-inventory.json", "--output", "/work/out/minimum-prepare"]}
+
+--- stderr ---

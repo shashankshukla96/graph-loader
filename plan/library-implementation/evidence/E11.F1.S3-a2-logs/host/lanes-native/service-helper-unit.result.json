@@ -1,0 +1,212 @@
+{
+  "status": "passed",
+  "lane": "service-helper-unit",
+  "wheel": "/home/shashank/e19/a2s3-20261104a/inputs/neo4j_graph_loader-0.1.0a2-py3-none-any.whl",
+  "wheel_sha256": "88c5716d42cfda0be12fba1c6209a3139f9545be052d90292e810af3c0776c3c",
+  "inventory_sha256": "fe28ac3387440f261676cfa97d8248e7822a1aff1a729691f4d4e2c7fe24704f",
+  "stage_files": {
+    "config/graph_schema.yaml": "954ba4fc994cc1d16844a3cc29a1971a94042817c20f4a0a52f70e4ac932b747",
+    "examples/imdb/graph_schema.yaml": "82881e1ed4948259b2b802b6fb99f94ec4a743929b8cd61e6cbd87a70b5301bc",
+    "examples/multi_topic/graph_schema.yaml": "c28245ac17fdf77b6b700fdd816e084281e8612c57029145bbcfaf6962692c76",
+    "examples/multi_topic/graph_schema_dead_letter.yaml": "aed7dd979a6942ffd8e402372beab78851492720c91cd3652c274074d6bc4d3c",
+    "examples/multi_topic/graph_schema_multi_pair.yaml": "00397bb4705ff737be0f9196d791dad10d5725927971614ebc1c9746851b80b4",
+    "examples/social/graph_schema.yaml": "fd558b4bb65671b9cda6514280d23e37a93adebd04e240d938c36173d3f98c74",
+    "examples/social/social_graph.py": "efe01a2cc3262b358dfe061f7b4152faa9477e46bd4c63101c9afe5c40407bfc",
+    "tests/conftest.py": "e8c1246c63ba755c665f8b93e37d52ccddccde730b6e6361dcbdd36f580381dd",
+    "tests/golden/clock_rotation_schema.yaml": "a060e67741754711ec54a98e1fe2b4eb7f53e8f076288130007fe3aae1e6b90e",
+    "tests/golden/docker_parity_0.1.0a1.json": "45e24b79150fc66081325b47658018add9fddaca77be213b29a41bfa2dd20acb",
+    "tests/golden/docker_parity_0.1.0a2.json": "46eb08e6ba90907122d0cbd4ea43644eada774041ec5dc6163eb5dca2ef48d5a",
+    "tests/golden/fixtures/single_pair_multi_topic.yaml": "d6172d0714418f8bbdacb4b624899ed2feb49a833e3ba23cfe74a2f2191366fc",
+    "tests/golden/fixtures/single_topic_dlq.yaml": "b6c24fccec9c95b41846f8d63b613fab092020791af5d9125b09a6122abd3eea",
+    "tests/golden/multi_pair_plan.json": "9004cde860a76f4ab59e8e491adf254fa2e196d8a9620f68359dce81df4b91f4",
+    "tests/golden/single_pair_compat.json": "89782f69f4fa057116384d125e89a2d43c0726432027c5a212f2e8b418fa1b3f",
+    "tests/golden/single_pair_multi_topic_compat.json": "a5abaaf79f2c58eecd5fe0fa1b67da2cda2d838cba111b00322d3eed5ac77f91",
+    "tests/golden/single_topic_compat.json": "577792b6f0e72d7331f79ce75089f7a4d266331c181a00a841ea3f3ee9273ee6",
+    "tests/golden/text_logs_1211283.json": "36a120781a4e9aa4f6d4aaea8307312f5b36f83a26013bfd08dfc49e42bd4d4c",
+    "tests/integration/__init__.py": "b5b9f92bf90f3548c46cc7f61fefb27f97fb9a1efba9fc135db372a1c8e07247",
+    "tests/integration/test_edge_before_node_dlq.py": "dc1fe5ff9175cbdd3640b7907e1803ee8f6f7fcd9ec7dad847740e0c52127f85",
+    "tests/integration/test_relationship_correctness_regressions.py": "ae21cdbe75e7b58453cdde73c824ed8c273574ca07611ad6e77a9e63ec5762e8",
+    "tests/it_scratch_db.py": "3a91cfb867d1b85cd90b3c8e753ea0b50b9d3d751f3c3c25e374112685af38ed",
+    "tests/stress/__init__.py": "364de82abdcbf941ce6529811e3c1862b3bbaf53e4e4bf83a8f79cf54930bf2c",
+    "tests/stress/lock_wait.py": "c8d15f2edb5e7e9cd903e21c3a1c3f9892c7d31d10f62643a303910999bc800c",
+    "tests/stress/planned_harness.py": "a2024c5bfdaf554543002060f32d5ebee48a629a312cd61001c933e74f9430fe",
+    "tests/stress/star_topology_data.py": "bc2d175456abd7d80bd11b4abe69509113c60b980f66735286802b0e6101bdc6",
+    "tests/test_edge_before_node_dlq_probes.py": "46291a0a890d9e3c535e85f17884f73e0c91bf3bfd522daf8b7a0210798efdb7",
+    "tests/test_it_scratch_db.py": "091f42e1741374733b7ef6849a92d3a0972ea6cd6a81db395ed00cdac6a304ad",
+    "tests/test_lock_wait_helpers.py": "702f2b3b8db137b25719482808e0bfcdff603786fea749cbc0004d33ccec3084",
+    "tests/test_planned_harness.py": "e17f36164856935034531bd1acddde2cf1ef3271ac45edf2e33ffa5bfe896bb9",
+    "tests/test_self_reference_isolation_e2e.py": "3085b51db1421c8846559e8c3b9b52561d6adb50f9e8217295812d3e7e414a18"
+  },
+  "test_ids": [
+    "tests/integration/test_relationship_correctness_regressions.py::test_last_write_wins_evidence_is_real",
+    "tests/test_edge_before_node_dlq_probes.py::test_retry_consumer_available_true_for_the_real_module",
+    "tests/test_edge_before_node_dlq_probes.py::test_retry_consumer_available_false_when_find_spec_finds_nothing",
+    "tests/test_edge_before_node_dlq_probes.py::test_retry_consumer_available_true_once_the_module_exists",
+    "tests/test_edge_before_node_dlq_probes.py::test_retry_consumer_available_never_raises_even_if_find_spec_does",
+    "tests/test_it_scratch_db.py::test_forbidden_databases_are_refused[neo4j]",
+    "tests/test_it_scratch_db.py::test_forbidden_databases_are_refused[NEO4J]",
+    "tests/test_it_scratch_db.py::test_forbidden_databases_are_refused[latesttesttemp]",
+    "tests/test_it_scratch_db.py::test_forbidden_databases_are_refused[system]",
+    "tests/test_it_scratch_db.py::test_malformed_names_are_refused[]",
+    "tests/test_it_scratch_db.py::test_malformed_names_are_refused[1abc]",
+    "tests/test_it_scratch_db.py::test_malformed_names_are_refused[a-b]",
+    "tests/test_it_scratch_db.py::test_malformed_names_are_refused[a`b]",
+    "tests/test_it_scratch_db.py::test_malformed_names_are_refused[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]",
+    "tests/test_it_scratch_db.py::test_unset_variable_skips_with_a_clear_message",
+    "tests/test_it_scratch_db.py::test_it_database_fixture_exports_the_cli_database",
+    "tests/test_it_scratch_db.py::test_valid_name_is_returned",
+    "tests/test_it_scratch_db.py::test_no_password_skips_before_any_connection",
+    "tests/test_it_scratch_db.py::test_an_explicit_opt_in_without_a_password_fails_instead_of_skipping",
+    "tests/test_it_scratch_db.py::test_credentials_come_from_the_environment[env0-alice]",
+    "tests/test_it_scratch_db.py::test_credentials_come_from_the_environment[env1-bob]",
+    "tests/test_it_scratch_db.py::test_credentials_come_from_the_environment[env2-neo4j]",
+    "tests/test_it_scratch_db.py::test_alternative_variables_for_the_social_test",
+    "tests/test_lock_wait_helpers.py::test_total_lock_wait_ms_sums_every_match",
+    "tests/test_lock_wait_helpers.py::test_wait_regex_matches_the_real_log_shape_not_a_hypothetical_ms_suffix",
+    "tests/test_lock_wait_helpers.py::test_any_lock_wait_returns_first_nonzero_or_none",
+    "tests/test_lock_wait_helpers.py::test_assert_zero_lock_wait_passes_and_fails_correctly",
+    "tests/test_lock_wait_helpers.py::test_assert_zero_lock_wait_rejects_an_empty_or_query_free_log",
+    "tests/test_lock_wait_helpers.py::test_query_log_read_raises_on_nonzero_exit_code",
+    "tests/test_lock_wait_helpers.py::test_since_offset_windows_out_earlier_waits",
+    "tests/test_lock_wait_helpers.py::test_since_out_of_range_raises",
+    "tests/test_lock_wait_helpers.py::test_count_retry_log_lines_counts_real_retries_from_the_real_writer",
+    "tests/test_lock_wait_helpers.py::test_count_retry_log_lines_zero_when_no_retry_happened",
+    "tests/test_lock_wait_helpers.py::test_count_retry_log_lines_ignores_a_lookalike_message_from_another_logger",
+    "tests/test_lock_wait_helpers.py::test_assert_no_unhandled_deadlock_returns_the_attempt_count",
+    "tests/test_lock_wait_helpers.py::test_assert_no_unhandled_deadlock_reraises_unchanged_on_exhausted_retries",
+    "tests/test_lock_wait_helpers.py::test_assert_no_unhandled_deadlock_rejects_a_non_int_return",
+    "tests/test_lock_wait_helpers.py::test_try_scrape_metric_returns_none_when_nothing_listens",
+    "tests/test_lock_wait_helpers.py::test_try_scrape_metric_sums_matching_series_across_label_sets",
+    "tests/test_planned_harness.py::test_harness_never_imports_docker_service",
+    "tests/test_self_reference_isolation_e2e.py::test_self_reference_e2e_fixture_schema_is_valid"
+  ],
+  "python": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/environment/bin/python",
+  "work": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit",
+  "commands": [
+    {
+      "command": [
+        "/home/shashank/e19/a2s3-20261104a/ctl/bin/python",
+        "-I",
+        "-m",
+        "venv",
+        "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/environment"
+      ],
+      "cwd": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/stage",
+      "exit_code": 0,
+      "timeout": false,
+      "elapsed_seconds": 2.3198178929997084,
+      "log": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/venv.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "owned_cleanup": {
+        "leftover_owned": [],
+        "cleanup_errors": []
+      }
+    },
+    {
+      "command": [
+        "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/environment/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "/home/shashank/e19/a2s3-20261104a/inputs/neo4j_graph_loader-0.1.0a2-py3-none-any.whl",
+        "pytest==9.1.1",
+        "testcontainers[neo4j,kafka]>=4.8,<5",
+        "psutil>=6,<8"
+      ],
+      "cwd": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/stage",
+      "exit_code": 0,
+      "timeout": false,
+      "elapsed_seconds": 10.354105668999182,
+      "log": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/install.log",
+      "log_sha256": "92e619e4baf40c673dc7d64058537abfebd71fb5c977aa095b44f6787963e810",
+      "owned_cleanup": {
+        "leftover_owned": [],
+        "cleanup_errors": []
+      }
+    },
+    {
+      "command": [
+        "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/environment/bin/python",
+        "-I",
+        "-c",
+        "import sys,sysconfig;from pathlib import Path;m=sys.modules.get(\"sitecustomize\");assert m is not None and Path(m.__file__).resolve()==(Path(sysconfig.get_paths()[\"purelib\"])/\"sitecustomize.py\").resolve(),\"installed guard is not the active sitecustomize\""
+      ],
+      "cwd": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/stage",
+      "exit_code": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.11487191599917423,
+      "log": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/guard-probe.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "owned_cleanup": {
+        "leftover_owned": [],
+        "cleanup_errors": []
+      }
+    },
+    {
+      "command": [
+        "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/environment/bin/python",
+        "-I",
+        "-c",
+        "import json,sys\nfrom pathlib import Path\nimport pytest\nfrom e07_pytest import Receipt\nstage=Path(sys.argv[1]);sys.path[:0]=[str(stage),str(stage/'tests')]\ndata=json.loads(Path(sys.argv[2]).read_text())\nlane=data['lane'];collect=data['collect_only']\nplugin=Receipt(lane['test_ids'],lane.get('allowed_skips',{}),data['receipt'],collect,\n    full_expected=lane.get('collected_test_ids'),excluded=lane.get('excluded_test_ids',{}))\nargs=['-c',str(stage/'pytest.ini'),'--rootdir',str(stage),'--confcutdir',str(stage),'--import-mode=importlib','-q','-rs',*lane['current_test_files']]\nif collect:args.append('--collect-only')\nraise SystemExit(pytest.main(args,plugins=[plugin]))\n",
+        "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/stage",
+        "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/run.json"
+      ],
+      "cwd": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/stage",
+      "exit_code": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.9677217170010408,
+      "log": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/pytest.log",
+      "log_sha256": "2d96f6d73881616cc38031050479e118986f8db4d207a2aabbf955f80c9a86fe",
+      "owned_cleanup": {
+        "leftover_owned": [],
+        "cleanup_errors": []
+      }
+    },
+    {
+      "command": [
+        "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/environment/bin/python",
+        "-I",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "cwd": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/stage",
+      "exit_code": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.5659024130000034,
+      "log": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/pip-check.log",
+      "log_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+      "owned_cleanup": {
+        "leftover_owned": [],
+        "cleanup_errors": []
+      }
+    }
+  ],
+  "provenance_processes": [
+    361397,
+    361398
+  ],
+  "expected_python_children": [],
+  "runner_tools": {
+    "verify_installed.py": "057cc30cd956c686004cfdfed785ed15995fa847f4acce09a3d9f971ca7ab607",
+    "installed_guard.py": "f914e2712b1532f7d476d3689084a7649d549ef9f0553bc9dbec9f663f00fe28",
+    "installed_guard_load.py": "3aff5de4c6a84e53e72c21274c083fbb8215533f26825e45e08e0dac6c0e1768",
+    "installed_pytest.py": "38f1feb53fae9b0f552c24837c42c471140469f403795a4efbe4c000158cf62d",
+    "installed_dependencies.py": "11434237aec2be294787d7aca60cc66f5446487a775fb0c4d13386b52b52543e",
+    "service_lane.py": "4233311c36b0d39d5f859a3f765498cead0cd6062b1529b7782eb1439a8998ed"
+  },
+  "payload_members": 117,
+  "collect_only": false,
+  "generated_stage_files": {
+    "pytest.ini": "3a93ad39e59655f4418a084aebf63c0af52cecb28cac16153e928b7c1bcf2c0d",
+    "e07-stage-files.json": "1b9751f166e04227237431fa002552c1135b1d2fce95472669a804ce332931ec"
+  },
+  "distribution_files": {
+    "neo4j_graph_loader-0.1.0a2.dist-info/licenses/LICENSE": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+    "neo4j_graph_loader-0.1.0a2.dist-info/METADATA": "0c09e76cc1b85ea65f0d19ead730ea6bcc1adfb03a03f5b7b630b89a875f06ab",
+    "neo4j_graph_loader-0.1.0a2.dist-info/WHEEL": "98e75747d0b7c0c568bfb71263c3d8f970b3a374a6996087bc642be5cb09a1aa",
+    "neo4j_graph_loader-0.1.0a2.dist-info/entry_points.txt": "123e1d841afb138913dff6990f55a2d7e16ac9c055850df3edc0c638d348c806",
+    "neo4j_graph_loader-0.1.0a2.dist-info/top_level.txt": "0483b546775315a974b1439e714ba2f7b733e10fc2cd4f4fd0b72dace037ca5e",
+    "neo4j_graph_loader-0.1.0a2.dist-info/RECORD": "d85e18c62fc0f808547670a48bf20dbb584cafac2550af410aee170d8250fcfc"
+  }
+}

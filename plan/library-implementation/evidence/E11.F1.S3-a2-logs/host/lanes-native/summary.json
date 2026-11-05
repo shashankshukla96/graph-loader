@@ -1,0 +1,58 @@
+{
+  "core": {
+    "exit": 0,
+    "seconds": 23.0,
+    "status": "passed",
+    "result": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/core/result.json",
+    "test_ids": 454
+  },
+  "safety": {
+    "exit": 0,
+    "seconds": 99.0,
+    "status": "passed",
+    "result": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/safety/result.json",
+    "test_ids": 1335
+  },
+  "cli-runtime": {
+    "exit": 0,
+    "seconds": 101.7,
+    "status": "passed",
+    "result": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/cli-runtime/result.json",
+    "test_ids": 636
+  },
+  "public-contracts": {
+    "exit": 0,
+    "seconds": 80.6,
+    "status": "passed",
+    "result": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/public-contracts/result.json",
+    "test_ids": 336
+  },
+  "writer-runtime": {
+    "exit": 0,
+    "seconds": 57.3,
+    "status": "passed",
+    "result": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/writer-runtime/result.json",
+    "test_ids": 540
+  },
+  "orchestration-runtime": {
+    "exit": 0,
+    "seconds": 113.9,
+    "status": "passed",
+    "result": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/orchestration-runtime/result.json",
+    "test_ids": 745
+  },
+  "example-contracts": {
+    "exit": 0,
+    "seconds": 32.7,
+    "status": "passed",
+    "result": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/example-contracts/result.json",
+    "test_ids": 54
+  },
+  "service-helper-unit": {
+    "exit": 0,
+    "seconds": 14.5,
+    "status": "passed",
+    "result": "/home/shashank/e19/a2s3-20261104a/out/lanes-native/service-helper-unit/result.json",
+    "test_ids": 41
+  }
+}
