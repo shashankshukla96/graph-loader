@@ -1,5 +1,0 @@
-cli registry:5000/auth-control/graph-loader-cli:0.1.0a1 sha256:72ddbbf53a3b0d7e234f2e07ef678fa1061a06af6f35678f11b28b4304e95d9b
-node registry:5000/auth-control/graph-loader-node:0.1.0a1 sha256:f36bd69b754c78ee45f041d7e2cf105fd2e5b62b0a3cbde567deb7656ef018d3
-edge registry:5000/auth-control/graph-loader-edge:0.1.0a1 sha256:aa6f17b79ce9c931e7cb879f9d31fbe0eb806941913c6ddf48e7c55d926960bf
-clock registry:5000/auth-control/graph-loader-clock:0.1.0a1 sha256:fd5d96c23273f9375204f89ef3ed2d9a5ecb05ef04b937505b01b1ca52f481d5
-INFO: stage=images reason=built 4 image(s) for 0.1.0a1 on linux/amd64

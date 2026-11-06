@@ -1,7 +1,0 @@
-GREEN real amd64 wheelhouse (host-prepared)
-RED   missing wheel (numpy removed, no fallback) -> wheelhouse is missing numpy==2.5.4
-RED   wrong-platform wheel (real aarch64 numpy in an amd64 wheelhouse) -> numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl is not a CPython 3.12 wheel for linux/amd
-RED   aarch64 bytes disguised under the amd64 file name -> numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl does not match any hash in the lock
-RED   sdist present -> wheelhouse holds files the lock does not name: pkg-1.0.tar.gz
-RED   wheel content changed (same name) -> idna-3.20-py3-none-any.whl does not match any hash in the lock
-RED   amd64 wheelhouse checked against the arm64 lock -> charset_normalizer-3.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl is not a 

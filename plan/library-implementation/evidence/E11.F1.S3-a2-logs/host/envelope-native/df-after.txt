@@ -1,4 +1,0 @@
-Images          8         4         4.595GB   173MB (3%)
-Containers      4         4         603MB     0B (0%)
-Local Volumes   7         1         14.19GB   14.14GB (99%)
-Build Cache     16        0         523.8MB   712.7kB

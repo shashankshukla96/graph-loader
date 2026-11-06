@@ -1,4 +1,0 @@
-Collecting certifi>=2023.5.7 (from requests>=2.26.0->docker<8,>=7.1.0->neo4j-graph-loader==0.1.0a1)
-  Downloading https://pypi:8443/packages/certifi-2026.10.23-py3-none-any.whl (135 kB)
-Installing collected packages: pytz, urllib3, typing-extensions, PyYAML, prometheus-client, numpy, neo4j, idna, confluent-kafka, charset_normalizer, certifi, annotated-types, typing-inspection, requests, pydantic-core, neo4j-rust-ext, pydantic, docker, neo4j-graph-loader
-Successfully installed PyYAML-6.0.3 annotated-types-0.8.0 certifi-2026.10.23 charset_normalizer-3.5.2 confluent-kafka-2.16.1 docker-7.2.0 idna-3.20 neo4j-6.4.1 neo4j-graph-loader-0.1.0a1 neo4j-rust-ext-6.4.1.0 numpy-2.5.4 prometheus-client-0.26.0 pydantic-2.14.2 pydantic-core-2.50.2 pytz-2026.6 requests-2.34.2 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0

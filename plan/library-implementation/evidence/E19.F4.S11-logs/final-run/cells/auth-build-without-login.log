@@ -1,1 +1,0 @@
-ERROR: stage=images reason=cannot resolve the base image to a digest; check the name and the registry login

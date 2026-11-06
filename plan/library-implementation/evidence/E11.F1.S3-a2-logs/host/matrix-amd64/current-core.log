@@ -1,3 +1,0 @@
-{"execution_mode": "native", "architecture": "amd64", "python": "3.12.16 (main, Oct 28 2026, 02:01:20) [GCC 14.2.0]", "platform": "Linux-7.0.0-42-generic-x86_64-with-glibc2.41", "machine": "x86_64", "bundle_manifest_sha256": "c2f588ab6614fd116393f455716a5fab598deba47c225e0fc70187a5c7321c30", "release_acceptance": false, "status": "observed", "command": ["/work/out/current-bundle/scripts/support_matrix.py", "observe", "--bundle", "/work/out/current-bundle", "--architecture", "amd64", "--execution-mode", "native", "--output", "/work/out/current-core", "--lane", "core"]}
-
---- stderr ---

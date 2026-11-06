@@ -1,9 +1,0 @@
-{
-  "archive": "/Users/shashank/Desktop/Code/Graph/graph-loader/var/e08-validation-20261026/e08-native-runner-inputs-20261027.tar.gz",
-  "sha256": "f48972d64aa81169f7204f117e28f5dcdeae3a36259f02ddd69ee67abffc9ea0",
-  "size": 1559506,
-  "bundle_manifest_sha256": "d15165c40aa5f9d0c87ec64feebb270cf298e9f8f23ea0f5dbcdf9da6dc23273",
-  "members": 156,
-  "purpose": "finite preparation inputs; no native amd64 execution or architecture wheel proof",
-  "native_amd64": "open by explicit user direction"
-}

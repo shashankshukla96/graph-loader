@@ -1,5 +1,0 @@
-
---- stderr ---
-
-[notice] A new release of pip is available: 25.0.1 -> 26.3
-[notice] To update, run: python -m pip install --upgrade pip

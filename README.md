@@ -1,11 +1,11 @@
 # Neo4j Distributed Graph Loader
 
-**Status: alpha (`0.1.0a2`).** Install the package with
-`python -m pip install "neo4j-graph-loader==0.1.0a2"` (CPython 3.12; `pip` does not
-install or start Neo4j, Kafka or Docker) and follow the
-[quick start for the installed package](docs/QUICKSTART.md). What is supported and
-what is not is in [Support and limits](#support-and-limits). The walk-through below
-and the Development section are for working in a source checkout: see the
+**Status: alpha (`0.1.0a2`), not published.** The package is not on PyPI and the images
+are not on `ghcr.io`, so `pip install neo4j-graph-loader` and the default image pulls do
+not work yet. [Build the package and the images yourself](#build-and-run-locally) from
+this repository (CPython 3.12; Neo4j and Kafka are yours to run, and the local stack below
+starts both). What is supported and what is not is in [Support and limits](#support-and-limits).
+The walk-through below runs a complete load from a source checkout; see the
 [development guide](docs/DISTRIBUTION_DEVELOPMENT.md) first. Other ways to run and operate it: [process runtime](docs/PROCESS_RUNTIME.md) (no Docker), [single container](docs/SINGLE_CONTAINER.md), [run status stores](docs/STATUS_SQL.md), [monitoring](docs/MONITORING.md) and [restricted networks](docs/RESTRICTED_NETWORKS.md).
 
 graph-loader loads data from Kafka topics into a Neo4j graph. You describe the
@@ -30,7 +30,7 @@ are required.
 
 | Document | Read it to |
 | --- | --- |
-| [Quick start (installed package)](docs/QUICKSTART.md) | Install with pip, validate a schema, plan relationships into Kafka. |
+| [Quick start (installed package)](docs/QUICKSTART.md) | Validate a schema and plan relationships into Kafka with an installed package. Until one is published, install the wheel you [built locally](#build-and-run-locally). |
 | [Bulk load guide](docs/BULK_LOAD.md) | Run an initial load: prerequisites, producer contract, every `start --mode bulk` flag, the edge modes, tuning, verification, recovery, a worked example. |
 | [Incremental load guide](docs/INCREMENTAL_LOAD.md) | Load repeatedly: repeated bulk batches versus continuous streaming, ordering, DLQ, restart. |
 | [Loading from a relational database](docs/RELATIONAL_SOURCES.md) | Put graph-loader behind Oracle, SQL Server or PostgreSQL: modeling tables, shaping rows into records, producers, bulk then CDC, deletes. |
@@ -54,18 +54,18 @@ this repository, using a source checkout (it needs `docker-compose.yaml`,
 `scripts/start_dev.sh` and `make build-images`, none of which ship in the pip
 package). Installed-package users start with the [quick start](docs/QUICKSTART.md).
 
-Prerequisites: Docker with Compose v2 and Python 3.12. The bundled Compose
-file pins Neo4j to CPUs `0-7` (8 GB heap, 12 GB page cache) and Kafka to CPUs
-`8-11`, and keeps the data under `GRAPH_LOADER_DATA_DIR` (default
-`/mnt/graph-loader/data`). On a smaller machine set `NEO4J_CPUSET`,
-`KAFKA_CPUSET`, `NEO4J_HEAP_SIZE`, `NEO4J_PAGECACHE_SIZE` and
-`GRAPH_LOADER_DATA_DIR` in `.env` first
-([USAGE section 2](docs/USAGE.md#2-requirements-and-environment) lists them).
+Prerequisites: Docker with Compose v2 and Buildx, and Python 3.12. `.env.example` starts
+Neo4j with a 1 GB heap and a 1 GB page cache, pins no CPUs and keeps the data in `./var/data`.
+Change `NEO4J_HEAP_SIZE`, `NEO4J_PAGECACHE_SIZE`, `NEO4J_CPUSET`, `KAFKA_CPUSET` and
+`GRAPH_LOADER_DATA_DIR` in `.env` to suit your machine
+([USAGE section 2](docs/USAGE.md#2-requirements-and-environment) lists them). **On macOS**,
+also set `KAFKA_EXTERNAL_HOST=127.0.0.1` in `.env` and use `127.0.0.1:9092` wherever these
+steps say `localhost:9092`: Docker Desktop does not publish the port on IPv6.
 
 **1. Install and start the local stack** (Neo4j Enterprise 5 and Kafka):
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/pip install -e .
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-build.txt && .venv/bin/pip install -e .
 export PATH="$PWD/.venv/bin:$PATH"
 cp .env.example .env        # set NEO4J_PASSWORD; set GRAPH_LOADER_DATA_DIR to a writable directory
 bash scripts/start_dev.sh   # waits until Neo4j and Kafka are healthy
@@ -186,6 +186,60 @@ verifies a synthetic graph of any size.
 Stop the local stack with `docker compose down`. Its data lives in
 `GRAPH_LOADER_DATA_DIR` (bind mounts), so `down -v` does not delete it; remove
 that directory to start from an empty database and empty topics.
+
+## Build and run locally
+
+No release is needed: you can build everything from this repository and run it on your
+own machine. You need Python 3.12 and, for the images, Docker with Buildx. These commands
+were run from a clean copy of the repository on macOS arm64, up to a finished bulk load.
+
+**1. Build and install the package.**
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements-build.txt
+.venv/bin/python -m build                       # writes the wheel and sdist to dist/
+.venv/bin/pip install dist/neo4j_graph_loader-*.whl
+export PATH="$PWD/.venv/bin:$PATH"
+graph-loader --version
+```
+
+Wherever a guide says `pip install neo4j-graph-loader`, install this wheel instead.
+
+**2. Build the images.** This builds `graph-loader-cli`, `-node`, `-edge` and `-clock` for
+your machine's architecture from the wheel you just built, with the dependency versions
+locked in the package. It pushes nothing. The name after `--registry` is only a prefix for
+the local tags:
+
+```bash
+graph-loader images build --registry local/graph-loader \
+  --pip-index-url https://pypi.org/simple \
+  --package-wheel dist/neo4j_graph_loader-*-py3-none-any.whl \
+  --output var/local-images
+export GRAPH_LOADER_IMAGE_REGISTRY=local/graph-loader
+```
+
+Keep that `export` in the shell that runs `graph-loader start`. Without it the command looks
+for `ghcr.io/neburyx` images, which are not published. To use your own PyPI mirror, base
+image, Debian mirror or no network at all, see
+[restricted networks](docs/RESTRICTED_NETWORKS.md).
+
+If you work from an editable install, as the walk-through above does,
+`make build-images CANDIDATE_SUFFIX=<new name>` does the same job (it builds its own wheel).
+Then run `. var/candidate-images-<new name>/image-overrides.sh` instead of the `export`.
+
+**3. Run a load.** Start Neo4j and Kafka with steps 1 and 2 of the
+[walk-through](#full-load-walk-through-from-a-checkout-about-5-minutes), skipping its
+`pip install` line, then follow steps 3 to 6. `graph-loader start` launches one container per
+role from your images and removes them when the load ends. Stop the stack with
+`docker compose down`.
+
+**Without images (Linux only).** `--runtime process` runs every role as a child process of
+the command, so step 2 and Docker are not needed. It needs Linux 5.3 or newer and your own
+Neo4j and Kafka; see [process runtime](docs/PROCESS_RUNTIME.md). On macOS it stops with an
+error, and macOS stays a place to try small loads rather than a
+[supported platform](#support-and-limits). To run everything in one container instead, see
+[single container](docs/SINGLE_CONTAINER.md).
 
 ## The input contract
 

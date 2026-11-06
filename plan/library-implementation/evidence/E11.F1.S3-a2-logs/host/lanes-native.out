@@ -1,9 +1,0 @@
-core passed 454 23.0
-safety passed 1335 99.0
-cli-runtime passed 636 101.7
-public-contracts passed 336 80.6
-writer-runtime passed 540 57.3
-orchestration-runtime passed 745 113.9
-example-contracts passed 54 32.7
-service-helper-unit passed 41 14.5
-exit 0

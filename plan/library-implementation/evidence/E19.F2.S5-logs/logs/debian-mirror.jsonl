@@ -1,5 +1,0 @@
-{"t": 1793766088.331, "method": "GET", "path": "/debian/dists/trixie/InRelease", "upstream": "https://deb.debian.org"}
-{"t": 1793766088.508, "method": "GET", "path": "/debian/dists/trixie-updates/InRelease", "upstream": "https://deb.debian.org"}
-{"t": 1793766088.622, "method": "GET", "path": "/debian/dists/trixie/main/binary-arm64/by-hash/SHA256/be16b37b2f740f066ea93d35d56f04f94d63693e5a3eb421b052bf86fae75bcd", "upstream": "https://deb.debian.org"}
-{"t": 1793766089.01, "method": "GET", "path": "/debian/dists/trixie-updates/main/binary-arm64/by-hash/SHA256/7b52592d46eb9bf694ffd99b90fb521064a6bfd1d0a9f69f22cabf31cb7ea38e", "upstream": "https://deb.debian.org"}
-{"t": 1793766090.106, "method": "GET", "path": "/debian/pool/main/t/tini/tini_0.19.0-3%2bb8_arm64.deb", "upstream": "https://deb.debian.org"}

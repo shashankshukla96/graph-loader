@@ -1,3 +1,0 @@
-{"bundle_manifest_sha256": "2c0c3c39f95543a58cb9d73e342b9b6b5cc0a5846edea1507dad1bb95c8500bc", "members": 213, "status": "observed", "command": ["/work/export/scripts/support_matrix.py", "bundle", "--wheel", "/work/cand/neo4j_graph_loader-0.1.0a2-py3-none-any.whl", "--inventory", "/work/export/tests/inventory/test-inventory.json", "--constraints", "/work/out/minimum-prepare/constraints.txt", "--wheelhouse", "/work/out/minimum-prepare/wheelhouse", "--wheelhouse-manifest", "/work/out/minimum-prepare/wheelhouse.json", "--output", "/work/out/minimum-bundle"]}
-
---- stderr ---

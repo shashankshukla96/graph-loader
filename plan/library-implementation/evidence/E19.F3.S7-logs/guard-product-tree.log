@@ -1,3 +1,0 @@
-guard: tree <scratch>/s7/tree
-PASS
-(documented default changeme excluded from the secret set; the Docker config holds no secret values)

@@ -1,8 +1,0 @@
-GREEN validate_images on the four live candidates: {'cli': 'sha256:70553263c7b2', 'node': 'sha256:c43c16e40828', 'edge': 'sha256:97344bb77fb3', 'clock': 'sha256:620920adb3c1'}
-GREEN preflight_service_images: ['cli', 'clock', 'edge', 'node'] bound to wheel 495d8f8f7eda
-RED   substituted wheel of the same version (manifest names the original) -> the images were built from a different wheel than the one under test
-RED   changed Dockerfile in the wheel (manifest names that wheel; the recorded recipe/lock no longer matches) -> the image build recipe differs from the one in the wheel
-RED   changed install helper in the wheel (manifest names that wheel; the recorded recipe/lock no longer matches) -> the image build recipe differs from the one in the wheel
-RED   changed dependency lock in the wheel (manifest names that wheel; the recorded recipe/lock no longer matches) -> the image dependencies differ from the lock in the wheel
-RED   manifest dependency artifacts differ from the lock -> the image dependencies differ from the lock in the wheel
-RED   the runner's frozen payload differs from the wheel's build files -> the image build files of the wheel differ from its frozen payload
